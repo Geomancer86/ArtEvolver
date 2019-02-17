@@ -374,14 +374,24 @@ public class ImageEvolver {
 	}
 
 	/**
+	 * Extracted Objects to avoid creation during cycles
+	 */
+	
+	static BufferedImage imgParentA;
+	static BufferedImage imgChildA;
+	static Graphics g;
+	static TriangleList <Triangle> parentA;
+	static TriangleList <Triangle> parentB;
+	static TriangleList <Triangle> childA;
+	
+	/**
 	 * Initial Random Population:
 	 * 	- order by score
 	 * 	- get top 10%
 	 * 	- mix and mutate
 	 * 	
 	 */
-	public void evolve(long start) {
-		int iterations = 16;
+	public void evolve(long start, int iterations) {
 		
 		for (int a = 0; a < iterations; a++){
 			
@@ -393,22 +403,23 @@ public class ImageEvolver {
 				rollB = roll(pop.size());
 			}
 			
-			TriangleList <Triangle> parentA = pop.get(rollA);
-			TriangleList <Triangle> parentB = pop.get(rollB);
+			parentA = pop.get(rollA);
+			parentB = pop.get(rollB);
 			
-			TriangleList <Triangle> childA = crossOver.getChild(parentA, parentB);
+			childA = crossOver.getChild(parentA, parentB);
 
 			int imgWidth = 385 - 140;
         	int imgHeight = 167;
         	
-        	BufferedImage imgParentA = null;
-        	Graphics g = null;
+        	imgParentA = null;
+        	g = null;
         	double scoreA = 0d;
 
         	if (parentA.getScore() <= 0d){
         		imgParentA = new BufferedImage(imgWidth, imgHeight, 1); 
     			g = imgParentA.getGraphics();
     			
+    			// Iterator parentA
     			for (Triangle triangle : parentA) {
     				if (triangle.getColor() != null) {
     					g.setColor(triangle.getColor());
@@ -426,9 +437,10 @@ public class ImageEvolver {
         		scoreA = parentA.getScore();
         	}
 
-			BufferedImage imgChildA = new BufferedImage(imgWidth, imgHeight, 1); 
+			imgChildA = new BufferedImage(imgWidth, imgHeight, 1); 
 			g = imgChildA.getGraphics();
 			
+			// Iterator childA
 			for (Triangle triangle : childA) {
 				if (triangle.getColor() != null) {
 					g.setColor(triangle.getColor());
@@ -468,10 +480,11 @@ public class ImageEvolver {
 			}
 			
 			totalIterations++;
-			
-			long now = System.currentTimeMillis();
-			
+
 			if (totalIterations % 1000 == 0){
+				
+				long now = System.currentTimeMillis();
+				
 				System.out.println("i: " + totalIterations
 								 + " - p: " + pop.size()
 								 + " - jump: " + randomJumpDistance
@@ -479,7 +492,6 @@ public class ImageEvolver {
 								 + " - best: " + bestScore
 								 + " - total time: " + ((float) (now - start) / 1000f) + " seconds");
 			}
-
 		}
 	}
 }

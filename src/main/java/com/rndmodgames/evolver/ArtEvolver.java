@@ -42,6 +42,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	static final int CROSSOVER_MAX 				= 1;
 	static final int TOTAL_PALLETES             = 1;
 	
+	static final int EVOLVE_ITERATIONS          = 16;
 	static final int MAX_ITERATIONS             = 10000000;
 	
 	ImageEvolver evolver;
@@ -60,6 +61,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private BufferedImage originalImage;
 	private BufferedImage resizedOriginal;
 	
+	long start;
 	long totalIterations = 0L;
 	long goodIterations = 0L;
 	double currentScore = 0.0d;
@@ -77,14 +79,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         mainFrame.setResizable(false);
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
-        long start = System.currentTimeMillis();
-        
         // init timer
         processTimer = new Timer(1, new ActionListener() {
-            @Override
+
+			@Override
             public void actionPerformed(ActionEvent e) {
 
-            	evolver.evolve(start);
+            	evolver.evolve(start, EVOLVE_ITERATIONS);
             	
             	if (evolver.isDirty()){
 	            	// draw bestImage to panel
@@ -198,6 +199,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     }
 
     public void start(){
+    	start = System.currentTimeMillis();
     	processTimer.start();
     }
     

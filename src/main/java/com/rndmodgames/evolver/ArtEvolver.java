@@ -1,6 +1,9 @@
 package com.rndmodgames.evolver;
 
+import java.awt.BorderLayout;
+import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -26,7 +29,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private static final long serialVersionUID = 6291204469421642923L;
 	
 	private JFrame mainFrame;
-	private JPanel p;
+	private JPanel panel;
 	private Pallete pallete;
 
 	float width = 5.1f;
@@ -37,7 +40,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	int heightTriangles = 44; // 44
 	
 	// ImageEvolver
-	static final int POPULATION 				= 64; // 2-4092
+	static final int POPULATION 				= 2; // 2-4092
 	static final int RANDOM_JUMP_MAX_DISTANCE	= 1;
 	static final int CROSSOVER_MAX 				= 1;
 	static final int TOTAL_PALLETES             = 1;
@@ -76,7 +79,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     
 	private void initComponents() {
         mainFrame = this;
-        mainFrame.setResizable(false);
+//        mainFrame.setResizable(false);
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         // init timer
@@ -89,7 +92,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	
             	if (evolver.isDirty()){
 	            	// draw bestImage to panel
-	            	p.getGraphics().drawImage(evolver.getBestImage(), 0, 0, null);
+	            	panel.getGraphics().drawImage(evolver.getBestImage(), 0, 0, null);
 	            	evolver.setDirty(false);
             	}
             	
@@ -103,56 +106,68 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             }
         });
 
-        int offsetX = 248;
-        int offsetY = 167;
         
-        p = new JPanel() {
-			private static final long serialVersionUID = -4992430268801679523L;
+//        JFrame frame = new JFrame("BorderLayoutDemo - Beginnersbook.com");
+//        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        Container container = getContentPane();
 
-			@Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-            }
+        /* Creating and adding 5 buttons to the each area of Border
+         * Layout. Button names are intentionally kept same as 
+         * area names for better understanding, they can have any names.
+         */
+//        container.add(new JButton("PAGE_START"), BorderLayout.PAGE_START);
+//        container.add(new JButton("PAGE_END"), BorderLayout.PAGE_END);
+//        container.add(new JButton("LINE_START"), BorderLayout.LINE_START);
+        container.add(new JButton("LINE_END"), BorderLayout.LINE_END);
+        container.add(new JButton("CENTER"), BorderLayout.CENTER);
+        
+//        int offsetX = 248;
+//        int offsetY = 167;
+//        
+//        int offset
 
-            @Override
-            public Dimension getPreferredSize() {
-                return new Dimension(offsetX + 138, offsetY);
-            }
-        };
-
-        JButton button = new JButton("Load");
-		button.setBounds(offsetX, 16, 134, 28);
-		button.addActionListener(this);
-		
-		add(button);
-		
-		button = new JButton("Start");
-		button.setBounds(offsetX, 54, 134, 28);
-		button.addActionListener(this);
-		
-		add(button);
-		
-		button = new JButton("Stop");
-		button.setBounds(offsetX, 92, 134, 28);
-		button.addActionListener(this);
-		
-		add(button);
-		
-		lblScore = new JLabel("S: 0.0");
-		lblScore.setBounds(offsetX, 120, 134, 30);
-		add(lblScore);
-		
-		lblIterations = new JLabel("I: 0/0");
-		lblIterations.setBounds(offsetX, 138, 134, 30);
-		add(lblIterations);
+//        JButton loadButton = new JButton("Load");
+//        loadButton.addActionListener(this);
+//        add(loadButton, BorderLayout.PAGE_START);
+//        
+//        JButton startButton = new JButton("Start");
+//        startButton.addActionListener(this);
+//        add(startButton, BorderLayout.PAGE_END);
+//        
+//        JButton stopButton = new JButton("Stop");
+//        stopButton.addActionListener(this);
+//        add(stopButton, BorderLayout.LINE_START);
+//        
+//		lblScore = new JLabel("S: 0.0");
+//		add(lblScore, BorderLayout.LINE_END);
+//		
+//		lblIterations = new JLabel("I: 0/0");
+//		add(lblIterations, BorderLayout.CENTER);
+//		
+//		panel = new JPanel() {
+//			private static final long serialVersionUID = -4992430268801679523L;
+//
+//			@Override
+//            protected void paintComponent(Graphics g) {
+//                super.paintComponent(g);
+//            }
+//
+//            @Override
+//            public Dimension getPreferredSize() {
+//                return new Dimension((int)(heightTriangles * height * scale), (int)(widthTriangles * width * scale));
+//            }
+//        };
+        
+//        add(panel, BorderLayout.CENTER);
+        
+//		setLayout(new FlowLayout());
+//		setLayout(new BorderLayout());
+		setSize(640,480);  
+		setVisible(true);
 
 		chooser = new JFileChooser(new File(System.getProperty("user.dir")));
 		chooser.setAcceptAllFileFilterUsed(false);
-        
-        mainFrame.add(p);
-        mainFrame.pack();
         mainFrame.setLocationRelativeTo(null);
-        
         mainFrame.setVisible(true);
     }
 

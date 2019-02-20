@@ -6,13 +6,12 @@ import java.awt.image.BufferedImage;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Random;
-
-import ec.util.MersenneTwisterFast;
+import java.util.SplittableRandom;
 
 public class ImageEvolver {
 
-	public static final MersenneTwisterFast random = new MersenneTwisterFast();
+//	public static final MersenneTwisterFast random = new MersenneTwisterFast();
+	public static final SplittableRandom random = new SplittableRandom();
 	public static final boolean KILL_PARENTS = false;
 	
 	private BufferedImage resizedOriginal;

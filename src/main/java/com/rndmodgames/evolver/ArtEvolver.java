@@ -29,12 +29,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private static final long serialVersionUID = 6291204469421642923L;
 	
 	private JFrame mainFrame;
-	private JPanel panel;
+	private JPanel imagePanel;
 	private Pallete pallete;
 
 	float width = 5.1f;
 	float height = 3.8f;
-	float scale = 2f;
+	float scale = 1f;
 	
 	int widthTriangles  = 24; // 48
 	int heightTriangles = 44; // 44
@@ -79,7 +79,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     
 	private void initComponents() {
         mainFrame = this;
-//        mainFrame.setResizable(false);
+        mainFrame.setResizable(false);
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         // init timer
@@ -92,7 +92,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	
             	if (evolver.isDirty()){
 	            	// draw bestImage to panel
-	            	panel.getGraphics().drawImage(evolver.getBestImage(), 0, 0, null);
+	            	imagePanel.getGraphics().drawImage(evolver.getBestImage(), 0, 0, null);
 	            	evolver.setDirty(false);
             	}
             	
@@ -109,7 +109,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         
 //        JFrame frame = new JFrame("BorderLayoutDemo - Beginnersbook.com");
 //        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        Container container = getContentPane();
+//        Container container = getContentPane();
 
         /* Creating and adding 5 buttons to the each area of Border
          * Layout. Button names are intentionally kept same as 
@@ -118,8 +118,48 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //        container.add(new JButton("PAGE_START"), BorderLayout.PAGE_START);
 //        container.add(new JButton("PAGE_END"), BorderLayout.PAGE_END);
 //        container.add(new JButton("LINE_START"), BorderLayout.LINE_START);
-        container.add(new JButton("LINE_END"), BorderLayout.LINE_END);
-        container.add(new JButton("CENTER"), BorderLayout.CENTER);
+//        container.add(new JButton("LINE_END"), BorderLayout.LINE_END);
+//        container.add(new JButton("CENTER"), BorderLayout.CENTER);
+        
+        Container container = getContentPane();
+        
+//        container.add(new JButton("PAGE_START"), BorderLayout.PAGE_START);
+        
+        
+//        Container imageContainer = new Container();
+        Container menuContainer = new JPanel();
+
+		imagePanel = new JPanel() {
+			private static final long serialVersionUID = -4992430268801679523L;
+	
+			@Override
+	        protected void paintComponent(Graphics g) {
+	            super.paintComponent(g);
+	        }
+	
+	        @Override
+	        public Dimension getPreferredSize() {
+	            return new Dimension((int)(heightTriangles * height * scale), (int)(widthTriangles * width * scale));
+	        }
+	    };
+	    
+//	    imageContainer.add(imagePanel);
+//	    container.add(imageContainer, BorderLayout.CENTER);
+	    
+	    JButton loadButton = new JButton("Load");
+	    loadButton.addActionListener(this);
+	    menuContainer.add(loadButton);
+	    container.add(menuContainer, BorderLayout.LINE_END);
+	    
+//	    container.add(imageContainer, BorderLayout.CENTER);
+//	    container.add(menuContainer, BorderLayout.PAGE_END);
+//	    add(menuContainer, BorderLayout.PAGE_END);
+	    
+//	    setLayout(new BorderLayout());
+	      
+//	      add(loadButton, BorderLayout.PAGE_START);
+	    
+//	    menuContainer
         
 //        int offsetX = 248;
 //        int offsetY = 167;

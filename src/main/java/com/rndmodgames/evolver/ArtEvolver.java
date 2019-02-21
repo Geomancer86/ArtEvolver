@@ -1,6 +1,8 @@
 package com.rndmodgames.evolver;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -12,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 
 import javax.imageio.ImageIO;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -105,29 +108,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	}
             }
         });
-
-        
-//        JFrame frame = new JFrame("BorderLayoutDemo - Beginnersbook.com");
-//        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-//        Container container = getContentPane();
-
-        /* Creating and adding 5 buttons to the each area of Border
-         * Layout. Button names are intentionally kept same as 
-         * area names for better understanding, they can have any names.
-         */
-//        container.add(new JButton("PAGE_START"), BorderLayout.PAGE_START);
-//        container.add(new JButton("PAGE_END"), BorderLayout.PAGE_END);
-//        container.add(new JButton("LINE_START"), BorderLayout.LINE_START);
-//        container.add(new JButton("LINE_END"), BorderLayout.LINE_END);
-//        container.add(new JButton("CENTER"), BorderLayout.CENTER);
         
         Container container = getContentPane();
-        
-//        container.add(new JButton("PAGE_START"), BorderLayout.PAGE_START);
-        
-        
-//        Container imageContainer = new Container();
         Container menuContainer = new JPanel();
+        menuContainer.setLayout(new BoxLayout(menuContainer, BoxLayout.Y_AXIS));
+        menuContainer.setPreferredSize(new Dimension(160, 480));
 
 		imagePanel = new JPanel() {
 			private static final long serialVersionUID = -4992430268801679523L;
@@ -143,65 +128,46 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	        }
 	    };
 	    
-//	    imageContainer.add(imagePanel);
-//	    container.add(imageContainer, BorderLayout.CENTER);
+	    imagePanel.setBackground(Color.BLUE);
 	    
-	    JButton loadButton = new JButton("Load");
-	    loadButton.addActionListener(this);
-	    menuContainer.add(loadButton);
-	    container.add(menuContainer, BorderLayout.LINE_END);
-	    
-//	    container.add(imageContainer, BorderLayout.CENTER);
-//	    container.add(menuContainer, BorderLayout.PAGE_END);
-//	    add(menuContainer, BorderLayout.PAGE_END);
-	    
-//	    setLayout(new BorderLayout());
-	      
-//	      add(loadButton, BorderLayout.PAGE_START);
-	    
-//	    menuContainer
-        
-//        int offsetX = 248;
-//        int offsetY = 167;
-//        
-//        int offset
 
-//        JButton loadButton = new JButton("Load");
-//        loadButton.addActionListener(this);
-//        add(loadButton, BorderLayout.PAGE_START);
-//        
-//        JButton startButton = new JButton("Start");
-//        startButton.addActionListener(this);
-//        add(startButton, BorderLayout.PAGE_END);
-//        
-//        JButton stopButton = new JButton("Stop");
-//        stopButton.addActionListener(this);
-//        add(stopButton, BorderLayout.LINE_START);
-//        
-//		lblScore = new JLabel("S: 0.0");
-//		add(lblScore, BorderLayout.LINE_END);
-//		
-//		lblIterations = new JLabel("I: 0/0");
-//		add(lblIterations, BorderLayout.CENTER);
-//		
-//		panel = new JPanel() {
-//			private static final long serialVersionUID = -4992430268801679523L;
-//
-//			@Override
-//            protected void paintComponent(Graphics g) {
-//                super.paintComponent(g);
-//            }
-//
-//            @Override
-//            public Dimension getPreferredSize() {
-//                return new Dimension((int)(heightTriangles * height * scale), (int)(widthTriangles * width * scale));
-//            }
-//        };
+	    JButton loadButton = new JButton("Load");
+	    loadButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+	    loadButton.addActionListener(this);
+	    
+	    menuContainer.add(loadButton);
+	    
+	    JButton startButton = new JButton("Start");
+	    startButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+      	startButton.addActionListener(this);
+      	
+      	menuContainer.add(startButton);
+      	
+        JButton stopButton = new JButton("Stop");
+        stopButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        stopButton.addActionListener(this);
+        menuContainer.add(stopButton);
         
-//        add(panel, BorderLayout.CENTER);
-        
-//		setLayout(new FlowLayout());
-//		setLayout(new BorderLayout());
+        Container labelContainer = new JPanel();
+		lblScore = new JLabel("S: 0.0");
+		lblScore.setMinimumSize(new Dimension(160, 24));
+		lblScore.setPreferredSize(new Dimension(160, 24));
+		lblScore.setMaximumSize(new Dimension(160, 24));
+		
+		labelContainer.add(lblScore);
+		
+		lblIterations = new JLabel("I: 0/0");
+		lblIterations.setMinimumSize(new Dimension(160, 24));
+		lblIterations.setPreferredSize(new Dimension(160, 24));
+		lblIterations.setMaximumSize(new Dimension(160, 24));
+		
+		labelContainer.add(lblIterations);
+		
+		menuContainer.add(labelContainer);
+      	
+      	container.add(menuContainer, BorderLayout.LINE_END);
+      	container.add(imagePanel, BorderLayout.CENTER);
+	    
 		setSize(640,480);  
 		setVisible(true);
 

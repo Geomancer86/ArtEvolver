@@ -22,48 +22,49 @@ public class Pallete {
 		URL url = getClass().getResource("../../../sherwin.txt");
 		File file = new File(url.getPath());
 		
-		try (Stream<String>stream = Files.lines(file.toPath(), StandardCharsets.UTF_8)) {
-			stream.forEach((line)->{
-				PalleteColor color = null;
-				String [] splitted = line.split(" ");
-
-				if (splitted.length == 5){
-					color = new PalleteColor(this,
-											 Long.valueOf(splitted[0]),
-											 splitted[1],
-											 Integer.valueOf(splitted[2]).intValue(),
-											 Integer.valueOf(splitted[3]).intValue(),
-											 Integer.valueOf(splitted[4]).intValue());
-				}else{
-					if (splitted.length == 6){
+		for (int a = 0; a < repetitions; a++){
+			try (Stream<String>stream = Files.lines(file.toPath(), StandardCharsets.UTF_8)) {
+				stream.forEach((line)->{
+					PalleteColor color = null;
+					String [] splitted = line.split(" ");
+	
+					if (splitted.length == 5){
 						color = new PalleteColor(this,
-								 Long.valueOf(splitted[0]),
-								 splitted[1] + " " + splitted[2],
-								 Integer.valueOf(splitted[3]).intValue(),
-								 Integer.valueOf(splitted[4]).intValue(),
-								 Integer.valueOf(splitted[5]).intValue());
+												 Long.valueOf(splitted[0]),
+												 splitted[1],
+												 Integer.valueOf(splitted[2]).intValue(),
+												 Integer.valueOf(splitted[3]).intValue(),
+												 Integer.valueOf(splitted[4]).intValue());
 					}else{
-						if (splitted.length == 7){
+						if (splitted.length == 6){
 							color = new PalleteColor(this,
 									 Long.valueOf(splitted[0]),
-									 splitted[1] + " " + splitted[2] + " " + splitted[3],
+									 splitted[1] + " " + splitted[2],
+									 Integer.valueOf(splitted[3]).intValue(),
 									 Integer.valueOf(splitted[4]).intValue(),
-									 Integer.valueOf(splitted[5]).intValue(),
-									 Integer.valueOf(splitted[6]).intValue());
+									 Integer.valueOf(splitted[5]).intValue());
 						}else{
-							System.out.println("error parsing pallete color!");
-							System.out.println(line);
+							if (splitted.length == 7){
+								color = new PalleteColor(this,
+										 Long.valueOf(splitted[0]),
+										 splitted[1] + " " + splitted[2] + " " + splitted[3],
+										 Integer.valueOf(splitted[4]).intValue(),
+										 Integer.valueOf(splitted[5]).intValue(),
+										 Integer.valueOf(splitted[6]).intValue());
+							}else{
+								System.out.println("error parsing pallete color!");
+								System.out.println(line);
+							}
 						}
 					}
-				}
-				
-				colors.add(color);
-			});
+					
+					colors.add(color);
+				});
+			}
 		}
 		
-		for (int a = 0; a < repetitions; a++){
-			colors.addAll(colors);
-		}
+		// Todo dynamic pallete loading or combobox
+		System.out.println("Pallete " + name + " Loaded: " + colors.size() + " colors in " + repetitions + " repetitions.");
 	}
 	
 	public void randomize(){

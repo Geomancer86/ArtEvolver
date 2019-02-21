@@ -37,7 +37,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 	float width = 5.1f;
 	float height = 3.8f;
-	float scale = 1f;
+	float triangleScale = 2f;
+	int imageScale = 4;
 	
 	int widthTriangles  = 24; // 48
 	int heightTriangles = 44; // 44
@@ -75,7 +76,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     public ArtEvolver() throws IOException{
     	super("ArtEvolver v0.01");
     	pallete = new Pallete("Sherwin-Williams", TOTAL_PALLETES);
-    	evolver = new ImageEvolver(POPULATION, RANDOM_JUMP_MAX_DISTANCE, CROSSOVER_MAX, scale, pallete, width, height, widthTriangles, heightTriangles);
+    	evolver = new ImageEvolver(POPULATION, RANDOM_JUMP_MAX_DISTANCE, CROSSOVER_MAX, triangleScale, pallete, width, height, widthTriangles, heightTriangles);
 
         initComponents();
     }
@@ -124,12 +125,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	
 	        @Override
 	        public Dimension getPreferredSize() {
-	            return new Dimension((int)(heightTriangles * height * scale), (int)(widthTriangles * width * scale));
+	            return new Dimension((int)(heightTriangles * height * triangleScale), (int)(widthTriangles * width * triangleScale));
 	        }
 	    };
 	    
 	    imagePanel.setBackground(Color.BLUE);
-	    
 
 	    JButton loadButton = new JButton("Load");
 	    loadButton.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -203,14 +203,17 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 			}
 		}
 		
-		// panel size
-    	int imgWidth = 385 - 140;
-    	int imgHeight = 167;
+    	int imgWidth = originalImage.getWidth() / imageScale;
+    	int imgHeight = originalImage.getHeight() / imageScale;
+    	
+    	System.out.println("originalImage.width: " + originalImage.getWidth() + " - originalImage.height: " + originalImage.getHeight());
 		
 		// initialize currentImage and resizedOriginal
     	if (resizedOriginal == null){
     		resizedOriginal = new BufferedImage(imgWidth, imgHeight, 1);
     		resizedOriginal.getGraphics().drawImage(originalImage, 0, 0, resizedOriginal.getWidth(), resizedOriginal.getHeight(), null);
+    		
+    		System.out.println("resizedOriginal.width: " + resizedOriginal.getWidth() + " - resizedOriginal.height: " + resizedOriginal.getHeight());
     		
   			evolver.setResizedOriginal(resizedOriginal);
    			evolver.setCurrentImage(resizedOriginal);

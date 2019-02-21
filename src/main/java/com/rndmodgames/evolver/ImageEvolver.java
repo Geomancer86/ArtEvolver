@@ -121,17 +121,14 @@ public class ImageEvolver {
 	
 				pop.add(triangles);
 			}
-			
-			int imgWidth = 385 - 140;
-        	int imgHeight = 167;
-			
+
 			BufferedImage imgParentA = null;
         	Graphics g = null;
         	double scoreA = 0d;
         	
         	for (TriangleList<Triangle> triangles : pop) {
         		
-        		imgParentA = new BufferedImage(imgWidth, imgHeight, 1); 
+        		imgParentA = new BufferedImage(resizedOriginal.getWidth(), resizedOriginal.getHeight(), 1); 
     			g = imgParentA.getGraphics();
     			
         		for (Triangle triangle : triangles){
@@ -240,11 +237,13 @@ public class ImageEvolver {
 	}
 	
 	public double compare(BufferedImage img1, BufferedImage img2) {
-		
+
 		int width1 = img1.getWidth(null);
 		int width2 = img2.getWidth(null);
 		int height1 = img1.getHeight(null);
 		int height2 = img2.getHeight(null);
+		
+//		System.out.println("width1: " + width1 + ", height1: " + height1 + ", width2: " + width2 + ", height2: " + height2);
 		
 		if ((width1 != width2) || (height1 != height2)) {
 			System.err.println("Error: Images dimensions mismatch");
@@ -407,15 +406,12 @@ public class ImageEvolver {
 			
 			childA = crossOver.getChild(parentA, parentB);
 
-			int imgWidth = 385 - 140;
-        	int imgHeight = 167;
-        	
         	imgParentA = null;
         	g = null;
         	double scoreA = 0d;
 
         	if (parentA.getScore() <= 0d){
-        		imgParentA = new BufferedImage(imgWidth, imgHeight, 1); 
+        		imgParentA = new BufferedImage(resizedOriginal.getWidth(), resizedOriginal.getHeight(), 1); 
     			g = imgParentA.getGraphics();
     			
     			// Iterator parentA
@@ -436,7 +432,7 @@ public class ImageEvolver {
         		scoreA = parentA.getScore();
         	}
 
-			imgChildA = new BufferedImage(imgWidth, imgHeight, 1); 
+			imgChildA = new BufferedImage(resizedOriginal.getWidth(), resizedOriginal.getHeight(), 1); 
 			g = imgChildA.getGraphics();
 			
 			// Iterator childA

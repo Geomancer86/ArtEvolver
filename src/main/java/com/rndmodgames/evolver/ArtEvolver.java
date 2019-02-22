@@ -1,12 +1,12 @@
 package com.rndmodgames.evolver;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
@@ -37,19 +37,22 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 	float width = 5.1f;
 	float height = 3.8f;
-	float triangleScale = 2f;
-	int imageScale = 4;
+	
+	float triangleScaleHeight = 2f;
+	float triangleScaleWidth = 2f;
 	
 	int widthTriangles  = 24; // 48
 	int heightTriangles = 44; // 44
 	
 	// ImageEvolver
-	static final int POPULATION 				= 2; // 2-4092
+	static final int POPULATION 				= 8; // 2-4092
 	static final int RANDOM_JUMP_MAX_DISTANCE	= 1;
 	static final int CROSSOVER_MAX 				= 1;
-	static final int TOTAL_PALLETES             = 1;
+	static final int TOTAL_PALLETES             = 4;
 	
-	static final int EVOLVE_ITERATIONS          = 16;
+	public static final int IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB;
+	
+	static final int EVOLVE_ITERATIONS          = 8;
 	static final int MAX_ITERATIONS             = 10000000;
 	
 	ImageEvolver evolver;
@@ -76,7 +79,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     public ArtEvolver() throws IOException{
     	super("ArtEvolver v0.01");
     	pallete = new Pallete("Sherwin-Williams", TOTAL_PALLETES);
-    	evolver = new ImageEvolver(POPULATION, RANDOM_JUMP_MAX_DISTANCE, CROSSOVER_MAX, triangleScale, pallete, width, height, widthTriangles, heightTriangles);
+    	evolver = new ImageEvolver(POPULATION, RANDOM_JUMP_MAX_DISTANCE, CROSSOVER_MAX, triangleScaleHeight, pallete, width, height, (int)(widthTriangles * triangleScaleHeight), (int)(heightTriangles * triangleScaleWidth));
 
         initComponents();
     }
@@ -87,16 +90,21 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         // init timer
-        processTimer = new Timer(1, new ActionListener() {
+        processTimer = new Timer(0, new ActionListener() {
 
 			@Override
             public void actionPerformed(ActionEvent e) {
-
-            	evolver.evolve(start, EVOLVE_ITERATIONS);
+				
+				evolver.evolve(start, EVOLVE_ITERATIONS);
             	
             	if (evolver.isDirty()){
 	            	// draw bestImage to panel
-	            	imagePanel.getGraphics().drawImage(evolver.getBestImage(), 0, 0, null);
+	            	imagePanel.getGraphics().drawImage(evolver.getBestImage(),
+	            									   32, // TODO: make both offsets dynamic to center in JPanel
+	            									   32,
+	            									   null);
+	            	
+	            	imagePanel.getGraphics().dispose();
 	            	evolver.setDirty(false);
             	}
             	
@@ -122,14 +130,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	        protected void paintComponent(Graphics g) {
 	            super.paintComponent(g);
 	        }
-	
-	        @Override
-	        public Dimension getPreferredSize() {
-	            return new Dimension((int)(heightTriangles * height * triangleScale), (int)(widthTriangles * width * triangleScale));
-	        }
 	    };
-	    
-	    imagePanel.setBackground(Color.BLUE);
 
 	    JButton loadButton = new JButton("Load");
 	    loadButton.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -168,7 +169,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
       	container.add(menuContainer, BorderLayout.LINE_END);
       	container.add(imagePanel, BorderLayout.CENTER);
 	    
-		setSize(640,480);  
+		setSize(720, 480);  
 		setVisible(true);
 
 		chooser = new JFileChooser(new File(System.getProperty("user.dir")));
@@ -202,16 +203,30 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				JOptionPane.showMessageDialog(null, "Unable to Load Image", "Fail", 2);
 			}
 		}
-		
-    	int imgWidth = originalImage.getWidth() / imageScale;
-    	int imgHeight = originalImage.getHeight() / imageScale;
+
+		int newWidth = (int) (width * widthTriangles * triangleScaleWidth) * (TOTAL_PALLETES / 2);
+		int newHeight = (int) (height * heightTriangles * triangleScaleHeight) / 2 * (TOTAL_PALLETES / 2);
     	
     	System.out.println("originalImage.width: " + originalImage.getWidth() + " - originalImage.height: " + originalImage.getHeight());
 		
 		// initialize currentImage and resizedOriginal
     	if (resizedOriginal == null){
-    		resizedOriginal = new BufferedImage(imgWidth, imgHeight, 1);
-    		resizedOriginal.getGraphics().drawImage(originalImage, 0, 0, resizedOriginal.getWidth(), resizedOriginal.getHeight(), null);
+    		
+    		BufferedImage resizedOriginal = new BufferedImage(newWidth, newHeight, IMAGE_TYPE);
+    		
+    		Graphics2D g = resizedOriginal.createGraphics();
+    		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+    						   RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+    		
+    		g.drawImage(originalImage,
+    					0, 0,
+    					newWidth, newHeight,
+    					0, 0,
+    					originalImage.getWidth(), 
+    					originalImage.getHeight(),
+    					null);
+    		
+    		g.dispose();
     		
     		System.out.println("resizedOriginal.width: " + resizedOriginal.getWidth() + " - resizedOriginal.height: " + resizedOriginal.getHeight());
     		
@@ -229,6 +244,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     
     public void stop(){
     	processTimer.stop();
+    	
+    	// Draw Original Image for Comparison TODO: move to different button
+    	// draw bestImage to panel
+    	imagePanel.getGraphics().drawImage(evolver.getResizedOriginal(),
+    									   32, // TODO: make both offsets dynamic to center in JPanel
+    									   32,
+    									   null);
+    	
+    	imagePanel.getGraphics().dispose();
     }
     
 	@Override

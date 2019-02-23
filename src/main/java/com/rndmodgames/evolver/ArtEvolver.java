@@ -1,7 +1,12 @@
 package com.rndmodgames.evolver;
 
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
@@ -9,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 
 import javax.imageio.ImageIO;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -26,24 +32,31 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private static final long serialVersionUID = 6291204469421642923L;
 	
 	private JFrame mainFrame;
-	private JPanel p;
+	private JPanel imagePanel;
 	private Pallete pallete;
 
 	float width = 5.1f;
-	float height = 3.8f;
-	float scale = 2f;
+	float height = 3.1f;
+	
+	float triangleScaleHeight = 2f;
+	float triangleScaleWidth = 2f;
 	
 	int widthTriangles  = 24; // 48
 	int heightTriangles = 44; // 44
 	
 	// ImageEvolver
-	static final int POPULATION 				= 64; // 2-4092
-	static final int RANDOM_JUMP_MAX_DISTANCE	= 1;
-	static final int CROSSOVER_MAX 				= 1;
-	static final int TOTAL_PALLETES             = 1;
+	static final int POPULATION 				= 16; // 2-4092
+	static final int RANDOM_JUMP_MAX_DISTANCE	= 2;
+	static final int CROSSOVER_MAX 				= 2;
+	static final int TOTAL_PALLETES             = 2;
+	
+	public static final int IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB;
 	
 	static final int EVOLVE_ITERATIONS          = 16;
 	static final int MAX_ITERATIONS             = 10000000;
+	
+//	private static final Enum PIXEL_SHAPES = FIXED_SCALENE_TRIANGLE, MIXED_ISOSCELES_TRIANGLE, SQUARE, RECTANGLE;
+//	private static final 
 	
 	ImageEvolver evolver;
 	
@@ -69,7 +82,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     public ArtEvolver() throws IOException{
     	super("ArtEvolver v0.01");
     	pallete = new Pallete("Sherwin-Williams", TOTAL_PALLETES);
-    	evolver = new ImageEvolver(POPULATION, RANDOM_JUMP_MAX_DISTANCE, CROSSOVER_MAX, scale, pallete, width, height, widthTriangles, heightTriangles);
+    	evolver = new ImageEvolver(POPULATION, RANDOM_JUMP_MAX_DISTANCE, CROSSOVER_MAX, triangleScaleHeight, pallete, width, height, (int)(widthTriangles * triangleScaleHeight), (int)(heightTriangles * triangleScaleWidth));
 
         initComponents();
     }
@@ -80,16 +93,21 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         // init timer
-        processTimer = new Timer(1, new ActionListener() {
+        processTimer = new Timer(0, new ActionListener() {
 
 			@Override
             public void actionPerformed(ActionEvent e) {
-
-            	evolver.evolve(start, EVOLVE_ITERATIONS);
+				
+				evolver.evolve(start, EVOLVE_ITERATIONS);
             	
             	if (evolver.isDirty()){
 	            	// draw bestImage to panel
-	            	p.getGraphics().drawImage(evolver.getBestImage(), 0, 0, null);
+	            	imagePanel.getGraphics().drawImage(evolver.getBestImage(),
+	            									   32, // TODO: make both offsets dynamic to center in JPanel
+	            									   32,
+	            									   null);
+	            	
+	            	imagePanel.getGraphics().dispose();
 	            	evolver.setDirty(false);
             	}
             	
@@ -102,57 +120,64 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	}
             }
         });
-
-        int offsetX = 248;
-        int offsetY = 167;
         
-        p = new JPanel() {
+        Container container = getContentPane();
+        Container menuContainer = new JPanel();
+        menuContainer.setLayout(new BoxLayout(menuContainer, BoxLayout.Y_AXIS));
+        menuContainer.setPreferredSize(new Dimension(160, 480));
+
+		imagePanel = new JPanel() {
 			private static final long serialVersionUID = -4992430268801679523L;
-
+	
 			@Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-            }
+	        protected void paintComponent(Graphics g) {
+	            super.paintComponent(g);
+	        }
+	    };
 
-            @Override
-            public Dimension getPreferredSize() {
-                return new Dimension(offsetX + 138, offsetY);
-            }
-        };
-
-        JButton button = new JButton("Load");
-		button.setBounds(offsetX, 16, 134, 28);
-		button.addActionListener(this);
-		
-		add(button);
-		
-		button = new JButton("Start");
-		button.setBounds(offsetX, 54, 134, 28);
-		button.addActionListener(this);
-		
-		add(button);
-		
-		button = new JButton("Stop");
-		button.setBounds(offsetX, 92, 134, 28);
-		button.addActionListener(this);
-		
-		add(button);
-		
+	    JButton loadButton = new JButton("Load");
+	    loadButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+	    loadButton.addActionListener(this);
+	    
+	    menuContainer.add(loadButton);
+	    
+	    JButton startButton = new JButton("Start");
+	    startButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+      	startButton.addActionListener(this);
+      	
+      	menuContainer.add(startButton);
+      	
+        JButton stopButton = new JButton("Stop");
+        stopButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        stopButton.addActionListener(this);
+        menuContainer.add(stopButton);
+        
+        Container labelContainer = new JPanel();
 		lblScore = new JLabel("S: 0.0");
-		lblScore.setBounds(offsetX, 120, 134, 30);
-		add(lblScore);
+		lblScore.setMinimumSize(new Dimension(160, 24));
+		lblScore.setPreferredSize(new Dimension(160, 24));
+		lblScore.setMaximumSize(new Dimension(160, 24));
+		
+		labelContainer.add(lblScore);
 		
 		lblIterations = new JLabel("I: 0/0");
-		lblIterations.setBounds(offsetX, 138, 134, 30);
-		add(lblIterations);
+		lblIterations.setMinimumSize(new Dimension(160, 24));
+		lblIterations.setPreferredSize(new Dimension(160, 24));
+		lblIterations.setMaximumSize(new Dimension(160, 24));
+		
+		labelContainer.add(lblIterations);
+		
+		menuContainer.add(labelContainer);
+      	
+      	container.add(menuContainer, BorderLayout.LINE_END);
+      	container.add(imagePanel, BorderLayout.CENTER);
+	    
+		setSize(720, 480);  
+		setVisible(true);
 
 		chooser = new JFileChooser(new File(System.getProperty("user.dir")));
 		chooser.setAcceptAllFileFilterUsed(false);
-        
-        mainFrame.add(p);
-        mainFrame.pack();
         mainFrame.setLocationRelativeTo(null);
-        
         mainFrame.setVisible(true);
     }
 
@@ -181,15 +206,32 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				JOptionPane.showMessageDialog(null, "Unable to Load Image", "Fail", 2);
 			}
 		}
-		
-		// panel size
-    	int imgWidth = 385 - 140;
-    	int imgHeight = 167;
+
+		int newWidth = (int) (width * widthTriangles * triangleScaleWidth) * (TOTAL_PALLETES / 2);
+		int newHeight = (int) (height * heightTriangles * triangleScaleHeight) / 2 * (TOTAL_PALLETES / 2);
+    	
+    	System.out.println("originalImage.width: " + originalImage.getWidth() + " - originalImage.height: " + originalImage.getHeight());
 		
 		// initialize currentImage and resizedOriginal
     	if (resizedOriginal == null){
-    		resizedOriginal = new BufferedImage(imgWidth, imgHeight, 1);
-    		resizedOriginal.getGraphics().drawImage(originalImage, 0, 0, resizedOriginal.getWidth(), resizedOriginal.getHeight(), null);
+    		
+    		BufferedImage resizedOriginal = new BufferedImage(newWidth, newHeight, IMAGE_TYPE);
+    		
+    		Graphics2D g = resizedOriginal.createGraphics();
+    		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+    						   RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+    		
+    		g.drawImage(originalImage,
+    					0, 0,
+    					newWidth, newHeight,
+    					0, 0,
+    					originalImage.getWidth(), 
+    					originalImage.getHeight(),
+    					null);
+    		
+    		g.dispose();
+    		
+    		System.out.println("resizedOriginal.width: " + resizedOriginal.getWidth() + " - resizedOriginal.height: " + resizedOriginal.getHeight());
     		
   			evolver.setResizedOriginal(resizedOriginal);
    			evolver.setCurrentImage(resizedOriginal);
@@ -205,6 +247,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     
     public void stop(){
     	processTimer.stop();
+    	
+    	// Draw Original Image for Comparison TODO: move to different button
+    	// draw bestImage to panel
+    	imagePanel.getGraphics().drawImage(evolver.getResizedOriginal(),
+    									   32, // TODO: make both offsets dynamic to center in JPanel
+    									   32,
+    									   null);
+    	
+    	imagePanel.getGraphics().dispose();
     }
     
 	@Override

@@ -58,6 +58,7 @@ public class CrossOver {
 				int count = 0;
 				
 				for (Triangle triangle : child){
+					
 					if (triangle.getColor().equals(target.getColor())){
 						// found the color, switch positions
 						dest = count;

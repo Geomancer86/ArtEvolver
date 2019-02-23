@@ -6,13 +6,12 @@ import java.awt.image.BufferedImage;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Random;
-
-import ec.util.MersenneTwisterFast;
+import java.util.SplittableRandom;
 
 public class ImageEvolver {
 
-	public static final MersenneTwisterFast random = new MersenneTwisterFast();
+//	public static final MersenneTwisterFast random = new MersenneTwisterFast();
+	public static final SplittableRandom random = new SplittableRandom();
 	public static final boolean KILL_PARENTS = false;
 	
 	private BufferedImage resizedOriginal;
@@ -37,6 +36,7 @@ public class ImageEvolver {
 	
 	CrossOver crossOver;
 	
+	// synchronize for multithreading
 	private List<TriangleList<Triangle>> pop = new TriangleList<TriangleList<Triangle>>();
 	
 	private boolean isDirty = true;
@@ -70,6 +70,7 @@ public class ImageEvolver {
 			
 //			pallete.randomize();
 //			pallete.orderByLuminescence();
+//			pallete.orderByBLUE();
 			
 			for (int i = 0; i < population; i++){
 				TriangleList <Triangle> triangles = new TriangleList<Triangle>();
@@ -122,17 +123,14 @@ public class ImageEvolver {
 	
 				pop.add(triangles);
 			}
-			
-			int imgWidth = 385 - 140;
-        	int imgHeight = 167;
-			
+
 			BufferedImage imgParentA = null;
         	Graphics g = null;
         	double scoreA = 0d;
         	
         	for (TriangleList<Triangle> triangles : pop) {
         		
-        		imgParentA = new BufferedImage(imgWidth, imgHeight, 1); 
+        		imgParentA = new BufferedImage(resizedOriginal.getWidth(), resizedOriginal.getHeight(), ArtEvolver.IMAGE_TYPE); 
     			g = imgParentA.getGraphics();
     			
         		for (Triangle triangle : triangles){
@@ -149,8 +147,11 @@ public class ImageEvolver {
         		scoreA = compare(imgParentA, resizedOriginal);
         		triangles.setScore(scoreA);
         	}
+        	
+        	g.dispose();
 		}
 		
+		// Comparator used only once, no need to extract
 		Collections.sort(pop, new TrianglesComparator());
 		
 		// keep only defined population
@@ -158,7 +159,7 @@ public class ImageEvolver {
 	}
 	
 	@SuppressWarnings("rawtypes")
-	public class TrianglesComparator implements Comparator<TriangleList> {
+	public static class TrianglesComparator implements Comparator<TriangleList> {
 	    @Override
 	    public int compare(TriangleList o1, TriangleList o2) {
 	    	return o1.getScore().compareTo(o2.getScore());
@@ -240,12 +241,29 @@ public class ImageEvolver {
 		dest.setColor(aux);
 	}
 	
+	/**
+	 * Extracted to avoid recreation
+	 */
+	private static int rgb1;
+	private static int rgb2;
+	private static int r1;
+	private static int g1;
+	private static int b1;
+	private static int r2;
+	private static int g2;
+	private static int b2;
+	private static int diff;
+	
 	public double compare(BufferedImage img1, BufferedImage img2) {
+
+//		long compareThen = System.currentTimeMillis();
 		
 		int width1 = img1.getWidth(null);
 		int width2 = img2.getWidth(null);
 		int height1 = img1.getHeight(null);
 		int height2 = img2.getHeight(null);
+		
+//		System.out.println("width1: " + width1 + ", height1: " + height1 + ", width2: " + width2 + ", height2: " + height2);
 		
 		if ((width1 != width2) || (height1 != height2)) {
 			System.err.println("Error: Images dimensions mismatch");
@@ -253,19 +271,19 @@ public class ImageEvolver {
 		}
 		
 		boolean fitnessByColor = true;
-		long diff = 0;
+		diff = 0;
 		
 		if (fitnessByColor){
 			for (int y = 0; y < height1; y++) {
 				for (int x = 0; x < width1; x++) {
-					int rgb1 = img1.getRGB(x, y);
-					int rgb2 = img2.getRGB(x, y);
-					int r1 = (rgb1 >> 16) & 0xff;
-					int g1 = (rgb1 >> 8) & 0xff;
-					int b1 = (rgb1) & 0xff;
-					int r2 = (rgb2 >> 16) & 0xff;
-					int g2 = (rgb2 >> 8) & 0xff;
-					int b2 = (rgb2) & 0xff;
+					rgb1 = img1.getRGB(x, y);
+					rgb2 = img2.getRGB(x, y);
+					r1 = (rgb1 >> 16) & 0xff;
+					g1 = (rgb1 >> 8) & 0xff;
+					b1 = (rgb1) & 0xff;
+					r2 = (rgb2 >> 16) & 0xff;
+					g2 = (rgb2 >> 8) & 0xff;
+					b2 = (rgb2) & 0xff;
 					diff += Math.abs(r1 - r2);
 					diff += Math.abs(g1 - g2);
 					diff += Math.abs(b1 - b2);
@@ -274,8 +292,8 @@ public class ImageEvolver {
 		}else{
 			for (int y = 0; y < height1; y++) {
 				for (int x = 0; x < width1; x++) {
-					int rgb1 = img1.getRGB(x, y);
-					int rgb2 = img2.getRGB(x, y);
+					rgb1 = img1.getRGB(x, y);
+					rgb2 = img2.getRGB(x, y);
 					
 					float r1 = ((rgb1 >> 16) & 0xff) * 1f; 	// 0.299f
 					float g1 = ((rgb1 >> 8) & 0xff) * 0f;	// 0.587f
@@ -294,6 +312,10 @@ public class ImageEvolver {
 
 		double n = width1 * height1 * 3;
 		double p = diff / n / 255.0;
+		
+//		long compareNow = System.currentTimeMillis();
+//		System.out.println("compare took " + (float)(compareNow - compareThen) / 1000f + " seconds");
+		
 		return 1 - p;
 	}
 	
@@ -393,6 +415,8 @@ public class ImageEvolver {
 	 */
 	public void evolve(long start, int iterations) {
 		
+//		long evolveThen = System.currentTimeMillis();
+		
 		for (int a = 0; a < iterations; a++){
 			
 			int rollA = 0;
@@ -408,15 +432,12 @@ public class ImageEvolver {
 			
 			childA = crossOver.getChild(parentA, parentB);
 
-			int imgWidth = 385 - 140;
-        	int imgHeight = 167;
-        	
         	imgParentA = null;
         	g = null;
         	double scoreA = 0d;
 
         	if (parentA.getScore() <= 0d){
-        		imgParentA = new BufferedImage(imgWidth, imgHeight, 1); 
+        		imgParentA = new BufferedImage(resizedOriginal.getWidth(), resizedOriginal.getHeight(), ArtEvolver.IMAGE_TYPE); 
     			g = imgParentA.getGraphics();
     			
     			// Iterator parentA
@@ -437,7 +458,7 @@ public class ImageEvolver {
         		scoreA = parentA.getScore();
         	}
 
-			imgChildA = new BufferedImage(imgWidth, imgHeight, 1); 
+			imgChildA = new BufferedImage(resizedOriginal.getWidth(), resizedOriginal.getHeight(), ArtEvolver.IMAGE_TYPE); 
 			g = imgChildA.getGraphics();
 			
 			// Iterator childA
@@ -451,6 +472,8 @@ public class ImageEvolver {
 					g.drawPolygon(triangle);
 				}
 			}
+			
+			g.dispose();
 
 			double scoreC = compare(imgChildA,  resizedOriginal);
 			childA.setScore(scoreC);
@@ -493,5 +516,8 @@ public class ImageEvolver {
 								 + " - total time: " + ((float) (now - start) / 1000f) + " seconds");
 			}
 		}
+
+//		long evolveNow = System.currentTimeMillis();
+//		System.out.println("evolve with " + iterations + " iterations took " + (float)(evolveNow - evolveThen) / 1000f + " seconds");
 	}
 }

@@ -256,7 +256,7 @@ public class ImageEvolver {
 	
 	public double compare(BufferedImage img1, BufferedImage img2) {
 
-		long compareThen = System.currentTimeMillis();
+//		long compareThen = System.currentTimeMillis();
 		
 		int width1 = img1.getWidth(null);
 		int width2 = img2.getWidth(null);
@@ -313,8 +313,8 @@ public class ImageEvolver {
 		double n = width1 * height1 * 3;
 		double p = diff / n / 255.0;
 		
-		long compareNow = System.currentTimeMillis();
-		System.out.println("compare took " + (float)(compareNow - compareThen) / 1000f + " seconds");
+//		long compareNow = System.currentTimeMillis();
+//		System.out.println("compare took " + (float)(compareNow - compareThen) / 1000f + " seconds");
 		
 		return 1 - p;
 	}

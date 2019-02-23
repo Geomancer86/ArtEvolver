@@ -36,7 +36,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private Pallete pallete;
 
 	float width = 5.1f;
-	float height = 3.8f;
+	float height = 3.1f;
 	
 	float triangleScaleHeight = 2f;
 	float triangleScaleWidth = 2f;
@@ -45,15 +45,18 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	int heightTriangles = 44; // 44
 	
 	// ImageEvolver
-	static final int POPULATION 				= 8; // 2-4092
-	static final int RANDOM_JUMP_MAX_DISTANCE	= 1;
-	static final int CROSSOVER_MAX 				= 1;
-	static final int TOTAL_PALLETES             = 4;
+	static final int POPULATION 				= 16; // 2-4092
+	static final int RANDOM_JUMP_MAX_DISTANCE	= 2;
+	static final int CROSSOVER_MAX 				= 2;
+	static final int TOTAL_PALLETES             = 2;
 	
 	public static final int IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB;
 	
-	static final int EVOLVE_ITERATIONS          = 8;
+	static final int EVOLVE_ITERATIONS          = 16;
 	static final int MAX_ITERATIONS             = 10000000;
+	
+//	private static final Enum PIXEL_SHAPES = FIXED_SCALENE_TRIANGLE, MIXED_ISOSCELES_TRIANGLE, SQUARE, RECTANGLE;
+//	private static final 
 	
 	ImageEvolver evolver;
 	

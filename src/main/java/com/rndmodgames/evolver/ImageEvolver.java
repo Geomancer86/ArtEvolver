@@ -61,6 +61,108 @@ public class ImageEvolver {
 		crossOver = new CrossOver(randomJumpDistance, crossoverMax);
 	}
 	
+	/**
+	 * Initialize the triangles as equilateral
+	 */
+	public void initializeEquilateral() {
+
+		int preGenerations = 1;
+		int randomMult = 1;
+		
+		for (int kk = 0; kk < preGenerations; kk++){
+			for (int i = 0; i < population; i++){
+				TriangleList <Triangle> triangles = new TriangleList<Triangle>();
+				int count = 0;
+				
+				for (int a = 0; a < triangleWidth; a++){
+		    		for (int b = 0; b < triangleHeight; b++){
+		    			
+		    			int xPoly [] = new int [3];
+		    			int yPoly [] = new int [3];
+		    			
+		    			if (b % 2  == 0) {
+		    				if (b % 4 == 0){
+			    				xPoly[0] = (int) (width * scale * a);
+								xPoly[1] = (int) ((width * scale * a) + (width * scale));
+								xPoly[2] = (int) ((width * scale * a) + (width * scale / 2));
+								
+								yPoly[0] = (int) ((height * scale * b));
+								yPoly[1] = (int) ((height * scale * b));
+								yPoly[2] = (int) ((height * scale * b) + (height * scale /2));
+			    			
+			    			}else {
+			    				xPoly[0] = (int) (width * scale * a);
+								xPoly[1] = (int) ((width * scale * a) + (width * scale));
+								xPoly[2] = (int) ((width * scale * a) + (width * scale / 2) );
+								
+								yPoly[0] = (int) ((height * scale * b));
+								yPoly[1] = (int) ((height * scale * b) );
+								yPoly[2] = (int) ((height * scale * b) - (height * scale) / 2);
+			    			}
+		    			}
+
+		    			// dynamic row shifting
+						yPoly[0] -= (height * scale) * (b / 2);
+						yPoly[1] -= (height * scale) * (b / 2);
+						yPoly[2] -= (height * scale) * (b / 2);
+	
+		    			Color color = null;
+		    			if (pallete.getColor(count) != null){
+		    				color = pallete.getColor(count).color;
+		    			}
+	
+		        		Triangle triangle = new Triangle(xPoly, yPoly, 3, color);
+		        		triangles.add(triangle);
+		        		
+		        		count++;
+		    			
+		    		}
+				}
+				
+				// randomize
+				for (int k = 0; k < triangles.size() * randomMult; k++){
+					switchColor(triangles, roll(triangles.size()), roll(triangles.size()));
+				}
+	
+				pop.add(triangles);
+			}
+			
+			BufferedImage imgParentA = null;
+        	Graphics g = null;
+        	double scoreA = 0d;
+        	
+        	for (TriangleList<Triangle> triangles : pop) {
+        		
+        		imgParentA = new BufferedImage(resizedOriginal.getWidth(), resizedOriginal.getHeight(), ArtEvolver.IMAGE_TYPE); 
+    			g = imgParentA.getGraphics();
+    			
+        		for (Triangle triangle : triangles){
+    				if (triangle.getColor() != null) {
+    					g.setColor(triangle.getColor());
+    					g.drawPolygon(triangle);
+    					g.fillPolygon(triangle);
+    				} else {
+    					g.setColor(Color.BLUE);
+    					g.drawPolygon(triangle);
+    				}
+        		}
+        		
+        		scoreA = compare(imgParentA, resizedOriginal);
+        		triangles.setScore(scoreA);
+        	}
+        	
+        	g.dispose();
+		}
+		
+		// Comparator used only once, no need to extract
+		Collections.sort(pop, new TrianglesComparator());
+		
+		System.out.println("total pixels is " + pop.get(0).size());
+		
+		// keep only defined population
+    	pop = pop.subList(0, population);
+	}
+	
 	public void initialize(){
 		
 		int preGenerations = 1;
@@ -153,6 +255,8 @@ public class ImageEvolver {
 		
 		// Comparator used only once, no need to extract
 		Collections.sort(pop, new TrianglesComparator());
+		
+		System.out.println("total pixels is " + pop.get(0).size());
 		
 		// keep only defined population
     	pop = pop.subList(0, population);

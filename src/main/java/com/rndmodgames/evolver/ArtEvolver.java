@@ -1,6 +1,7 @@
 package com.rndmodgames.evolver;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
@@ -134,6 +135,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	            super.paintComponent(g);
 	        }
 	    };
+	    
+//	    imagePanel.setBackground(Color.BLUE);
 
 	    JButton loadButton = new JButton("Load");
 	    loadButton.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -172,7 +175,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
       	container.add(menuContainer, BorderLayout.LINE_END);
       	container.add(imagePanel, BorderLayout.CENTER);
 	    
-		setSize(1020, 600);  
+		setSize(1920/2, 1080/2);  
 		setVisible(true);
 
 		chooser = new JFileChooser(new File(System.getProperty("user.dir")));

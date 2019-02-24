@@ -176,7 +176,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
       	container.add(imagePanel, BorderLayout.CENTER);
 	    
 		setSize(1920/2, 1080/2);  
-		setVisible(true);
 
 		chooser = new JFileChooser(new File(System.getProperty("user.dir")));
 		chooser.setAcceptAllFileFilterUsed(false);

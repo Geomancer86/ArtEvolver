@@ -1,7 +1,6 @@
 package com.rndmodgames.evolver;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
@@ -36,14 +35,17 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private JPanel imagePanel;
 	private Pallete pallete;
 
-	float width = 3.2f * 2;
-	float height = 3.2f * 2;
+	float triangleScaleHeight = 1f;
+	float triangleScaleWidth = 1f;
 	
-	float triangleScaleHeight = 2f;
-	float triangleScaleWidth = 2f;
+	float width = 3.1f * triangleScaleWidth;
+	float height = 3.1f * triangleScaleHeight;
 	
-	int widthTriangles  = 60; // 71
-	int heightTriangles = 70; // 60
+//	int widthTriangles  = 60; // 71
+//	int heightTriangles = 70; // 60
+	
+	int widthTriangles  = 80; // 71
+	int heightTriangles = 53; // 60
 	
 	// ImageEvolver
 	static final int POPULATION 				= 16; // 2-4092
@@ -55,9 +57,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	
 	static final int EVOLVE_ITERATIONS          = 16;
 	static final int MAX_ITERATIONS             = 10000000;
-	
-//	private static final Enum PIXEL_SHAPES = FIXED_SCALENE_TRIANGLE, MIXED_ISOSCELES_TRIANGLE, SQUARE, RECTANGLE;
-//	private static final 
 	
 	ImageEvolver evolver;
 	
@@ -209,8 +208,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 			}
 		}
 
-		int newWidth = (int) (width * widthTriangles * triangleScaleWidth) * (TOTAL_PALLETES / 4);
-		int newHeight = (int) (height * heightTriangles * triangleScaleHeight) / 2 * (TOTAL_PALLETES / 4);
+		/**
+		 * Resizing code seems to be OK
+		 */
+		int newWidth = (int) ((width * widthTriangles * triangleScaleWidth) * (TOTAL_PALLETES / triangleScaleWidth / 2));
+		int newHeight = (int) ((height * heightTriangles * triangleScaleHeight) * (TOTAL_PALLETES / triangleScaleHeight / 2));
     	
     	System.out.println("originalImage.width: " + originalImage.getWidth() + " - originalImage.height: " + originalImage.getHeight());
 		

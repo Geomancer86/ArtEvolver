@@ -14,11 +14,13 @@ import java.util.stream.Stream;
 public class Pallete {
 
 	String name;
+	int totalPalletes;
 	List <PalleteColor> colors = new ArrayList<PalleteColor>();
 	
 	public Pallete(String name, int repetitions) throws IOException{
 		this.name = name;
-
+		this.totalPalletes = repetitions;
+		
 		URL url = getClass().getResource("../../../sherwin.txt");
 		File file = new File(url.getPath());
 		

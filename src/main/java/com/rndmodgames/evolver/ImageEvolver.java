@@ -44,7 +44,7 @@ public class ImageEvolver {
 	@SuppressWarnings("static-access")
 	public ImageEvolver(int population, int randomJumpDistance, int crossoverMax, float scale, Pallete pallete, float width, float height, int triangleWidth, int triangleHeight){
 		this.population = population;
-		this.scale = scale;
+		this.scale = scale * pallete.totalPalletes / 2;
 		this.pallete = pallete;
 		this.height = height;
 		this.width = width;
@@ -82,78 +82,53 @@ public class ImageEvolver {
 		    			int yPoly [] = new int [3];
 		    			
 		    			// reset triangle position
-		    			if (position == 4) {
+		    			if (position == 2) {
 		    				position = 0;
 		    			}
-		    			
-		    			
+
 		    			if (position == 0) {
-		    				// NORTH
-		    				xPoly[0] = (int) (width * scale * a);
-							xPoly[1] = (int) ((width * scale * a) + (width * scale * 2));
-							xPoly[2] = (int) ((width * scale * a) + (width * scale));
-							
-							yPoly[0] = (int) ((height * scale * b));
-							yPoly[1] = (int) ((height * scale * b));
-							yPoly[2] = (int) ((height * scale * b) + (height * scale));
-		    				
+		    				if (a % 2 == 0) {
+		    					// NORTH
+		    					xPoly[0] = (int) (width * scale * a);
+								xPoly[1] = (int) ((width * scale * a) + (width * scale * 2));
+								xPoly[2] = (int) ((width * scale * a) + (width * scale));
+								
+								yPoly[0] = (int) ((height * scale * b));
+								yPoly[1] = (int) ((height * scale * b));
+								yPoly[2] = (int) ((height * scale * b) + (height * scale));
+		    				} else {
+		    					// SOUTH
+		    					xPoly[0] = (int) ((width * scale * a) - (width * scale));
+								xPoly[1] = (int) ((width * scale * a));
+								xPoly[2] = (int) ((width * scale * a) + (width * scale));
+								
+								yPoly[0] = (int) ((height * scale * b) + (height * scale));
+								yPoly[1] = (int) ((height * scale * b) );
+								yPoly[2] = (int) ((height * scale * b) + (height * scale));
+		    				}
 		    			} else if (position == 1) {
-		    				// EAST
-		    				xPoly[0] = (int) ((width * scale * a) + (width * scale * 2));
-							xPoly[1] = (int) ((width * scale * a) + (width * scale) );
-							xPoly[2] = (int) ((width * scale * a) + (width * scale * 2));
-							
-							yPoly[0] = (int) ((height * scale * b) - (height * scale));
-							yPoly[1] = (int) ((height * scale * b));
-							yPoly[2] = (int) ((height * scale * b) + (height * scale));
-		    				
-		    			} else if (position == 2) {
-		    				// SOUTH
-		    				
-		    			} else if (position == 3) {
-		    				// WEST
-		    				
+		    				if (a % 2 == 0) {
+		    					// EAST
+			    				xPoly[0] = (int) ((width * scale * a) + (width * scale * 2));
+								xPoly[1] = (int) ((width * scale * a) + (width * scale));
+								xPoly[2] = (int) ((width * scale * a) + (width * scale * 2));
+								
+								yPoly[0] = (int) ((height * scale * b) - (height * scale));
+								yPoly[1] = (int) ((height * scale * b));
+								yPoly[2] = (int) ((height * scale * b) + (height * scale));
+		    				} else {
+		    					// WEST
+		    					xPoly[0] = (int) ((width * scale * a) - (width * scale));
+								xPoly[1] = (int) ((width * scale * a));
+								xPoly[2] = (int) ((width * scale * a) - (width * scale));
+								
+		    					yPoly[0] = (int) ((height * scale * b));
+								yPoly[1] = (int) ((height * scale * b) - (height * scale));
+								yPoly[2] = (int) ((height * scale * b) - (height * scale * 2));
+		    				}
 		    			}
 		    			
 		    			position++;
-		    			
-//		    			if (b % 2  == 0) {
-//		    				if (b % 4 == 0){
-//			    				xPoly[0] = (int) (width * scale * a);
-//								xPoly[1] = (int) ((width * scale * a) + (width * scale));
-//								xPoly[2] = (int) ((width * scale * a) + (width * scale / 2));
-//								
-//								yPoly[0] = (int) ((height * scale * b));
-//								yPoly[1] = (int) ((height * scale * b));
-//								yPoly[2] = (int) ((height * scale * b) + (height * scale /2));
-//			    			
-//			    			}else {
-//			    				xPoly[0] = (int) (width * scale * a);
-//								xPoly[1] = (int) ((width * scale * a) + (width * scale));
-//								xPoly[2] = (int) ((width * scale * a) + (width * scale / 2));
-//								
-//								yPoly[0] = (int) ((height * scale * b));
-//								yPoly[1] = (int) ((height * scale * b) );
-//								yPoly[2] = (int) ((height * scale * b) - (height * scale) / 2);
-//			    			}
-//		    			} else {
-//		    				if (b % 3 == 0) {
-//		    					xPoly[0] = (int) (width * scale * a);
-//								xPoly[1] = (int) ((width * scale * a) + (width * scale));
-//								xPoly[2] = (int) ((width * scale * a) + (width * scale));
-//								
-//								yPoly[0] = (int) ((height * scale * b)  + (height * scale));
-//								yPoly[1] = (int) ((height * scale * b) + (height * scale) / 2);
-//								yPoly[2] = (int) ((height * scale * b));
-//		    				} else {
-//		    					
-//		    				}
-//		    			}
-
-		    			// dynamic row shifting
-//						yPoly[0] -= (height * scale) * (b / 2);
-//						yPoly[1] -= (height * scale) * (b / 2);
-//						yPoly[2] -= (height * scale) * (b / 2);
 	
 		    			Color color = null;
 		    			if (pallete.getColor(count) != null){
@@ -164,7 +139,6 @@ public class ImageEvolver {
 		        		triangles.add(triangle);
 		        		
 		        		count++;
-		    			
 		    		}
 				}
 				

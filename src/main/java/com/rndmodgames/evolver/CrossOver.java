@@ -7,12 +7,12 @@ public class CrossOver {
 	
 	public static final Random random = new Random();
 	
-	public static final float RANDOM_CLOSE_MUTATION_PERCENT = 0.15f;
-	public static final float RANDOM_MUTATION_PERCENT 		= 0.15f;
+	public static final float RANDOM_CLOSE_MUTATION_PERCENT = 0.6f;
+	public static final float RANDOM_MUTATION_PERCENT 		= 0.3f;
 
-	public static final float RANDOM_CROSSOVER_PERCENT 		= 0.15f;
-	public static final float RANDOM_MULTI_MUTATION 		= 0.15f;
-	public static final int   RANDOM_MULTI_MUTATION_MAX       = 2;
+	public static final float RANDOM_CROSSOVER_PERCENT 		= 0.3f;
+	public static final float RANDOM_MULTI_MUTATION 		= 0.1f;
+	public static final int   RANDOM_MULTI_MUTATION_MAX     = 2;
 	
 	private int randomJumpDistance;
 	private int crossoverMax;
@@ -22,7 +22,24 @@ public class CrossOver {
 		this.crossoverMax = crossoverMax;
 	}
 	
-	public TriangleList<Triangle> getChild(TriangleList<Triangle> parentA, TriangleList<Triangle> parentB){
+	public void halveParameters() {
+		randomJumpDistance -= 4;
+//		crossoverMax -= -2;
+		
+		if (randomJumpDistance <= 0) {
+			randomJumpDistance = 1;
+		}
+		
+//		if (crossoverMax <= 4) {
+//			crossoverMax = 4;
+//		}
+	}
+	
+	public void incrementParameters() {
+		randomJumpDistance +=1;
+	}
+	
+	public TriangleList<Triangle> getChild(TriangleList<Triangle> parentA, TriangleList<Triangle> parentB) {
 		TriangleList<Triangle> child = new TriangleList<Triangle>();
 
 		// base parent chance 50/50
@@ -40,50 +57,54 @@ public class CrossOver {
 			}
 		}
 		
-		if (random.nextFloat() < RANDOM_CROSSOVER_PERCENT){
-			
-			int crossovers = ImageEvolver.roll(crossoverMax) + 1;
-			
-			for (int a = 0; a < crossovers; a++){
-				Triangle target = null;
-				int origin = ImageEvolver.roll(child.size());
+		boolean notEvolved = true;
+		
+		while(notEvolved) {
+			if (random.nextFloat() < RANDOM_CROSSOVER_PERCENT){
 				
-				if (isParentA){
-					target = parentA.get(origin);
-				}else{
-					target = parentB.get(origin);
-				}
-
-				int dest = -1;
-				int count = 0;
+				int crossovers = ImageEvolver.roll(crossoverMax) + 1;
+	//			int crossovers = crossoverMax;
 				
-				for (Triangle triangle : child){
+				for (int a = 0; a < crossovers; a++){
+					Triangle target = null;
+					int origin = ImageEvolver.roll(child.size());
 					
-					if (triangle.getColor().equals(target.getColor())){
-						// found the color, switch positions
-						dest = count;
-						break;
+					if (isParentA){
+						target = parentA.get(origin);
+					}else{
+						target = parentB.get(origin);
 					}
+	
+					int dest = 0;
 					
-					count++;
-				}
-				
-				if (dest >= 0){
-					ImageEvolver.switchColor(child, origin, dest);
+					for (Triangle triangle : child){
+						
+						if (triangle.getColor().equals(target.getColor())){
+							// found the color, switch positions
+							ImageEvolver.switchColor(child, origin, dest);
+							dest++;
+							notEvolved = false;
+							break;
+						}
+					}
 				}
 			}
-		}
 		
-		if (random.nextFloat() < RANDOM_CLOSE_MUTATION_PERCENT){
-			ImageEvolver.switchCloseColor(child, randomJumpDistance);
-		}
+			// disabled
+			if (random.nextFloat() < RANDOM_CLOSE_MUTATION_PERCENT){
+				ImageEvolver.switchCloseColor(child, randomJumpDistance);
+				notEvolved = false;
+			}
 		
-		if (random.nextFloat() < RANDOM_MUTATION_PERCENT){
-			ImageEvolver.switchRandomColor(child);
-		}
+			if (random.nextFloat() < RANDOM_MUTATION_PERCENT){
+				ImageEvolver.switchRandomColor(child);
+				notEvolved = false;
+			}
 		
-		if (random.nextFloat() < RANDOM_MULTI_MUTATION){
-			ImageEvolver.switchRandomMultiColor(child, RANDOM_MULTI_MUTATION_MAX);
+			if (random.nextFloat() < RANDOM_MULTI_MUTATION){
+				ImageEvolver.switchRandomMultiColor(child, RANDOM_MULTI_MUTATION_MAX);
+				notEvolved = false;
+			}
 		}
 		
 		return child;

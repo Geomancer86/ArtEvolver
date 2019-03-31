@@ -111,6 +111,10 @@ public class Pallete {
 	    });
 	}
 	
+	public void removeColor(int index) {
+		colors.remove(index);
+	}
+	
 	public PalleteColor getColor(int index){
 		if (index >= colors.size()){
 			return null;

@@ -3,12 +3,15 @@ package com.rndmodgames.evolver;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.SplittableRandom;
 
-public class ImageEvolver {
+public class ImageEvolver extends AbstractEvolver {
 
 //	public static final MersenneTwisterFast random = new MersenneTwisterFast();
 	public static final SplittableRandom random = new SplittableRandom();
@@ -143,9 +146,9 @@ public class ImageEvolver {
 				}
 				
 				// randomize
-				for (int k = 0; k < triangles.size() * randomMult; k++){
-					switchColor(triangles, roll(triangles.size()), roll(triangles.size()));
-				}
+//				for (int k = 0; k < triangles.size() * randomMult; k++){
+//					switchColor(triangles, roll(triangles.size()), roll(triangles.size()));
+//				}
 	
 				pop.add(triangles);
 			}
@@ -340,11 +343,12 @@ public class ImageEvolver {
 		triangle4.setColor(aux2);
 	}
 	
-	public static void switchCloseColor(TriangleList<Triangle> triangles, int randomMutationsMax){
+	public static void switchCloseColor(TriangleList<Triangle> triangles, int randomJumpDistance){
 		
 		int pos = roll(triangles.size());
 		int des = 0;
-		int jump = roll(randomMutationsMax);
+//		int jump = roll(randomMutationsMax);
+		int jump = randomJumpDistance;
 		
 		if(random.nextBoolean()){
 			des = pos + jump;
@@ -367,85 +371,7 @@ public class ImageEvolver {
 		origin.setColor(dest.getColor());
 		dest.setColor(aux);
 	}
-	
-	/**
-	 * Extracted to avoid recreation
-	 */
-	private static int rgb1;
-	private static int rgb2;
-	private static int r1;
-	private static int g1;
-	private static int b1;
-	private static int r2;
-	private static int g2;
-	private static int b2;
-	private static int diff;
-	
-	public double compare(BufferedImage img1, BufferedImage img2) {
 
-//		long compareThen = System.currentTimeMillis();
-		
-		int width1 = img1.getWidth(null);
-		int width2 = img2.getWidth(null);
-		int height1 = img1.getHeight(null);
-		int height2 = img2.getHeight(null);
-		
-//		System.out.println("width1: " + width1 + ", height1: " + height1 + ", width2: " + width2 + ", height2: " + height2);
-		
-		if ((width1 != width2) || (height1 != height2)) {
-			System.err.println("Error: Images dimensions mismatch");
-			return 0;
-		}
-		
-		boolean fitnessByColor = true;
-		diff = 0;
-		
-		if (fitnessByColor){
-			for (int y = 0; y < height1; y++) {
-				for (int x = 0; x < width1; x++) {
-					rgb1 = img1.getRGB(x, y);
-					rgb2 = img2.getRGB(x, y);
-					r1 = (rgb1 >> 16) & 0xff;
-					g1 = (rgb1 >> 8) & 0xff;
-					b1 = (rgb1) & 0xff;
-					r2 = (rgb2 >> 16) & 0xff;
-					g2 = (rgb2 >> 8) & 0xff;
-					b2 = (rgb2) & 0xff;
-					diff += Math.abs(r1 - r2);
-					diff += Math.abs(g1 - g2);
-					diff += Math.abs(b1 - b2);
-				}
-			}
-		}else{
-			for (int y = 0; y < height1; y++) {
-				for (int x = 0; x < width1; x++) {
-					rgb1 = img1.getRGB(x, y);
-					rgb2 = img2.getRGB(x, y);
-					
-					float r1 = ((rgb1 >> 16) & 0xff) * 1f; 	// 0.299f
-					float g1 = ((rgb1 >> 8) & 0xff) * 0f;	// 0.587f
-					float b1 = ((rgb1) & 0xff) * 0f; 		// 0.114f
-					
-					float r2 = ((rgb2 >> 16) & 0xff) * 1f;
-					float g2 = ((rgb2 >> 8) & 0xff) * 0f;
-					float b2 = ((rgb2) & 0xff) * 0f;
-					
-					diff += Math.abs(r1 - r2);
-					diff += Math.abs(g1 - g2);
-					diff += Math.abs(b1 - b2);
-				}
-			}
-		}
-
-		double n = width1 * height1 * 3;
-		double p = diff / n / 255.0;
-		
-//		long compareNow = System.currentTimeMillis();
-//		System.out.println("compare took " + (float)(compareNow - compareThen) / 1000f + " seconds");
-		
-		return 1 - p;
-	}
-	
 	public static int roll(int n){
 		return random.nextInt(n);
 	}
@@ -521,7 +447,7 @@ public class ImageEvolver {
 	public void setDirty(boolean isDirty) {
 		this.isDirty = isDirty;
 	}
-
+	
 	/**
 	 * Extracted Objects to avoid creation during cycles
 	 */
@@ -532,6 +458,13 @@ public class ImageEvolver {
 	static TriangleList <Triangle> parentA;
 	static TriangleList <Triangle> parentB;
 	static TriangleList <Triangle> childA;
+
+	public void evolveGreedy(long start) {
+		
+		// start with position 0
+		// measure, keep score
+		// repeat until trying all the elements
+	}
 	
 	/**
 	 * Initial Random Population:
@@ -540,6 +473,7 @@ public class ImageEvolver {
 	 * 	- mix and mutate
 	 * 	
 	 */
+	@Override
 	public void evolve(long start, int iterations) {
 		
 //		long evolveThen = System.currentTimeMillis();
@@ -584,6 +518,10 @@ public class ImageEvolver {
         	}else{
         		scoreA = parentA.getScore();
         	}
+        	
+        	if (g != null) {
+        		g.dispose();
+        	}
 
 			imgChildA = new BufferedImage(resizedOriginal.getWidth(), resizedOriginal.getHeight(), ArtEvolver.IMAGE_TYPE); 
 			g = imgChildA.getGraphics();
@@ -605,6 +543,7 @@ public class ImageEvolver {
 			double scoreC = compare(imgChildA,  resizedOriginal);
 			childA.setScore(scoreC);
 			
+			// Just in case parent is not evaluated, and it's the first best score
 			if (scoreA > bestScore){
 				bestScore = scoreA;
 				bestImage = imgParentA;
@@ -613,37 +552,58 @@ public class ImageEvolver {
 				isDirty = true;
 			}
 			
-			// KILL PARENT (50/50) IF BEST
-			if (scoreC > scoreA){
-				pop.remove(parentA);
+			/**
+			 * Kill worst parent only
+			 */
+			if ((scoreC > scoreA) || (scoreC > parentB.getScore())){
+				
+				if (parentB.getScore() > scoreA) {
+					pop.remove(parentA);
+				} else {
+					pop.remove(parentB);
+				}
+
 				pop.add(childA);
 				goodIterations++;
-			}
-			
-			// BETTER IMAGE
-			if (scoreC > bestScore){
-				bestScore = scoreC;
-				bestImage = imgChildA;
-				goodIterations++;
 				
-				isDirty = true;
+				// BETTER IMAGE
+				if (scoreC > bestScore){
+					bestScore = scoreC;
+					bestImage = imgChildA;
+					goodIterations++;
+					
+					isDirty = true;
+				}
 			}
-			
+
 			totalIterations++;
 
-			if (totalIterations % 1000 == 0){
+			if (totalIterations % ((population/2) * 1000) == 0){
+//			if (totalIterations % 1000 == 0){
 				
 				long now = System.currentTimeMillis();
+//				System.out.println("i: " + totalIterations
+//								 + " - good: " + goodIterations
+//								 + " - p: " + pop.size()
+//								 + " - jump: " + randomJumpDistance
+//								 + " - cross: " + crossoverMax
+//								 + " - best: " + bestScore
+//								 + " - total time: " + ((float) (now - start) / 1000f) + " seconds");
 				
-				System.out.println("i: " + totalIterations
-								 + " - p: " + pop.size()
-								 + " - jump: " + randomJumpDistance
-								 + " - cross: " + crossoverMax
-								 + " - best: " + bestScore
-								 + " - total time: " + ((float) (now - start) / 1000f) + " seconds");
+				System.out.println(new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN)).format(bestScore));
+				
+				/**
+				 * 100000: 256/256
+				 */
+				if (totalIterations % (population * 500) == 0) {
+//					crossOver.halveParameters();
+					crossOver.incrementParameters();
+				}
+//				if (totalIterations % 100000 == 0) {
+//					crossOver.halveParameters();
+//				}
 			}
 		}
-
 //		long evolveNow = System.currentTimeMillis();
 //		System.out.println("evolve with " + iterations + " iterations took " + (float)(evolveNow - evolveThen) / 1000f + " seconds");
 	}

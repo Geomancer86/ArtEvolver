@@ -12,6 +12,7 @@ import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Locale;
 
 import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
@@ -41,24 +42,25 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	float width = 3.1f * triangleScaleWidth;
 	float height = 3.1f * triangleScaleHeight;
 	
-//	int widthTriangles  = 60; // 71
-//	int heightTriangles = 70; // 60
-	
 	int widthTriangles  = 80; // 71
 	int heightTriangles = 53; // 60
 	
 	// ImageEvolver
-	static final int POPULATION 				= 16; // 2-4092
-	static final int RANDOM_JUMP_MAX_DISTANCE	= 2;
-	static final int CROSSOVER_MAX 				= 2;
+	static final int POPULATION 				= 2; // GeneticEvolver: 2-4092 // GreedyEvolver: 1-1 
+	static final int RANDOM_JUMP_MAX_DISTANCE	= 1;
+	static final int CROSSOVER_MAX 				= 1;
 	static final int TOTAL_PALLETES             = 4;
+	
+	static final int RANDOM_JUMP_MAX_DISTANCES [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
+	static final int CROSSOVERS_MAX [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
 	
 	public static final int IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB;
 	
-	static final int EVOLVE_ITERATIONS          = 16;
+	static final int EVOLVE_ITERATIONS          = 8;
 	static final int MAX_ITERATIONS             = 10000000;
 	
 	ImageEvolver evolver;
+//	GreedyEvolver evolver;
 	
 	// Timer
 	private Timer processTimer;
@@ -82,12 +84,17 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     public ArtEvolver() throws IOException{
     	super("ArtEvolver v0.01");
     	pallete = new Pallete("Sherwin-Williams", TOTAL_PALLETES);
+    	
     	evolver = new ImageEvolver(POPULATION, RANDOM_JUMP_MAX_DISTANCE, CROSSOVER_MAX, triangleScaleHeight, pallete, width, height, widthTriangles, heightTriangles);
+//    	evolver = new GreedyEvolver(POPULATION, RANDOM_JUMP_MAX_DISTANCE, CROSSOVER_MAX, triangleScaleHeight, pallete, width, height, widthTriangles, heightTriangles);
 
         initComponents();
     }
     
 	private void initComponents() {
+		
+		Locale.setDefault(Locale.GERMAN);
+		
         mainFrame = this;
         mainFrame.setResizable(true);
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

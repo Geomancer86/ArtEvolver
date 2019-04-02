@@ -6,6 +6,8 @@ import java.awt.Polygon;
 public class Triangle extends Polygon{
 
 	private static final long serialVersionUID = -181164485692814464L;
+	
+	Long colorId;
 	Color color;
 	
 	int [] xPoly;
@@ -14,6 +16,16 @@ public class Triangle extends Polygon{
 	
 	public Triangle(int [] xPoly, int [] yPoly, int lenght, Color color){
 		super(xPoly, yPoly, lenght);
+		this.color = color;
+		this.xPoly = xPoly;
+		this.yPoly = yPoly;
+		this.lenght = lenght;
+	}
+
+	public Triangle(int[] xPoly, int[] yPoly, int lenght, Long colorId, Color color) {
+		super(xPoly, yPoly, lenght);
+		
+		this.colorId = colorId;
 		this.color = color;
 		this.xPoly = xPoly;
 		this.yPoly = yPoly;
@@ -50,5 +62,30 @@ public class Triangle extends Polygon{
 
 	public void setLenght(int lenght) {
 		this.lenght = lenght;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((colorId == null) ? 0 : colorId.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Triangle other = (Triangle) obj;
+		if (colorId == null) {
+			if (other.colorId != null)
+				return false;
+		} else if (!colorId.equals(other.colorId))
+			return false;
+		return true;
 	}
 }

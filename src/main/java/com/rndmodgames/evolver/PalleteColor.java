@@ -3,6 +3,7 @@ package com.rndmodgames.evolver;
 import java.awt.Color;
 
 public class PalleteColor {
+	
 	Pallete pallete;
 	Long id;
 	String name;

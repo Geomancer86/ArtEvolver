@@ -15,6 +15,8 @@ public class Pallete {
 
 	String name;
 	int totalPalletes;
+	long currentId = 0;
+	
 	List <PalleteColor> colors = new ArrayList<PalleteColor>();
 	
 	public Pallete(String name, int repetitions) throws IOException{
@@ -30,9 +32,13 @@ public class Pallete {
 					PalleteColor color = null;
 					String [] splitted = line.split(" ");
 	
+					currentId++;
+					
 					if (splitted.length == 5){
+						
 						color = new PalleteColor(this,
-												 Long.valueOf(splitted[0]),
+												 //Long.valueOf(splitted[0]),
+												 currentId,
 												 splitted[1],
 												 Integer.valueOf(splitted[2]).intValue(),
 												 Integer.valueOf(splitted[3]).intValue(),
@@ -40,7 +46,8 @@ public class Pallete {
 					}else{
 						if (splitted.length == 6){
 							color = new PalleteColor(this,
-									 Long.valueOf(splitted[0]),
+									 // Long.valueOf(splitted[0]),
+									 currentId,
 									 splitted[1] + " " + splitted[2],
 									 Integer.valueOf(splitted[3]).intValue(),
 									 Integer.valueOf(splitted[4]).intValue(),
@@ -48,7 +55,8 @@ public class Pallete {
 						}else{
 							if (splitted.length == 7){
 								color = new PalleteColor(this,
-										 Long.valueOf(splitted[0]),
+										 // Long.valueOf(splitted[0]),
+										 currentId,
 										 splitted[1] + " " + splitted[2] + " " + splitted[3],
 										 Integer.valueOf(splitted[4]).intValue(),
 										 Integer.valueOf(splitted[5]).intValue(),

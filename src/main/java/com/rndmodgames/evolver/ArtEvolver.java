@@ -47,8 +47,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	
 	// ImageEvolver
 	static final int POPULATION 				= 2; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
-	static final int RANDOM_JUMP_MAX_DISTANCE	= 4240/2;
-	static final int CROSSOVER_MAX 				= 2;
+	static final int RANDOM_JUMP_MAX_DISTANCE	= 2;
+	static final int CROSSOVER_MAX 				= 1;
 	static final int TOTAL_PALLETES             = 4;
 	
 	static final int RANDOM_JUMP_MAX_DISTANCES [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 

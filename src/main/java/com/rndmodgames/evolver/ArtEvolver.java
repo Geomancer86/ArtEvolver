@@ -46,9 +46,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	int heightTriangles = 53; // 60
 	
 	// ImageEvolver
-	static final int POPULATION 				= 2; // GeneticEvolver: 2-4092 // GreedyEvolver: 1-1 
-	static final int RANDOM_JUMP_MAX_DISTANCE	= 1;
-	static final int CROSSOVER_MAX 				= 1;
+	static final int POPULATION 				= 2; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
+	static final int RANDOM_JUMP_MAX_DISTANCE	= 4240/2;
+	static final int CROSSOVER_MAX 				= 2;
 	static final int TOTAL_PALLETES             = 4;
 	
 	static final int RANDOM_JUMP_MAX_DISTANCES [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
@@ -161,6 +161,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         stopButton.addActionListener(this);
         menuContainer.add(stopButton);
         
+        JButton enableSecuentialButton = new JButton("Secuential");
+        enableSecuentialButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        enableSecuentialButton.addActionListener(this);
+        menuContainer.add(enableSecuentialButton);
+        
         Container labelContainer = new JPanel();
 		lblScore = new JLabel("S: 0.0");
 		lblScore.setMinimumSize(new Dimension(160, 24));
@@ -221,7 +226,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		int newWidth = (int) ((width * widthTriangles * triangleScaleWidth) * (TOTAL_PALLETES / triangleScaleWidth / 2));
 		int newHeight = (int) ((height * heightTriangles * triangleScaleHeight) * (TOTAL_PALLETES / triangleScaleHeight / 2));
     	
-    	System.out.println("originalImage.width: " + originalImage.getWidth() + " - originalImage.height: " + originalImage.getHeight());
+//    	System.out.println("originalImage.width: " + originalImage.getWidth() + " - originalImage.height: " + originalImage.getHeight());
 		
 		// initialize currentImage and resizedOriginal
     	if (resizedOriginal == null){
@@ -242,7 +247,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     		
     		g.dispose();
     		
-    		System.out.println("resizedOriginal.width: " + resizedOriginal.getWidth() + " - resizedOriginal.height: " + resizedOriginal.getHeight());
+//    		System.out.println("resizedOriginal.width: " + resizedOriginal.getWidth() + " - resizedOriginal.height: " + resizedOriginal.getHeight());
     		
   			evolver.setResizedOriginal(resizedOriginal);
    			evolver.setCurrentImage(resizedOriginal);
@@ -287,6 +292,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		
 		if (event.getActionCommand().equals("Stop")) {
 			stop();
+		}
+		
+		if (event.getActionCommand().equals("Secuential")) {
+			evolver.switchSecuential();
 		}
 	}
 }

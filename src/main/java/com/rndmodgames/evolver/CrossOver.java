@@ -29,17 +29,18 @@ public class CrossOver {
 		if (randomJumpDistance <= 0) {
 			randomJumpDistance = 1;
 		}
-		
-//		if (crossoverMax <= 4) {
-//			crossoverMax = 4;
-//		}
 	}
 	
 	public void incrementParameters() {
+		if (randomJumpDistance > 128) {
+			return;
+		}
+		
 		randomJumpDistance +=1;
 	}
 	
 	public TriangleList<Triangle> getChild(TriangleList<Triangle> parentA, TriangleList<Triangle> parentB) {
+		
 		TriangleList<Triangle> child = new TriangleList<Triangle>();
 
 		// base parent chance 50/50
@@ -90,7 +91,6 @@ public class CrossOver {
 				}
 			}
 		
-			// disabled
 			if (random.nextFloat() < RANDOM_CLOSE_MUTATION_PERCENT){
 				ImageEvolver.switchCloseColor(child, randomJumpDistance);
 				notEvolved = false;
@@ -106,6 +106,19 @@ public class CrossOver {
 				notEvolved = false;
 			}
 		}
+		
+		return child;
+	}
+
+	public TriangleList<Triangle> getSecuentialChild(TriangleList<Triangle> parent, int startTriangle, int targetTriangle) {
+		TriangleList<Triangle> child = new TriangleList<Triangle>();
+		
+		for (Triangle triangle : parent){
+			Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor());
+			child.add(copy);
+		}
+		
+		ImageEvolver.switchColor(child, startTriangle, targetTriangle);
 		
 		return child;
 	}

@@ -20,7 +20,7 @@ public class ImageEvolver extends AbstractEvolver {
 	private BufferedImage resizedOriginal;
 	private BufferedImage currentImage;
 	private BufferedImage bestImage;
-	private double bestScore;
+	private double bestScore = Double.MIN_VALUE;
 
 	private int population;
 	private int randomJumpDistance;
@@ -134,12 +134,15 @@ public class ImageEvolver extends AbstractEvolver {
 
 						position++;
 
+						Long colorId = null;
 						Color color = null;
+						
 						if (pallete.getColor(count) != null) {
+							colorId = pallete.getColor(count).id;
 							color = pallete.getColor(count).color;
 						}
 
-						Triangle triangle = new Triangle(xPoly, yPoly, 3, color);
+						Triangle triangle = new Triangle(xPoly, yPoly, 3, colorId, color);
 						triangles.add(triangle);
 
 						count++;
@@ -147,9 +150,9 @@ public class ImageEvolver extends AbstractEvolver {
 				}
 
 				// randomize
-//				for (int k = 0; k < triangles.size() * randomMult; k++){
-//					switchColor(triangles, roll(triangles.size()), roll(triangles.size()));
-//				}
+				for (int k = 0; k < triangles.size() * randomMult; k++){
+					switchColor(triangles, roll(triangles.size()), roll(triangles.size()));
+				}
 
 				pop.add(triangles);
 			}
@@ -262,6 +265,7 @@ public class ImageEvolver extends AbstractEvolver {
 
 				imgParentA = new BufferedImage(resizedOriginal.getWidth(), resizedOriginal.getHeight(),
 						ArtEvolver.IMAGE_TYPE);
+				
 				g = imgParentA.getGraphics();
 
 				for (Triangle triangle : triangles) {
@@ -473,6 +477,114 @@ public class ImageEvolver extends AbstractEvolver {
 		// repeat until trying all the elements
 	}
 
+	private int GEN_SIZE = 8;
+	
+	public void evolve2(long start, int iterations) {
+		
+//		long beforeChild = System.currentTimeMillis();
+		
+		int rollA, rollB;
+		
+		for (int a = 0; a < iterations; a++) {
+
+			rollA = 0;
+			rollB = 0;
+	
+			while (rollA == rollB) {
+				rollA = roll(pop.size());
+				rollB = roll(pop.size());
+			}
+	
+			parentA = pop.get(rollA);
+			parentB = pop.get(rollB);
+		
+			childA = crossOver.getGeneticChild(parentA, parentB, GEN_SIZE);
+			TriangleList<Triangle> mutatedChild = crossOver.mutate(childA);
+			
+			updateFitness(mutatedChild);
+			updateStats();
+		}
+	}
+	
+	public void updateStats() {
+		totalIterations++;
+
+		if (totalIterations % ((population / 2) * 1000) == 0) {
+			System.out.println(new DecimalFormat("####.###################", 
+							   new DecimalFormatSymbols(Locale.ITALIAN))
+					  .format(bestScore));
+		}
+	}
+	
+	public void updateFitness(TriangleList<Triangle> mutatedChild) {
+		
+//		System.out.println("update fitness");
+		
+		/**
+		 * TODO-NA: instead of new image, clear and reuse
+		 */
+		// score childA
+//		if (imgChildA == null) {
+			imgChildA = new BufferedImage(resizedOriginal.getWidth(),
+					  resizedOriginal.getHeight(),
+					  ArtEvolver.IMAGE_TYPE);
+//		} else {
+//			g.clearRect(0, 0, imgChildA.getWidth(), imgChildA.getHeight());
+//		}
+
+		g = imgChildA.getGraphics();
+
+		// Iterator childA
+		for (Triangle triangle : mutatedChild) {
+			if (triangle.getColor() != null) {
+				g.setColor(triangle.getColor());
+				g.drawPolygon(triangle);
+				g.fillPolygon(triangle);
+			} else {
+				g.setColor(Color.BLUE);
+				g.drawPolygon(triangle);
+			}
+		}
+
+		g.dispose();
+
+		double scoreC = compare(imgChildA, resizedOriginal);
+		mutatedChild.setScore(scoreC);
+
+		// if score less than better, return
+		if (scoreC < bestScore) {
+			return;
+		} else {
+			System.out.println("score: " + scoreC + ", bestScore: " + bestScore);
+		}
+
+		Double currentWorstScore = Double.MAX_VALUE;
+		int actualWorstPosition = 0;
+		int currentWorstPosition = 0;
+		
+		for (;currentWorstPosition < pop.size(); currentWorstPosition++) {
+			if (pop.get(currentWorstPosition).getScore() < currentWorstScore) {
+				currentWorstScore = pop.get(currentWorstPosition).getScore();
+				actualWorstPosition = currentWorstPosition;
+			}
+		}
+		
+		if (scoreC > bestScore) {
+			bestScore = scoreC;
+			bestImage = imgChildA;
+			goodIterations++;
+			
+			pop.remove(actualWorstPosition);
+			
+			// add a copy! of child a
+			pop.add(mutatedChild);
+
+			isDirty = true;
+		}
+		
+		// replace Child with worst element / worstParent
+	}
+	
 	private boolean secuential = false;
 	private boolean randomSecuential = false;
 	private boolean secuentialHorizontal = false;
@@ -608,8 +720,10 @@ public class ImageEvolver extends AbstractEvolver {
 				g.dispose();
 			}
 
-			imgChildA = new BufferedImage(resizedOriginal.getWidth(), resizedOriginal.getHeight(),
-					ArtEvolver.IMAGE_TYPE);
+			imgChildA = new BufferedImage(resizedOriginal.getWidth(),
+										  resizedOriginal.getHeight(),
+										  ArtEvolver.IMAGE_TYPE);
+			
 			g = imgChildA.getGraphics();
 
 			// Iterator childA

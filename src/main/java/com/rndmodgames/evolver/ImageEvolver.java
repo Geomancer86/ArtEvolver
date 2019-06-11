@@ -3,6 +3,11 @@ package com.rndmodgames.evolver;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Collections;
@@ -10,6 +15,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.SplittableRandom;
+import java.util.stream.Stream;
 
 public class ImageEvolver extends AbstractEvolver {
 
@@ -47,6 +53,7 @@ public class ImageEvolver extends AbstractEvolver {
 	@SuppressWarnings("static-access")
 	public ImageEvolver(int population, int randomJumpDistance, int crossoverMax, float scale, Pallete pallete,
 			float width, float height, int triangleWidth, int triangleHeight) {
+		
 		this.population = population;
 		this.scale = scale * pallete.totalPalletes / 2;
 		this.pallete = pallete;
@@ -65,6 +72,78 @@ public class ImageEvolver extends AbstractEvolver {
 		crossOver = new CrossOver(randomJumpDistance, crossoverMax);
 	}
 
+	/**
+	 * Initialize the triangles from a TXT file listing all the triangle coordinates and colors
+	 * @param filename
+	 * @throws IOException 
+	 */
+	public void initializeFromFile(String filename) throws IOException {
+		URL url = getClass().getResource("../../../" + filename);
+		File file = new File(url.getPath());
+
+		try (Stream<String>stream = Files.lines(file.toPath(), StandardCharsets.UTF_8)) {
+			
+			TriangleList<Triangle> triangles = new TriangleList<Triangle>();
+			
+			stream.forEach((line)->{
+				
+				// strip all crap and only leave the commas ,
+				line = line.replaceAll("\\[", "").replaceAll("\\]", "").replaceAll(" ", "").trim();
+				
+				String [] splitted = line.split(",");
+				
+				int xPoly[] = new int[3];
+				int yPoly[] = new int[3];
+				
+				xPoly[0]= Integer.parseInt(splitted[1]);
+				xPoly[1]= Integer.parseInt(splitted[2]);
+				xPoly[2]= Integer.parseInt(splitted[3]);
+				
+				yPoly[0]= Integer.parseInt(splitted[4]);
+				yPoly[1]= Integer.parseInt(splitted[5]);
+				yPoly[2]= Integer.parseInt(splitted[6]);
+				
+				Color color = new Color(Integer.parseInt(splitted[7]),
+										Integer.parseInt(splitted[8]),
+										Integer.parseInt(splitted[9]));
+				
+				Triangle triangle = new Triangle(xPoly, yPoly, 3, null, color);
+				triangles.add(triangle);
+			});
+			
+			// add all triangles twice (we need a 2 pop)
+			pop.add(triangles);
+			pop.add(triangles);
+		}
+
+		BufferedImage imgParentA = null;
+		Graphics g = null;
+		double scoreA = 0d;
+
+		for (TriangleList<Triangle> triangles : pop) {
+
+			imgParentA = new BufferedImage(resizedOriginal.getWidth(), resizedOriginal.getHeight(),
+					ArtEvolver.IMAGE_TYPE);
+			g = imgParentA.getGraphics();
+
+			for (Triangle triangle : triangles) {
+				if (triangle.getColor() != null) {
+					g.setColor(triangle.getColor());
+					g.drawPolygon(triangle);
+					g.fillPolygon(triangle);
+				} else {
+					g.setColor(Color.BLUE);
+					g.drawPolygon(triangle);
+				}
+			}
+
+			scoreA = compare(imgParentA, resizedOriginal);
+			triangles.setScore(scoreA);
+		}
+
+		g.dispose();
+	}
+	
 	/**
 	 * Initialize the triangles as equilateral
 	 */
@@ -762,49 +841,34 @@ public class ImageEvolver extends AbstractEvolver {
 			int actualWorstPosition = 0;
 			int currentWorstPosition = 0;
 			
-//			if (isDirty) {
-				for (;currentWorstPosition < pop.size(); currentWorstPosition++) {
-					if (pop.get(currentWorstPosition).getScore() < currentWorstScore) {
-						currentWorstScore = pop.get(currentWorstPosition).getScore();
-						actualWorstPosition = currentWorstPosition;
-					}
-				}
-
-				// BETTER IMAGE
-				if (scoreC > bestScore) {
-					bestScore = scoreC;
-					bestImage = imgChildA;
-					goodIterations++;
-					
-					pop.remove(actualWorstPosition);
-					pop.add(childA);
-
-					isDirty = true;
-				}
-//			}
-
-			/**
-			if ((scoreC > scoreA) || (scoreC > parentB.getScore())) {
-
-				if (parentB.getScore() > scoreA) {
-					pop.remove(parentA);
-				} else {
-					pop.remove(parentB);
-				}
-
-				pop.add(childA);
-				goodIterations++;
-
-				// BETTER IMAGE
-				if (scoreC > bestScore) {
-					bestScore = scoreC;
-					bestImage = imgChildA;
-					goodIterations++;
-
-					isDirty = true;
+			for (;currentWorstPosition < pop.size(); currentWorstPosition++) {
+				if (pop.get(currentWorstPosition).getScore() < currentWorstScore) {
+					currentWorstScore = pop.get(currentWorstPosition).getScore();
+					actualWorstPosition = currentWorstPosition;
 				}
 			}
-			**/
+
+			// BETTER IMAGE
+			if (scoreC > bestScore) {
+				bestScore = scoreC;
+				bestImage = imgChildA;
+				goodIterations++;
+				
+				pop.remove(actualWorstPosition);
+				pop.add(childA);
+
+				isDirty = true;
+				
+				// baseline for long term experiment
+				if (bestScore >= 0.75d) {
+					// print triangles for resume processing
+					for (int bb = 0; bb < childA.size(); bb++) {
+						System.out.println(bb + "," + childA.get(bb).toString());
+					}
+					
+					System.exit(0);
+				}
+			}
 
 			totalIterations++;
 
@@ -812,17 +876,17 @@ public class ImageEvolver extends AbstractEvolver {
 //			if (totalIterations % 1000 == 0){
 
 				long now = System.currentTimeMillis();
-//				System.out.println("i: " + totalIterations
-//								 + " - good: " + goodIterations
-//								 + " - p: " + pop.size()
-//								 + " - jump: " + randomJumpDistance
-//								 + " - cross: " + crossoverMax
-//								 + " - best: " + bestScore
-//								 + " - total time: " + ((float) (now - start) / 1000f) + " seconds");
+				System.out.println("i: " + totalIterations
+								 + " - good: " + goodIterations
+								 + " - p: " + pop.size()
+								 + " - jump: " + crossOver.getRandomJumpDistance()
+								 + " - cross: " + crossoverMax
+								 + " - best: " + bestScore
+								 + " - total time: " + ((float) (now - start) / 1000f) + " seconds");
 
-				System.out
-						.println(new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN))
-								.format(bestScore));
+//				System.out
+//						.println(new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN))
+//								.format(bestScore));
 
 //				switchSecuential();
 				

@@ -2,6 +2,7 @@ package com.rndmodgames.evolver;
 
 import java.awt.Color;
 import java.awt.Polygon;
+import java.util.Arrays;
 
 public class Triangle extends Polygon{
 
@@ -87,5 +88,10 @@ public class Triangle extends Polygon{
 		} else if (!colorId.equals(other.colorId))
 			return false;
 		return true;
+	}
+
+	@Override
+	public String toString() {
+		return Arrays.toString(xPoly) + "," + Arrays.toString(yPoly) + ",[" + color.getRed() + ", " + color.getGreen() + ", " + color.getBlue() + "]";
 	}
 }

@@ -8,36 +8,36 @@ public class CrossOver {
 	
 	public static final Random random = new Random();
 	
-	public static final float RANDOM_CLOSE_MUTATION_PERCENT = 0.6f;
-	public static final float RANDOM_MUTATION_PERCENT 		= 0.3f;
+	public static final float RANDOM_CLOSE_MUTATION_PERCENT = 0.25f;
+	public static final float RANDOM_MUTATION_PERCENT 		= 0.25f;
 
-	public static final float RANDOM_CROSSOVER_PERCENT 		= 0.3f;
-	public static final float RANDOM_MULTI_MUTATION 		= 0.1f;
+	public static final float RANDOM_CROSSOVER_PERCENT 		= 0.25f;
+	public static final float RANDOM_MULTI_MUTATION 		= 0.25f;
 	public static final int   RANDOM_MULTI_MUTATION_MAX     = 2;
 	
 	private int randomJumpDistance;
 	private int crossoverMax;
 	
 	public CrossOver(int randomJumpDistance, int crossoverMax){
-		this.randomJumpDistance = randomJumpDistance;
+		this.setRandomJumpDistance(randomJumpDistance);
 		this.crossoverMax = crossoverMax;
 	}
 	
 	public void halveParameters() {
-		randomJumpDistance -= 4;
+		setRandomJumpDistance(getRandomJumpDistance() - 1);
 //		crossoverMax -= -2;
 		
-		if (randomJumpDistance <= 0) {
-			randomJumpDistance = 1;
+		if (getRandomJumpDistance() <= 0) {
+			setRandomJumpDistance(1);
 		}
 	}
 	
 	public void incrementParameters() {
-		if (randomJumpDistance > 128) {
+		if (getRandomJumpDistance() > 128) {
 			return;
 		}
 		
-		randomJumpDistance +=1;
+		setRandomJumpDistance(getRandomJumpDistance() + 1);
 	}
 	
 	private static TriangleList<Triangle> unusedColors = new TriangleList<>();
@@ -150,7 +150,7 @@ public class CrossOver {
 			
 		}
 		
-		ImageEvolver.switchCloseColor(child, randomJumpDistance);
+		ImageEvolver.switchCloseColor(child, getRandomJumpDistance());
 		
 		return child;
 	}
@@ -207,20 +207,20 @@ public class CrossOver {
 				}
 			}
 		
-//			if (random.nextFloat() < RANDOM_CLOSE_MUTATION_PERCENT){
-//				ImageEvolver.switchCloseColor(child, randomJumpDistance);
-//				notEvolved = false;
-//			}
+			if (random.nextFloat() < RANDOM_CLOSE_MUTATION_PERCENT){
+				ImageEvolver.switchCloseColor(child, getRandomJumpDistance());
+				notEvolved = false;
+			}
 //		
-//			if (random.nextFloat() < RANDOM_MUTATION_PERCENT){
-//				ImageEvolver.switchRandomColor(child);
-//				notEvolved = false;
-//			}
+			if (random.nextFloat() < RANDOM_MUTATION_PERCENT){
+				ImageEvolver.switchRandomColor(child);
+				notEvolved = false;
+			}
 		
-//			if (random.nextFloat() < RANDOM_MULTI_MUTATION){
+			if (random.nextFloat() < RANDOM_MULTI_MUTATION){
 				ImageEvolver.switchRandomMultiColor(child, RANDOM_MULTI_MUTATION_MAX);
 				notEvolved = false;
-//			}
+			}
 		}
 		
 		return child;
@@ -237,5 +237,13 @@ public class CrossOver {
 		ImageEvolver.switchColor(child, startTriangle, targetTriangle);
 		
 		return child;
+	}
+
+	public int getRandomJumpDistance() {
+		return randomJumpDistance;
+	}
+
+	public void setRandomJumpDistance(int randomJumpDistance) {
+		this.randomJumpDistance = randomJumpDistance;
 	}
 }

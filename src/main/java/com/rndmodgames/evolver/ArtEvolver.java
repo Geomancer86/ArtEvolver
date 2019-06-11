@@ -47,11 +47,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	
 	// ImageEvolver
 	static final int POPULATION 				= 2; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
-	static final int RANDOM_JUMP_MAX_DISTANCE	= 2;
+	static final int RANDOM_JUMP_MAX_DISTANCE	= 4096/2;
 	static final int CROSSOVER_MAX 				= 1;
 	static final int TOTAL_PALLETES             = 4;
 	
-	static final int RANDOM_JUMP_MAX_DISTANCES [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
+	static final int RANDOM_JUMP_MAX_DISTANCES [] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
 	static final int CROSSOVERS_MAX [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
 	
 	public static final int IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB;
@@ -207,7 +207,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         });
     }
 
-    public void loadImage(){
+    public void loadImage() throws IOException{
     	this.chooser.resetChoosableFileFilters();
 		this.chooser.setFileFilter(new FileNameExtensionFilter("Image Files", new String[] { "jpg", "jpeg", "png", "gif", "bmp" }));
 
@@ -226,7 +226,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		int newWidth = (int) ((width * widthTriangles * triangleScaleWidth) * (TOTAL_PALLETES / triangleScaleWidth / 2));
 		int newHeight = (int) ((height * heightTriangles * triangleScaleHeight) * (TOTAL_PALLETES / triangleScaleHeight / 2));
     	
-//    	System.out.println("originalImage.width: " + originalImage.getWidth() + " - originalImage.height: " + originalImage.getHeight());
+    	System.out.println("originalImage.width: " + originalImage.getWidth() + " - originalImage.height: " + originalImage.getHeight());
 		
 		// initialize currentImage and resizedOriginal
     	if (resizedOriginal == null){
@@ -247,14 +247,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     		
     		g.dispose();
     		
-//    		System.out.println("resizedOriginal.width: " + resizedOriginal.getWidth() + " - resizedOriginal.height: " + resizedOriginal.getHeight());
+    		System.out.println("resizedOriginal.width: " + resizedOriginal.getWidth() + " - resizedOriginal.height: " + resizedOriginal.getHeight());
     		
   			evolver.setResizedOriginal(resizedOriginal);
    			evolver.setCurrentImage(resizedOriginal);
     	}
 
 //    	 evolver.initialize();
-    	evolver.initializeEquilateral();
+//    	evolver.initializeEquilateral();
+    	evolver.initializeFromFile("triangle_list.txt");
     }
 
     public void start(){
@@ -283,7 +284,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	@Override
 	public void actionPerformed(ActionEvent event) {
 		if (event.getActionCommand().equals("Load")) {
-			loadImage();
+			try {
+				loadImage();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		
 		if (event.getActionCommand().equals("Start")) {

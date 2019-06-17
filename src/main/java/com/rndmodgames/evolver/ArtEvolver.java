@@ -47,8 +47,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	
 	// ImageEvolver
 	static final int POPULATION 				= 2; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
-	static final int RANDOM_JUMP_MAX_DISTANCE	= 4096/2;
-	static final int CROSSOVER_MAX 				= 1;
+	static final int RANDOM_JUMP_MAX_DISTANCE	= 4239/2;
+	static final int CROSSOVER_MAX 				= 2;
 	static final int TOTAL_PALLETES             = 4;
 	
 	static final int RANDOM_JUMP_MAX_DISTANCES [] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
@@ -255,7 +255,20 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 //    	 evolver.initialize();
 //    	evolver.initializeEquilateral();
-    	evolver.initializeFromFile("triangle_list.txt");
+//    	evolver.initializeFromFile("campito_78.txt");
+//    	evolver.initializeFromFile("campito_80.txt");
+//    	evolver.initializeFromFile("campito_805.txt");
+//    	evolver.initializeFromFile("campito_81.txt");
+//    	evolver.initializeFromFile("campito_811.txt");
+//    	evolver.initializeFromFile("campito_8114.txt");
+//    	evolver.initializeFromFile("campito_8115.txt");
+//    	evolver.initializeFromFile("campito_8116.txt");
+//    	evolver.initializeFromFile("campito_81163.txt");
+//    	evolver.initializeFromFile("campito_8117.txt");
+//    	evolver.initializeFromFile("campito_8118.txt");
+//    	evolver.initializeFromFile("campito_8119.txt");
+    	evolver.initializeFromFile("campito_812.txt");
+    	evolver.initializeFromFile("campito_812.txt");
     }
 
     public void start(){

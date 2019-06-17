@@ -8,11 +8,11 @@ public class CrossOver {
 	
 	public static final Random random = new Random();
 	
-	public static final float RANDOM_CLOSE_MUTATION_PERCENT = 0.25f;
-	public static final float RANDOM_MUTATION_PERCENT 		= 0.25f;
+	public static final float RANDOM_CLOSE_MUTATION_PERCENT = 0.6f;
+	public static final float RANDOM_MUTATION_PERCENT 		= 0.4f;
 
-	public static final float RANDOM_CROSSOVER_PERCENT 		= 0.25f;
-	public static final float RANDOM_MULTI_MUTATION 		= 0.25f;
+	public static final float RANDOM_CROSSOVER_PERCENT 		= 0.4f;
+	public static final float RANDOM_MULTI_MUTATION 		= -0.4f;
 	public static final int   RANDOM_MULTI_MUTATION_MAX     = 2;
 	
 	private int randomJumpDistance;
@@ -211,7 +211,7 @@ public class CrossOver {
 				ImageEvolver.switchCloseColor(child, getRandomJumpDistance());
 				notEvolved = false;
 			}
-//		
+		
 			if (random.nextFloat() < RANDOM_MUTATION_PERCENT){
 				ImageEvolver.switchRandomColor(child);
 				notEvolved = false;

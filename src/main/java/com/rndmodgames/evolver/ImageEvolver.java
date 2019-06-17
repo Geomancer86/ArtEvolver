@@ -111,8 +111,7 @@ public class ImageEvolver extends AbstractEvolver {
 				triangles.add(triangle);
 			});
 			
-			// add all triangles twice (we need a 2 pop)
-			pop.add(triangles);
+			// add all triangles twice (we need a n pop)
 			pop.add(triangles);
 		}
 
@@ -667,8 +666,6 @@ public class ImageEvolver extends AbstractEvolver {
 	private boolean secuential = false;
 	private boolean randomSecuential = false;
 	private boolean secuentialHorizontal = false;
-	private int randomSecuentialMaxTries = 2;
-	private int randomSecuentialTries = 0;
 	private int currentParentA = 0;
 	private int currentParentB = 1;
 	private int startTriangle = 0;
@@ -748,23 +745,6 @@ public class ImageEvolver extends AbstractEvolver {
 							targetTriangle = 0 + triangleHeight - (targetTriangle - parentA.size());
 						}
 					}
-
-//					do {
-
-					// targetTriangle = roll(parentA.size());
-//						targetTriangle = startTriangle + 1;
-
-//					} while (startTriangle == targetTriangle);
-
-//					randomSecuentialTries++;
-
-//					if (randomSecuentialTries == randomSecuentialMaxTries) {
-//						startTriangle ++;
-//						
-//						if (startTriangle == parentA.size()) {
-//							startTriangle = 0;
-//						}
-//					}
 				}
 			}
 
@@ -859,8 +839,8 @@ public class ImageEvolver extends AbstractEvolver {
 
 				isDirty = true;
 				
-				// baseline for long term experiment
-				if (bestScore >= 0.75d) {
+				// baseline for long term experiment 81.2%
+				if (bestScore >= 0.8121d) {
 					// print triangles for resume processing
 					for (int bb = 0; bb < childA.size(); bb++) {
 						System.out.println(bb + "," + childA.get(bb).toString());

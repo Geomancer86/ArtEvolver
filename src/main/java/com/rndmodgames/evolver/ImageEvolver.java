@@ -870,7 +870,7 @@ public class ImageEvolver extends AbstractEvolver {
 //			if (totalIterations % ((population / 2) * 1000) == 0) {
 			if (totalIterations % 1000 == 0){
 
-				long now = System.currentTimeMillis();
+//				long now = System.currentTimeMillis();
 //				System.out.println("i: " + totalIterations
 //								 + " - good: " + goodIterations
 //								 + " - p: " + pop.size()

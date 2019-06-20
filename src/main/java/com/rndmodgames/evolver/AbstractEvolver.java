@@ -27,7 +27,7 @@ public abstract class AbstractEvolver {
 
 	public double compare(BufferedImage img1, BufferedImage img2) {
 
-		long compareThen = System.currentTimeMillis();
+//		long compareThen = System.currentTimeMillis();
 		
 		int width1 = img1.getWidth(null);
 		int width2 = img2.getWidth(null);
@@ -84,8 +84,8 @@ public abstract class AbstractEvolver {
 		n = width1 * height1 * CONSTANT_SCORE_MULTIPLIER;
 		p = diff / n / CONSTANT_SCORE_DIVIDER;
 		
-		long compareNow = System.currentTimeMillis();
-		System.out.println("compare took " + (float)(compareNow - compareThen) / 1000f + " seconds");
+//		long compareNow = System.currentTimeMillis();
+//		System.out.println("compare took " + (float)(compareNow - compareThen) / 1000f + " seconds");
 		
 		return CONSTANT_SCORE_ONE - p;
 	}

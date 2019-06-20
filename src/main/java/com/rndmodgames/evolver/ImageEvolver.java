@@ -17,8 +17,6 @@ import java.util.Locale;
 import java.util.SplittableRandom;
 import java.util.stream.Stream;
 
-import com.rndmodgames.evolver.render.Renderer;
-
 public class ImageEvolver extends AbstractEvolver {
 
 //	public static final MersenneTwisterFast random = new MersenneTwisterFast();
@@ -29,6 +27,7 @@ public class ImageEvolver extends AbstractEvolver {
 	private BufferedImage currentImage;
 	private BufferedImage bestImage;
 	private double bestScore = Double.MIN_VALUE;
+	private double averageScore = Double.MIN_VALUE;
 
 	private int population;
 	private int randomJumpDistance;
@@ -534,6 +533,14 @@ public class ImageEvolver extends AbstractEvolver {
 	public void setBestScore(double bestScore) {
 		this.bestScore = bestScore;
 	}
+	
+	public double getAverageScore() {
+		return averageScore;
+	}
+
+	public void setAverageScore(double averageScore) {
+		this.averageScore = averageScore;
+	}
 
 	public boolean isDirty() {
 		return isDirty;
@@ -866,6 +873,20 @@ public class ImageEvolver extends AbstractEvolver {
 			}
 
 			totalIterations++;
+			
+			/**
+			 * Calculate Average Score
+			 * 
+			 * TODO: we probably don't need to iterate every time and just keep count of new scores
+			 */
+			double totalScore = 0d;
+			for (int b = 0; b < pop.size(); b++) {
+				totalScore += pop.get(b).getScore();
+			}
+
+			// show the diff
+			this.averageScore = (totalScore / pop.size()) - this.bestScore;
+			
 
 //			if (totalIterations % ((population / 2) * 1000) == 0) {
 			if (totalIterations % 1000 == 0){
@@ -879,10 +900,14 @@ public class ImageEvolver extends AbstractEvolver {
 //								 + " - best: " + bestScore
 //								 + " - total time: " + ((float) (now - start) / 1000f) + " seconds");
 
+//				System.out
+//						.println(new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN))
+//								.format(bestScore));
+				
 				System.out
-						.println(new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN))
-								.format(bestScore));
-
+				.println(new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN))
+						.format(this.averageScore));
+				
 //				switchSecuential();
 				
 //				crossOver.halveParameters();

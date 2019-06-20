@@ -90,6 +90,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	// Components
 	private JFileChooser chooser;
 	private JLabel lblScore;
+	private JLabel lblAverageScore;
 	private JLabel lblIterations;
 	
 	@SuppressWarnings("unused")
@@ -102,6 +103,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	long totalIterations = 0L;
 	long goodIterations = 0L;
 	double currentScore = 0.0d;
+	double averagePopulationScore = 0.0d;
 
     public ArtEvolver() throws IOException{
     	super("ArtEvolver v0.01");
@@ -141,7 +143,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	}
             	
             	// update stats
-            	lblScore.setText("S: " + evolver.getBestScore());
+            	lblScore.setText("S     : " + evolver.getBestScore());
+//            	lblAverageScore.setText("S(AVG): " + evolver.getAverageScore());
             	lblIterations.setText("I: " + evolver.getGoodIterations() + "/" + evolver.getTotalIterations());
             	
             	if (evolver.getTotalIterations() >= MAX_ITERATIONS){
@@ -200,6 +203,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		lblScore.setMaximumSize(new Dimension(160, 24));
 		
 		labelContainer.add(lblScore);
+		
+//		lblAverageScore = new JLabel("S(AVG): 0.0");
+//		lblAverageScore.setMinimumSize(new Dimension(160, 24));
+//		lblAverageScore.setPreferredSize(new Dimension(160, 24));
+//		lblAverageScore.setMaximumSize(new Dimension(160, 24));
+//		
+//		labelContainer.add(lblAverageScore);
 		
 		lblIterations = new JLabel("I: 0/0");
 		lblIterations.setMinimumSize(new Dimension(160, 24));

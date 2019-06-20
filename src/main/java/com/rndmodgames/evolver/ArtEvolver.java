@@ -61,9 +61,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 		- Quick way to chunk full pixel chunks
 	 */
 	// ImageEvolver
-	static final int POPULATION 				= 2; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
-	static final int RANDOM_JUMP_MAX_DISTANCE	= 4239/2;
-	static final int CROSSOVER_MAX 				= 2;
+	static final int POPULATION 				= 8; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
+	static final int RANDOM_JUMP_MAX_DISTANCE	= 2; // MAX: 4239/2
+	static final int CROSSOVER_MAX 				= 1;
 	static final int TOTAL_PALLETES             = 4;
 	
 	static final int RANDOM_JUMP_MAX_DISTANCES [] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
@@ -206,7 +206,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
       	container.add(menuContainer, BorderLayout.LINE_END);
       	container.add(imagePanel, BorderLayout.CENTER);
 	    
-		setSize(2400, 1200); 
+		setSize(2400/2, 1200/2); 
 
 		chooser = new JFileChooser(new File(System.getProperty("user.dir")));
 		chooser.setAcceptAllFileFilterUsed(false);
@@ -277,6 +277,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	
     	evolver.initializeIsosceles();
     	
+//    	evolver.initializeFromFile("campito_78.txt");
 //    	evolver.initializeFromFile("campito_78.txt");
 //    	evolver.initializeFromFile("campito_80.txt");
 //    	evolver.initializeFromFile("campito_805.txt");

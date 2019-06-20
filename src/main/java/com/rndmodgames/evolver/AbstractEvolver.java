@@ -6,7 +6,6 @@ public abstract class AbstractEvolver {
 
 	public abstract void evolve(long start, int iterations);
 	
-	
 	/**
 	 * Extracted to avoid recreation
 	 */
@@ -19,10 +18,16 @@ public abstract class AbstractEvolver {
 	private static int g2;
 	private static int b2;
 	private static int diff;
+	private static double n;
+	private static double p;
 	
+	private static final double CONSTANT_SCORE_DIVIDER = 255d;
+	private static final int CONSTANT_SCORE_MULTIPLIER = 3;
+	private static final int CONSTANT_SCORE_ONE = 1;
+
 	public double compare(BufferedImage img1, BufferedImage img2) {
 
-//		long compareThen = System.currentTimeMillis();
+		long compareThen = System.currentTimeMillis();
 		
 		int width1 = img1.getWidth(null);
 		int width2 = img2.getWidth(null);
@@ -61,7 +66,7 @@ public abstract class AbstractEvolver {
 					rgb1 = img1.getRGB(x, y);
 					rgb2 = img2.getRGB(x, y);
 					
-					float r1 = ((rgb1 >> 16) & 0xff) * 1f; 	// 0.299f
+					float r1 = ((rgb1 >> 16) & 0xff) * 1; 	// 0.299f
 					float g1 = ((rgb1 >> 8) & 0xff) * 0f;	// 0.587f
 					float b1 = ((rgb1) & 0xff) * 0f; 		// 0.114f
 					
@@ -76,12 +81,12 @@ public abstract class AbstractEvolver {
 			}
 		}
 
-		double n = width1 * height1 * 3;
-		double p = diff / n / 255.0;
+		n = width1 * height1 * CONSTANT_SCORE_MULTIPLIER;
+		p = diff / n / CONSTANT_SCORE_DIVIDER;
 		
-//		long compareNow = System.currentTimeMillis();
-//		System.out.println("compare took " + (float)(compareNow - compareThen) / 1000f + " seconds");
+		long compareNow = System.currentTimeMillis();
+		System.out.println("compare took " + (float)(compareNow - compareThen) / 1000f + " seconds");
 		
-		return 1 - p;
+		return CONSTANT_SCORE_ONE - p;
 	}
 }

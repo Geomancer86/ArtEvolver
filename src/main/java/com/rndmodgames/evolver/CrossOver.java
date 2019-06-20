@@ -1,5 +1,6 @@
 package com.rndmodgames.evolver;
 
+import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -8,11 +9,11 @@ public class CrossOver {
 	
 	public static final Random random = new Random();
 	
-	public static final float RANDOM_CLOSE_MUTATION_PERCENT = 0.6f;
-	public static final float RANDOM_MUTATION_PERCENT 		= 0.4f;
+	public static final float RANDOM_CLOSE_MUTATION_PERCENT = 1.0f;
+	public static final float RANDOM_MUTATION_PERCENT 		= 1.0f;
 
-	public static final float RANDOM_CROSSOVER_PERCENT 		= 0.4f;
-	public static final float RANDOM_MULTI_MUTATION 		= -0.4f;
+	public static final float RANDOM_CROSSOVER_PERCENT 		= 1.0f;
+	public static final float RANDOM_MULTI_MUTATION 		= 1.0f;
 	public static final int   RANDOM_MULTI_MUTATION_MAX     = 2;
 	
 	private int randomJumpDistance;
@@ -174,16 +175,28 @@ public class CrossOver {
 			}
 		}
 		
+		
+		
+		
 		boolean notEvolved = true;
 		
 		while(notEvolved) {
+			
+			/**
+			 * CrossOver Types:
+			 * 		I : Creates a new Drawing by picking a random Parent, and switching n random Pixels with a Random Child (current mode)
+			 * 		II: Creates a new Drawing by picking n random Pixels from a random Parent, and placing them at the same place on the Random Child (intended/default mode)
+			 */
 			if (random.nextFloat() < RANDOM_CROSSOVER_PERCENT){
 				
-				int crossovers = ImageEvolver.roll(crossoverMax) + 1;
-	//			int crossovers = crossoverMax;
+//				int crossovers = ImageEvolver.roll(crossoverMax) + 1;
+				int crossovers = crossoverMax;
 				
 				for (int a = 0; a < crossovers; a++){
+					
 					Triangle target = null;
+//					Triangle des
+					
 					int origin = ImageEvolver.roll(child.size());
 					
 					if (isParentA){
@@ -192,18 +205,40 @@ public class CrossOver {
 						target = parentB.get(origin);
 					}
 	
-					int dest = 0;
-					
-					for (Triangle triangle : child){
+					/**
+					 * Switch Color Function!
+					 */
+//					Triangle origin = triangles.get(pos);
+//					Triangle dest = triangles.get(des);
+//
+//					Color aux = origin.getColor();
+//					origin.setColor(dest.getColor());
+//					dest.setColor(aux);
+					for (int b = 0; b < child.size(); b++) {
+						// TODO:
 						
-						if (triangle.getColor().equals(target.getColor())){
-							// found the color, switch positions
-							ImageEvolver.switchColor(child, origin, dest);
-							dest++;
-							notEvolved = false;
-							break;
-						}
+						
+						
 					}
+					
+//					int dest = 0;
+					
+					
+					
+//					
+//					for (Triangle triangle : child){
+						
+//						dest++;
+//						
+//						if (triangle.getColor().equals(target.getColor())){
+//							// found the color, switch positions
+//							ImageEvolver.switchColor(child, origin, dest);
+//							notEvolved = false;
+//							break;
+//						}
+						
+						
+//					}
 				}
 			}
 		

@@ -867,25 +867,25 @@ public class ImageEvolver extends AbstractEvolver {
 
 			totalIterations++;
 
-			if (totalIterations % ((population / 2) * 1000) == 0) {
-//			if (totalIterations % 1000 == 0){
+//			if (totalIterations % ((population / 2) * 1000) == 0) {
+			if (totalIterations % 1000 == 0){
 
 				long now = System.currentTimeMillis();
-				System.out.println("i: " + totalIterations
-								 + " - good: " + goodIterations
-								 + " - p: " + pop.size()
-								 + " - jump: " + crossOver.getRandomJumpDistance()
-								 + " - cross: " + crossoverMax
-								 + " - best: " + bestScore
-								 + " - total time: " + ((float) (now - start) / 1000f) + " seconds");
+//				System.out.println("i: " + totalIterations
+//								 + " - good: " + goodIterations
+//								 + " - p: " + pop.size()
+//								 + " - jump: " + crossOver.getRandomJumpDistance()
+//								 + " - cross: " + crossoverMax
+//								 + " - best: " + bestScore
+//								 + " - total time: " + ((float) (now - start) / 1000f) + " seconds");
 
-//				System.out
-//						.println(new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN))
-//								.format(bestScore));
+				System.out
+						.println(new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN))
+								.format(bestScore));
 
 //				switchSecuential();
 				
-				crossOver.halveParameters();
+//				crossOver.halveParameters();
 				
 				/**
 				 * 100000: 256/256

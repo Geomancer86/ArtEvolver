@@ -43,8 +43,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * width = 3 * scale
 	 * triangles = 80x53
 	 */
-	float triangleScaleHeight = 3f;
-	float triangleScaleWidth = 3f;
+	float triangleScaleHeight = 0.5f;
+	float triangleScaleWidth = 0.5f;
 	
 	float width = 3.0f * triangleScaleWidth;
 	float height = 3.0f * triangleScaleHeight;
@@ -67,10 +67,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 		- Quick way to crossover pixels
 	 * 		- Quick way to chunk full pixel chunks
 	 */
-	// ImageEvolver
 	static final int POPULATION 				= 2; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
 	static final int RANDOM_JUMP_MAX_DISTANCE	= 2; // MAX: 4239/2
-	static final int CROSSOVER_MAX 				= 1;
+	static final int CROSSOVER_MAX 				= 2;
 	static final int TOTAL_PALLETES             = 4;
 	
 	static final int RANDOM_JUMP_MAX_DISTANCES [] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
@@ -263,7 +262,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		int newWidth = (int) (width * widthTriangles);
 		int newHeight = (int) (((height * heightTriangles))  - height); // substract last serrated row
     	
-    	System.out.println("originalImage.width: " + originalImage.getWidth() + " - originalImage.height: " + originalImage.getHeight());
+//    	System.out.println("originalImage.width: " + originalImage.getWidth() + " - originalImage.height: " + originalImage.getHeight());
 		
 		// initialize currentImage and resizedOriginal
     	if (resizedOriginal == null){
@@ -284,7 +283,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     		
     		g.dispose();
     		
-    		System.out.println("resizedOriginal.width: " + resizedOriginal.getWidth() + " - resizedOriginal.height: " + resizedOriginal.getHeight());
+//    		System.out.println("resizedOriginal.width: " + resizedOriginal.getWidth() + " - resizedOriginal.height: " + resizedOriginal.getHeight());
     		
   			evolver.setResizedOriginal(resizedOriginal);
    			evolver.setCurrentImage(resizedOriginal);

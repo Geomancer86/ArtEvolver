@@ -10,12 +10,23 @@ public class CrossOver {
 	
 	public static final Random random = new Random();
 	
-	public static final float RANDOM_CLOSE_MUTATION_PERCENT = 1.0f;
-	public static final float RANDOM_MUTATION_PERCENT 		= 1.0f;
-
-	public static final float RANDOM_CROSSOVER_PERCENT 		= 0.1f;
-	public static final float RANDOM_MULTI_MUTATION 		= 1.0f;
+	// self mutations
+	public static final float RANDOM_CLOSE_MUTATION_PERCENT = 0.3f;
+	public static final float RANDOM_MUTATION_PERCENT 		= 0.3f;
+	public static final float RANDOM_MULTI_MUTATION 		= 0.3f;
 	public static final int   RANDOM_MULTI_MUTATION_MAX     = 2;
+	public static int         CLOSE_MUTATIONS_PER_CHILD     = 16;
+	
+	// crossover mutations
+	public static final float RANDOM_CROSSOVER_PERCENT 				  = -0.1f;
+	public static final float RANDOM_CROSSOVER_CLOSE_MUTATION_PERCENT = 0.3f;
+	public static final float RANDOM_CROSSOVER_MUTATION_PERCENT 	  = 0.3f;
+	public static final float RANDOM_CROSSOVER_MULTI_MUTATION 		  = 0.3f;
+	public static final int   RANDOM_CROSSOVER_MULTI_MUTATION_MAX     = 2;
+	public static final int   CLOSE_CROSSOVER_MUTATIONS_PER_CHILD     = 1;
+	
+	// common mutations
+	
 	
 	private int randomJumpDistance;
 	private int crossoverMax;
@@ -26,7 +37,7 @@ public class CrossOver {
 	}
 	
 	public void halveParameters() {
-		setRandomJumpDistance(getRandomJumpDistance() - 1);
+		setRandomJumpDistance(getRandomJumpDistance() - 4);
 //		crossoverMax -= -2;
 		
 		if (getRandomJumpDistance() <= 0) {
@@ -166,6 +177,11 @@ public class CrossOver {
 		TriangleList<Triangle> missingPixels = new TriangleList<Triangle>();
 		List<Color> missingColors = new ArrayList<Color>();
 		
+		// 
+//		if (true) {
+//			child = getGeneticChild(parentA, parentB, 1);
+//		}
+			
 		/**
 		 * Full CrossOver (parents are already random so we generate the child in the given order)
 		 * 
@@ -174,41 +190,67 @@ public class CrossOver {
 		 *  - TODO: optimize
 		 */
 		if (random.nextFloat() < RANDOM_CROSSOVER_PERCENT){
-			int geneSize = parentA.size() / 2; // Half the starting Pixels of Parent A
-			int maxGenes = 4; // This number should be taken from TOTAL_PALLETES parameter
-			int count = 0;
+//			int geneSize = parentA.size() / 2; // Half the starting Pixels of Parent A
+//			int maxGenes = 4; // This number should be taken from TOTAL_PALLETES parameter
+//			int count = 0;
+//			
+//			for (int a = 0; a < geneSize; a++){
+//				child.add(parentA.get(a));
+//			}
+//			
+//			// Now we need to add the non duplicated Pixels from Parent B, starting from the last index
+//			for (int a = geneSize; a < parentB.size(); a++){
+//				
+//				// make sure we dont have more than max colors per gene
+//				count = 0;
+//				for (int b = 0; b < parentB.size(); b++) {
+//					if (parentB.get(b).getColor().equals(parentA.get(a).getColor())) {
+//						count++;
+//						if (count == maxGenes) {
+//							continue;
+//						}
+//					}
+//				}
+//				
+//				if (count < maxGenes) {
+//					child.add(parentB.get(a));
+//				} else {
+//					// Skipping repeated Pixel
+//					// We need to fill this voids
+//					missingPixels.add(parentB.get(a));
+//					missingColors.add(parentB.get(a).getColor());
+//				}
+//			}
+//			
+//			for (int a = 0; a < missingPixels.size(); a++) {
+//				missingPixels.get(a).setColor(missingColors.get(a));
+//				child.add(missingPixels.get(a));
+//			}
 			
-			for (int a = 0; a < geneSize; a++){
-				child.add(parentA.get(a));
-			}
+			child = getGeneticChild(parentA, parentB, 1);
+
+			boolean notEvolved = true;
 			
-			// Now we need to add the non duplicated Pixels from Parent B, starting from the last index
-			for (int a = geneSize; a < parentB.size(); a++){
-				
-				// make sure we dont have more than max colors per gene
-				count = 0;
-				for (int b = 0; b < parentB.size(); b++) {
-					if (parentB.get(b).getColor().equals(parentA.get(a).getColor())) {
-						count++;
-						if (count == maxGenes) {
-							continue;
-						}
+			while(notEvolved) {
+				if (random.nextFloat() < RANDOM_CROSSOVER_CLOSE_MUTATION_PERCENT){
+					for (int a = 0; a < CLOSE_CROSSOVER_MUTATIONS_PER_CHILD; a++) {
+						ImageEvolver.switchCloseColor(child, this.randomJumpDistance);
 					}
+					
+					notEvolved = false;
 				}
 				
-				if (count < maxGenes) {
-					child.add(parentB.get(a));
-				} else {
-					// Skipping repeated Pixel
-					// We need to fill this voids
-					missingPixels.add(parentB.get(a));
-					missingColors.add(parentB.get(a).getColor());
+				if (random.nextFloat() < RANDOM_CROSSOVER_MUTATION_PERCENT){
+					ImageEvolver.switchRandomColor(child);
+					
+					notEvolved = false;
 				}
-			}
 			
-			for (int a = 0; a < missingPixels.size(); a++) {
-				missingPixels.get(a).setColor(missingColors.get(a));
-				child.add(missingPixels.get(a));
+				if (random.nextFloat() < RANDOM_CROSSOVER_MULTI_MUTATION){
+					ImageEvolver.switchRandomMultiColor(child, RANDOM_CROSSOVER_MULTI_MUTATION_MAX);
+					
+					notEvolved = false;
+				}
 			}
 			
 			return child;
@@ -232,85 +274,50 @@ public class CrossOver {
 		boolean notEvolved = true;
 		
 		while(notEvolved) {
-			/**
-			 * CrossOver Types:
-			 * 		I : Creates a new Drawing by picking a random Parent, and switching n random Pixels with a Random Child (current mode)
-			 * 		II: Creates a new Drawing by picking n random Pixels from a random Parent, and placing them at the same place on the Random Child (intended/default mode)
-			 */
-//			if (random.nextFloat() < RANDOM_CROSSOVER_PERCENT){
-//				
-////				int crossovers = ImageEvolver.roll(crossoverMax) + 1;
-//				int crossovers = crossoverMax;
-//				
-//				for (int a = 0; a < crossovers; a++){
-//					
-//					Triangle target = null;
-////					Triangle des
-//					
-//					int origin = ImageEvolver.roll(child.size());
-//					
-//					if (isParentA){
-//						target = parentA.get(origin);
-//					}else{
-//						target = parentB.get(origin);
-//					}
-//	
-//					/**
-//					 * Switch Color Function!
-//					 */
-////					Triangle origin = triangles.get(pos);
-////					Triangle dest = triangles.get(des);
-////
-////					Color aux = origin.getColor();
-////					origin.setColor(dest.getColor());
-////					dest.setColor(aux);
-//					for (int b = 0; b < child.size(); b++) {
-//						// TODO:
-//						
-//						
-//						
-//					}
-//					
-////					int dest = 0;
-//					
-//					
-//					
-////					
-////					for (Triangle triangle : child){
-//						
-////						dest++;
-////						
-////						if (triangle.getColor().equals(target.getColor())){
-////							// found the color, switch positions
-////							ImageEvolver.switchColor(child, origin, dest);
-////							notEvolved = false;
-////							break;
-////						}
-//						
-//						
-////					}
-//				}
-//			}
+			if (random.nextFloat() < RANDOM_CROSSOVER_PERCENT){
+				
+				Triangle target = null;
+
+				int origin = ImageEvolver.roll(child.size());
+				
+				if (isParentA){
+					target = parentA.get(origin);
+				}else{
+					target = parentB.get(origin);
+				}
+				
+				int dest = 0;
+				
+				for (Triangle triangle : child){
+					
+					if (triangle.getColor().equals(target.getColor())){
+						// found the color, switch positions
+						ImageEvolver.switchColor(child, origin, dest);
+						notEvolved = false;
+						break;
+					}
+					
+					dest++;
+				}
+			}
 			
-			int closeMutations = 1;
-			for (int a = 0; a < closeMutations; a++) {
-				if (random.nextFloat() < RANDOM_CLOSE_MUTATION_PERCENT){
+			if (random.nextFloat() < RANDOM_CLOSE_MUTATION_PERCENT){
+				for (int a = 0; a < CLOSE_MUTATIONS_PER_CHILD; a++) {
 					ImageEvolver.switchCloseColor(child, this.randomJumpDistance);
 				}
 				
 				notEvolved = false;
 			}
 			
-//		
-//			if (random.nextFloat() < RANDOM_MUTATION_PERCENT){
-//				ImageEvolver.switchRandomColor(child);
-//				notEvolved = false;
-//			}
-//		
-//			if (random.nextFloat() < RANDOM_MULTI_MUTATION){
-//				ImageEvolver.switchRandomMultiColor(child, RANDOM_MULTI_MUTATION_MAX);
-//				notEvolved = false;
-//			}
+			if (random.nextFloat() < RANDOM_MUTATION_PERCENT){
+				ImageEvolver.switchRandomColor(child);
+				notEvolved = false;
+			}
+		
+			if (random.nextFloat() < RANDOM_MULTI_MUTATION){
+				ImageEvolver.switchRandomMultiColor(child, RANDOM_MULTI_MUTATION_MAX);
+				notEvolved = false;
+			}
 		}
 		
 		return child;

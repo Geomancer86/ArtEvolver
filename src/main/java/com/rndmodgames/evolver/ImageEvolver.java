@@ -23,6 +23,8 @@ public class ImageEvolver extends AbstractEvolver {
 	public static final SplittableRandom random = new SplittableRandom();
 	public static final boolean KILL_PARENTS = false;
 
+	public static final DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN));
+	
 	private BufferedImage resizedOriginal;
 	private BufferedImage currentImage;
 	private BufferedImage bestImage;
@@ -833,7 +835,7 @@ public class ImageEvolver extends AbstractEvolver {
 			}
 
 			/**
-			 * Kill worst parent only
+			 * Kill worst Drawing only
 			 * 
 			 * TODO: iterate all drawings, and replace the actual worst, not the parent,
 			 * 	 as the parent might be one of the better results already
@@ -874,39 +876,60 @@ public class ImageEvolver extends AbstractEvolver {
 
 			totalIterations++;
 			
-			/**
-			 * Calculate Average Score
-			 * 
-			 * TODO: we probably don't need to iterate every time and just keep count of new scores
-			 */
-			double totalScore = 0d;
-			for (int b = 0; b < pop.size(); b++) {
-				totalScore += pop.get(b).getScore();
-			}
-
-			// show the diff
-			this.averageScore = (totalScore / pop.size()) - this.bestScore;
-			
-
 //			if (totalIterations % ((population / 2) * 1000) == 0) {
 			if (totalIterations % 1000 == 0){
 
 //				long now = System.currentTimeMillis();
+				
+
+				
 //				System.out.println("i: " + totalIterations
 //								 + " - good: " + goodIterations
 //								 + " - p: " + pop.size()
 //								 + " - jump: " + crossOver.getRandomJumpDistance()
 //								 + " - cross: " + crossoverMax
-//								 + " - best: " + bestScore
-//								 + " - total time: " + ((float) (now - start) / 1000f) + " seconds");
+//								 + " - best: " + DEFAULT_DECIMAL_FORMAT.format(bestScore)
+//								 + " - total time: " + DEFAULT_DECIMAL_FORMAT.format(((float) (now - start) / 1000f)) + " seconds");
 
-//				System.out
-//						.println(new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN))
-//								.format(bestScore));
+				System.out.println(DEFAULT_DECIMAL_FORMAT.format(bestScore));
 				
-				System.out
-				.println(new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN))
-						.format(this.averageScore));
+				/**
+				 * v.1.0.0 optimizations
+				 * 	- CLOSE_MUTATIONS_PER_CHILD
+				 */
+				
+				if (totalIterations == 5000) {
+					CrossOver.CLOSE_MUTATIONS_PER_CHILD = 8;
+				}
+				
+				if (totalIterations == 20000) {
+					CrossOver.CLOSE_MUTATIONS_PER_CHILD = 4;
+				}
+				
+				if (totalIterations == 40000) {
+					CrossOver.CLOSE_MUTATIONS_PER_CHILD = 2;
+				}
+				
+				if (totalIterations == 80000) {
+					CrossOver.CLOSE_MUTATIONS_PER_CHILD = 1;
+				}
+				
+				/**
+				 * Calculate Average Score
+				 * 
+				 * TODO: we probably don't need to iterate every time and just keep count of new scores
+				 */
+//				double totalScore = 0d;
+//				for (int b = 0; b < pop.size(); b++) {
+//					totalScore += pop.get(b).getScore();
+//				}
+//
+//				// show the diff
+//				this.averageScore = (totalScore / pop.size()) - this.bestScore;
+//				
+//				System.out
+//				.println(new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN))
+//						.format(this.averageScore));
 				
 //				switchSecuential();
 				

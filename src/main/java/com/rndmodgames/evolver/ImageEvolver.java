@@ -17,6 +17,8 @@ import java.util.Locale;
 import java.util.SplittableRandom;
 import java.util.stream.Stream;
 
+import com.rndmodgames.evolver.render.Renderer;
+
 public class ImageEvolver extends AbstractEvolver {
 
 //	public static final MersenneTwisterFast random = new MersenneTwisterFast();
@@ -49,6 +51,7 @@ public class ImageEvolver extends AbstractEvolver {
 	private List<TriangleList<Triangle>> pop = new TriangleList<TriangleList<Triangle>>();
 
 	private boolean isDirty = true;
+	private boolean exportNextAndClose = false;
 
 	@SuppressWarnings("static-access")
 	public ImageEvolver(int population, int randomJumpDistance, int crossoverMax, float scale, Pallete pallete,
@@ -144,9 +147,9 @@ public class ImageEvolver extends AbstractEvolver {
 	}
 	
 	/**
-	 * Initialize the triangles as equilateral
+	 * Initialize the triangles as Isosceles
 	 */
-	public void initializeEquilateral() {
+	public void initializeIsosceles() {
 
 		int preGenerations = 1;
 		int randomMult = 1;
@@ -171,42 +174,45 @@ public class ImageEvolver extends AbstractEvolver {
 						if (position == 0) {
 							if (a % 2 == 0) {
 								// NORTH
-								xPoly[0] = (int) (width * scale * a);
-								xPoly[1] = (int) ((width * scale * a) + (width * scale * 2));
-								xPoly[2] = (int) ((width * scale * a) + (width * scale));
-
-								yPoly[0] = (int) ((height * scale * b));
-								yPoly[1] = (int) ((height * scale * b));
-								yPoly[2] = (int) ((height * scale * b) + (height * scale));
+								// (avoid serrated graph, NOTE: depends on triangles and xy)
+								if (b < (triangleHeight - 1)) {
+									xPoly[0] = (int) (width * a);
+									xPoly[1] = (int) ((width * a) + (width * 2));
+									xPoly[2] = (int) ((width * a) + (width ));
+	
+									yPoly[0] = (int) ((height * b));
+									yPoly[1] = (int) ((height * b));
+									yPoly[2] = (int) ((height * b) + (height));
+								}
 							} else {
 								// SOUTH
-								xPoly[0] = (int) ((width * scale * a) - (width * scale));
-								xPoly[1] = (int) ((width * scale * a));
-								xPoly[2] = (int) ((width * scale * a) + (width * scale));
+								xPoly[0] = (int) ((width * a) - (width ));
+								xPoly[1] = (int) ((width * a));
+								xPoly[2] = (int) ((width * a) + (width ));
 
-								yPoly[0] = (int) ((height * scale * b) + (height * scale));
-								yPoly[1] = (int) ((height * scale * b));
-								yPoly[2] = (int) ((height * scale * b) + (height * scale));
+								yPoly[0] = (int) ((height * b) + (height));
+								yPoly[1] = (int) ((height * b));
+								yPoly[2] = (int) ((height * b) + (height));
 							}
 						} else if (position == 1) {
 							if (a % 2 == 0) {
 								// EAST
-								xPoly[0] = (int) ((width * scale * a) + (width * scale * 2));
-								xPoly[1] = (int) ((width * scale * a) + (width * scale));
-								xPoly[2] = (int) ((width * scale * a) + (width * scale * 2));
+								xPoly[0] = (int) ((width * a) + (width * 2));
+								xPoly[1] = (int) ((width * a) + (width));
+								xPoly[2] = (int) ((width * a) + (width * 2));
 
-								yPoly[0] = (int) ((height * scale * b) - (height * scale));
-								yPoly[1] = (int) ((height * scale * b));
-								yPoly[2] = (int) ((height * scale * b) + (height * scale));
+								yPoly[0] = (int) ((height * b) - (height));
+								yPoly[1] = (int) ((height * b));
+								yPoly[2] = (int) ((height * b) + (height));
 							} else {
 								// WEST
-								xPoly[0] = (int) ((width * scale * a) - (width * scale));
-								xPoly[1] = (int) ((width * scale * a));
-								xPoly[2] = (int) ((width * scale * a) - (width * scale));
+								xPoly[0] = (int) ((width * a) - (width));
+								xPoly[1] = (int) ((width * a));
+								xPoly[2] = (int) ((width * a) - (width));
 
-								yPoly[0] = (int) ((height * scale * b));
-								yPoly[1] = (int) ((height * scale * b) - (height * scale));
-								yPoly[2] = (int) ((height * scale * b) - (height * scale * 2));
+								yPoly[0] = (int) ((height * b));
+								yPoly[1] = (int) ((height * b) - (height));
+								yPoly[2] = (int) ((height * b) - (height * 2));
 							}
 						}
 
@@ -537,6 +543,14 @@ public class ImageEvolver extends AbstractEvolver {
 		this.isDirty = isDirty;
 	}
 
+	public boolean isExportNextAndClose() {
+		return exportNextAndClose;
+	}
+
+	public void setExportNextAndClose(boolean exportNextAndClose) {
+		this.exportNextAndClose = exportNextAndClose;
+	}
+
 	/**
 	 * Extracted Objects to avoid creation during cycles
 	 */
@@ -839,9 +853,10 @@ public class ImageEvolver extends AbstractEvolver {
 
 				isDirty = true;
 				
-				// baseline for long term experiment 81.2%
-				if (bestScore >= 0.8121d) {
-					// print triangles for resume processing
+//				Renderer.renderToPNG(childA, goodIterations, imgChildA.getWidth(), imgChildA.getHeight(), ArtEvolver.IMAGE_TYPE);
+				
+				if (exportNextAndClose) {
+					// export for future resuming
 					for (int bb = 0; bb < childA.size(); bb++) {
 						System.out.println(bb + "," + childA.get(bb).toString());
 					}

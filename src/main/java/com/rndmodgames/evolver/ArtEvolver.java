@@ -36,15 +36,30 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private JPanel imagePanel;
 	private Pallete pallete;
 
-	float triangleScaleHeight = 1f;
-	float triangleScaleWidth = 1f;
+	float triangleScaleHeight = 3f;
+	float triangleScaleWidth = 3f;
 	
-	float width = 3.1f * triangleScaleWidth;
-	float height = 3.1f * triangleScaleHeight;
+	float width = 3.0f * triangleScaleWidth;
+	float height = 3.0f * triangleScaleHeight;
 	
 	int widthTriangles  = 80; // 71
 	int heightTriangles = 53; // 60
 	
+	/**
+	 * v1.0 TODO:
+	 * 
+	 * 	- Tournament mode:
+	 * 		- Starting population size
+	 * 		- Halve population each n iterations
+	 * 			- Halve or different strategy
+	 * 
+	 * 		- Full Tournament Run (ie: no inter crossover or mutations)
+	 * 		- Population Size Benchmarks
+	 * 		
+	 * 		- Quick way to switch pixels
+	 * 		- Quick way to crossover pixels
+	 * 		- Quick way to chunk full pixel chunks
+	 */
 	// ImageEvolver
 	static final int POPULATION 				= 2; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
 	static final int RANDOM_JUMP_MAX_DISTANCE	= 4239/2;
@@ -164,7 +179,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         JButton enableSecuentialButton = new JButton("Secuential");
         enableSecuentialButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         enableSecuentialButton.addActionListener(this);
-        menuContainer.add(enableSecuentialButton);
+//        menuContainer.add(enableSecuentialButton);
+        
+        JButton export = new JButton("Export");
+        export.setAlignmentX(Component.CENTER_ALIGNMENT);
+        export.addActionListener(this);
+        menuContainer.add(export);
         
         Container labelContainer = new JPanel();
 		lblScore = new JLabel("S: 0.0");
@@ -186,7 +206,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
       	container.add(menuContainer, BorderLayout.LINE_END);
       	container.add(imagePanel, BorderLayout.CENTER);
 	    
-		setSize(1920/2, 1080/2);  
+		setSize(2400, 1200); 
 
 		chooser = new JFileChooser(new File(System.getProperty("user.dir")));
 		chooser.setAcceptAllFileFilterUsed(false);
@@ -223,8 +243,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		/**
 		 * Resizing code seems to be OK
 		 */
-		int newWidth = (int) ((width * widthTriangles * triangleScaleWidth) * (TOTAL_PALLETES / triangleScaleWidth / 2));
-		int newHeight = (int) ((height * heightTriangles * triangleScaleHeight) * (TOTAL_PALLETES / triangleScaleHeight / 2));
+		int newWidth = (int) (width * widthTriangles);
+		int newHeight = (int) (((height * heightTriangles))  - height); // substract last serrated row
     	
     	System.out.println("originalImage.width: " + originalImage.getWidth() + " - originalImage.height: " + originalImage.getHeight());
 		
@@ -254,7 +274,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	}
 
 //    	 evolver.initialize();
-//    	evolver.initializeEquilateral();
+    	
+    	evolver.initializeIsosceles();
+    	
 //    	evolver.initializeFromFile("campito_78.txt");
 //    	evolver.initializeFromFile("campito_80.txt");
 //    	evolver.initializeFromFile("campito_805.txt");
@@ -267,8 +289,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //    	evolver.initializeFromFile("campito_8117.txt");
 //    	evolver.initializeFromFile("campito_8118.txt");
 //    	evolver.initializeFromFile("campito_8119.txt");
-    	evolver.initializeFromFile("campito_812.txt");
-    	evolver.initializeFromFile("campito_812.txt");
+//    	evolver.initializeFromFile("campito_812.txt");
+//    	evolver.initializeFromFile("campito_812.txt");
+
+//    	evolver.initializeFromFile("campito_big2.txt");
+//    	evolver.initializeFromFile("campito_big2.txt");
     }
 
     public void start(){
@@ -296,6 +321,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 	@Override
 	public void actionPerformed(ActionEvent event) {
+		
 		if (event.getActionCommand().equals("Load")) {
 			try {
 				loadImage();
@@ -315,6 +341,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		
 		if (event.getActionCommand().equals("Secuential")) {
 			evolver.switchSecuential();
+		}
+		
+		if (event.getActionCommand().equals("Export")) {
+			evolver.setExportNextAndClose(true);
 		}
 	}
 }

@@ -17,18 +17,19 @@ import java.util.Locale;
 import java.util.SplittableRandom;
 import java.util.stream.Stream;
 
-import com.rndmodgames.evolver.render.Renderer;
-
 public class ImageEvolver extends AbstractEvolver {
 
 //	public static final MersenneTwisterFast random = new MersenneTwisterFast();
 	public static final SplittableRandom random = new SplittableRandom();
 	public static final boolean KILL_PARENTS = false;
 
+	public static final DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN));
+	
 	private BufferedImage resizedOriginal;
 	private BufferedImage currentImage;
 	private BufferedImage bestImage;
 	private double bestScore = Double.MIN_VALUE;
+	private double averageScore = Double.MIN_VALUE;
 
 	private int population;
 	private int randomJumpDistance;
@@ -80,7 +81,7 @@ public class ImageEvolver extends AbstractEvolver {
 	 * @param filename
 	 * @throws IOException 
 	 */
-	public void initializeFromFile(String filename) throws IOException {
+	public void initializeFromFile(String filename, double scale) throws IOException {
 		URL url = getClass().getResource("../../../" + filename);
 		File file = new File(url.getPath());
 
@@ -98,13 +99,13 @@ public class ImageEvolver extends AbstractEvolver {
 				int xPoly[] = new int[3];
 				int yPoly[] = new int[3];
 				
-				xPoly[0]= Integer.parseInt(splitted[1]);
-				xPoly[1]= Integer.parseInt(splitted[2]);
-				xPoly[2]= Integer.parseInt(splitted[3]);
+				xPoly[0]= (int) (Integer.parseInt(splitted[1]) * scale);
+				xPoly[1]= (int) (Integer.parseInt(splitted[2]) * scale);
+				xPoly[2]= (int) (Integer.parseInt(splitted[3]) * scale);
 				
-				yPoly[0]= Integer.parseInt(splitted[4]);
-				yPoly[1]= Integer.parseInt(splitted[5]);
-				yPoly[2]= Integer.parseInt(splitted[6]);
+				yPoly[0]= (int) (Integer.parseInt(splitted[4]) * scale);
+				yPoly[1]= (int) (Integer.parseInt(splitted[5]) * scale);
+				yPoly[2]= (int) (Integer.parseInt(splitted[6]) * scale);
 				
 				Color color = new Color(Integer.parseInt(splitted[7]),
 										Integer.parseInt(splitted[8]),
@@ -534,6 +535,14 @@ public class ImageEvolver extends AbstractEvolver {
 	public void setBestScore(double bestScore) {
 		this.bestScore = bestScore;
 	}
+	
+	public double getAverageScore() {
+		return averageScore;
+	}
+
+	public void setAverageScore(double averageScore) {
+		this.averageScore = averageScore;
+	}
 
 	public boolean isDirty() {
 		return isDirty;
@@ -826,21 +835,21 @@ public class ImageEvolver extends AbstractEvolver {
 			}
 
 			/**
-			 * Kill worst parent only
+			 * Kill worst Drawing only
 			 * 
 			 * TODO: iterate all drawings, and replace the actual worst, not the parent,
 			 * 	 as the parent might be one of the better results already
 			 */
-			Double currentWorstScore = Double.MAX_VALUE;
-			int actualWorstPosition = 0;
-			int currentWorstPosition = 0;
-			
-			for (;currentWorstPosition < pop.size(); currentWorstPosition++) {
-				if (pop.get(currentWorstPosition).getScore() < currentWorstScore) {
-					currentWorstScore = pop.get(currentWorstPosition).getScore();
-					actualWorstPosition = currentWorstPosition;
-				}
-			}
+//			Double currentWorstScore = Double.MAX_VALUE;
+//			int actualWorstPosition = 0;
+//			int currentWorstPosition = 0;
+//			
+//			for (;currentWorstPosition < pop.size(); currentWorstPosition++) {
+//				if (pop.get(currentWorstPosition).getScore() < currentWorstScore) {
+//					currentWorstScore = pop.get(currentWorstPosition).getScore();
+//					actualWorstPosition = currentWorstPosition;
+//				}
+//			}
 
 			// BETTER IMAGE
 			if (scoreC > bestScore) {
@@ -848,7 +857,9 @@ public class ImageEvolver extends AbstractEvolver {
 				bestImage = imgChildA;
 				goodIterations++;
 				
-				pop.remove(actualWorstPosition);
+				// NOTE: worst cases will be taken care by the Tournament Optimizations
+//				pop.remove(actualWorstPosition);
+				pop.remove(parentA);
 				pop.add(childA);
 
 				isDirty = true;
@@ -863,26 +874,95 @@ public class ImageEvolver extends AbstractEvolver {
 					
 					System.exit(0);
 				}
+			} else if (scoreC > scoreA) {
+				
+				// IF CHILDREN IS BETTER THAN PARENT, KEEP IT AND KILL THE PARENT
+				
+				goodIterations++;
+				pop.remove(parentA);
+				pop.add(childA);
 			}
 
 			totalIterations++;
+			
+//			if (totalIterations % ((population / 2) * 1000) == 0) {
+			if (totalIterations % 1000 == 0){
 
-			if (totalIterations % ((population / 2) * 1000) == 0) {
-//			if (totalIterations % 1000 == 0){
+//				long now = System.currentTimeMillis();
+				
 
-				long now = System.currentTimeMillis();
-				System.out.println("i: " + totalIterations
-								 + " - good: " + goodIterations
-								 + " - p: " + pop.size()
-								 + " - jump: " + crossOver.getRandomJumpDistance()
-								 + " - cross: " + crossoverMax
-								 + " - best: " + bestScore
-								 + " - total time: " + ((float) (now - start) / 1000f) + " seconds");
+				
+//				System.out.println("i: " + totalIterations
+//								 + " - good: " + goodIterations
+//								 + " - p: " + pop.size()
+//								 + " - jump: " + crossOver.getRandomJumpDistance()
+//								 + " - cross: " + crossoverMax
+//								 + " - best: " + DEFAULT_DECIMAL_FORMAT.format(bestScore)
+//								 + " - total time: " + DEFAULT_DECIMAL_FORMAT.format(((float) (now - start) / 1000f)) + " seconds");
 
+				System.out.println(DEFAULT_DECIMAL_FORMAT.format(bestScore));
+				
+				/**
+				 * v.1.0.0 optimizations
+				 * 	- CLOSE_MUTATIONS_PER_CHILD * pop
+				 */
+				
+				if (totalIterations == 2500 * pop.size()) {
+					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+				}
+				
+				if (totalIterations == 15000 * pop.size()) {
+					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+				}
+				
+				if (totalIterations == 35000 * pop.size()) {
+					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+				}
+				
+				if (totalIterations == 75000 * pop.size()) {
+					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+				}
+				
+				if (CrossOver.CLOSE_MUTATIONS_PER_CHILD < 1) {
+					CrossOver.CLOSE_MUTATIONS_PER_CHILD = 1;
+				}
+				
+				/**
+				 * v.1.0.0 Tournament Optimizations
+				 * 
+				 * - Kill worst Drawing each 100k iterations
+				 */
+				if (totalIterations % 1000 == 0) {
+					if (pop.size() > 2) {
+						
+						// Comparator used only once, no need to extract
+						// NOTE: last is best!
+						Collections.sort(pop, new TrianglesComparator());
+						
+//						for (int j = 0; j < pop.size(); j ++) {
+//							System.out.println("Drawing " + j + " score: " + pop.get(j).getScore());
+//						}
+						pop.remove(0);
+					}
+				}
+				
+				/**
+				 * Calculate Average Score
+				 * 
+				 * TODO: we probably don't need to iterate every time and just keep count of new scores
+				 */
+//				double totalScore = 0d;
+//				for (int b = 0; b < pop.size(); b++) {
+//					totalScore += pop.get(b).getScore();
+//				}
+//
+//				// show the diff
+//				this.averageScore = (totalScore / pop.size()) - this.bestScore;
+//				
 //				System.out
-//						.println(new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN))
-//								.format(bestScore));
-
+//				.println(new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN))
+//						.format(this.averageScore));
+				
 //				switchSecuential();
 				
 				crossOver.halveParameters();

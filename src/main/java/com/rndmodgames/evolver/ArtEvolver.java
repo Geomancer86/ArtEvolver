@@ -12,6 +12,7 @@ import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Locale;
 
 import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
@@ -35,30 +36,52 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private JPanel imagePanel;
 	private Pallete pallete;
 
-	float width = 5.1f;
-	float height = 3.1f;
+	/**
+	 * TODO: Save Parameters for DROPDOWN SIZE SELECT
+	 * 
+	 * scale = 3
+	 * width = 3 * scale
+	 * triangles = 80x53
+	 */
+	float triangleScaleHeight = 0.5f;
+	float triangleScaleWidth = 0.5f;
 	
-	float triangleScaleHeight = 2f;
-	float triangleScaleWidth = 2f;
+	float width = 3.0f * triangleScaleWidth;
+	float height = 3.0f * triangleScaleHeight;
 	
-	int widthTriangles  = 24; // 48
-	int heightTriangles = 44; // 44
+	int widthTriangles  = 80; // 71
+	int heightTriangles = 53; // 60
 	
-	// ImageEvolver
-	static final int POPULATION 				= 16; // 2-4092
-	static final int RANDOM_JUMP_MAX_DISTANCE	= 2;
+	/**
+	 * v1.0 TODO:
+	 * 
+	 * 	- Tournament mode:
+	 * 		- Starting population size
+	 * 		- Halve population each n iterations
+	 * 			- Halve or different strategy
+	 * 
+	 * 		- Full Tournament Run (ie: no inter crossover or mutations)
+	 * 		- Population Size Benchmarks
+	 * 		
+	 * 		- Quick way to switch pixels
+	 * 		- Quick way to crossover pixels
+	 * 		- Quick way to chunk full pixel chunks
+	 */
+	static final int POPULATION 				= 2; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
+	static final int RANDOM_JUMP_MAX_DISTANCE	= 4239/2; // MAX: 4239/2
 	static final int CROSSOVER_MAX 				= 2;
-	static final int TOTAL_PALLETES             = 2;
+	static final int TOTAL_PALLETES             = 4;
+	
+	static final int RANDOM_JUMP_MAX_DISTANCES [] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
+	static final int CROSSOVERS_MAX [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
 	
 	public static final int IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB;
 	
-	static final int EVOLVE_ITERATIONS          = 16;
+	static final int EVOLVE_ITERATIONS          = 8;
 	static final int MAX_ITERATIONS             = 10000000;
 	
-//	private static final Enum PIXEL_SHAPES = FIXED_SCALENE_TRIANGLE, MIXED_ISOSCELES_TRIANGLE, SQUARE, RECTANGLE;
-//	private static final 
-	
 	ImageEvolver evolver;
+//	GreedyEvolver evolver;
 	
 	// Timer
 	private Timer processTimer;
@@ -66,6 +89,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	// Components
 	private JFileChooser chooser;
 	private JLabel lblScore;
+	private JLabel lblAverageScore;
+	private JLabel lblPopulation;
 	private JLabel lblIterations;
 	
 	@SuppressWarnings("unused")
@@ -78,18 +103,24 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	long totalIterations = 0L;
 	long goodIterations = 0L;
 	double currentScore = 0.0d;
+	double averagePopulationScore = 0.0d;
 
     public ArtEvolver() throws IOException{
-    	super("ArtEvolver v0.01");
+    	super("ArtEvolver 2019 v1");
     	pallete = new Pallete("Sherwin-Williams", TOTAL_PALLETES);
-    	evolver = new ImageEvolver(POPULATION, RANDOM_JUMP_MAX_DISTANCE, CROSSOVER_MAX, triangleScaleHeight, pallete, width, height, (int)(widthTriangles * triangleScaleHeight), (int)(heightTriangles * triangleScaleWidth));
+    	
+    	evolver = new ImageEvolver(POPULATION, RANDOM_JUMP_MAX_DISTANCE, CROSSOVER_MAX, triangleScaleHeight, pallete, width, height, widthTriangles, heightTriangles);
+//    	evolver = new GreedyEvolver(POPULATION, RANDOM_JUMP_MAX_DISTANCE, CROSSOVER_MAX, triangleScaleHeight, pallete, width, height, widthTriangles, heightTriangles);
 
         initComponents();
     }
     
 	private void initComponents() {
+		
+		Locale.setDefault(Locale.GERMAN);
+		
         mainFrame = this;
-        mainFrame.setResizable(false);
+        mainFrame.setResizable(true);
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         // init timer
@@ -112,7 +143,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	}
             	
             	// update stats
-            	lblScore.setText("S: " + evolver.getBestScore());
+            	lblScore.setText("S     : " + evolver.getBestScore());
+//            	lblAverageScore.setText("S(AVG): " + evolver.getAverageScore());
+            	lblPopulation.setText("Pop: " + evolver.getPopulation().size());
             	lblIterations.setText("I: " + evolver.getGoodIterations() + "/" + evolver.getTotalIterations());
             	
             	if (evolver.getTotalIterations() >= MAX_ITERATIONS){
@@ -134,6 +167,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	            super.paintComponent(g);
 	        }
 	    };
+	    
+//	    imagePanel.setBackground(Color.BLUE);
 
 	    JButton loadButton = new JButton("Load");
 	    loadButton.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -152,6 +187,16 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         stopButton.addActionListener(this);
         menuContainer.add(stopButton);
         
+        JButton enableSecuentialButton = new JButton("Secuential");
+        enableSecuentialButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        enableSecuentialButton.addActionListener(this);
+//        menuContainer.add(enableSecuentialButton);
+        
+        JButton export = new JButton("Export");
+        export.setAlignmentX(Component.CENTER_ALIGNMENT);
+        export.addActionListener(this);
+        menuContainer.add(export);
+        
         Container labelContainer = new JPanel();
 		lblScore = new JLabel("S: 0.0");
 		lblScore.setMinimumSize(new Dimension(160, 24));
@@ -159,6 +204,20 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		lblScore.setMaximumSize(new Dimension(160, 24));
 		
 		labelContainer.add(lblScore);
+		
+//		lblAverageScore = new JLabel("S(AVG): 0.0");
+//		lblAverageScore.setMinimumSize(new Dimension(160, 24));
+//		lblAverageScore.setPreferredSize(new Dimension(160, 24));
+//		lblAverageScore.setMaximumSize(new Dimension(160, 24));
+//		
+//		labelContainer.add(lblAverageScore);
+		
+		lblPopulation = new JLabel("Pop: 0");
+		lblPopulation.setMinimumSize(new Dimension(160, 24));
+		lblPopulation.setPreferredSize(new Dimension(160, 24));
+		lblPopulation.setMaximumSize(new Dimension(160, 24));
+		
+		labelContainer.add(lblPopulation);
 		
 		lblIterations = new JLabel("I: 0/0");
 		lblIterations.setMinimumSize(new Dimension(160, 24));
@@ -172,8 +231,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
       	container.add(menuContainer, BorderLayout.LINE_END);
       	container.add(imagePanel, BorderLayout.CENTER);
 	    
-		setSize(720, 480);  
-		setVisible(true);
+      	// NOTE: set minimum size
+      	if (triangleScaleWidth < 1f) {
+      		setSize(380, 260);
+      	} else {
+      		setSize((int) (300 * triangleScaleWidth), (int) (180 * triangleScaleHeight));
+      	}
 
 		chooser = new JFileChooser(new File(System.getProperty("user.dir")));
 		chooser.setAcceptAllFileFilterUsed(false);
@@ -194,7 +257,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         });
     }
 
-    public void loadImage(){
+    public void loadImage() throws IOException{
     	this.chooser.resetChoosableFileFilters();
 		this.chooser.setFileFilter(new FileNameExtensionFilter("Image Files", new String[] { "jpg", "jpeg", "png", "gif", "bmp" }));
 
@@ -207,10 +270,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 			}
 		}
 
-		int newWidth = (int) (width * widthTriangles * triangleScaleWidth) * (TOTAL_PALLETES / 2);
-		int newHeight = (int) (height * heightTriangles * triangleScaleHeight) / 2 * (TOTAL_PALLETES / 2);
+		/**
+		 * Resizing code seems to be OK
+		 */
+		int newWidth = (int) (width * widthTriangles);
+		int newHeight = (int) (((height * heightTriangles))  - height); // substract last serrated row
     	
-    	System.out.println("originalImage.width: " + originalImage.getWidth() + " - originalImage.height: " + originalImage.getHeight());
+//    	System.out.println("originalImage.width: " + originalImage.getWidth() + " - originalImage.height: " + originalImage.getHeight());
 		
 		// initialize currentImage and resizedOriginal
     	if (resizedOriginal == null){
@@ -231,13 +297,40 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     		
     		g.dispose();
     		
-    		System.out.println("resizedOriginal.width: " + resizedOriginal.getWidth() + " - resizedOriginal.height: " + resizedOriginal.getHeight());
+//    		System.out.println("resizedOriginal.width: " + resizedOriginal.getWidth() + " - resizedOriginal.height: " + resizedOriginal.getHeight());
     		
   			evolver.setResizedOriginal(resizedOriginal);
    			evolver.setCurrentImage(resizedOriginal);
     	}
+
+//    	 evolver.initialize();
     	
-    	 evolver.initialize();
+    	evolver.initializeIsosceles();
+    	
+//    	evolver.initializeFromFile("campito_78.txt");
+//    	evolver.initializeFromFile("campito_78.txt");
+//    	evolver.initializeFromFile("campito_80.txt");
+//    	evolver.initializeFromFile("campito_805.txt");
+//    	evolver.initializeFromFile("campito_81.txt");
+//    	evolver.initializeFromFile("campito_811.txt");
+//    	evolver.initializeFromFile("campito_8114.txt");
+//    	evolver.initializeFromFile("campito_8115.txt");
+//    	evolver.initializeFromFile("campito_8116.txt");
+//    	evolver.initializeFromFile("campito_81163.txt");
+//    	evolver.initializeFromFile("campito_8117.txt");
+//    	evolver.initializeFromFile("campito_8118.txt");
+//    	evolver.initializeFromFile("campito_8119.txt");
+//    	evolver.initializeFromFile("campito_812.txt");
+//    	evolver.initializeFromFile("campito_812.txt");
+
+//    	evolver.initializeFromFile("campito_big2.txt");
+//    	evolver.initializeFromFile("campito_big2.txt");
+    	
+//    	evolver.initializeFromFile("campito_beta_test_1.txt");
+//    	evolver.initializeFromFile("campito_beta_test_1.txt");
+    	
+//    	evolver.initializeFromFile("campito_beta_test_2.txt", 6f);
+//    	evolver.initializeFromFile("campito_beta_test_2.txt", 6f);
     }
 
     public void start(){
@@ -265,8 +358,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 	@Override
 	public void actionPerformed(ActionEvent event) {
+		
 		if (event.getActionCommand().equals("Load")) {
-			loadImage();
+			try {
+				loadImage();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		
 		if (event.getActionCommand().equals("Start")) {
@@ -275,6 +374,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		
 		if (event.getActionCommand().equals("Stop")) {
 			stop();
+		}
+		
+		if (event.getActionCommand().equals("Secuential")) {
+			evolver.switchSecuential();
+		}
+		
+		if (event.getActionCommand().equals("Export")) {
+			evolver.setExportNextAndClose(true);
 		}
 	}
 }

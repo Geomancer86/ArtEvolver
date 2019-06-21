@@ -3,323 +3,472 @@ package com.rndmodgames.evolver;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.SplittableRandom;
+import java.util.stream.Stream;
 
-public class ImageEvolver {
+public class ImageEvolver extends AbstractEvolver {
 
 //	public static final MersenneTwisterFast random = new MersenneTwisterFast();
 	public static final SplittableRandom random = new SplittableRandom();
 	public static final boolean KILL_PARENTS = false;
+
+	public static final DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN));
 	
 	private BufferedImage resizedOriginal;
 	private BufferedImage currentImage;
 	private BufferedImage bestImage;
-	private double bestScore;
-	
+	private double bestScore = Double.MIN_VALUE;
+	private double averageScore = Double.MIN_VALUE;
+
 	private int population;
 	private int randomJumpDistance;
 	private int crossoverMax;
 	private int totalIterations;
 	private int goodIterations;
-	
+
 	private float scale;
 	private float height;
 	private float width;
-	
+
 	private Pallete pallete;
-	
+
 	private static int triangleHeight;
 	private static int triangleWidth;
-	
+
 	CrossOver crossOver;
-	
+
 	// synchronize for multithreading
 	private List<TriangleList<Triangle>> pop = new TriangleList<TriangleList<Triangle>>();
-	
+
 	private boolean isDirty = true;
-	
+	private boolean exportNextAndClose = false;
+
 	@SuppressWarnings("static-access")
-	public ImageEvolver(int population, int randomJumpDistance, int crossoverMax, float scale, Pallete pallete, float width, float height, int triangleWidth, int triangleHeight){
+	public ImageEvolver(int population, int randomJumpDistance, int crossoverMax, float scale, Pallete pallete,
+			float width, float height, int triangleWidth, int triangleHeight) {
+		
 		this.population = population;
-		this.scale = scale;
+		this.scale = scale * pallete.totalPalletes / 2;
 		this.pallete = pallete;
 		this.height = height;
 		this.width = width;
 		this.randomJumpDistance = randomJumpDistance;
 		this.crossoverMax = crossoverMax;
-		
+
 		this.triangleHeight = triangleHeight;
 		this.triangleWidth = triangleWidth;
-		
+
 		initCrossOver();
 	}
-	
-	public void initCrossOver(){
+
+	public void initCrossOver() {
 		crossOver = new CrossOver(randomJumpDistance, crossoverMax);
 	}
+
+	/**
+	 * Initialize the triangles from a TXT file listing all the triangle coordinates and colors
+	 * @param filename
+	 * @throws IOException 
+	 */
+	public void initializeFromFile(String filename, double scale) throws IOException {
+		URL url = getClass().getResource("../../../" + filename);
+		File file = new File(url.getPath());
+
+		try (Stream<String>stream = Files.lines(file.toPath(), StandardCharsets.UTF_8)) {
+			
+			TriangleList<Triangle> triangles = new TriangleList<Triangle>();
+			
+			stream.forEach((line)->{
+				
+				// strip all crap and only leave the commas ,
+				line = line.replaceAll("\\[", "").replaceAll("\\]", "").replaceAll(" ", "").trim();
+				
+				String [] splitted = line.split(",");
+				
+				int xPoly[] = new int[3];
+				int yPoly[] = new int[3];
+				
+				xPoly[0]= (int) (Integer.parseInt(splitted[1]) * scale);
+				xPoly[1]= (int) (Integer.parseInt(splitted[2]) * scale);
+				xPoly[2]= (int) (Integer.parseInt(splitted[3]) * scale);
+				
+				yPoly[0]= (int) (Integer.parseInt(splitted[4]) * scale);
+				yPoly[1]= (int) (Integer.parseInt(splitted[5]) * scale);
+				yPoly[2]= (int) (Integer.parseInt(splitted[6]) * scale);
+				
+				Color color = new Color(Integer.parseInt(splitted[7]),
+										Integer.parseInt(splitted[8]),
+										Integer.parseInt(splitted[9]));
+				
+				Triangle triangle = new Triangle(xPoly, yPoly, 3, null, color);
+				triangles.add(triangle);
+			});
+			
+			// add all triangles twice (we need a n pop)
+			pop.add(triangles);
+		}
+
+		BufferedImage imgParentA = null;
+		Graphics g = null;
+		double scoreA = 0d;
+
+		for (TriangleList<Triangle> triangles : pop) {
+
+			imgParentA = new BufferedImage(resizedOriginal.getWidth(), resizedOriginal.getHeight(),
+					ArtEvolver.IMAGE_TYPE);
+			g = imgParentA.getGraphics();
+
+			for (Triangle triangle : triangles) {
+				if (triangle.getColor() != null) {
+					g.setColor(triangle.getColor());
+					g.drawPolygon(triangle);
+					g.fillPolygon(triangle);
+				} else {
+					g.setColor(Color.BLUE);
+					g.drawPolygon(triangle);
+				}
+			}
+
+			scoreA = compare(imgParentA, resizedOriginal);
+			triangles.setScore(scoreA);
+		}
+
+		g.dispose();
+	}
 	
-	public void initialize(){
-		
+	/**
+	 * Initialize the triangles as Isosceles
+	 */
+	public void initializeIsosceles() {
+
 		int preGenerations = 1;
 		int randomMult = 1;
-		
-		for (int kk = 0; kk < preGenerations; kk++){
-			
-//			pallete.randomize();
-//			pallete.orderByLuminescence();
-//			pallete.orderByBLUE();
-			
-			for (int i = 0; i < population; i++){
-				TriangleList <Triangle> triangles = new TriangleList<Triangle>();
+
+		for (int kk = 0; kk < preGenerations; kk++) {
+			for (int i = 0; i < population; i++) {
+				TriangleList<Triangle> triangles = new TriangleList<Triangle>();
 				int count = 0;
-				
-				for (int a = 0; a < triangleWidth; a++){
-		    		for (int b = 0; b < triangleHeight; b++){
-		    			int xPoly [] = new int [3];
-		    			int yPoly [] = new int [3];
+				int position = 0;
+
+				for (int a = 0; a < triangleWidth; a++) {
+					for (int b = 0; b < triangleHeight; b++) {
+
+						int xPoly[] = new int[3];
+						int yPoly[] = new int[3];
+
+						// reset triangle position
+						if (position == 2) {
+							position = 0;
+						}
+
+						if (position == 0) {
+							if (a % 2 == 0) {
+								// NORTH
+								// (avoid serrated graph, NOTE: depends on triangles and xy)
+								if (b < (triangleHeight - 1)) {
+									xPoly[0] = (int) (width * a);
+									xPoly[1] = (int) ((width * a) + (width * 2));
+									xPoly[2] = (int) ((width * a) + (width ));
 	
-		    			if (b % 2 == 0){
-							xPoly[0] = (int) (width * scale * a);
-							xPoly[1] = (int) ((width * scale * a) + (width * scale));
-							xPoly[2] = (int) (width * scale * a);
-							
-							yPoly[0] = (int) ((height * scale * b));
-							yPoly[1] = (int) ((height * scale * b));
-							yPoly[2] = (int) ((height * scale * b) + (height * scale));
-		    			}else{
-		    				xPoly[0] = (int) ((width * scale * a));
-							xPoly[1] = (int) ((width * scale * a) + (width * scale));
-							xPoly[2] = (int) ((width * scale * a) + (width * scale));
-							
-							yPoly[0] = (int) ((height * scale * b));
-							yPoly[1] = (int) ((height * scale * b));
-							yPoly[2] = (int) ((height * scale * b) - (height * scale));
-		    			}
-		    			
-		    			// dynamic row shifting
-						yPoly[0] -= (height * scale) * (b / 2);
-						yPoly[1] -= (height * scale) * (b / 2);
-						yPoly[2] -= (height * scale) * (b / 2);
-	
-		    			Color color = null;
-		    			if (pallete.getColor(count) != null){
-		    				color = pallete.getColor(count).color;
-		    			}
-	
-		        		Triangle triangle = new Triangle(xPoly, yPoly, 3, color);
-		        		triangles.add(triangle);
-		        		
-		        		count++;
-		        	}
-		    	}
+									yPoly[0] = (int) ((height * b));
+									yPoly[1] = (int) ((height * b));
+									yPoly[2] = (int) ((height * b) + (height));
+								}
+							} else {
+								// SOUTH
+								xPoly[0] = (int) ((width * a) - (width ));
+								xPoly[1] = (int) ((width * a));
+								xPoly[2] = (int) ((width * a) + (width ));
+
+								yPoly[0] = (int) ((height * b) + (height));
+								yPoly[1] = (int) ((height * b));
+								yPoly[2] = (int) ((height * b) + (height));
+							}
+						} else if (position == 1) {
+							if (a % 2 == 0) {
+								// EAST
+								xPoly[0] = (int) ((width * a) + (width * 2));
+								xPoly[1] = (int) ((width * a) + (width));
+								xPoly[2] = (int) ((width * a) + (width * 2));
+
+								yPoly[0] = (int) ((height * b) - (height));
+								yPoly[1] = (int) ((height * b));
+								yPoly[2] = (int) ((height * b) + (height));
+							} else {
+								// WEST
+								xPoly[0] = (int) ((width * a) - (width));
+								xPoly[1] = (int) ((width * a));
+								xPoly[2] = (int) ((width * a) - (width));
+
+								yPoly[0] = (int) ((height * b));
+								yPoly[1] = (int) ((height * b) - (height));
+								yPoly[2] = (int) ((height * b) - (height * 2));
+							}
+						}
+
+						position++;
+
+						Long colorId = null;
+						Color color = null;
+						
+						if (pallete.getColor(count) != null) {
+							colorId = pallete.getColor(count).id;
+							color = pallete.getColor(count).color;
+						}
+
+						Triangle triangle = new Triangle(xPoly, yPoly, 3, colorId, color);
+						triangles.add(triangle);
+
+						count++;
+					}
+				}
 
 				// randomize
 				for (int k = 0; k < triangles.size() * randomMult; k++){
 					switchColor(triangles, roll(triangles.size()), roll(triangles.size()));
 				}
-	
+
 				pop.add(triangles);
 			}
 
 			BufferedImage imgParentA = null;
-        	Graphics g = null;
-        	double scoreA = 0d;
-        	
-        	for (TriangleList<Triangle> triangles : pop) {
-        		
-        		imgParentA = new BufferedImage(resizedOriginal.getWidth(), resizedOriginal.getHeight(), ArtEvolver.IMAGE_TYPE); 
-    			g = imgParentA.getGraphics();
-    			
-        		for (Triangle triangle : triangles){
-    				if (triangle.getColor() != null) {
-    					g.setColor(triangle.getColor());
-    					g.drawPolygon(triangle);
-    					g.fillPolygon(triangle);
-    				} else {
-    					g.setColor(Color.BLUE);
-    					g.drawPolygon(triangle);
-    				}
-        		}
-        		
-        		scoreA = compare(imgParentA, resizedOriginal);
-        		triangles.setScore(scoreA);
-        	}
-        	
-        	g.dispose();
+			Graphics g = null;
+			double scoreA = 0d;
+
+			for (TriangleList<Triangle> triangles : pop) {
+
+				imgParentA = new BufferedImage(resizedOriginal.getWidth(), resizedOriginal.getHeight(),
+						ArtEvolver.IMAGE_TYPE);
+				g = imgParentA.getGraphics();
+
+				for (Triangle triangle : triangles) {
+					if (triangle.getColor() != null) {
+						g.setColor(triangle.getColor());
+						g.drawPolygon(triangle);
+						g.fillPolygon(triangle);
+					} else {
+						g.setColor(Color.BLUE);
+						g.drawPolygon(triangle);
+					}
+				}
+
+				scoreA = compare(imgParentA, resizedOriginal);
+				triangles.setScore(scoreA);
+			}
+
+			g.dispose();
 		}
-		
+
 		// Comparator used only once, no need to extract
 		Collections.sort(pop, new TrianglesComparator());
-		
+
+//		System.out.println("total pixels is " + pop.get(0).size());
+
 		// keep only defined population
-    	pop = pop.subList(0, population);
+		pop = pop.subList(0, population);
 	}
-	
+
+	public void initialize() {
+
+		int preGenerations = 1;
+		int randomMult = 1;
+
+		for (int kk = 0; kk < preGenerations; kk++) {
+
+//			pallete.randomize();
+//			pallete.orderByLuminescence();
+//			pallete.orderByBLUE();
+
+			for (int i = 0; i < population; i++) {
+				TriangleList<Triangle> triangles = new TriangleList<Triangle>();
+				int count = 0;
+
+				for (int a = 0; a < triangleWidth; a++) {
+					for (int b = 0; b < triangleHeight; b++) {
+						int xPoly[] = new int[3];
+						int yPoly[] = new int[3];
+
+						if (b % 2 == 0) {
+							xPoly[0] = (int) (width * scale * a);
+							xPoly[1] = (int) ((width * scale * a) + (width * scale));
+							xPoly[2] = (int) (width * scale * a);
+
+							yPoly[0] = (int) ((height * scale * b));
+							yPoly[1] = (int) ((height * scale * b));
+							yPoly[2] = (int) ((height * scale * b) + (height * scale));
+						} else {
+							xPoly[0] = (int) ((width * scale * a));
+							xPoly[1] = (int) ((width * scale * a) + (width * scale));
+							xPoly[2] = (int) ((width * scale * a) + (width * scale));
+
+							yPoly[0] = (int) ((height * scale * b));
+							yPoly[1] = (int) ((height * scale * b));
+							yPoly[2] = (int) ((height * scale * b) - (height * scale));
+						}
+
+						// dynamic row shifting
+						yPoly[0] -= (height * scale) * (b / 2);
+						yPoly[1] -= (height * scale) * (b / 2);
+						yPoly[2] -= (height * scale) * (b / 2);
+
+						Color color = null;
+						if (pallete.getColor(count) != null) {
+							color = pallete.getColor(count).color;
+						}
+
+						Triangle triangle = new Triangle(xPoly, yPoly, 3, color);
+						triangles.add(triangle);
+
+						count++;
+					}
+				}
+
+				// randomize
+				for (int k = 0; k < triangles.size() * randomMult; k++) {
+					switchColor(triangles, roll(triangles.size()), roll(triangles.size()));
+				}
+
+				pop.add(triangles);
+			}
+
+			BufferedImage imgParentA = null;
+			Graphics g = null;
+			double scoreA = 0d;
+
+			for (TriangleList<Triangle> triangles : pop) {
+
+				imgParentA = new BufferedImage(resizedOriginal.getWidth(), resizedOriginal.getHeight(),
+						ArtEvolver.IMAGE_TYPE);
+				
+				g = imgParentA.getGraphics();
+
+				for (Triangle triangle : triangles) {
+					if (triangle.getColor() != null) {
+						g.setColor(triangle.getColor());
+						g.drawPolygon(triangle);
+						g.fillPolygon(triangle);
+					} else {
+						g.setColor(Color.BLUE);
+						g.drawPolygon(triangle);
+					}
+				}
+
+				scoreA = compare(imgParentA, resizedOriginal);
+				triangles.setScore(scoreA);
+			}
+
+			g.dispose();
+		}
+
+		// Comparator used only once, no need to extract
+		Collections.sort(pop, new TrianglesComparator());
+
+//		System.out.println("total pixels is " + pop.get(0).size());
+
+		// keep only defined population
+		pop = pop.subList(0, population);
+	}
+
 	@SuppressWarnings("rawtypes")
 	public static class TrianglesComparator implements Comparator<TriangleList> {
-	    @Override
-	    public int compare(TriangleList o1, TriangleList o2) {
-	    	return o1.getScore().compareTo(o2.getScore());
-	    }
+		@Override
+		public int compare(TriangleList o1, TriangleList o2) {
+			return o1.getScore().compareTo(o2.getScore());
+		}
 	}
-	
-	public static void switchColor(List<Triangle> triangles, int a, int b){
+
+	public static void switchColor(List<Triangle> triangles, int a, int b) {
 		Triangle origin = triangles.get(a);
 		Triangle dest = triangles.get(b);
-		
+
 		Color aux = origin.getColor();
 		origin.setColor(dest.getColor());
 		dest.setColor(aux);
 	}
-	
-	public static void switchRandomColor(List<Triangle> triangles){
+
+	public static void switchRandomColor(List<Triangle> triangles) {
 		Triangle origin = triangles.get(roll(triangles.size()));
 		Triangle dest = triangles.get(roll(triangles.size()));
-		
+
 		Color aux = origin.getColor();
 		origin.setColor(dest.getColor());
 		dest.setColor(aux);
 	}
-	
+
 	// TODO implement randomization
-	public static void switchRandomMultiColor(List<Triangle> triangles, int maxTriangles){
-		
+	public static void switchRandomMultiColor(List<Triangle> triangles, int maxTriangles) {
+
 		int origin = roll(triangles.size());
 		int dest = roll(triangles.size());
-		
-		if (origin >= triangles.size() - 1){
+
+		if (origin >= triangles.size() - 1) {
 			origin = triangles.size() - 2;
 		}
-		
-		if (dest >= triangles.size() - 1){
+
+		if (dest >= triangles.size() - 1) {
 			dest = triangles.size() - 2;
 		}
-		
+
 		Triangle triangle1 = triangles.get(origin);
 		Triangle triangle2 = triangles.get(origin + 1);
-		
+
 		Triangle triangle3 = triangles.get(dest);
 		Triangle triangle4 = triangles.get(dest + 1);
 
 		Color aux = triangle1.getColor();
 		triangle1.setColor(triangle3.getColor());
 		triangle3.setColor(aux);
-		
+
 		Color aux2 = triangle2.getColor();
 		triangle2.setColor(triangle4.getColor());
 		triangle4.setColor(aux2);
 	}
-	
-	public static void switchCloseColor(TriangleList<Triangle> triangles, int randomMutationsMax){
+
+	public static void switchCloseColor(TriangleList<Triangle> triangles, int randomJumpDistance) {
 		
 		int pos = roll(triangles.size());
 		int des = 0;
-		int jump = roll(randomMutationsMax);
-		
-		if(random.nextBoolean()){
+		int jump = roll(randomJumpDistance);
+
+		if (random.nextBoolean()) {
 			des = pos + jump;
-		}else{
+		} else {
 			des = pos - jump;
 		}
 
-		if (des < 0){
-			des = (triangles.size() - 1) - pos - jump;
+//		System.out.println("pos " + pos + " jump " + jump + " des " + des);
+		
+		if (des < 0) {
+			des = triangles.size() - (jump - pos) - 1;
+//			des = (triangles.size() - 1) - pos - jump;
+			
+		} 
+		
+		if (des >= triangles.size()) {
+			des = 0 + (triangles.size() - jump);
+			
 		}
 
-		if (des >= triangles.size()){
-			des = 0 + (triangles.size() - pos + jump);
-		}
-		
 		Triangle origin = triangles.get(pos);
 		Triangle dest = triangles.get(des);
-		
+
 		Color aux = origin.getColor();
 		origin.setColor(dest.getColor());
 		dest.setColor(aux);
 	}
-	
-	/**
-	 * Extracted to avoid recreation
-	 */
-	private static int rgb1;
-	private static int rgb2;
-	private static int r1;
-	private static int g1;
-	private static int b1;
-	private static int r2;
-	private static int g2;
-	private static int b2;
-	private static int diff;
-	
-	public double compare(BufferedImage img1, BufferedImage img2) {
 
-//		long compareThen = System.currentTimeMillis();
-		
-		int width1 = img1.getWidth(null);
-		int width2 = img2.getWidth(null);
-		int height1 = img1.getHeight(null);
-		int height2 = img2.getHeight(null);
-		
-//		System.out.println("width1: " + width1 + ", height1: " + height1 + ", width2: " + width2 + ", height2: " + height2);
-		
-		if ((width1 != width2) || (height1 != height2)) {
-			System.err.println("Error: Images dimensions mismatch");
-			return 0;
-		}
-		
-		boolean fitnessByColor = true;
-		diff = 0;
-		
-		if (fitnessByColor){
-			for (int y = 0; y < height1; y++) {
-				for (int x = 0; x < width1; x++) {
-					rgb1 = img1.getRGB(x, y);
-					rgb2 = img2.getRGB(x, y);
-					r1 = (rgb1 >> 16) & 0xff;
-					g1 = (rgb1 >> 8) & 0xff;
-					b1 = (rgb1) & 0xff;
-					r2 = (rgb2 >> 16) & 0xff;
-					g2 = (rgb2 >> 8) & 0xff;
-					b2 = (rgb2) & 0xff;
-					diff += Math.abs(r1 - r2);
-					diff += Math.abs(g1 - g2);
-					diff += Math.abs(b1 - b2);
-				}
-			}
-		}else{
-			for (int y = 0; y < height1; y++) {
-				for (int x = 0; x < width1; x++) {
-					rgb1 = img1.getRGB(x, y);
-					rgb2 = img2.getRGB(x, y);
-					
-					float r1 = ((rgb1 >> 16) & 0xff) * 1f; 	// 0.299f
-					float g1 = ((rgb1 >> 8) & 0xff) * 0f;	// 0.587f
-					float b1 = ((rgb1) & 0xff) * 0f; 		// 0.114f
-					
-					float r2 = ((rgb2 >> 16) & 0xff) * 1f;
-					float g2 = ((rgb2 >> 8) & 0xff) * 0f;
-					float b2 = ((rgb2) & 0xff) * 0f;
-					
-					diff += Math.abs(r1 - r2);
-					diff += Math.abs(g1 - g2);
-					diff += Math.abs(b1 - b2);
-				}
-			}
-		}
-
-		double n = width1 * height1 * 3;
-		double p = diff / n / 255.0;
-		
-//		long compareNow = System.currentTimeMillis();
-//		System.out.println("compare took " + (float)(compareNow - compareThen) / 1000f + " seconds");
-		
-		return 1 - p;
-	}
-	
-	public static int roll(int n){
+	public static int roll(int n) {
 		return random.nextInt(n);
 	}
 
@@ -386,6 +535,14 @@ public class ImageEvolver {
 	public void setBestScore(double bestScore) {
 		this.bestScore = bestScore;
 	}
+	
+	public double getAverageScore() {
+		return averageScore;
+	}
+
+	public void setAverageScore(double averageScore) {
+		this.averageScore = averageScore;
+	}
 
 	public boolean isDirty() {
 		return isDirty;
@@ -395,72 +552,262 @@ public class ImageEvolver {
 		this.isDirty = isDirty;
 	}
 
+	public boolean isExportNextAndClose() {
+		return exportNextAndClose;
+	}
+
+	public void setExportNextAndClose(boolean exportNextAndClose) {
+		this.exportNextAndClose = exportNextAndClose;
+	}
+
 	/**
 	 * Extracted Objects to avoid creation during cycles
 	 */
-	
+
 	static BufferedImage imgParentA;
 	static BufferedImage imgChildA;
 	static Graphics g;
-	static TriangleList <Triangle> parentA;
-	static TriangleList <Triangle> parentB;
-	static TriangleList <Triangle> childA;
+	static TriangleList<Triangle> parentA;
+	static TriangleList<Triangle> parentB;
+	static TriangleList<Triangle> childA;
+
+	public void evolveGreedy(long start) {
+
+		// start with position 0
+		// measure, keep score
+		// repeat until trying all the elements
+	}
+
+	private int GEN_SIZE = 8;
 	
-	/**
-	 * Initial Random Population:
-	 * 	- order by score
-	 * 	- get top 10%
-	 * 	- mix and mutate
-	 * 	
-	 */
-	public void evolve(long start, int iterations) {
+	public void evolve2(long start, int iterations) {
 		
-//		long evolveThen = System.currentTimeMillis();
+//		long beforeChild = System.currentTimeMillis();
 		
-		for (int a = 0; a < iterations; a++){
-			
-			int rollA = 0;
-			int rollB = 0;
-			
-			while (rollA == rollB){
+		int rollA, rollB;
+		
+		for (int a = 0; a < iterations; a++) {
+
+			rollA = 0;
+			rollB = 0;
+	
+			while (rollA == rollB) {
 				rollA = roll(pop.size());
 				rollB = roll(pop.size());
 			}
-			
+	
 			parentA = pop.get(rollA);
 			parentB = pop.get(rollB);
+		
+			childA = crossOver.getGeneticChild(parentA, parentB, GEN_SIZE);
+			TriangleList<Triangle> mutatedChild = crossOver.mutate(childA);
 			
-			childA = crossOver.getChild(parentA, parentB);
+			updateFitness(mutatedChild);
+			updateStats();
+		}
+	}
+	
+	public void updateStats() {
+		totalIterations++;
 
-        	imgParentA = null;
-        	g = null;
-        	double scoreA = 0d;
+		if (totalIterations % ((population / 2) * 1000) == 0) {
+			System.out.println(new DecimalFormat("####.###################", 
+							   new DecimalFormatSymbols(Locale.ITALIAN))
+					  .format(bestScore));
+		}
+	}
+	
+	public void updateFitness(TriangleList<Triangle> mutatedChild) {
+		
+//		System.out.println("update fitness");
+		
+		/**
+		 * TODO-NA: instead of new image, clear and reuse
+		 */
+		// score childA
+//		if (imgChildA == null) {
+			imgChildA = new BufferedImage(resizedOriginal.getWidth(),
+					  resizedOriginal.getHeight(),
+					  ArtEvolver.IMAGE_TYPE);
+//		} else {
+//			g.clearRect(0, 0, imgChildA.getWidth(), imgChildA.getHeight());
+//		}
 
-        	if (parentA.getScore() <= 0d){
-        		imgParentA = new BufferedImage(resizedOriginal.getWidth(), resizedOriginal.getHeight(), ArtEvolver.IMAGE_TYPE); 
-    			g = imgParentA.getGraphics();
-    			
-    			// Iterator parentA
-    			for (Triangle triangle : parentA) {
-    				if (triangle.getColor() != null) {
-    					g.setColor(triangle.getColor());
-    					g.drawPolygon(triangle);
-    					g.fillPolygon(triangle);
-    				} else {
-    					g.setColor(Color.BLUE);
-    					g.drawPolygon(triangle);
-    				}
-    			}
-        		
-        		scoreA = compare(imgParentA, resizedOriginal);
-        		parentA.setScore(scoreA);
-        	}else{
-        		scoreA = parentA.getScore();
-        	}
+		g = imgChildA.getGraphics();
 
-			imgChildA = new BufferedImage(resizedOriginal.getWidth(), resizedOriginal.getHeight(), ArtEvolver.IMAGE_TYPE); 
+		// Iterator childA
+		for (Triangle triangle : mutatedChild) {
+			if (triangle.getColor() != null) {
+				g.setColor(triangle.getColor());
+				g.drawPolygon(triangle);
+				g.fillPolygon(triangle);
+			} else {
+				g.setColor(Color.BLUE);
+				g.drawPolygon(triangle);
+			}
+		}
+
+		g.dispose();
+
+		double scoreC = compare(imgChildA, resizedOriginal);
+		mutatedChild.setScore(scoreC);
+
+		// if score less than better, return
+		if (scoreC < bestScore) {
+			return;
+		} else {
+			System.out.println("score: " + scoreC + ", bestScore: " + bestScore);
+		}
+
+		Double currentWorstScore = Double.MAX_VALUE;
+		int actualWorstPosition = 0;
+		int currentWorstPosition = 0;
+		
+		for (;currentWorstPosition < pop.size(); currentWorstPosition++) {
+			if (pop.get(currentWorstPosition).getScore() < currentWorstScore) {
+				currentWorstScore = pop.get(currentWorstPosition).getScore();
+				actualWorstPosition = currentWorstPosition;
+			}
+		}
+		
+		if (scoreC > bestScore) {
+			bestScore = scoreC;
+			bestImage = imgChildA;
+			goodIterations++;
+			
+			pop.remove(actualWorstPosition);
+			
+			// add a copy! of child a
+			pop.add(mutatedChild);
+
+			isDirty = true;
+		}
+		
+		// replace Child with worst element / worstParent
+	}
+	
+	private boolean secuential = false;
+	private boolean randomSecuential = false;
+	private boolean secuentialHorizontal = false;
+	private int currentParentA = 0;
+	private int currentParentB = 1;
+	private int startTriangle = 0;
+	private int targetTriangle = 1;
+
+	public void switchSecuential() {
+		secuential = !secuential;
+		randomSecuential = !randomSecuential;
+	}
+	
+	/**
+	 * Initial Random Population: - order by score - get top 10% - mix and mutate
+	 * 
+	 */
+	@Override
+	public void evolve(long start, int iterations) {
+
+//		long evolveThen = System.currentTimeMillis();
+
+		for (int a = 0; a < iterations; a++) {
+
+			if (!secuential) {
+				int rollA = 0;
+				int rollB = 0;
+
+				while (rollA == rollB) {
+					rollA = roll(pop.size());
+					rollB = roll(pop.size());
+				}
+
+				parentA = pop.get(rollA);
+				parentB = pop.get(rollB);
+			} else {
+				
+				// parent is always 0, order by score so 0 is always the best
+				parentA = pop.get(currentParentA);
+				parentB = pop.get(currentParentB);
+			}
+
+			if (!secuential) {
+				childA = crossOver.getChild(parentA, parentB);
+			} else {
+
+				childA = crossOver.getSecuentialChild(parentA, startTriangle, targetTriangle);
+
+				if (!randomSecuential) {
+					// cycle
+					targetTriangle++;
+
+					if (targetTriangle == parentA.size()) {
+						targetTriangle = 0;
+						startTriangle++;
+
+						if (startTriangle == parentA.size()) {
+							startTriangle = 0;
+						}
+					}
+				} else {
+
+					startTriangle++;
+
+					if (startTriangle >= parentA.size()) {
+						startTriangle = 0;
+					}
+
+					if (!secuentialHorizontal) {
+						targetTriangle = startTriangle + 1;
+						
+						if (targetTriangle >= parentA.size()) {
+							targetTriangle = 0;
+						}
+						
+					} else {
+						targetTriangle = startTriangle + triangleHeight;
+						
+						if (targetTriangle >= parentA.size()) {
+							targetTriangle = 0 + triangleHeight - (targetTriangle - parentA.size());
+						}
+					}
+				}
+			}
+
+			imgParentA = null;
+			g = null;
+			double scoreA = 0d;
+
+			if (parentA.getScore() <= 0d) {
+				imgParentA = new BufferedImage(resizedOriginal.getWidth(), resizedOriginal.getHeight(),
+						ArtEvolver.IMAGE_TYPE);
+				g = imgParentA.getGraphics();
+
+				// Iterator parentA
+				for (Triangle triangle : parentA) {
+					if (triangle.getColor() != null) {
+						g.setColor(triangle.getColor());
+						g.drawPolygon(triangle);
+						g.fillPolygon(triangle);
+					} else {
+						g.setColor(Color.BLUE);
+						g.drawPolygon(triangle);
+					}
+				}
+
+				scoreA = compare(imgParentA, resizedOriginal);
+				parentA.setScore(scoreA);
+			} else {
+				scoreA = parentA.getScore();
+			}
+
+			if (g != null) {
+				g.dispose();
+			}
+
+			imgChildA = new BufferedImage(resizedOriginal.getWidth(),
+										  resizedOriginal.getHeight(),
+										  ArtEvolver.IMAGE_TYPE);
+			
 			g = imgChildA.getGraphics();
-			
+
 			// Iterator childA
 			for (Triangle triangle : childA) {
 				if (triangle.getColor() != null) {
@@ -472,51 +819,166 @@ public class ImageEvolver {
 					g.drawPolygon(triangle);
 				}
 			}
-			
+
 			g.dispose();
 
-			double scoreC = compare(imgChildA,  resizedOriginal);
+			double scoreC = compare(imgChildA, resizedOriginal);
 			childA.setScore(scoreC);
-			
-			if (scoreA > bestScore){
+
+			// Just in case parent is not evaluated, and it's the first best score
+			if (scoreA > bestScore) {
 				bestScore = scoreA;
 				bestImage = imgParentA;
 				goodIterations++;
-				
+
 				isDirty = true;
 			}
-			
-			// KILL PARENT (50/50) IF BEST
-			if (scoreC > scoreA){
-				pop.remove(parentA);
-				pop.add(childA);
-				goodIterations++;
-			}
-			
+
+			/**
+			 * Kill worst Drawing only
+			 * 
+			 * TODO: iterate all drawings, and replace the actual worst, not the parent,
+			 * 	 as the parent might be one of the better results already
+			 */
+//			Double currentWorstScore = Double.MAX_VALUE;
+//			int actualWorstPosition = 0;
+//			int currentWorstPosition = 0;
+//			
+//			for (;currentWorstPosition < pop.size(); currentWorstPosition++) {
+//				if (pop.get(currentWorstPosition).getScore() < currentWorstScore) {
+//					currentWorstScore = pop.get(currentWorstPosition).getScore();
+//					actualWorstPosition = currentWorstPosition;
+//				}
+//			}
+
 			// BETTER IMAGE
-			if (scoreC > bestScore){
+			if (scoreC > bestScore) {
 				bestScore = scoreC;
 				bestImage = imgChildA;
 				goodIterations++;
 				
-				isDirty = true;
-			}
-			
-			totalIterations++;
+				// NOTE: worst cases will be taken care by the Tournament Optimizations
+//				pop.remove(actualWorstPosition);
+				pop.remove(parentA);
+				pop.add(childA);
 
+				isDirty = true;
+				
+//				Renderer.renderToPNG(childA, goodIterations, imgChildA.getWidth(), imgChildA.getHeight(), ArtEvolver.IMAGE_TYPE);
+				
+				if (exportNextAndClose) {
+					// export for future resuming
+					for (int bb = 0; bb < childA.size(); bb++) {
+						System.out.println(bb + "," + childA.get(bb).toString());
+					}
+					
+					System.exit(0);
+				}
+			} else if (scoreC > scoreA) {
+				
+				// IF CHILDREN IS BETTER THAN PARENT, KEEP IT AND KILL THE PARENT
+				
+				goodIterations++;
+				pop.remove(parentA);
+				pop.add(childA);
+			}
+
+			totalIterations++;
+			
+//			if (totalIterations % ((population / 2) * 1000) == 0) {
 			if (totalIterations % 1000 == 0){
+
+//				long now = System.currentTimeMillis();
 				
-				long now = System.currentTimeMillis();
+
 				
-				System.out.println("i: " + totalIterations
-								 + " - p: " + pop.size()
-								 + " - jump: " + randomJumpDistance
-								 + " - cross: " + crossoverMax
-								 + " - best: " + bestScore
-								 + " - total time: " + ((float) (now - start) / 1000f) + " seconds");
+//				System.out.println("i: " + totalIterations
+//								 + " - good: " + goodIterations
+//								 + " - p: " + pop.size()
+//								 + " - jump: " + crossOver.getRandomJumpDistance()
+//								 + " - cross: " + crossoverMax
+//								 + " - best: " + DEFAULT_DECIMAL_FORMAT.format(bestScore)
+//								 + " - total time: " + DEFAULT_DECIMAL_FORMAT.format(((float) (now - start) / 1000f)) + " seconds");
+
+				System.out.println(DEFAULT_DECIMAL_FORMAT.format(bestScore));
+				
+				/**
+				 * v.1.0.0 optimizations
+				 * 	- CLOSE_MUTATIONS_PER_CHILD * pop
+				 */
+				
+				if (totalIterations == 2500 * pop.size()) {
+					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+				}
+				
+				if (totalIterations == 15000 * pop.size()) {
+					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+				}
+				
+				if (totalIterations == 35000 * pop.size()) {
+					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+				}
+				
+				if (totalIterations == 75000 * pop.size()) {
+					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+				}
+				
+				if (CrossOver.CLOSE_MUTATIONS_PER_CHILD < 1) {
+					CrossOver.CLOSE_MUTATIONS_PER_CHILD = 1;
+				}
+				
+				/**
+				 * v.1.0.0 Tournament Optimizations
+				 * 
+				 * - Kill worst Drawing each 100k iterations
+				 */
+				if (totalIterations % 1000 == 0) {
+					if (pop.size() > 2) {
+						
+						// Comparator used only once, no need to extract
+						// NOTE: last is best!
+						Collections.sort(pop, new TrianglesComparator());
+						
+//						for (int j = 0; j < pop.size(); j ++) {
+//							System.out.println("Drawing " + j + " score: " + pop.get(j).getScore());
+//						}
+						pop.remove(0);
+					}
+				}
+				
+				/**
+				 * Calculate Average Score
+				 * 
+				 * TODO: we probably don't need to iterate every time and just keep count of new scores
+				 */
+//				double totalScore = 0d;
+//				for (int b = 0; b < pop.size(); b++) {
+//					totalScore += pop.get(b).getScore();
+//				}
+//
+//				// show the diff
+//				this.averageScore = (totalScore / pop.size()) - this.bestScore;
+//				
+//				System.out
+//				.println(new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN))
+//						.format(this.averageScore));
+				
+//				switchSecuential();
+				
+				crossOver.halveParameters();
+				
+				/**
+				 * 100000: 256/256
+				 */
+//				if (totalIterations % (population * 500) == 0) {
+//					crossOver.halveParameters();
+//					crossOver.incrementParameters();
+//				}
+//				if (totalIterations % 100000 == 0) {
+//					crossOver.halveParameters();
+//				}
 			}
 		}
-
 //		long evolveNow = System.currentTimeMillis();
 //		System.out.println("evolve with " + iterations + " iterations took " + (float)(evolveNow - evolveThen) / 1000f + " seconds");
 	}

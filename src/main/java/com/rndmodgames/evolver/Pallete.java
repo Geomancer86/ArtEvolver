@@ -14,11 +14,15 @@ import java.util.stream.Stream;
 public class Pallete {
 
 	String name;
+	int totalPalletes;
+	long currentId = 0;
+	
 	List <PalleteColor> colors = new ArrayList<PalleteColor>();
 	
 	public Pallete(String name, int repetitions) throws IOException{
 		this.name = name;
-
+		this.totalPalletes = repetitions;
+		
 		URL url = getClass().getResource("../../../sherwin.txt");
 		File file = new File(url.getPath());
 		
@@ -28,9 +32,13 @@ public class Pallete {
 					PalleteColor color = null;
 					String [] splitted = line.split(" ");
 	
+					currentId++;
+					
 					if (splitted.length == 5){
+						
 						color = new PalleteColor(this,
-												 Long.valueOf(splitted[0]),
+												 //Long.valueOf(splitted[0]),
+												 currentId,
 												 splitted[1],
 												 Integer.valueOf(splitted[2]).intValue(),
 												 Integer.valueOf(splitted[3]).intValue(),
@@ -38,7 +46,8 @@ public class Pallete {
 					}else{
 						if (splitted.length == 6){
 							color = new PalleteColor(this,
-									 Long.valueOf(splitted[0]),
+									 // Long.valueOf(splitted[0]),
+									 currentId,
 									 splitted[1] + " " + splitted[2],
 									 Integer.valueOf(splitted[3]).intValue(),
 									 Integer.valueOf(splitted[4]).intValue(),
@@ -46,7 +55,8 @@ public class Pallete {
 						}else{
 							if (splitted.length == 7){
 								color = new PalleteColor(this,
-										 Long.valueOf(splitted[0]),
+										 // Long.valueOf(splitted[0]),
+										 currentId,
 										 splitted[1] + " " + splitted[2] + " " + splitted[3],
 										 Integer.valueOf(splitted[4]).intValue(),
 										 Integer.valueOf(splitted[5]).intValue(),
@@ -64,7 +74,7 @@ public class Pallete {
 		}
 		
 		// Todo dynamic pallete loading or combobox
-		System.out.println("Pallete " + name + " Loaded: " + colors.size() + " colors in " + repetitions + " repetitions.");
+//		System.out.println("Pallete " + name + " Loaded: " + colors.size() + " colors in " + repetitions + " repetitions.");
 	}
 	
 	public void randomize(){
@@ -107,6 +117,10 @@ public class Pallete {
 	                    * 0.587f + (float) c2.getColor().getBlue() * 0.114f) / 256f);
 	        }
 	    });
+	}
+	
+	public void removeColor(int index) {
+		colors.remove(index);
 	}
 	
 	public PalleteColor getColor(int index){

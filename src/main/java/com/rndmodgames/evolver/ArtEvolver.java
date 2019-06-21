@@ -67,7 +67,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 		- Quick way to crossover pixels
 	 * 		- Quick way to chunk full pixel chunks
 	 */
-	static final int POPULATION 				= 128; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
+	static final int POPULATION 				= 2; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
 	static final int RANDOM_JUMP_MAX_DISTANCE	= 4239/2; // MAX: 4239/2
 	static final int CROSSOVER_MAX 				= 2;
 	static final int TOTAL_PALLETES             = 4;

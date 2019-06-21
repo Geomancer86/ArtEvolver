@@ -932,7 +932,7 @@ public class ImageEvolver extends AbstractEvolver {
 				 * 
 				 * - Kill worst Drawing each 100k iterations
 				 */
-				if (totalIterations % 100000 == 0) {
+				if (totalIterations % 1000 == 0) {
 					if (pop.size() > 2) {
 						
 						// Comparator used only once, no need to extract

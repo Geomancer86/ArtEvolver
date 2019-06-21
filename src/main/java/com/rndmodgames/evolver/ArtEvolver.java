@@ -67,8 +67,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 		- Quick way to crossover pixels
 	 * 		- Quick way to chunk full pixel chunks
 	 */
-	static final int POPULATION 				= 2; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
-	static final int RANDOM_JUMP_MAX_DISTANCE	= 2; // MAX: 4239/2
+	static final int POPULATION 				= 128; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
+	static final int RANDOM_JUMP_MAX_DISTANCE	= 4239/2; // MAX: 4239/2
 	static final int CROSSOVER_MAX 				= 2;
 	static final int TOTAL_PALLETES             = 4;
 	
@@ -90,6 +90,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private JFileChooser chooser;
 	private JLabel lblScore;
 	private JLabel lblAverageScore;
+	private JLabel lblPopulation;
 	private JLabel lblIterations;
 	
 	@SuppressWarnings("unused")
@@ -144,6 +145,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	// update stats
             	lblScore.setText("S     : " + evolver.getBestScore());
 //            	lblAverageScore.setText("S(AVG): " + evolver.getAverageScore());
+            	lblPopulation.setText("Pop: " + evolver.getPopulation().size());
             	lblIterations.setText("I: " + evolver.getGoodIterations() + "/" + evolver.getTotalIterations());
             	
             	if (evolver.getTotalIterations() >= MAX_ITERATIONS){
@@ -210,6 +212,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //		
 //		labelContainer.add(lblAverageScore);
 		
+		lblPopulation = new JLabel("Pop: 0");
+		lblPopulation.setMinimumSize(new Dimension(160, 24));
+		lblPopulation.setPreferredSize(new Dimension(160, 24));
+		lblPopulation.setMaximumSize(new Dimension(160, 24));
+		
+		labelContainer.add(lblPopulation);
+		
 		lblIterations = new JLabel("I: 0/0");
 		lblIterations.setMinimumSize(new Dimension(160, 24));
 		lblIterations.setPreferredSize(new Dimension(160, 24));
@@ -222,7 +231,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
       	container.add(menuContainer, BorderLayout.LINE_END);
       	container.add(imagePanel, BorderLayout.CENTER);
 	    
-		setSize(2400/2, 1200/2); 
+      	// NOTE: set minimum size
+      	if (triangleScaleWidth < 1f) {
+      		setSize(380, 260);
+      	} else {
+      		setSize((int) (300 * triangleScaleWidth), (int) (180 * triangleScaleHeight));
+      	}
 
 		chooser = new JFileChooser(new File(System.getProperty("user.dir")));
 		chooser.setAcceptAllFileFilterUsed(false);
@@ -311,6 +325,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 //    	evolver.initializeFromFile("campito_big2.txt");
 //    	evolver.initializeFromFile("campito_big2.txt");
+    	
+//    	evolver.initializeFromFile("campito_beta_test_1.txt");
+//    	evolver.initializeFromFile("campito_beta_test_1.txt");
+    	
+//    	evolver.initializeFromFile("campito_beta_test_2.txt", 6f);
+//    	evolver.initializeFromFile("campito_beta_test_2.txt", 6f);
     }
 
     public void start(){

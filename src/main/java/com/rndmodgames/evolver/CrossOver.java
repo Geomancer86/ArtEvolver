@@ -18,12 +18,12 @@ public class CrossOver {
 	public static int         CLOSE_MUTATIONS_PER_CHILD     = 16;
 	
 	// crossover mutations
-	public static final float RANDOM_CROSSOVER_PERCENT 				  = -0.1f;
+	public static final float RANDOM_CROSSOVER_PERCENT 				  = -0.01f;
 	public static final float RANDOM_CROSSOVER_CLOSE_MUTATION_PERCENT = 0.3f;
 	public static final float RANDOM_CROSSOVER_MUTATION_PERCENT 	  = 0.3f;
 	public static final float RANDOM_CROSSOVER_MULTI_MUTATION 		  = 0.3f;
 	public static final int   RANDOM_CROSSOVER_MULTI_MUTATION_MAX     = 2;
-	public static final int   CLOSE_CROSSOVER_MUTATIONS_PER_CHILD     = 1;
+	public static final int   CLOSE_CROSSOVER_MUTATIONS_PER_CHILD     = 2;
 	
 	// common mutations
 	
@@ -37,7 +37,7 @@ public class CrossOver {
 	}
 	
 	public void halveParameters() {
-		setRandomJumpDistance(getRandomJumpDistance() - 4);
+		setRandomJumpDistance(getRandomJumpDistance() - 1);
 //		crossoverMax -= -2;
 		
 		if (getRandomJumpDistance() <= 0) {

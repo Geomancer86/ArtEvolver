@@ -81,7 +81,7 @@ public class ImageEvolver extends AbstractEvolver {
 	 * @param filename
 	 * @throws IOException 
 	 */
-	public void initializeFromFile(String filename) throws IOException {
+	public void initializeFromFile(String filename, double scale) throws IOException {
 		URL url = getClass().getResource("../../../" + filename);
 		File file = new File(url.getPath());
 
@@ -99,13 +99,13 @@ public class ImageEvolver extends AbstractEvolver {
 				int xPoly[] = new int[3];
 				int yPoly[] = new int[3];
 				
-				xPoly[0]= Integer.parseInt(splitted[1]);
-				xPoly[1]= Integer.parseInt(splitted[2]);
-				xPoly[2]= Integer.parseInt(splitted[3]);
+				xPoly[0]= (int) (Integer.parseInt(splitted[1]) * scale);
+				xPoly[1]= (int) (Integer.parseInt(splitted[2]) * scale);
+				xPoly[2]= (int) (Integer.parseInt(splitted[3]) * scale);
 				
-				yPoly[0]= Integer.parseInt(splitted[4]);
-				yPoly[1]= Integer.parseInt(splitted[5]);
-				yPoly[2]= Integer.parseInt(splitted[6]);
+				yPoly[0]= (int) (Integer.parseInt(splitted[4]) * scale);
+				yPoly[1]= (int) (Integer.parseInt(splitted[5]) * scale);
+				yPoly[2]= (int) (Integer.parseInt(splitted[6]) * scale);
 				
 				Color color = new Color(Integer.parseInt(splitted[7]),
 										Integer.parseInt(splitted[8]),
@@ -840,16 +840,16 @@ public class ImageEvolver extends AbstractEvolver {
 			 * TODO: iterate all drawings, and replace the actual worst, not the parent,
 			 * 	 as the parent might be one of the better results already
 			 */
-			Double currentWorstScore = Double.MAX_VALUE;
-			int actualWorstPosition = 0;
-			int currentWorstPosition = 0;
-			
-			for (;currentWorstPosition < pop.size(); currentWorstPosition++) {
-				if (pop.get(currentWorstPosition).getScore() < currentWorstScore) {
-					currentWorstScore = pop.get(currentWorstPosition).getScore();
-					actualWorstPosition = currentWorstPosition;
-				}
-			}
+//			Double currentWorstScore = Double.MAX_VALUE;
+//			int actualWorstPosition = 0;
+//			int currentWorstPosition = 0;
+//			
+//			for (;currentWorstPosition < pop.size(); currentWorstPosition++) {
+//				if (pop.get(currentWorstPosition).getScore() < currentWorstScore) {
+//					currentWorstScore = pop.get(currentWorstPosition).getScore();
+//					actualWorstPosition = currentWorstPosition;
+//				}
+//			}
 
 			// BETTER IMAGE
 			if (scoreC > bestScore) {
@@ -857,7 +857,9 @@ public class ImageEvolver extends AbstractEvolver {
 				bestImage = imgChildA;
 				goodIterations++;
 				
-				pop.remove(actualWorstPosition);
+				// NOTE: worst cases will be taken care by the Tournament Optimizations
+//				pop.remove(actualWorstPosition);
+				pop.remove(parentA);
 				pop.add(childA);
 
 				isDirty = true;
@@ -872,6 +874,13 @@ public class ImageEvolver extends AbstractEvolver {
 					
 					System.exit(0);
 				}
+			} else if (scoreC > scoreA) {
+				
+				// IF CHILDREN IS BETTER THAN PARENT, KEEP IT AND KILL THE PARENT
+				
+				goodIterations++;
+				pop.remove(parentA);
+				pop.add(childA);
 			}
 
 			totalIterations++;
@@ -895,23 +904,46 @@ public class ImageEvolver extends AbstractEvolver {
 				
 				/**
 				 * v.1.0.0 optimizations
-				 * 	- CLOSE_MUTATIONS_PER_CHILD
+				 * 	- CLOSE_MUTATIONS_PER_CHILD * pop
 				 */
 				
-				if (totalIterations == 5000) {
-					CrossOver.CLOSE_MUTATIONS_PER_CHILD = 8;
+				if (totalIterations == 2500 * pop.size()) {
+					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
 				}
 				
-				if (totalIterations == 20000) {
-					CrossOver.CLOSE_MUTATIONS_PER_CHILD = 4;
+				if (totalIterations == 15000 * pop.size()) {
+					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
 				}
 				
-				if (totalIterations == 40000) {
-					CrossOver.CLOSE_MUTATIONS_PER_CHILD = 2;
+				if (totalIterations == 35000 * pop.size()) {
+					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
 				}
 				
-				if (totalIterations == 80000) {
+				if (totalIterations == 75000 * pop.size()) {
+					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+				}
+				
+				if (CrossOver.CLOSE_MUTATIONS_PER_CHILD < 1) {
 					CrossOver.CLOSE_MUTATIONS_PER_CHILD = 1;
+				}
+				
+				/**
+				 * v.1.0.0 Tournament Optimizations
+				 * 
+				 * - Kill worst Drawing each 100k iterations
+				 */
+				if (totalIterations % 100000 == 0) {
+					if (pop.size() > 2) {
+						
+						// Comparator used only once, no need to extract
+						// NOTE: last is best!
+						Collections.sort(pop, new TrianglesComparator());
+						
+//						for (int j = 0; j < pop.size(); j ++) {
+//							System.out.println("Drawing " + j + " score: " + pop.get(j).getScore());
+//						}
+						pop.remove(0);
+					}
 				}
 				
 				/**
@@ -933,7 +965,7 @@ public class ImageEvolver extends AbstractEvolver {
 				
 //				switchSecuential();
 				
-//				crossOver.halveParameters();
+				crossOver.halveParameters();
 				
 				/**
 				 * 100000: 256/256

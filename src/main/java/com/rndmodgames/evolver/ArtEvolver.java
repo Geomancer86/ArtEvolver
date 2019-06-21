@@ -106,7 +106,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	double averagePopulationScore = 0.0d;
 
     public ArtEvolver() throws IOException{
-    	super("ArtEvolver v0.01");
+    	super("ArtEvolver 2019 v1");
     	pallete = new Pallete("Sherwin-Williams", TOTAL_PALLETES);
     	
     	evolver = new ImageEvolver(POPULATION, RANDOM_JUMP_MAX_DISTANCE, CROSSOVER_MAX, triangleScaleHeight, pallete, width, height, widthTriangles, heightTriangles);

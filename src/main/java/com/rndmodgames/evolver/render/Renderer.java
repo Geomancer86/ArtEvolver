@@ -61,7 +61,7 @@ public class Renderer {
 		
 		try {
 			// D:\Media\ArtEvolver2019\export
-            ImageIO.write(export, "png", new File("D:/Media/ArtEvolver2019/export/" + order + ".png"));
+            ImageIO.write(export, "png", new File("D:/Media/ArtEvolver2019/export_final_1/" + order + ".png"));
 //            ImageIO.write(export, "gif", new File("D:/Media/ArtEvolver2019/export/" + order + ".gif"));
 	    } catch (IOException e) {
             e.printStackTrace();

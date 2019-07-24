@@ -17,6 +17,8 @@ import java.util.Locale;
 import java.util.SplittableRandom;
 import java.util.stream.Stream;
 
+import com.rndmodgames.evolver.render.Renderer;
+
 public class ImageEvolver extends AbstractEvolver {
 
 //	public static final MersenneTwisterFast random = new MersenneTwisterFast();
@@ -710,13 +712,19 @@ public class ImageEvolver extends AbstractEvolver {
 
 		for (int a = 0; a < iterations; a++) {
 
+			/**
+			 * Non Secuental: standard roll
+			 */
 			if (!secuential) {
-				int rollA = 0;
-				int rollB = 0;
+				// TEST : always pick the best as ParentA
+				// TEST2: always pick the best as ParentA, and replace the worst, not the Parent
+				// TEST3: always pick the worst as ParentA
+				int rollA = pop.size() - 1;
+				int rollB = roll(pop.size() - 1);
 
 				while (rollA == rollB) {
-					rollA = roll(pop.size());
-					rollB = roll(pop.size());
+//					rollA = roll(pop.size());
+					rollB = roll(pop.size() - 1);
 				}
 
 				parentA = pop.get(rollA);
@@ -858,13 +866,15 @@ public class ImageEvolver extends AbstractEvolver {
 				goodIterations++;
 				
 				// NOTE: worst cases will be taken care by the Tournament Optimizations
-//				pop.remove(actualWorstPosition);
+//				pop.remove(0);
 				pop.remove(parentA);
 				pop.add(childA);
 
 				isDirty = true;
 				
-//				Renderer.renderToPNG(childA, goodIterations, imgChildA.getWidth(), imgChildA.getHeight(), ArtEvolver.IMAGE_TYPE);
+				Collections.sort(pop, new TrianglesComparator());
+				
+				// Renderer.renderToPNG(childA, goodIterations, imgChildA.getWidth(), imgChildA.getHeight(), ArtEvolver.IMAGE_TYPE);
 				
 				if (exportNextAndClose) {
 					// export for future resuming
@@ -889,9 +899,7 @@ public class ImageEvolver extends AbstractEvolver {
 			if (totalIterations % 1000 == 0){
 
 //				long now = System.currentTimeMillis();
-				
 
-				
 //				System.out.println("i: " + totalIterations
 //								 + " - good: " + goodIterations
 //								 + " - p: " + pop.size()
@@ -907,19 +915,25 @@ public class ImageEvolver extends AbstractEvolver {
 				 * 	- CLOSE_MUTATIONS_PER_CHILD * pop
 				 */
 				
-				if (totalIterations == 2500 * pop.size()) {
+				float factor = 1.0f;
+				
+				if (totalIterations == 2500 * pop.size() * factor) {
 					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
 				}
 				
-				if (totalIterations == 15000 * pop.size()) {
+				if (totalIterations == 15000 * pop.size() * factor) {
 					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
 				}
 				
-				if (totalIterations == 35000 * pop.size()) {
+				if (totalIterations == 35000 * pop.size() * factor) {
 					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
 				}
 				
-				if (totalIterations == 75000 * pop.size()) {
+				if (totalIterations == 75000 * pop.size() * factor) {
+					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+				}
+				
+				if (totalIterations % 75000 * 2 == 0) {
 					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
 				}
 				

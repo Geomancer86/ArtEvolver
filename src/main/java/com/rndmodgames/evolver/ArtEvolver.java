@@ -43,8 +43,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * width = 3 * scale
 	 * triangles = 80x53
 	 */
-	float triangleScaleHeight = 0.5f;
-	float triangleScaleWidth = 0.5f;
+	float triangleScaleHeight = 3.0f; // 0.25f, 0.5f, 0.66f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f 
+	float triangleScaleWidth = 3.0f;
 	
 	float width = 3.0f * triangleScaleWidth;
 	float height = 3.0f * triangleScaleHeight;
@@ -106,7 +106,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	double averagePopulationScore = 0.0d;
 
     public ArtEvolver() throws IOException{
-    	super("ArtEvolver 2019 v1");
+    	super("ArtEvolver 2019 v2.01");
     	pallete = new Pallete("Sherwin-Williams", TOTAL_PALLETES);
     	
     	evolver = new ImageEvolver(POPULATION, RANDOM_JUMP_MAX_DISTANCE, CROSSOVER_MAX, triangleScaleHeight, pallete, width, height, widthTriangles, heightTriangles);

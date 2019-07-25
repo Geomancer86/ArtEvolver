@@ -15,6 +15,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.SplittableRandom;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 public class ImageEvolver extends AbstractEvolver {
@@ -23,7 +24,6 @@ public class ImageEvolver extends AbstractEvolver {
 	public static final SplittableRandom random = new SplittableRandom();
 	public final boolean KILL_PARENTS = false;
 
-//	public final DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("####,###################", new DecimalFormatSymbols(Locale.ITALIAN));
 	public final DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("##.###################");
 	
 	private Long id = null;
@@ -51,7 +51,14 @@ public class ImageEvolver extends AbstractEvolver {
 	private CrossOver crossOver;
 
 	// The population for this Evolver instance
-	private List<TriangleList<Triangle>> pop = new TriangleList<TriangleList<Triangle>>();
+	// TODO: Synchronize:  Collections.synchronizedList(
+	/**
+	 * Synchronized vs Concurrent performance
+	 * 
+	 * 
+	 */
+//	private List<TriangleList<Triangle>> pop = new TriangleList<TriangleList<Triangle>>();
+	private static List<TriangleList<Triangle>> pop = Collections.synchronizedList(new TriangleList<TriangleList<Triangle>>());
 
 	private boolean isDirty = true;
 	private boolean exportNextAndClose = false;
@@ -289,7 +296,7 @@ public class ImageEvolver extends AbstractEvolver {
 //		System.out.println("total pixels is " + pop.get(0).size());
 
 		// keep only defined population
-		pop = pop.subList(0, population);
+//		pop = pop.subList(0, population);
 	}
 
 	public void initialize() {
@@ -497,9 +504,9 @@ public class ImageEvolver extends AbstractEvolver {
 		return pop;
 	}
 
-	public void setPopulation(List<TriangleList<Triangle>> pop) {
-		this.pop = pop;
-	}
+//	public void setPopulation(List<TriangleList<Triangle>> pop) {
+//		this.pop = pop;
+//	}
 
 	public BufferedImage getResizedOriginal() {
 		return resizedOriginal;
@@ -721,10 +728,7 @@ public class ImageEvolver extends AbstractEvolver {
 
 //		long evolveThen = System.currentTimeMillis();
 
-//		while (isRunning) {
-//			
-//		}
-		
+	synchronized (pop) {
 		for (int a = 0; a < iterations; a++) {
 
 			/**
@@ -1009,6 +1013,7 @@ public class ImageEvolver extends AbstractEvolver {
 //				}
 			}
 		}
+	}
 //		long evolveNow = System.currentTimeMillis();
 //		System.out.println("evolve with " + iterations + " iterations took " + (float)(evolveNow - evolveThen) / 1000f + " seconds");
 	}
@@ -1023,6 +1028,15 @@ public class ImageEvolver extends AbstractEvolver {
 	public void run() {
 		
 		long start = System.currentTimeMillis();
+		
+		
+//		Runnable listOperations = () -> {
+//		    synchronized (syncCollection) {
+//		        syncCollection.forEach((e) -> {
+//		            uppercasedCollection.add(e.toUpperCase());
+//		        });
+//		    }
+//		};
 		
 		while (true) {
             // TODO: start time and iterations need to be set on ArtEvolver

@@ -14,7 +14,7 @@ public class TriangleList<E> extends ArrayList<E> implements List<E>, RandomAcce
 	}
 	
 	public TriangleList(TriangleList<? extends E> c) {
-		super(c);
+		 super(c);
 	}
 
 	public Double getScore() {

@@ -53,22 +53,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	
 	int widthTriangles  = 80; // 71
 	int heightTriangles = 53; // 60
-	
-	/**
-	 * v1.0 TODO:
-	 * 
-	 * 	- Tournament mode:
-	 * 		- Starting population size
-	 * 		- Halve population each n iterations
-	 * 			- Halve or different strategy
-	 * 
-	 * 		- Full Tournament Run (ie: no inter crossover or mutations)
-	 * 		- Population Size Benchmarks
-	 * 		
-	 * 		- Quick way to switch pixels
-	 * 		- Quick way to crossover pixels
-	 * 		- Quick way to chunk full pixel chunks
-	 */
+
 	private int THREADS                 	= 16; // 1-32
 	private int POPULATION 					= 2; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
 	private int RANDOM_JUMP_MAX_DISTANCE	= 4239 / 2; // MAX: 4239/2
@@ -122,6 +107,22 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 			- Main intention is to scale up the speed with the cores in use by firing multiple Evolver instances on separate Threads.
 	 * 				- Move the Best Score/Best Image instances to ArtEvolver
 	 * 				- Hardcode 2 Evolvers and compare with only one.
+	 * 
+	 * --- OLD DOCS BELOW
+	 * 
+	 * v1.0 TODO:
+	 * 
+	 * 	- Tournament mode:
+	 * 		- Starting population size
+	 * 		- Halve population each n iterations
+	 * 			- Halve or different strategy
+	 * 
+	 * 		- Full Tournament Run (ie: no inter crossover or mutations)
+	 * 		- Population Size Benchmarks
+	 * 		
+	 * 		- Quick way to switch pixels
+	 * 		- Quick way to crossover pixels
+	 * 		- Quick way to chunk full pixel chunks
 	 * 
 	 * @throws IOException
 	 */

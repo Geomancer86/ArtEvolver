@@ -23,7 +23,8 @@ public class ImageEvolver extends AbstractEvolver {
 	public static final SplittableRandom random = new SplittableRandom();
 	public final boolean KILL_PARENTS = false;
 
-	public final DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN));
+//	public final DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("####,###################", new DecimalFormatSymbols(Locale.ITALIAN));
+	public final DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("##.###################");
 	
 	private Long id = null;
 	private BufferedImage resizedOriginal;
@@ -922,7 +923,7 @@ public class ImageEvolver extends AbstractEvolver {
 								 + " - best: " + DEFAULT_DECIMAL_FORMAT.format(bestScore)
 								 + " - total time: " + DEFAULT_DECIMAL_FORMAT.format(((float) (now - start)) / 1000f) + " seconds");
 
-//				System.out.println(DEFAULT_DECIMAL_FORMAT.format(bestScore));
+//				System.out.println(DEFAULT_DECIMAL_FORMAT.format(bestScore));`
 				
 				/**
 				 * v.1.0.0 optimizations

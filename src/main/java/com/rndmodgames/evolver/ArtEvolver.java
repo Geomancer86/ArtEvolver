@@ -69,11 +69,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 		- Quick way to crossover pixels
 	 * 		- Quick way to chunk full pixel chunks
 	 */
-	private int THREADS                 	= 4; // 1-32
+	private int THREADS                 	= 16; // 1-32
 	private int POPULATION 					= 2; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
 	private int RANDOM_JUMP_MAX_DISTANCE	= 4239 / 2; // MAX: 4239/2
 	private int CROSSOVER_MAX 				= 2;
 	private int TOTAL_PALLETES             	= 4;
+	
+	private int FPS = 30;
+	private int GUI_UPDATE_MS = 1000/FPS;
 	
 	private int RANDOM_JUMP_MAX_DISTANCES [] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
 	private int CROSSOVERS_MAX [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
@@ -125,10 +128,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     public ArtEvolver() throws IOException{
     	super("ArtEvolver 2019 v2.01");
     	pallete = new Pallete("Sherwin-Williams", TOTAL_PALLETES);
-    	
-//    	evolver = new ImageEvolver(POPULATION, RANDOM_JUMP_MAX_DISTANCE, CROSSOVER_MAX, triangleScaleHeight, pallete, width, height, widthTriangles, heightTriangles);
-//    	evolver = new GreedyEvolver(POPULATION, RANDOM_JUMP_MAX_DISTANCE, CROSSOVER_MAX, triangleScaleHeight, pallete, width, height, widthTriangles, heightTriangles);
-    	
+
     	// Create Evolver instances as configured by the THREADS parameter
     	for (int a = 0; a < THREADS; a ++) {
     		evolvers.add(new ImageEvolver(POPULATION, RANDOM_JUMP_MAX_DISTANCE, CROSSOVER_MAX, triangleScaleHeight, pallete, width, height, widthTriangles, heightTriangles));
@@ -140,19 +140,27 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     
 	private void initComponents() {
 		
-		Locale.setDefault(Locale.GERMAN);
+//		Locale.setDefault(Locale.GERMAN);
 		
         mainFrame = this;
         mainFrame.setResizable(true);
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         // init timer
-        processTimer = new Timer(150, new ActionListener() {
+        processTimer = new Timer(GUI_UPDATE_MS, new ActionListener() {
 
 			@Override
             public void actionPerformed(ActionEvent e) {
 
+				// reset as needed
+				totalIterations = 0;
+				goodIterations = 0;
+				
 				for (AbstractEvolver currentEvolver : evolvers) {
+					
+					totalIterations += ((ImageEvolver)currentEvolver).getTotalIterations();
+					goodIterations += ((ImageEvolver)currentEvolver).getGoodIterations();
+					
 
 					if (((ImageEvolver)currentEvolver).isDirty()) {
 
@@ -186,10 +194,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	
             	
             	lblScore.setText("S     : " + bestScore);
-            	
 //            	lblAverageScore.setText("S(AVG): " + evolver.getAverageScore());
 //            	lblPopulation.setText("Pop: " + evolver.getPopulation().size());
-//            	lblIterations.setText("I: " + evolver.getGoodIterations() + "/" + evolver.getTotalIterations());
+            	lblIterations.setText("I: " + goodIterations + "/" + totalIterations);
             	
 //            	if (evolver.getTotalIterations() >= MAX_ITERATIONS){
 //            		stop();

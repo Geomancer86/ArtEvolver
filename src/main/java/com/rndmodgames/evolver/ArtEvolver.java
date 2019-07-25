@@ -12,6 +12,8 @@ import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 import javax.imageio.ImageIO;
@@ -43,8 +45,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * width = 3 * scale
 	 * triangles = 80x53
 	 */
-	float triangleScaleHeight = 0.5f;
-	float triangleScaleWidth = 0.5f;
+	float triangleScaleHeight = 1.5f; // 0.25f, 0.5f, 0.66f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f 
+	float triangleScaleWidth = 1.5f;
 	
 	float width = 3.0f * triangleScaleWidth;
 	float height = 3.0f * triangleScaleHeight;
@@ -67,20 +69,25 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 		- Quick way to crossover pixels
 	 * 		- Quick way to chunk full pixel chunks
 	 */
-	static final int POPULATION 				= 2; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
-	static final int RANDOM_JUMP_MAX_DISTANCE	= 4239 / 2; // MAX: 4239/2
-	static final int CROSSOVER_MAX 				= 2;
-	static final int TOTAL_PALLETES             = 4;
+	private int THREADS                 	= 16; // 1-32
+	private int POPULATION 					= 2; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
+	private int RANDOM_JUMP_MAX_DISTANCE	= 4239 / 2; // MAX: 4239/2
+	private int CROSSOVER_MAX 				= 2;
+	private int TOTAL_PALLETES             	= 4;
 	
-	static final int RANDOM_JUMP_MAX_DISTANCES [] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
-	static final int CROSSOVERS_MAX [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
+	private int FPS = 30;
+	private int GUI_UPDATE_MS = 1000/FPS;
+	
+	private int RANDOM_JUMP_MAX_DISTANCES [] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
+	private int CROSSOVERS_MAX [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
 	
 	public static final int IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB;
 	
-	static final int EVOLVE_ITERATIONS          = 8;
-	static final int MAX_ITERATIONS             = 10000000;
+	private int EVOLVE_ITERATIONS          = 8;
+	private int MAX_ITERATIONS             = 10000000;
 	
-	ImageEvolver evolver;
+	private List <ImageEvolver> evolvers = new ArrayList<>();
+//	ImageEvolver evolver;
 //	GreedyEvolver evolver;
 	
 	// Timer
@@ -98,59 +105,102 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	
 	private BufferedImage originalImage;
 	private BufferedImage resizedOriginal;
+	private BufferedImage bestImage;
 	
 	long start;
 	long totalIterations = 0L;
 	long goodIterations = 0L;
-	double currentScore = 0.0d;
-	double averagePopulationScore = 0.0d;
+	double bestScore = Double.MIN_VALUE;
+	double currentScore = Double.MIN_VALUE;
+	double averagePopulationScore = 0d;
+	boolean isDirty = false;
+	boolean isRunning = false;
 
+	/**
+	 * v2.01: Basic Multithreading
+	 * 
+	 * 			- Main intention is to scale up the speed with the cores in use by firing multiple Evolver instances on separate Threads.
+	 * 				- Move the Best Score/Best Image instances to ArtEvolver
+	 * 				- Hardcode 2 Evolvers and compare with only one.
+	 * 
+	 * @throws IOException
+	 */
     public ArtEvolver() throws IOException{
-    	super("ArtEvolver 2019 v1");
+    	super("ArtEvolver 2019 v2.01");
     	pallete = new Pallete("Sherwin-Williams", TOTAL_PALLETES);
-    	
-    	evolver = new ImageEvolver(POPULATION, RANDOM_JUMP_MAX_DISTANCE, CROSSOVER_MAX, triangleScaleHeight, pallete, width, height, widthTriangles, heightTriangles);
-//    	evolver = new GreedyEvolver(POPULATION, RANDOM_JUMP_MAX_DISTANCE, CROSSOVER_MAX, triangleScaleHeight, pallete, width, height, widthTriangles, heightTriangles);
+
+    	// Create Evolver instances as configured by the THREADS parameter
+    	for (int a = 0; a < THREADS; a ++) {
+    		evolvers.add(new ImageEvolver(POPULATION, RANDOM_JUMP_MAX_DISTANCE, CROSSOVER_MAX, triangleScaleHeight, pallete, width, height, widthTriangles, heightTriangles));
+    		evolvers.get(a).setId((long) a);
+    	}
 
         initComponents();
     }
     
 	private void initComponents() {
 		
-		Locale.setDefault(Locale.GERMAN);
+//		Locale.setDefault(Locale.GERMAN);
 		
         mainFrame = this;
         mainFrame.setResizable(true);
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         // init timer
-        processTimer = new Timer(0, new ActionListener() {
+        processTimer = new Timer(GUI_UPDATE_MS, new ActionListener() {
 
 			@Override
             public void actionPerformed(ActionEvent e) {
+
+				// reset as needed
+				totalIterations = 0;
+				goodIterations = 0;
 				
-				evolver.evolve(start, EVOLVE_ITERATIONS);
-            	
-            	if (evolver.isDirty()){
-	            	// draw bestImage to panel
-	            	imagePanel.getGraphics().drawImage(evolver.getBestImage(),
+				for (AbstractEvolver currentEvolver : evolvers) {
+					
+					totalIterations += ((ImageEvolver)currentEvolver).getTotalIterations();
+					goodIterations += ((ImageEvolver)currentEvolver).getGoodIterations();
+					
+
+					if (((ImageEvolver)currentEvolver).isDirty()) {
+
+						// Check again with the best ArtEvolver score
+						if (((ImageEvolver)currentEvolver).getBestScore() > bestScore) {
+							
+//							System.out.println("Evolver " + ((ImageEvolver)currentEvolver).getId() + ", iterations: " + ((ImageEvolver)currentEvolver).getTotalIterations() + ", bestScore: " + ((ImageEvolver)currentEvolver).getBestScore());
+							
+							bestScore = ((ImageEvolver)currentEvolver).getBestScore();
+							bestImage = ((ImageEvolver)currentEvolver).getBestImage();
+							
+							isDirty = true;
+        				}
+						
+						// clean dirty
+						((ImageEvolver)currentEvolver).setDirty(false);
+					}
+				}
+				
+				// draw bestImage to panel
+				if (isDirty) {
+	            	imagePanel.getGraphics().drawImage(bestImage,
 	            									   32, // TODO: make both offsets dynamic to center in JPanel
 	            									   32,
 	            									   null);
 	            	
 	            	imagePanel.getGraphics().dispose();
-	            	evolver.setDirty(false);
-            	}
+	            	
+	            	isDirty = false;
+				}
             	
-            	// update stats
-            	lblScore.setText("S     : " + evolver.getBestScore());
+            	
+            	lblScore.setText("S     : " + bestScore);
 //            	lblAverageScore.setText("S(AVG): " + evolver.getAverageScore());
-            	lblPopulation.setText("Pop: " + evolver.getPopulation().size());
-            	lblIterations.setText("I: " + evolver.getGoodIterations() + "/" + evolver.getTotalIterations());
+//            	lblPopulation.setText("Pop: " + evolver.getPopulation().size());
+            	lblIterations.setText("I: " + goodIterations + "/" + totalIterations);
             	
-            	if (evolver.getTotalIterations() >= MAX_ITERATIONS){
+//            	if (evolver.getTotalIterations() >= MAX_ITERATIONS){
 //            		stop();
-            	}
+//            	}
             }
         });
         
@@ -276,7 +326,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		int newWidth = (int) (width * widthTriangles);
 		int newHeight = (int) (((height * heightTriangles))  - height); // substract last serrated row
     	
-//    	System.out.println("originalImage.width: " + originalImage.getWidth() + " - originalImage.height: " + originalImage.getHeight());
+    	System.out.println("originalImage.width: " + originalImage.getWidth() + " - originalImage.height: " + originalImage.getHeight());
 		
 		// initialize currentImage and resizedOriginal
     	if (resizedOriginal == null){
@@ -297,15 +347,23 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     		
     		g.dispose();
     		
-//    		System.out.println("resizedOriginal.width: " + resizedOriginal.getWidth() + " - resizedOriginal.height: " + resizedOriginal.getHeight());
+    		System.out.println("resizedOriginal.width: " + resizedOriginal.getWidth() + " - resizedOriginal.height: " + resizedOriginal.getHeight());
     		
-  			evolver.setResizedOriginal(resizedOriginal);
-   			evolver.setCurrentImage(resizedOriginal);
+//			evolver.setResizedOriginal(resizedOriginal);
+//			evolver.setCurrentImage(resizedOriginal);
+
+    		for (AbstractEvolver currentEvolver : evolvers) {
+    			((ImageEvolver)currentEvolver).setResizedOriginal(resizedOriginal);
+//    			((ImageEvolver)currentEvolver).setCurrentImage(resizedOriginal);
+    			((ImageEvolver)currentEvolver).initializeIsosceles();
+    		}
+    		
+//    		this.resizedOriginal = resizedOriginal;
     	}
 
 //    	 evolver.initialize();
     	
-    	evolver.initializeIsosceles();
+//    	evolver.initializeIsosceles();
     	
 //    	evolver.initializeFromFile("campito_78.txt");
 //    	evolver.initializeFromFile("campito_78.txt");
@@ -335,15 +393,35 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
     public void start(){
     	start = System.currentTimeMillis();
+
+//    	this.isRunning = true;
+    	
+    	// run() Evolver instances and as configured by THREADS parameter
+		for (AbstractEvolver currentEvolver : evolvers) {
+			
+			Thread t = new Thread(currentEvolver);
+	        t.start();
+
+			((ImageEvolver)currentEvolver).setRunning(true);
+		}
+		
     	processTimer.start();
     }
     
     public void stop(){
+    	
+    	// run() Evolver instances and as configured by THREADS parameter
+		for (AbstractEvolver currentEvolver : evolvers) {
+			((ImageEvolver)currentEvolver).setRunning(false);
+		}
+    	
+    	this.isRunning = false;
+    	
     	processTimer.stop();
     	
     	// Draw Original Image for Comparison TODO: move to different button
     	// draw bestImage to panel
-    	imagePanel.getGraphics().drawImage(evolver.getResizedOriginal(),
+    	imagePanel.getGraphics().drawImage(resizedOriginal,
     									   32, // TODO: make both offsets dynamic to center in JPanel
     									   32,
     									   null);
@@ -377,11 +455,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		}
 		
 		if (event.getActionCommand().equals("Secuential")) {
-			evolver.switchSecuential();
+//			evolver.switchSecuential();
 		}
 		
 		if (event.getActionCommand().equals("Export")) {
-			evolver.setExportNextAndClose(true);
+//			evolver.setExportNextAndClose(true);
 		}
 	}
 }

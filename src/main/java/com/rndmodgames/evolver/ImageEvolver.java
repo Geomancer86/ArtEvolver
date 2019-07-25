@@ -17,16 +17,16 @@ import java.util.Locale;
 import java.util.SplittableRandom;
 import java.util.stream.Stream;
 
-import com.rndmodgames.evolver.render.Renderer;
-
 public class ImageEvolver extends AbstractEvolver {
 
 //	public static final MersenneTwisterFast random = new MersenneTwisterFast();
 	public static final SplittableRandom random = new SplittableRandom();
-	public static final boolean KILL_PARENTS = false;
+	public final boolean KILL_PARENTS = false;
 
-	public static final DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN));
+//	public final DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("####,###################", new DecimalFormatSymbols(Locale.ITALIAN));
+	public final DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("##.###################");
 	
+	private Long id = null;
 	private BufferedImage resizedOriginal;
 	private BufferedImage currentImage;
 	private BufferedImage bestImage;
@@ -45,18 +45,17 @@ public class ImageEvolver extends AbstractEvolver {
 
 	private Pallete pallete;
 
-	private static int triangleHeight;
-	private static int triangleWidth;
+	private int triangleHeight;
+	private int triangleWidth;
 
-	CrossOver crossOver;
+	private CrossOver crossOver;
 
-	// synchronize for multithreading
+	// The population for this Evolver instance
 	private List<TriangleList<Triangle>> pop = new TriangleList<TriangleList<Triangle>>();
 
 	private boolean isDirty = true;
 	private boolean exportNextAndClose = false;
 
-	@SuppressWarnings("static-access")
 	public ImageEvolver(int population, int randomJumpDistance, int crossoverMax, float scale, Pallete pallete,
 			float width, float height, int triangleWidth, int triangleHeight) {
 		
@@ -72,6 +71,14 @@ public class ImageEvolver extends AbstractEvolver {
 		this.triangleWidth = triangleWidth;
 
 		initCrossOver();
+	}
+	
+	public void setId(Long id) {
+		this.id = id;
+	}
+	
+	public Long getId() {
+		return this.id;
 	}
 
 	public void initCrossOver() {
@@ -127,8 +134,10 @@ public class ImageEvolver extends AbstractEvolver {
 
 		for (TriangleList<Triangle> triangles : pop) {
 
-			imgParentA = new BufferedImage(resizedOriginal.getWidth(), resizedOriginal.getHeight(),
-					ArtEvolver.IMAGE_TYPE);
+			imgParentA = new BufferedImage(resizedOriginal.getWidth(),
+										   resizedOriginal.getHeight(),
+										   ArtEvolver.IMAGE_TYPE);
+			
 			g = imgParentA.getGraphics();
 
 			for (Triangle triangle : triangles) {
@@ -250,8 +259,10 @@ public class ImageEvolver extends AbstractEvolver {
 
 			for (TriangleList<Triangle> triangles : pop) {
 
-				imgParentA = new BufferedImage(resizedOriginal.getWidth(), resizedOriginal.getHeight(),
-						ArtEvolver.IMAGE_TYPE);
+				imgParentA = new BufferedImage(resizedOriginal.getWidth(),
+											   resizedOriginal.getHeight(),
+											   ArtEvolver.IMAGE_TYPE);
+				
 				g = imgParentA.getGraphics();
 
 				for (Triangle triangle : triangles) {
@@ -566,12 +577,12 @@ public class ImageEvolver extends AbstractEvolver {
 	 * Extracted Objects to avoid creation during cycles
 	 */
 
-	static BufferedImage imgParentA;
-	static BufferedImage imgChildA;
-	static Graphics g;
-	static TriangleList<Triangle> parentA;
-	static TriangleList<Triangle> parentB;
-	static TriangleList<Triangle> childA;
+	private BufferedImage imgParentA;
+	private BufferedImage imgChildA;
+	private Graphics g;
+	private TriangleList<Triangle> parentA;
+	private TriangleList<Triangle> parentB;
+	private TriangleList<Triangle> childA;
 
 	public void evolveGreedy(long start) {
 
@@ -710,6 +721,10 @@ public class ImageEvolver extends AbstractEvolver {
 
 //		long evolveThen = System.currentTimeMillis();
 
+//		while (isRunning) {
+//			
+//		}
+		
 		for (int a = 0; a < iterations; a++) {
 
 			/**
@@ -898,17 +913,17 @@ public class ImageEvolver extends AbstractEvolver {
 //			if (totalIterations % ((population / 2) * 1000) == 0) {
 			if (totalIterations % 1000 == 0){
 
-//				long now = System.currentTimeMillis();
+				long now = System.currentTimeMillis();
 
-//				System.out.println("i: " + totalIterations
-//								 + " - good: " + goodIterations
-//								 + " - p: " + pop.size()
-//								 + " - jump: " + crossOver.getRandomJumpDistance()
-//								 + " - cross: " + crossoverMax
-//								 + " - best: " + DEFAULT_DECIMAL_FORMAT.format(bestScore)
-//								 + " - total time: " + DEFAULT_DECIMAL_FORMAT.format(((float) (now - start) / 1000f)) + " seconds");
+				System.out.println("id: " + id + " - i: " + totalIterations
+								 + " - good: " + goodIterations
+								 + " - p: " + pop.size()
+								 + " - jump: " + crossOver.getRandomJumpDistance()
+								 + " - cross: " + crossoverMax
+								 + " - best: " + DEFAULT_DECIMAL_FORMAT.format(bestScore)
+								 + " - total time: " + DEFAULT_DECIMAL_FORMAT.format(((float) (now - start)) / 1000f) + " seconds");
 
-				System.out.println(DEFAULT_DECIMAL_FORMAT.format(bestScore));
+//				System.out.println(DEFAULT_DECIMAL_FORMAT.format(bestScore));`
 				
 				/**
 				 * v.1.0.0 optimizations
@@ -953,9 +968,10 @@ public class ImageEvolver extends AbstractEvolver {
 						// NOTE: last is best!
 						Collections.sort(pop, new TrianglesComparator());
 						
-//						for (int j = 0; j < pop.size(); j ++) {
-//							System.out.println("Drawing " + j + " score: " + pop.get(j).getScore());
-//						}
+						for (int j = 0; j < pop.size(); j ++) {
+							System.out.println("Drawing " + j + " score: " + pop.get(j).getScore());
+						}
+						
 						pop.remove(0);
 					}
 				}
@@ -979,7 +995,7 @@ public class ImageEvolver extends AbstractEvolver {
 				
 //				switchSecuential();
 				
-				crossOver.halveParameters();
+//				crossOver.halveParameters();
 				
 				/**
 				 * 100000: 256/256
@@ -995,5 +1011,24 @@ public class ImageEvolver extends AbstractEvolver {
 		}
 //		long evolveNow = System.currentTimeMillis();
 //		System.out.println("evolve with " + iterations + " iterations took " + (float)(evolveNow - evolveThen) / 1000f + " seconds");
+	}
+
+	boolean isRunning = false;
+	
+	public void setRunning(boolean running) {
+		this.isRunning = running;
+	}
+	
+	@Override
+	public void run() {
+		
+		long start = System.currentTimeMillis();
+		
+		while (true) {
+            // TODO: start time and iterations need to be set on ArtEvolver
+			while (isRunning) {
+				evolve(start, 16);
+			}
+		}
 	}
 }

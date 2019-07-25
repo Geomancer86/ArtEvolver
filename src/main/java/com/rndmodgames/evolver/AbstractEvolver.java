@@ -2,28 +2,28 @@ package com.rndmodgames.evolver;
 
 import java.awt.image.BufferedImage;
 
-public abstract class AbstractEvolver {
+public abstract class AbstractEvolver implements Runnable {
 
 	public abstract void evolve(long start, int iterations);
 	
 	/**
 	 * Extracted to avoid recreation
 	 */
-	private static int rgb1;
-	private static int rgb2;
-	private static int r1;
-	private static int g1;
-	private static int b1;
-	private static int r2;
-	private static int g2;
-	private static int b2;
-	private static int diff;
-	private static double n;
-	private static double p;
+	private int rgb1;
+	private int rgb2;
+	private int r1;
+	private int g1;
+	private int b1;
+	private int r2;
+	private int g2;
+	private int b2;
+	private int diff;
+	private double n;
+	private double p;
 	
-	private static final double CONSTANT_SCORE_DIVIDER = 255d;
-	private static final int CONSTANT_SCORE_MULTIPLIER = 3;
-	private static final int CONSTANT_SCORE_ONE = 1;
+	private final double CONSTANT_SCORE_DIVIDER = 255d;
+	private final int CONSTANT_SCORE_MULTIPLIER = 3;
+	private final int CONSTANT_SCORE_ONE = 1;
 
 	public double compare(BufferedImage img1, BufferedImage img2) {
 

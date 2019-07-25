@@ -8,12 +8,12 @@ public class Triangle extends Polygon{
 
 	private static final long serialVersionUID = -181164485692814464L;
 	
-	Long colorId;
-	Color color;
+	private Long colorId;
+	private Color color;
 	
-	int [] xPoly;
-	int [] yPoly;
-	int lenght;
+	private int [] xPoly;
+	private int [] yPoly;
+	private int lenght;
 	
 	public Triangle(int [] xPoly, int [] yPoly, int lenght, Color color){
 		super(xPoly, yPoly, lenght);

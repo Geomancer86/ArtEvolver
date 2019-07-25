@@ -676,7 +676,7 @@ public class ImageEvolver extends AbstractEvolver {
 		if (scoreC < bestScore) {
 			return;
 		} else {
-			System.out.println("score: " + scoreC + ", bestScore: " + bestScore);
+//			System.out.println("score: " + scoreC + ", bestScore: " + bestScore);
 		}
 
 		Double currentWorstScore = Double.MAX_VALUE;
@@ -927,7 +927,7 @@ public class ImageEvolver extends AbstractEvolver {
 								 + " - best: " + DEFAULT_DECIMAL_FORMAT.format(bestScore)
 								 + " - total time: " + DEFAULT_DECIMAL_FORMAT.format(((float) (now - start)) / 1000f) + " seconds");
 
-//				System.out.println(DEFAULT_DECIMAL_FORMAT.format(bestScore));`
+//				System.out.println(DEFAULT_DECIMAL_FORMAT.format(bestScore));
 				
 				/**
 				 * v.1.0.0 optimizations
@@ -972,9 +972,9 @@ public class ImageEvolver extends AbstractEvolver {
 						// NOTE: last is best!
 						Collections.sort(pop, new TrianglesComparator());
 						
-						for (int j = 0; j < pop.size(); j ++) {
-							System.out.println("Drawing " + j + " score: " + pop.get(j).getScore());
-						}
+//						for (int j = 0; j < pop.size(); j ++) {
+//							System.out.println("Drawing " + j + " score: " + pop.get(j).getScore());
+//						}
 						
 						pop.remove(0);
 					}

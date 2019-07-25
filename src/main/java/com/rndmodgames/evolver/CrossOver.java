@@ -53,7 +53,7 @@ public class CrossOver {
 		setRandomJumpDistance(getRandomJumpDistance() + 1);
 	}
 	
-	private static TriangleList<Triangle> unusedColors = new TriangleList<>();
+	private TriangleList<Triangle> unusedColors = new TriangleList<>();
 	
 	/**
 	 * We can do 2 iterations for parent a and b, or just one and keep controlling for repeated colors on just one iteration
@@ -126,7 +126,7 @@ public class CrossOver {
 			if (child.get(a) == null) {
 				
 				child.set(a, parentA.get(a));
-				child.get(a).setColor(unusedColors.get(currentUnusedColor).color);
+				child.get(a).setColor(unusedColors.get(currentUnusedColor).getColor());
 				
 				unusedColors.remove(currentUnusedColor);
 				

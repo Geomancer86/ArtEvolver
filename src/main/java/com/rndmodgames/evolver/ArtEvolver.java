@@ -54,7 +54,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	int widthTriangles  = 80; // 71
 	int heightTriangles = 53; // 60
 
-	private int THREADS                 	= 16; // 1-32
+	private int THREADS                 	= 64; // 1-32
 	private int POPULATION 					= 2; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
 	private int RANDOM_JUMP_MAX_DISTANCE	= 4239 / 2; // MAX: 4239/2
 	private int CROSSOVER_MAX 				= 2;
@@ -72,9 +72,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private int MAX_ITERATIONS             = 10000000;
 	
 	private List <ImageEvolver> evolvers = new ArrayList<>();
-//	ImageEvolver evolver;
-//	GreedyEvolver evolver;
-	
+
 	// Timer
 	private Timer processTimer;
 	
@@ -85,7 +83,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private JLabel lblPopulation;
 	private JLabel lblIterations;
 	
-	@SuppressWarnings("unused")
 	private String path;
 	
 	private BufferedImage originalImage;

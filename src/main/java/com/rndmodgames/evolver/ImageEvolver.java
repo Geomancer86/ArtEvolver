@@ -57,8 +57,8 @@ public class ImageEvolver extends AbstractEvolver {
 	 * 
 	 * 
 	 */
-//	private List<TriangleList<Triangle>> pop = new TriangleList<TriangleList<Triangle>>();
-	private static List<TriangleList<Triangle>> pop = Collections.synchronizedList(new TriangleList<TriangleList<Triangle>>());
+	private List<TriangleList<Triangle>> pop = new TriangleList<TriangleList<Triangle>>();
+//	private static List<TriangleList<Triangle>> pop = Collections.synchronizedList(new TriangleList<TriangleList<Triangle>>());
 
 	private boolean isDirty = true;
 	private boolean exportNextAndClose = false;
@@ -728,7 +728,7 @@ public class ImageEvolver extends AbstractEvolver {
 
 //		long evolveThen = System.currentTimeMillis();
 
-	synchronized (pop) {
+//	synchronized (pop) {
 		for (int a = 0; a < iterations; a++) {
 
 			/**
@@ -1013,7 +1013,7 @@ public class ImageEvolver extends AbstractEvolver {
 //				}
 			}
 		}
-	}
+//	}
 //		long evolveNow = System.currentTimeMillis();
 //		System.out.println("evolve with " + iterations + " iterations took " + (float)(evolveNow - evolveThen) / 1000f + " seconds");
 	}

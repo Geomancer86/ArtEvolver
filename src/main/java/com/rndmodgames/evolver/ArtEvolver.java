@@ -14,7 +14,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
@@ -54,8 +53,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	int widthTriangles  = 80; // 71
 	int heightTriangles = 53; // 60
 
-	private int THREADS                 	= 32; // 1-x (32-48 peak)
-	private int POPULATION 					= 4; // GeneticEvolver: 2-4096
+	private int THREADS                 	= 16; // 1-x (32-48 peak)
+	private int POPULATION 					= 2; // GeneticEvolver: 2-4096
 	private int RANDOM_JUMP_MAX_DISTANCE	= 4239 / 2; // 1-x MAX: 4239/2
 	private int CROSSOVER_MAX 				= 2;
 	private int TOTAL_PALLETES             	= 4;
@@ -97,6 +96,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	double averagePopulationScore = 0d;
 	boolean isDirty = false;
 	boolean isRunning = false;
+	
+	private TriangleList<Triangle> bestPop = new TriangleList<Triangle>();
 
 	/**
 	 * v2.01: Basic Multithreading
@@ -170,6 +171,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 							bestScore = ((ImageEvolver)currentEvolver).getBestScore();
 							bestImage = ((ImageEvolver)currentEvolver).getBestImage();
 							
+							bestPop = ((ImageEvolver)currentEvolver).getBestPop();
+							
 							isDirty = true;
         				}
 						
@@ -188,6 +191,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	            	imagePanel.getGraphics().dispose();
 	            	
 	            	isDirty = false;
+	            	
+	            	// set all best pops to the same and see if performance increases
+	            	for (AbstractEvolver currentEvolver : evolvers) {
+	            		((ImageEvolver)currentEvolver).setBestPop(bestPop);
+	            	}
 				}
             	
             	

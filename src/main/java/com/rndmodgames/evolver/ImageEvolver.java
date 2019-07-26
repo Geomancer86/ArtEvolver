@@ -15,7 +15,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.SplittableRandom;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 
 public class ImageEvolver extends AbstractEvolver {
@@ -719,6 +719,8 @@ public class ImageEvolver extends AbstractEvolver {
 		randomSecuential = !randomSecuential;
 	}
 	
+	private double scoreC;
+	
 	/**
 	 * Initial Random Population: - order by score - get top 10% - mix and mutate
 	 * 
@@ -851,7 +853,9 @@ public class ImageEvolver extends AbstractEvolver {
 
 			double scoreC = compare(imgChildA, resizedOriginal);
 			childA.setScore(scoreC);
-
+			
+			Collections.sort(pop, new TrianglesComparator());
+			
 			// Just in case parent is not evaluated, and it's the first best score
 			if (scoreA > bestScore) {
 				bestScore = scoreA;
@@ -860,23 +864,6 @@ public class ImageEvolver extends AbstractEvolver {
 
 				isDirty = true;
 			}
-
-			/**
-			 * Kill worst Drawing only
-			 * 
-			 * TODO: iterate all drawings, and replace the actual worst, not the parent,
-			 * 	 as the parent might be one of the better results already
-			 */
-//			Double currentWorstScore = Double.MAX_VALUE;
-//			int actualWorstPosition = 0;
-//			int currentWorstPosition = 0;
-//			
-//			for (;currentWorstPosition < pop.size(); currentWorstPosition++) {
-//				if (pop.get(currentWorstPosition).getScore() < currentWorstScore) {
-//					currentWorstScore = pop.get(currentWorstPosition).getScore();
-//					actualWorstPosition = currentWorstPosition;
-//				}
-//			}
 
 			// BETTER IMAGE
 			if (scoreC > bestScore) {
@@ -891,8 +878,7 @@ public class ImageEvolver extends AbstractEvolver {
 
 				isDirty = true;
 				
-				Collections.sort(pop, new TrianglesComparator());
-				
+				// Collections.sort(pop, new TrianglesComparator());
 				// Renderer.renderToPNG(childA, goodIterations, imgChildA.getWidth(), imgChildA.getHeight(), ArtEvolver.IMAGE_TYPE);
 				
 				if (exportNextAndClose) {
@@ -965,20 +951,20 @@ public class ImageEvolver extends AbstractEvolver {
 				 * 
 				 * - Kill worst Drawing each 100k iterations
 				 */
-				if (totalIterations % 1000 == 0) {
-					if (pop.size() > 2) {
-						
-						// Comparator used only once, no need to extract
-						// NOTE: last is best!
-						Collections.sort(pop, new TrianglesComparator());
-						
-//						for (int j = 0; j < pop.size(); j ++) {
-//							System.out.println("Drawing " + j + " score: " + pop.get(j).getScore());
-//						}
-						
-						pop.remove(0);
-					}
-				}
+//				if (totalIterations % 1000 == 0) {
+//					if (pop.size() > 2) {
+//						
+//						// Comparator used only once, no need to extract
+//						// NOTE: last is best!
+//						Collections.sort(pop, new TrianglesComparator());
+//						
+////						for (int j = 0; j < pop.size(); j ++) {
+////							System.out.println("Drawing " + j + " score: " + pop.get(j).getScore());
+////						}
+//						
+//						pop.remove(0);
+//					}
+//				}
 				
 				/**
 				 * Calculate Average Score
@@ -1022,6 +1008,15 @@ public class ImageEvolver extends AbstractEvolver {
 	
 	public void setRunning(boolean running) {
 		this.isRunning = running;
+	}
+	
+	public TriangleList<Triangle> getBestPop(){
+		return this.pop.get(this.pop.size() - 1);
+	}
+	
+	public void setBestPop(TriangleList<Triangle> e) {
+		this.pop.add(e);
+		this.pop.remove(0);
 	}
 	
 	@Override

@@ -743,7 +743,7 @@ public class ImageEvolver extends AbstractEvolver {
 				int rollA = pop.size() - 1;
 				int rollB = roll(pop.size() - 1);
 
-				while (rollA == rollB) {
+				while ((rollA == rollB)) {
 //					rollA = roll(pop.size());
 					rollB = roll(pop.size() - 1);
 				}
@@ -878,7 +878,7 @@ public class ImageEvolver extends AbstractEvolver {
 
 				isDirty = true;
 				
-				 Collections.sort(pop, new TrianglesComparator());
+//				Collections.sort(pop, new TrianglesComparator());
 				// Renderer.renderToPNG(childA, goodIterations, imgChildA.getWidth(), imgChildA.getHeight(), ArtEvolver.IMAGE_TYPE);
 				
 				if (exportNextAndClose) {
@@ -1017,7 +1017,12 @@ public class ImageEvolver extends AbstractEvolver {
 	}
 	
 	public void setBestPop(TriangleList<Triangle> e) {
+		
+		// Replaces the best with the best (this should be ordered)
 		this.pop.add(e);
+		
+		Collections.sort(pop, new TrianglesComparator());
+		
 		this.pop.remove(0);
 	}
 	
@@ -1029,7 +1034,7 @@ public class ImageEvolver extends AbstractEvolver {
 		while (true) {
             // TODO: start time and iterations need to be set on ArtEvolver
 			while (isRunning) {
-				evolve(start, 32);
+				evolve(start, 8);
 			}
 		}
 	}

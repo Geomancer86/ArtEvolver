@@ -125,7 +125,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * @throws IOException
 	 */
     public ArtEvolver() throws IOException{
-    	super("ArtEvolver 2019 v2.01");
+    	super("ArtEvolver 2019 v2.02");
     	pallete = new Pallete("Sherwin-Williams", TOTAL_PALLETES);
 
     	// Create Evolver instances as configured by the THREADS parameter

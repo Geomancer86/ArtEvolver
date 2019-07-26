@@ -872,8 +872,8 @@ public class ImageEvolver extends AbstractEvolver {
 				goodIterations++;
 				
 				// NOTE: worst cases will be taken care by the Tournament Optimizations
-//				pop.remove(0);
-				pop.remove(parentA);
+				pop.remove(0);
+//				pop.remove(parentA);
 				pop.add(childA);
 
 				isDirty = true;

@@ -53,13 +53,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	int widthTriangles  = 80; // 71
 	int heightTriangles = 53; // 60
 
-	private int THREADS                 	= 16; // 1-x (32-48 peak)
-	private int POPULATION 					= 2; // GeneticEvolver: 2-4096
+	private int THREADS                 	= 28; // 1-x (32-48 peak)
+	private int POPULATION 					= 4; // GeneticEvolver: 2-4096
 	private int RANDOM_JUMP_MAX_DISTANCE	= 4239 / 2; // 1-x MAX: 4239/2
 	private int CROSSOVER_MAX 				= 2;
 	private int TOTAL_PALLETES             	= 4;
 	
-	private int FPS = 10;
+	private int FPS = 30;
 	private int GUI_UPDATE_MS = 1000 / FPS;
 	
 	private int RANDOM_JUMP_MAX_DISTANCES [] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
@@ -194,10 +194,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	            	
 	            	// set all best pops to the same and see if performance increases
 	            	for (AbstractEvolver currentEvolver : evolvers) {
-	            		((ImageEvolver)currentEvolver).setBestPop(bestPop);
+	            		if (((ImageEvolver)currentEvolver).getBestScore() < bestScore) {
+	            			((ImageEvolver)currentEvolver).setBestPop(bestPop);
+	            		}
 	            	}
 				}
-            	
             	
             	lblScore.setText("S     : " + bestScore);
 //            	lblAverageScore.setText("S(AVG): " + evolver.getAverageScore());

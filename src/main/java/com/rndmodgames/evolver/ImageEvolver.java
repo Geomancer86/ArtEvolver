@@ -854,7 +854,7 @@ public class ImageEvolver extends AbstractEvolver {
 			double scoreC = compare(imgChildA, resizedOriginal);
 			childA.setScore(scoreC);
 			
-			Collections.sort(pop, new TrianglesComparator());
+//			Collections.sort(pop, new TrianglesComparator());
 			
 			// Just in case parent is not evaluated, and it's the first best score
 			if (scoreA > bestScore) {
@@ -878,7 +878,7 @@ public class ImageEvolver extends AbstractEvolver {
 
 				isDirty = true;
 				
-				// Collections.sort(pop, new TrianglesComparator());
+				 Collections.sort(pop, new TrianglesComparator());
 				// Renderer.renderToPNG(childA, goodIterations, imgChildA.getWidth(), imgChildA.getHeight(), ArtEvolver.IMAGE_TYPE);
 				
 				if (exportNextAndClose) {
@@ -903,17 +903,19 @@ public class ImageEvolver extends AbstractEvolver {
 //			if (totalIterations % ((population / 2) * 1000) == 0) {
 			if (totalIterations % 1000 == 0){
 
-				long now = System.currentTimeMillis();
+//				long now = System.currentTimeMillis();
 
-				System.out.println("id: " + id + " - i: " + totalIterations
-								 + " - good: " + goodIterations
-								 + " - p: " + pop.size()
-								 + " - jump: " + crossOver.getRandomJumpDistance()
-								 + " - cross: " + crossoverMax
-								 + " - best: " + DEFAULT_DECIMAL_FORMAT.format(bestScore)
-								 + " - total time: " + DEFAULT_DECIMAL_FORMAT.format(((float) (now - start)) / 1000f) + " seconds");
+//				System.out.println("id: " + id + " - i: " + totalIterations
+//								 + " - good: " + goodIterations
+//								 + " - p: " + pop.size()
+//								 + " - jump: " + crossOver.getRandomJumpDistance()
+//								 + " - cross: " + crossoverMax
+//								 + " - best: " + DEFAULT_DECIMAL_FORMAT.format(bestScore)
+//								 + " - total time: " + DEFAULT_DECIMAL_FORMAT.format(((float) (now - start)) / 1000f) + " seconds");
 
 //				System.out.println(DEFAULT_DECIMAL_FORMAT.format(bestScore));
+				
+				crossOver.halveParameters();
 				
 				/**
 				 * v.1.0.0 optimizations
@@ -1023,20 +1025,11 @@ public class ImageEvolver extends AbstractEvolver {
 	public void run() {
 		
 		long start = System.currentTimeMillis();
-		
-		
-//		Runnable listOperations = () -> {
-//		    synchronized (syncCollection) {
-//		        syncCollection.forEach((e) -> {
-//		            uppercasedCollection.add(e.toUpperCase());
-//		        });
-//		    }
-//		};
-		
+
 		while (true) {
             // TODO: start time and iterations need to be set on ArtEvolver
 			while (isRunning) {
-				evolve(start, 16);
+				evolve(start, 32);
 			}
 		}
 	}

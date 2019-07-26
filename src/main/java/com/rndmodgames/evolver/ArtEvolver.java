@@ -14,7 +14,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
@@ -53,30 +52,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	
 	int widthTriangles  = 80; // 71
 	int heightTriangles = 53; // 60
-	
-	/**
-	 * v1.0 TODO:
-	 * 
-	 * 	- Tournament mode:
-	 * 		- Starting population size
-	 * 		- Halve population each n iterations
-	 * 			- Halve or different strategy
-	 * 
-	 * 		- Full Tournament Run (ie: no inter crossover or mutations)
-	 * 		- Population Size Benchmarks
-	 * 		
-	 * 		- Quick way to switch pixels
-	 * 		- Quick way to crossover pixels
-	 * 		- Quick way to chunk full pixel chunks
-	 */
-	private int THREADS                 	= 16; // 1-32
-	private int POPULATION 					= 2; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
-	private int RANDOM_JUMP_MAX_DISTANCE	= 4239 / 2; // MAX: 4239/2
+
+	private int THREADS                 	= 16; // 1-x (32-48 peak)
+	private int POPULATION 					= 2; // GeneticEvolver: 2-4096
+	private int RANDOM_JUMP_MAX_DISTANCE	= 4239 / 2; // 1-x MAX: 4239/2
 	private int CROSSOVER_MAX 				= 2;
 	private int TOTAL_PALLETES             	= 4;
 	
-	private int FPS = 30;
-	private int GUI_UPDATE_MS = 1000/FPS;
+	private int FPS = 10;
+	private int GUI_UPDATE_MS = 1000 / FPS;
 	
 	private int RANDOM_JUMP_MAX_DISTANCES [] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
 	private int CROSSOVERS_MAX [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
@@ -87,9 +71,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private int MAX_ITERATIONS             = 10000000;
 	
 	private List <ImageEvolver> evolvers = new ArrayList<>();
-//	ImageEvolver evolver;
-//	GreedyEvolver evolver;
-	
+
 	// Timer
 	private Timer processTimer;
 	
@@ -100,7 +82,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private JLabel lblPopulation;
 	private JLabel lblIterations;
 	
-	@SuppressWarnings("unused")
 	private String path;
 	
 	private BufferedImage originalImage;
@@ -115,6 +96,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	double averagePopulationScore = 0d;
 	boolean isDirty = false;
 	boolean isRunning = false;
+	
+	private TriangleList<Triangle> bestPop = new TriangleList<Triangle>();
 
 	/**
 	 * v2.01: Basic Multithreading
@@ -122,6 +105,22 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 			- Main intention is to scale up the speed with the cores in use by firing multiple Evolver instances on separate Threads.
 	 * 				- Move the Best Score/Best Image instances to ArtEvolver
 	 * 				- Hardcode 2 Evolvers and compare with only one.
+	 * 
+	 * --- OLD DOCS BELOW
+	 * 
+	 * v1.0 TODO:
+	 * 
+	 * 	- Tournament mode:
+	 * 		- Starting population size
+	 * 		- Halve population each n iterations
+	 * 			- Halve or different strategy
+	 * 
+	 * 		- Full Tournament Run (ie: no inter crossover or mutations)
+	 * 		- Population Size Benchmarks
+	 * 		
+	 * 		- Quick way to switch pixels
+	 * 		- Quick way to crossover pixels
+	 * 		- Quick way to chunk full pixel chunks
 	 * 
 	 * @throws IOException
 	 */
@@ -172,6 +171,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 							bestScore = ((ImageEvolver)currentEvolver).getBestScore();
 							bestImage = ((ImageEvolver)currentEvolver).getBestImage();
 							
+							bestPop = ((ImageEvolver)currentEvolver).getBestPop();
+							
 							isDirty = true;
         				}
 						
@@ -190,6 +191,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	            	imagePanel.getGraphics().dispose();
 	            	
 	            	isDirty = false;
+	            	
+	            	// set all best pops to the same and see if performance increases
+	            	for (AbstractEvolver currentEvolver : evolvers) {
+	            		((ImageEvolver)currentEvolver).setBestPop(bestPop);
+	            	}
 				}
             	
             	

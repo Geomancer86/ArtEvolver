@@ -1,11 +1,9 @@
-package com.rndmodgames.evolver;
+package com.rndmodgames.evolver.render;
 
 import java.awt.image.BufferedImage;
 
-public abstract class AbstractEvolver implements Runnable {
+public class ImageComparator implements Runnable {
 
-	public abstract void evolve(long start, int iterations);
-	
 	/**
 	 * Extracted to avoid recreation
 	 */
@@ -24,7 +22,7 @@ public abstract class AbstractEvolver implements Runnable {
 	private final double CONSTANT_SCORE_DIVIDER = 255d;
 	private final int CONSTANT_SCORE_MULTIPLIER = 3;
 	private final int CONSTANT_SCORE_ONE = 1;
-
+	
 	public double compare(BufferedImage img1, BufferedImage img2) {
 
 //		long compareThen = System.currentTimeMillis();
@@ -55,7 +53,6 @@ public abstract class AbstractEvolver implements Runnable {
 					r2 = (rgb2 >> 16) & 0xff;
 					g2 = (rgb2 >> 8) & 0xff;
 					b2 = (rgb2) & 0xff;
-					
 					diff += Math.abs(r1 - r2);
 					diff += Math.abs(g1 - g2);
 					diff += Math.abs(b1 - b2);
@@ -89,5 +86,11 @@ public abstract class AbstractEvolver implements Runnable {
 //		System.out.println("compare took " + (float)(compareNow - compareThen) / 1000f + " seconds");
 		
 		return CONSTANT_SCORE_ONE - p;
+	}
+	
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		
 	}
 }

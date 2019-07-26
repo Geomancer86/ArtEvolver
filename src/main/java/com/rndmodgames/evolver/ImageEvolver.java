@@ -15,6 +15,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.SplittableRandom;
+import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 
 public class ImageEvolver extends AbstractEvolver {
@@ -23,7 +24,6 @@ public class ImageEvolver extends AbstractEvolver {
 	public static final SplittableRandom random = new SplittableRandom();
 	public final boolean KILL_PARENTS = false;
 
-//	public final DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("####,###################", new DecimalFormatSymbols(Locale.ITALIAN));
 	public final DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("##.###################");
 	
 	private Long id = null;
@@ -51,7 +51,14 @@ public class ImageEvolver extends AbstractEvolver {
 	private CrossOver crossOver;
 
 	// The population for this Evolver instance
+	// TODO: Synchronize:  Collections.synchronizedList(
+	/**
+	 * Synchronized vs Concurrent performance
+	 * 
+	 * 
+	 */
 	private List<TriangleList<Triangle>> pop = new TriangleList<TriangleList<Triangle>>();
+//	private static List<TriangleList<Triangle>> pop = Collections.synchronizedList(new TriangleList<TriangleList<Triangle>>());
 
 	private boolean isDirty = true;
 	private boolean exportNextAndClose = false;
@@ -289,7 +296,7 @@ public class ImageEvolver extends AbstractEvolver {
 //		System.out.println("total pixels is " + pop.get(0).size());
 
 		// keep only defined population
-		pop = pop.subList(0, population);
+//		pop = pop.subList(0, population);
 	}
 
 	public void initialize() {
@@ -497,9 +504,9 @@ public class ImageEvolver extends AbstractEvolver {
 		return pop;
 	}
 
-	public void setPopulation(List<TriangleList<Triangle>> pop) {
-		this.pop = pop;
-	}
+//	public void setPopulation(List<TriangleList<Triangle>> pop) {
+//		this.pop = pop;
+//	}
 
 	public BufferedImage getResizedOriginal() {
 		return resizedOriginal;
@@ -669,7 +676,7 @@ public class ImageEvolver extends AbstractEvolver {
 		if (scoreC < bestScore) {
 			return;
 		} else {
-			System.out.println("score: " + scoreC + ", bestScore: " + bestScore);
+//			System.out.println("score: " + scoreC + ", bestScore: " + bestScore);
 		}
 
 		Double currentWorstScore = Double.MAX_VALUE;
@@ -712,6 +719,8 @@ public class ImageEvolver extends AbstractEvolver {
 		randomSecuential = !randomSecuential;
 	}
 	
+	private double scoreC;
+	
 	/**
 	 * Initial Random Population: - order by score - get top 10% - mix and mutate
 	 * 
@@ -721,10 +730,7 @@ public class ImageEvolver extends AbstractEvolver {
 
 //		long evolveThen = System.currentTimeMillis();
 
-//		while (isRunning) {
-//			
-//		}
-		
+//	synchronized (pop) {
 		for (int a = 0; a < iterations; a++) {
 
 			/**
@@ -847,7 +853,9 @@ public class ImageEvolver extends AbstractEvolver {
 
 			double scoreC = compare(imgChildA, resizedOriginal);
 			childA.setScore(scoreC);
-
+			
+			Collections.sort(pop, new TrianglesComparator());
+			
 			// Just in case parent is not evaluated, and it's the first best score
 			if (scoreA > bestScore) {
 				bestScore = scoreA;
@@ -856,23 +864,6 @@ public class ImageEvolver extends AbstractEvolver {
 
 				isDirty = true;
 			}
-
-			/**
-			 * Kill worst Drawing only
-			 * 
-			 * TODO: iterate all drawings, and replace the actual worst, not the parent,
-			 * 	 as the parent might be one of the better results already
-			 */
-//			Double currentWorstScore = Double.MAX_VALUE;
-//			int actualWorstPosition = 0;
-//			int currentWorstPosition = 0;
-//			
-//			for (;currentWorstPosition < pop.size(); currentWorstPosition++) {
-//				if (pop.get(currentWorstPosition).getScore() < currentWorstScore) {
-//					currentWorstScore = pop.get(currentWorstPosition).getScore();
-//					actualWorstPosition = currentWorstPosition;
-//				}
-//			}
 
 			// BETTER IMAGE
 			if (scoreC > bestScore) {
@@ -887,8 +878,7 @@ public class ImageEvolver extends AbstractEvolver {
 
 				isDirty = true;
 				
-				Collections.sort(pop, new TrianglesComparator());
-				
+				// Collections.sort(pop, new TrianglesComparator());
 				// Renderer.renderToPNG(childA, goodIterations, imgChildA.getWidth(), imgChildA.getHeight(), ArtEvolver.IMAGE_TYPE);
 				
 				if (exportNextAndClose) {
@@ -923,7 +913,7 @@ public class ImageEvolver extends AbstractEvolver {
 								 + " - best: " + DEFAULT_DECIMAL_FORMAT.format(bestScore)
 								 + " - total time: " + DEFAULT_DECIMAL_FORMAT.format(((float) (now - start)) / 1000f) + " seconds");
 
-//				System.out.println(DEFAULT_DECIMAL_FORMAT.format(bestScore));`
+//				System.out.println(DEFAULT_DECIMAL_FORMAT.format(bestScore));
 				
 				/**
 				 * v.1.0.0 optimizations
@@ -961,20 +951,20 @@ public class ImageEvolver extends AbstractEvolver {
 				 * 
 				 * - Kill worst Drawing each 100k iterations
 				 */
-				if (totalIterations % 1000 == 0) {
-					if (pop.size() > 2) {
-						
-						// Comparator used only once, no need to extract
-						// NOTE: last is best!
-						Collections.sort(pop, new TrianglesComparator());
-						
-						for (int j = 0; j < pop.size(); j ++) {
-							System.out.println("Drawing " + j + " score: " + pop.get(j).getScore());
-						}
-						
-						pop.remove(0);
-					}
-				}
+//				if (totalIterations % 1000 == 0) {
+//					if (pop.size() > 2) {
+//						
+//						// Comparator used only once, no need to extract
+//						// NOTE: last is best!
+//						Collections.sort(pop, new TrianglesComparator());
+//						
+////						for (int j = 0; j < pop.size(); j ++) {
+////							System.out.println("Drawing " + j + " score: " + pop.get(j).getScore());
+////						}
+//						
+//						pop.remove(0);
+//					}
+//				}
 				
 				/**
 				 * Calculate Average Score
@@ -1009,6 +999,7 @@ public class ImageEvolver extends AbstractEvolver {
 //				}
 			}
 		}
+//	}
 //		long evolveNow = System.currentTimeMillis();
 //		System.out.println("evolve with " + iterations + " iterations took " + (float)(evolveNow - evolveThen) / 1000f + " seconds");
 	}
@@ -1019,10 +1010,28 @@ public class ImageEvolver extends AbstractEvolver {
 		this.isRunning = running;
 	}
 	
+	public TriangleList<Triangle> getBestPop(){
+		return this.pop.get(this.pop.size() - 1);
+	}
+	
+	public void setBestPop(TriangleList<Triangle> e) {
+		this.pop.add(e);
+		this.pop.remove(0);
+	}
+	
 	@Override
 	public void run() {
 		
 		long start = System.currentTimeMillis();
+		
+		
+//		Runnable listOperations = () -> {
+//		    synchronized (syncCollection) {
+//		        syncCollection.forEach((e) -> {
+//		            uppercasedCollection.add(e.toUpperCase());
+//		        });
+//		    }
+//		};
 		
 		while (true) {
             // TODO: start time and iterations need to be set on ArtEvolver

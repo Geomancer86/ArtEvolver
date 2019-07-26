@@ -1021,7 +1021,7 @@ public class ImageEvolver extends AbstractEvolver {
 		// Replaces the best with the best (this should be ordered)
 		this.pop.add(e);
 		
-		Collections.sort(pop, new TrianglesComparator());
+//		Collections.sort(pop, new TrianglesComparator());
 		
 		this.pop.remove(0);
 	}
@@ -1033,6 +1033,7 @@ public class ImageEvolver extends AbstractEvolver {
 
 		while (true) {
             // TODO: start time and iterations need to be set on ArtEvolver
+			// TODO: try catch and ignore errors to avoid threads stalling
 			while (isRunning) {
 				evolve(start, 8);
 			}

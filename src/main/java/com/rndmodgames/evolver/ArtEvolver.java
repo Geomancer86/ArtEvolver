@@ -55,11 +55,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 	private int THREADS                 	= 32; // 1-x (32-48 peak)
 	private int POPULATION 					= 2; // GeneticEvolver: 2-4096
-	private int RANDOM_JUMP_MAX_DISTANCE	= 4239 / 4; // 1-x MAX: 4239/2
+	private int RANDOM_JUMP_MAX_DISTANCE	= 4; // 1-x MAX: 4239/2
 	private int CROSSOVER_MAX 				= 1;
 	private int TOTAL_PALLETES             	= 4;
 	
-	private int FPS = 20;
+	private int FPS = 1;
 	private int GUI_UPDATE_MS = 1000 / FPS;
 	
 	private int RANDOM_JUMP_MAX_DISTANCES [] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
@@ -89,6 +89,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private BufferedImage bestImage;
 	
 	long start;
+	
 	long totalIterations = 0L;
 	long goodIterations = 0L;
 	double bestScore = Double.MIN_VALUE;
@@ -193,6 +194,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	            	isDirty = false;
 	            	
 	            	// set all best pops to the same and see if performance increases
+	            	// TODO: set sync speed to get the best performance
 	            	for (AbstractEvolver currentEvolver : evolvers) {
 	            		if (((ImageEvolver)currentEvolver).getBestScore() < bestScore) {
 	            			((ImageEvolver)currentEvolver).setBestPop(bestPop);
@@ -204,6 +206,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //            	lblAverageScore.setText("S(AVG): " + evolver.getAverageScore());
 //            	lblPopulation.setText("Pop: " + evolver.getPopulation().size());
             	lblIterations.setText("I: " + goodIterations + "/" + totalIterations);
+            	
+            	long now  = System.currentTimeMillis();
+            	long elapsed = now - start;
+            	
+//            	if (totalIterations % 1000 == 0) {
+            		System.out.println(elapsed + ", " + totalIterations + ", " + ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
+//            	}
             	
 //            	if (evolver.getTotalIterations() >= MAX_ITERATIONS){
 //            		stop();
@@ -292,7 +301,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
       	if (triangleScaleWidth < 1f) {
       		setSize(380, 260);
       	} else {
-      		setSize((int) (300 * triangleScaleWidth), (int) (180 * triangleScaleHeight));
+      		setSize((int) (320 * triangleScaleWidth), (int) (200 * triangleScaleHeight));
       	}
 
 		chooser = new JFileChooser(new File(System.getProperty("user.dir")));

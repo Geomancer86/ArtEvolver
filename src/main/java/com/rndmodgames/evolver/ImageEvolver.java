@@ -24,7 +24,7 @@ public class ImageEvolver extends AbstractEvolver {
 	public static final SplittableRandom random = new SplittableRandom();
 	public final boolean KILL_PARENTS = false;
 
-	public final DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("##.###################");
+	public final static DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("##.###################");
 	
 	private Long id = null;
 	private BufferedImage resizedOriginal;

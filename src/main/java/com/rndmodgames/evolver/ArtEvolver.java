@@ -53,13 +53,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	int widthTriangles  = 80; // 71
 	int heightTriangles = 53; // 60
 
-	private int THREADS                 	= 8; // 1-x (32-48 peak)
+	private int THREADS                 	= 30; // 1-x (32-48 peak)
 	private int POPULATION 					= 2; // GeneticEvolver: 2-4096
 	private int RANDOM_JUMP_MAX_DISTANCE	= 4239/2; // 1-x MAX: 4239/2
 	private int CROSSOVER_MAX 				= 1;
 	private int TOTAL_PALLETES             	= 4;
 	
-	private int FPS = 8;
+	private int FPS = 60;
 	private int GUI_UPDATE_MS = 1000 / FPS;
 	
 	private int RANDOM_JUMP_MAX_DISTANCES [] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
@@ -108,6 +108,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 			- Main intention is to scale up the speed with the cores in use by firing multiple Evolver instances on separate Threads.
 	 * 				- Move the Best Score/Best Image instances to ArtEvolver
 	 * 				- Hardcode 2 Evolvers and compare with only one.
+	 * 
+	 * 			-  8 THREADS - 8 FPS
+	 * 			- 16 THREADS - 8 FPS
+	 * 			- 32 THREADS - 8 FPS
+	 * 			- 48 THREADS - 8 FPS
+	 * 
+	 * 			-  8 THREADS - 30 FPS
+	 * 			- 16 THREADS - 30 FPS
 	 * 
 	 * --- OLD DOCS BELOW
 	 * 

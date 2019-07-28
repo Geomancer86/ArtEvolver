@@ -53,13 +53,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	int widthTriangles  = 80; // 71
 	int heightTriangles = 53; // 60
 
-	private int THREADS                 	= 32; // 1-x (32-48 peak)
+	private int THREADS                 	= 8; // 1-x (32-48 peak)
 	private int POPULATION 					= 2; // GeneticEvolver: 2-4096
-	private int RANDOM_JUMP_MAX_DISTANCE	= 4; // 1-x MAX: 4239/2
+	private int RANDOM_JUMP_MAX_DISTANCE	= 4239/2; // 1-x MAX: 4239/2
 	private int CROSSOVER_MAX 				= 1;
 	private int TOTAL_PALLETES             	= 4;
 	
-	private int FPS = 1;
+	private int FPS = 8;
 	private int GUI_UPDATE_MS = 1000 / FPS;
 	
 	private int RANDOM_JUMP_MAX_DISTANCES [] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
@@ -89,7 +89,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private BufferedImage bestImage;
 	
 	long start;
+	long steps;
 	
+	long currentFrame = 0L;
 	long totalIterations = 0L;
 	long goodIterations = 0L;
 	double bestScore = Double.MIN_VALUE;
@@ -206,17 +208,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //            	lblAverageScore.setText("S(AVG): " + evolver.getAverageScore());
 //            	lblPopulation.setText("Pop: " + evolver.getPopulation().size());
             	lblIterations.setText("I: " + goodIterations + "/" + totalIterations);
-            	
-            	long now  = System.currentTimeMillis();
-            	long elapsed = now - start;
-            	
-//            	if (totalIterations % 1000 == 0) {
-            		System.out.println(elapsed + ", " + totalIterations + ", " + ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
-//            	}
-            	
-//            	if (evolver.getTotalIterations() >= MAX_ITERATIONS){
-//            		stop();
-//            	}
+
+            	/**
+            	 * This stats only make sense for benchmarking and should keep consistent, for example, printed once each 1 second
+            	 */
+//           		System.out.println(steps++ + "," + totalIterations + "," + goodIterations + ","  + ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
+            	if (currentFrame++ % FPS == 0) {
+            		System.out.println(ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
+            	}
             }
         });
         
@@ -342,7 +341,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		int newWidth = (int) (width * widthTriangles);
 		int newHeight = (int) (((height * heightTriangles))  - height); // substract last serrated row
     	
-    	System.out.println("originalImage.width: " + originalImage.getWidth() + " - originalImage.height: " + originalImage.getHeight());
+//    	System.out.println("originalImage.width: " + originalImage.getWidth() + " - originalImage.height: " + originalImage.getHeight());
 		
 		// initialize currentImage and resizedOriginal
     	if (resizedOriginal == null){
@@ -363,7 +362,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     		
     		g.dispose();
     		
-    		System.out.println("resizedOriginal.width: " + resizedOriginal.getWidth() + " - resizedOriginal.height: " + resizedOriginal.getHeight());
+//    		System.out.println("resizedOriginal.width: " + resizedOriginal.getWidth() + " - resizedOriginal.height: " + resizedOriginal.getHeight());
     		
 //			evolver.setResizedOriginal(resizedOriginal);
 //			evolver.setCurrentImage(resizedOriginal);

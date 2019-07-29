@@ -24,7 +24,7 @@ public class ImageEvolver extends AbstractEvolver {
 	public static final SplittableRandom random = new SplittableRandom();
 	public final boolean KILL_PARENTS = false;
 
-	public final DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("##.###################");
+	public final static DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("##.###################");
 	
 	private Long id = null;
 	private BufferedImage resizedOriginal;
@@ -872,8 +872,8 @@ public class ImageEvolver extends AbstractEvolver {
 				goodIterations++;
 				
 				// NOTE: worst cases will be taken care by the Tournament Optimizations
-//				pop.remove(0);
-				pop.remove(parentA);
+				pop.remove(0);
+//				pop.remove(parentA);
 				pop.add(childA);
 
 				isDirty = true;
@@ -904,7 +904,7 @@ public class ImageEvolver extends AbstractEvolver {
 			if (totalIterations % 1000 == 0){
 
 //				long now = System.currentTimeMillis();
-
+//
 //				System.out.println("id: " + id + " - i: " + totalIterations
 //								 + " - good: " + goodIterations
 //								 + " - p: " + pop.size()
@@ -1035,7 +1035,7 @@ public class ImageEvolver extends AbstractEvolver {
             // TODO: start time and iterations need to be set on ArtEvolver
 			// TODO: try catch and ignore errors to avoid threads stalling
 			while (isRunning) {
-				evolve(start, 8);
+				evolve(start, 128);
 			}
 		}
 	}

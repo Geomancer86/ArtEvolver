@@ -11,6 +11,10 @@ public abstract class AbstractEvolver implements Runnable {
 	 */
 	private int rgb1;
 	private int rgb2;
+	
+	private int [] px1 = new int [4];
+	private int [] px2 = new int [4];
+	
 	private int r1;
 	private int g1;
 	private int b1;
@@ -47,11 +51,17 @@ public abstract class AbstractEvolver implements Runnable {
 		if (fitnessByColor){
 			for (int y = 0; y < height1; y++) {
 				for (int x = 0; x < width1; x++) {
+					
+					/**
+					 * Working by RGB
+					 */
 					rgb1 = img1.getRGB(x, y);
 					rgb2 = img2.getRGB(x, y);
+
 					r1 = (rgb1 >> 16) & 0xff;
 					g1 = (rgb1 >> 8) & 0xff;
 					b1 = (rgb1) & 0xff;
+					
 					r2 = (rgb2 >> 16) & 0xff;
 					g2 = (rgb2 >> 8) & 0xff;
 					b2 = (rgb2) & 0xff;
@@ -59,6 +69,16 @@ public abstract class AbstractEvolver implements Runnable {
 					diff += Math.abs(r1 - r2);
 					diff += Math.abs(g1 - g2);
 					diff += Math.abs(b1 - b2);
+					
+					/**
+					 * Working by Raster
+					 */
+//					px1 = img1.getRaster().getPixel(x, y, px1);
+//					px2 = img2.getRaster().getPixel(x, y, px2);
+//					
+//					diff += Math.abs(px1[0] - px2[0]);
+//					diff += Math.abs(px1[1] - px2[1]);
+//					diff += Math.abs(px1[2] - px2[2]);
 				}
 			}
 		}else{

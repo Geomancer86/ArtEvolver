@@ -904,7 +904,7 @@ public class ImageEvolver extends AbstractEvolver {
 			if (totalIterations % 1000 == 0){
 
 //				long now = System.currentTimeMillis();
-
+//
 //				System.out.println("id: " + id + " - i: " + totalIterations
 //								 + " - good: " + goodIterations
 //								 + " - p: " + pop.size()
@@ -1035,7 +1035,7 @@ public class ImageEvolver extends AbstractEvolver {
             // TODO: start time and iterations need to be set on ArtEvolver
 			// TODO: try catch and ignore errors to avoid threads stalling
 			while (isRunning) {
-				evolve(start, 8);
+				evolve(start, 128);
 			}
 		}
 	}

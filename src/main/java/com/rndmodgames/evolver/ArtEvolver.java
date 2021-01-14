@@ -44,8 +44,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * width = 3 * scale
 	 * triangles = 80x53
 	 */
-	float triangleScaleHeight = 3.0f; // 0.25f, 0.5f, 0.66f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f 
-	float triangleScaleWidth = 3.0f;
+	float triangleScaleHeight = 1.0f; // 0.25f, 0.5f, 0.66f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f 
+	float triangleScaleWidth = 1.0f;
 	
 	float width = 3.0f * triangleScaleWidth;
 	float height = 3.0f * triangleScaleHeight;
@@ -53,23 +53,28 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	int widthTriangles  = 80; // 71
 	int heightTriangles = 53; // 60
 
-	private int THREADS                 	= 30; // 1-x (32-48 peak)
+	private int THREADS                 	= 28; // 1-x (32-48 peak)
 	private int POPULATION 					= 2; // GeneticEvolver: 2-4096
 	private int RANDOM_JUMP_MAX_DISTANCE	= 4239/2; // 1-x MAX: 4239/2
 	private int CROSSOVER_MAX 				= 2;
 	private int TOTAL_PALLETES             	= 4;
 	
+	private int GUI_FPS = 60;
 	private int FPS = 120;
-	private int GUI_UPDATE_MS = 1000 / FPS;
+	private int EVOLVER_UPDATE_MS = 1000 / FPS;
+	private int GUI_UPDATE_MS = 1000 / GUI_FPS;
 	
-	private int RANDOM_JUMP_MAX_DISTANCES [] = {4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 64, 64, 64, 64, 256, 256, 256, 256,
-												4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 64, 64, 64, 64, 256, 256, 256, 256};
+	private int RANDOM_JUMP_MAX_DISTANCES [] = {4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2,
+												4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2,
+												4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2,
+												4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2};
 	
 	private int CROSSOVERS_MAX [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
 	
 	public static final int IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB;
+//	public static final int IMAGE_TYPE = BufferedImage.TYPE_INT_RGB;
 	
-	private int EVOLVE_ITERATIONS          = 8;
+	public static int EVOLVE_ITERATIONS    = 1000;
 	private int MAX_ITERATIONS             = 10000000;
 	
 	private List <ImageEvolver> evolvers = new ArrayList<>();
@@ -93,7 +98,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	long start;
 	long steps;
 	
-	long currentFrame = 0L;
+	long currentFrame = 1L;
 	long totalIterations = 0L;
 	long goodIterations = 0L;
 	double bestScore = Double.MIN_VALUE;
@@ -111,6 +116,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 				- Move the Best Score/Best Image instances to ArtEvolver
 	 * 				- Hardcode 2 Evolvers and compare with only one.
 	 * 
+	 * 
+	 * v2.02: Multithread optimizations
 	 * 			-  30 THREADS 120 FPS
 	 * 
 	 * --- OLD DOCS BELOW
@@ -163,7 +170,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         // init timer
-        processTimer = new Timer(GUI_UPDATE_MS, new ActionListener() {
+        processTimer = new Timer(EVOLVER_UPDATE_MS, new ActionListener() {
 
 			@Override
             public void actionPerformed(ActionEvent e) {
@@ -199,24 +206,26 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				}
 				
 				// draw bestImage to panel
-				if (isDirty) {
-	            	imagePanel.getGraphics().drawImage(bestImage,
-	            									   32, // TODO: make both offsets dynamic to center in JPanel
-	            									   32,
-	            									   null);
-	            	
-	            	imagePanel.getGraphics().dispose();
-	            	
-	            	isDirty = false;
-	            	
-	            	// set all best pops to the same and see if performance increases
-	            	// TODO: set sync speed to get the best performance
-	            	for (AbstractEvolver currentEvolver : evolvers) {
-	            		if (((ImageEvolver)currentEvolver).getBestScore() < bestScore) {
-	            			((ImageEvolver)currentEvolver).setBestPop(bestPop);
-	            		}
-	            	}
+				if (currentFrame % GUI_UPDATE_MS == 0) {
+					if (isDirty) {
+		            	imagePanel.getGraphics().drawImage(bestImage,
+		            									   32, // TODO: make both offsets dynamic to center in JPanel
+		            									   32,
+		            									   null);
+		            	
+		            	imagePanel.getGraphics().dispose();
+		            	
+		            	isDirty = false;
+					}
 				}
+				
+				// sync best images
+            	// TODO: set sync speed to get the best performance
+            	for (AbstractEvolver currentEvolver : evolvers) {
+            		if (((ImageEvolver)currentEvolver).getBestScore() < bestScore) {
+            			((ImageEvolver)currentEvolver).setBestPop(bestPop);
+            		}
+            	}
             	
             	lblScore.setText("S     : " + bestScore);
 //            	lblAverageScore.setText("S(AVG): " + evolver.getAverageScore());
@@ -228,7 +237,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	 */
             	if (currentFrame++ % FPS == 0) {
 //           		System.out.println(steps++ + "," + totalIterations + "," + goodIterations + ","  + ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
-            		System.out.println(ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
+//            		System.out.println(ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
             	}
             }
         });

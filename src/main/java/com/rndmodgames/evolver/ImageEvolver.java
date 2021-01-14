@@ -417,6 +417,10 @@ public class ImageEvolver extends AbstractEvolver {
 		dest.setColor(aux);
 	}
 
+	/**
+	 * 
+	 * @param triangles
+	 */
 	public static void switchRandomColor(List<Triangle> triangles) {
 		Triangle origin = triangles.get(roll(triangles.size()));
 		Triangle dest = triangles.get(roll(triangles.size()));
@@ -426,6 +430,32 @@ public class ImageEvolver extends AbstractEvolver {
 		dest.setColor(aux);
 	}
 
+	/**
+	 * Switches a random color limited by a grid size and grid square x,y coordinates
+	 * @param triangles
+	 * @param width
+	 * @param height
+	 * @param x
+	 * @param y
+	 */
+	public static void switchGridColor(List<Triangle> triangles, int id) {
+
+		// calculate x,y limits for each grid (per ID)
+		int a = roll(128) + (128 * id);
+		int b = roll(128) + (128 * id);
+		
+		while (b == a) {
+			a = roll(128) + (128 * id);
+		}
+		
+		Triangle origin = triangles.get(a);
+		Triangle dest = triangles.get(b);
+
+		Color aux = origin.getColor();
+		origin.setColor(dest.getColor());
+		dest.setColor(aux);
+	}
+	
 	// TODO implement randomization
 	public static void switchRandomMultiColor(List<Triangle> triangles, int maxTriangles) {
 
@@ -467,17 +497,13 @@ public class ImageEvolver extends AbstractEvolver {
 			des = pos - jump;
 		}
 
-//		System.out.println("pos " + pos + " jump " + jump + " des " + des);
-		
 		if (des < 0) {
 			des = triangles.size() - (jump - pos) - 1;
-//			des = (triangles.size() - 1) - pos - jump;
-			
+
 		} 
 		
 		if (des >= triangles.size()) {
 			des = 0 + (triangles.size() - jump);
-			
 		}
 
 		Triangle origin = triangles.get(pos);
@@ -758,7 +784,7 @@ public class ImageEvolver extends AbstractEvolver {
 			}
 
 			if (!secuential) {
-				childA = crossOver.getChild(parentA, parentB);
+				childA = crossOver.getChild(parentA, parentB, this.id.intValue());
 			} else {
 
 				childA = crossOver.getSecuentialChild(parentA, startTriangle, targetTriangle);
@@ -947,58 +973,6 @@ public class ImageEvolver extends AbstractEvolver {
 				if (CrossOver.CLOSE_MUTATIONS_PER_CHILD < 1) {
 					CrossOver.CLOSE_MUTATIONS_PER_CHILD = 1;
 				}
-				
-				/**
-				 * v.1.0.0 Tournament Optimizations
-				 * 
-				 * - Kill worst Drawing each 100k iterations
-				 */
-//				if (totalIterations % 1000 == 0) {
-//					if (pop.size() > 2) {
-//						
-//						// Comparator used only once, no need to extract
-//						// NOTE: last is best!
-//						Collections.sort(pop, new TrianglesComparator());
-//						
-////						for (int j = 0; j < pop.size(); j ++) {
-////							System.out.println("Drawing " + j + " score: " + pop.get(j).getScore());
-////						}
-//						
-//						pop.remove(0);
-//					}
-//				}
-				
-				/**
-				 * Calculate Average Score
-				 * 
-				 * TODO: we probably don't need to iterate every time and just keep count of new scores
-				 */
-//				double totalScore = 0d;
-//				for (int b = 0; b < pop.size(); b++) {
-//					totalScore += pop.get(b).getScore();
-//				}
-//
-//				// show the diff
-//				this.averageScore = (totalScore / pop.size()) - this.bestScore;
-//				
-//				System.out
-//				.println(new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN))
-//						.format(this.averageScore));
-				
-//				switchSecuential();
-				
-//				crossOver.halveParameters();
-				
-				/**
-				 * 100000: 256/256
-				 */
-//				if (totalIterations % (population * 500) == 0) {
-//					crossOver.halveParameters();
-//					crossOver.incrementParameters();
-//				}
-//				if (totalIterations % 100000 == 0) {
-//					crossOver.halveParameters();
-//				}
 			}
 		}
 //	}
@@ -1032,10 +1006,14 @@ public class ImageEvolver extends AbstractEvolver {
 		long start = System.currentTimeMillis();
 
 		while (true) {
-            // TODO: start time and iterations need to be set on ArtEvolver
 			// TODO: try catch and ignore errors to avoid threads stalling
+			// TODO: when failing, we need to restart that core, from zero, but will catch up quickly
 			while (isRunning) {
-				evolve(start, 128);
+				try {
+					evolve(start, ArtEvolver.EVOLVE_ITERATIONS);
+				} catch (Exception e) {
+					// ignore?
+				}
 			}
 		}
 	}

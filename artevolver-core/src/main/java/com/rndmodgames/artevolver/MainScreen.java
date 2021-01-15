@@ -54,6 +54,7 @@ public class MainScreen implements Screen {
          * TODO: point to /assets samples image folder by default
          */
         FileChooser.setSaveLastDirectory(true);
+        FileChooser.setDefaultPrefsName(ArtEvolver.PREFERENCES_NAME);
         
         final FileChooser fileChooser = new FileChooser(Mode.OPEN);
 

@@ -44,8 +44,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * width = 3 * scale
 	 * triangles = 80x53
 	 */
-	float triangleScaleHeight = 1.0f; // 0.25f, 0.5f, 0.66f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f 
-	float triangleScaleWidth = 1.0f;
+	float triangleScaleHeight = 3.0f; // 0.25f, 0.5f, 0.66f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f 
+	float triangleScaleWidth = 3.0f;
 	
 	float width = 3.0f * triangleScaleWidth;
 	float height = 3.0f * triangleScaleHeight;
@@ -53,10 +53,20 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	int widthTriangles  = 80; // 71
 	int heightTriangles = 53; // 60
 
-	private int THREADS                 	= 28; // 1-x (32-48 peak)
-	private int POPULATION 					= 2; // GeneticEvolver: 2-4096
+	private int THREADS                 	= 8; // 1-x (32-48 peak)
+	private int POPULATION 					= 4; // GeneticEvolver: 2-4096 (multiply by thread count to get the final population number)
 	private int RANDOM_JUMP_MAX_DISTANCE	= 4239/2; // 1-x MAX: 4239/2
 	private int CROSSOVER_MAX 				= 2;
+	
+	/**
+	 * TOTAL_PALLETES
+	 * 
+     *    - This is the number of times each triangle will be subdivided.
+     *    - One of the most efficient ways to use each Palette Rectangle is TOTAL_PALLETES = 4
+     *      - This will generate 4 triangles for each color.
+     *      - Current code uses equilateral triangles resorting in using squared palletes, when the physical ones 
+     *          are rectangular, we should take real world measures into consideration if wanting >efficiency over >symetrism
+	 */
 	private int TOTAL_PALLETES             	= 4;
 	
 	private int GUI_FPS = 60;
@@ -139,7 +149,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * @throws IOException
 	 */
     public ArtEvolver() throws IOException{
-    	super("ArtEvolver 2019 v2.02");
+        
+    	super("ArtEvolver 2021 v2.02");
+    	
     	pallete = new Pallete("Sherwin-Williams", TOTAL_PALLETES);
 
     	// Create Evolver instances as configured by the THREADS parameter
@@ -206,30 +218,34 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				}
 				
 				// draw bestImage to panel
-				if (currentFrame % GUI_UPDATE_MS == 0) {
-					if (isDirty) {
-		            	imagePanel.getGraphics().drawImage(bestImage,
-		            									   32, // TODO: make both offsets dynamic to center in JPanel
-		            									   32,
-		            									   null);
-		            	
-		            	imagePanel.getGraphics().dispose();
-		            	
-		            	isDirty = false;
-					}
+				if (currentFrame % GUI_UPDATE_MS == 0 && isDirty) {
+	            	imagePanel.getGraphics().drawImage(bestImage,
+	            									   32, // TODO: make both offsets dynamic to center in JPanel
+	            									   32,
+	            									   null);
+	            	
+	            	imagePanel.getGraphics().dispose();
+	            	
+	            	isDirty = false;
 				}
 				
 				// sync best images
             	// TODO: set sync speed to get the best performance
+				int population = 0;
+				
             	for (AbstractEvolver currentEvolver : evolvers) {
+            	    
             		if (((ImageEvolver)currentEvolver).getBestScore() < bestScore) {
+            		    
             			((ImageEvolver)currentEvolver).setBestPop(bestPop);
             		}
+            		
+            		population += ((ImageEvolver)currentEvolver).getPopulation().size();
             	}
             	
             	lblScore.setText("S     : " + bestScore);
 //            	lblAverageScore.setText("S(AVG): " + evolver.getAverageScore());
-//            	lblPopulation.setText("Pop: " + evolver.getPopulation().size());
+            	lblPopulation.setText("Pop: " + population);
             	lblIterations.setText("I: " + goodIterations + "/" + totalIterations);
 
             	/**
@@ -346,14 +362,20 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     }
 
     public void loadImage() throws IOException{
+        
     	this.chooser.resetChoosableFileFilters();
+    	
 		this.chooser.setFileFilter(new FileNameExtensionFilter("Image Files", new String[] { "jpg", "jpeg", "png", "gif", "bmp" }));
 
 		if (this.chooser.showOpenDialog(this) == 0) {
+		    
 			try {
+			    
 				originalImage = ImageIO.read(new File(chooser.getCurrentDirectory().toString() + "\\"	+ chooser.getSelectedFile().getName()));
 				path = (chooser.getCurrentDirectory().toString() + "\\" + chooser.getSelectedFile().getName());
+				
 			} catch (Exception localException) {
+			    
 				JOptionPane.showMessageDialog(null, "Unable to Load Image", "Fail", 2);
 			}
 		}
@@ -446,10 +468,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	processTimer.start();
     }
     
-    public void stop(){
+    public void stop() {
     	
     	// run() Evolver instances and as configured by THREADS parameter
 		for (AbstractEvolver currentEvolver : evolvers) {
+		    
 			((ImageEvolver)currentEvolver).setRunning(false);
 		}
     	

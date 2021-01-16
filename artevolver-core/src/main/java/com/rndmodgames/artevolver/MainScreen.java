@@ -11,7 +11,6 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Value;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
@@ -42,6 +41,7 @@ public class MainScreen implements Screen {
      * 
      */
     VisTable evolverTable = null;
+    VisTable imageTable = null;
     VisTable menuTable = null;
     AspectRatioFitter<VisTable> imageFitter = null;
     
@@ -73,10 +73,16 @@ public class MainScreen implements Screen {
         evolverTable = new VisTable(true);
         
         /**
+         * Evolver/Source Image Table
+         */
+        imageTable = new VisTable();
+        
+        /**
          * Main Menu Table
          */
         menuTable = new VisTable(true);
         menuTable.pad(5);
+        
         
         /**
          * New Game: 
@@ -128,6 +134,25 @@ public class MainScreen implements Screen {
                 
                 // Create a Texture from Pixmap
                 sourceTexture = new Texture(sourceImage);
+                
+                // Set the Source Image Background on Main Table
+                /**
+                 * Draw Source Texture/Current Best Evolver
+                 * 
+                 *  - Keep Aspect Ratio [OK]
+                 *  - Stretch to Fit    [WIP]
+                 */
+                imageTable.clear();
+                    
+                imageTable.setWidth(sourceTexture.getWidth());
+                imageTable.setHeight(sourceTexture.getHeight());
+                
+                imageTable.setBackground(new TextureRegionDrawable(new TextureRegion(sourceTexture)));
+                    
+                imageFitter = new AspectRatioFitter<>(imageTable);
+                
+                evolverTable.clear();
+                evolverTable.add(imageFitter);
             }
         });
         
@@ -137,8 +162,10 @@ public class MainScreen implements Screen {
         menuTable.row();
         menuTable.add(selectFileButton);
 
-        // 
-        table.add(evolverTable).width(1024-160).expand();
+        /**
+         * TODO: menu size relative to screen width, make dynamic when resizing
+         */
+        table.add(evolverTable).width(Gdx.graphics.getWidth()-160).expand();
         table.add(menuTable).width(160).expand().right().top();
         
         stage.addActor(table);
@@ -161,22 +188,23 @@ public class MainScreen implements Screen {
         /**
          * Draw Source Texture/Current Best Evolver
          * 
-         *  TODO: keep original image aspect ratio
+         *  - Keep Aspect Ratio [OK]
+         *  - Stretch to Fit    [WIP]
          */
-        if (sourceTexture != null) {
-        
-            VisTable imageTable = new VisTable();
-            
-            imageTable.setWidth(sourceTexture.getWidth());
-            imageTable.setHeight(sourceTexture.getHeight());
-            
-            imageTable.setBackground(new TextureRegionDrawable(new TextureRegion(sourceTexture)));
-            
-            imageFitter = new AspectRatioFitter<>(imageTable);
-            
-            evolverTable.clear();
-            evolverTable.add(imageFitter);
-        }
+//        if (sourceTexture != null) {
+//        
+//            imageTable.clear();
+//            
+//            imageTable.setWidth(sourceTexture.getWidth());
+//            imageTable.setHeight(sourceTexture.getHeight());
+//            
+//            imageTable.setBackground(new TextureRegionDrawable(new TextureRegion(sourceTexture)));
+//            
+//            imageFitter = new AspectRatioFitter<>(imageTable);
+//            
+//            evolverTable.clear();
+//            evolverTable.add(imageFitter);
+//        }
         
         // Draw UI
         stage.act();

@@ -5,11 +5,10 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
-import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.Array;
@@ -23,85 +22,107 @@ import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
 /**
  * Main Art Evolver Screen
  * 
+ * https://github.com/libgdx/libgdx/wiki/Pixmaps
+ * 
  * @author Geomancer86
  */
 public class MainScreen implements Screen {
 
     Game game;
     Stage stage;
+    
+    // 
     SpriteBatch batch;
-    Texture img;
+    Texture sourceTexture;
+    
+    /**
+     * Source Image File
+     */
+    Pixmap sourceImage = null; 
     
     public MainScreen(Game game) {
         
         this.game = game;
         
+        //
+        batch = new SpriteBatch();
+        
+        // 
         stage = new Stage(new ScreenViewport());
 
+        /**
+         * Main Screen Table
+         */
         final VisTable table = new VisTable();
         table.setFillParent(true);
+        table.setDebug(true, true);
 
+        /**
+         * Main Menu Table
+         */
+        final VisTable menuTable = new VisTable(true);
+        
         /**
          * New Game: 
          *  - New Game Screen
          */
-        final VisTextButton newGameButton = new VisTextButton("Open Image");
+        final VisTextButton startEvolvingButton = new VisTextButton("Open Image");
         final VisTextButton selectFileButton = new VisTextButton("Select Image");
 
         /**
          * File Chooser
-         * 
-         * TODO: point to /assets samples image folder by default
          */
         FileChooser.setSaveLastDirectory(true);
         FileChooser.setDefaultPrefsName(ArtEvolver.PREFERENCES_NAME);
         
         final FileChooser fileChooser = new FileChooser(Mode.OPEN);
 
+        // 
         fileChooser.setListener(new FileChooserAdapter() {
             
             @Override
             public void selected (Array<FileHandle> files) {
                 
-                for (FileHandle file : files) {
-                    
-                    System.out.println("Selected File: " + file.file().getAbsolutePath());
-                }
-            }
-        });
-        
-        newGameButton.addCaptureListener(new InputListener() {
-            
-            @Override
-            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                return true;
-            }
-
-            @Override
-            public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
+                // 
+                System.out.println("Selected File: " + files.get(0).file().getAbsolutePath());
                 
-                if (newGameButton.isPressed()) {
-
-                    System.out.println("Load Image");
-                }
+                sourceImage = new Pixmap(new FileHandle(files.get(0).file().getAbsolutePath()));
             }
         });
         
-        //button listener
+        /**
+         * Select File Button
+         */
         selectFileButton.addListener(new ChangeListener() {
             @Override
             public void changed (ChangeEvent event, Actor actor) {
                 
-                //displaying chooser with fade in animation
+                // displaying chooser with fade in animation
                 stage.addActor(fileChooser.fadeIn());
             }
         });
         
-        table.row();
-        table.add(newGameButton).fill();
+        startEvolvingButton.addListener(new ChangeListener() {
+            @Override
+            public void changed (ChangeEvent event, Actor actor) {
+                
+                // start evolving the image
+                System.out.println("Start Evolving!");
+                System.out.println("sourceImage: " + sourceImage.getWidth() + " x " + sourceImage.getHeight());
+                
+                // Create a Texture from Pixmap
+                sourceTexture = new Texture(sourceImage);
+            }
+        });
+
+        //
+        menuTable.row();
+        menuTable.add(startEvolvingButton);
+        menuTable.row();
+        menuTable.add(selectFileButton);
         
-        table.row();
-        table.add(selectFileButton).fill();
+        //
+        table.add(menuTable).width(160).expand().right();
         
         stage.addActor(table);
     }
@@ -119,6 +140,17 @@ public class MainScreen implements Screen {
         // Clear blit
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        
+        //
+        if (sourceTexture != null) {
+        
+            batch.begin();
+            
+//            batch.draw(sourceTexture, delta, delta, delta, delta, delta, delta, delta, delta);
+            
+//            batch.draw(sourceTexture, 0, 0);
+            batch.end();
+        }
         
         // Draw
         stage.act();

@@ -8,9 +8,12 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Value;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.kotcrab.vis.ui.widget.VisTable;
@@ -36,6 +39,13 @@ public class MainScreen implements Screen {
     Texture sourceTexture;
     
     /**
+     * 
+     */
+    VisTable evolverTable = null;
+    VisTable menuTable = null;
+    AspectRatioFitter<VisTable> imageFitter = null;
+    
+    /**
      * Source Image File
      */
     Pixmap sourceImage = null; 
@@ -58,9 +68,15 @@ public class MainScreen implements Screen {
         table.setDebug(true, true);
 
         /**
+         * Evolver Table
+         */
+        evolverTable = new VisTable(true);
+        
+        /**
          * Main Menu Table
          */
-        final VisTable menuTable = new VisTable(true);
+        menuTable = new VisTable(true);
+        menuTable.pad(5);
         
         /**
          * New Game: 
@@ -114,15 +130,16 @@ public class MainScreen implements Screen {
                 sourceTexture = new Texture(sourceImage);
             }
         });
-
+        
         //
         menuTable.row();
         menuTable.add(startEvolvingButton);
         menuTable.row();
         menuTable.add(selectFileButton);
-        
-        //
-        table.add(menuTable).width(160).expand().right();
+
+        // 
+        table.add(evolverTable).width(1024-160).expand();
+        table.add(menuTable).width(160).expand().right().top();
         
         stage.addActor(table);
     }
@@ -141,18 +158,27 @@ public class MainScreen implements Screen {
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         
-        //
+        /**
+         * Draw Source Texture/Current Best Evolver
+         * 
+         *  TODO: keep original image aspect ratio
+         */
         if (sourceTexture != null) {
         
-            batch.begin();
+            VisTable imageTable = new VisTable();
             
-//            batch.draw(sourceTexture, delta, delta, delta, delta, delta, delta, delta, delta);
+            imageTable.setWidth(sourceTexture.getWidth());
+            imageTable.setHeight(sourceTexture.getHeight());
             
-//            batch.draw(sourceTexture, 0, 0);
-            batch.end();
+            imageTable.setBackground(new TextureRegionDrawable(new TextureRegion(sourceTexture)));
+            
+            imageFitter = new AspectRatioFitter<>(imageTable);
+            
+            evolverTable.clear();
+            evolverTable.add(imageFitter);
         }
         
-        // Draw
+        // Draw UI
         stage.act();
         stage.draw();  
     }

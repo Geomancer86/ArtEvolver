@@ -13,7 +13,7 @@ public class DesktopLauncher {
 		/**
 		 * Resolution
 		 */
-		config.width = 1024;
+		config.width = 1280;
 		config.height = 768;
 		
 		new LwjglApplication(new ArtEvolver(), config);

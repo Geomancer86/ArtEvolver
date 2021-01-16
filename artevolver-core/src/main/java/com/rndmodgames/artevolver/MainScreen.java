@@ -20,6 +20,7 @@ import com.kotcrab.vis.ui.widget.VisTextButton;
 import com.kotcrab.vis.ui.widget.file.FileChooser;
 import com.kotcrab.vis.ui.widget.file.FileChooser.Mode;
 import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
+import com.kotcrab.vis.ui.widget.file.FileTypeFilter;
 
 /**
  * Main Art Evolver Screen
@@ -30,15 +31,18 @@ import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
  */
 public class MainScreen implements Screen {
 
+    // parent reference
     Game game;
-    Stage stage;
     
-    // 
+    /**
+     * LibGDX Components
+     */
+    Stage stage;
     SpriteBatch batch;
     Texture sourceTexture;
     
     /**
-     * 
+     * Main Screen Tables
      */
     VisTable evolverTable = null;
     VisTable imageTable = null;
@@ -83,13 +87,25 @@ public class MainScreen implements Screen {
         menuTable = new VisTable(true);
         menuTable.pad(5);
         
+        /**
+         * Set Source Image Button
+         */
+        final VisTextButton setSourceImageButton = new VisTextButton("Set Source Image");
+        setSourceImageButton.setDisabled(true);
         
         /**
-         * New Game: 
-         *  - New Game Screen
+         * Select File Button
          */
-        final VisTextButton startEvolvingButton = new VisTextButton("Open Image");
-        final VisTextButton selectFileButton = new VisTextButton("Select Image");
+        final VisTextButton selectFileButton = new VisTextButton("Select Image File");
+        
+        /**
+         * Evolution Start/Stop
+         */
+        final VisTextButton startButton = new VisTextButton("Start");
+        startButton.setDisabled(true);
+        
+        final VisTextButton stopButton = new VisTextButton("Stop");
+        stopButton.setDisabled(true);
 
         /**
          * File Chooser
@@ -97,7 +113,16 @@ public class MainScreen implements Screen {
         FileChooser.setSaveLastDirectory(true);
         FileChooser.setDefaultPrefsName(ArtEvolver.PREFERENCES_NAME);
         
+        /**
+         * File Type Filter
+         * 
+         * TODO: allow all files but show a "File type not supported message" on any exception Seeting/Loading/Comparing/Evolving
+         */
+        FileTypeFilter typeFilter = new FileTypeFilter(true); // allow "All Types" mode where all files are shown
+        typeFilter.addRule("Image files (*.png, *.jpg, *.gif)", "png", "jpg", "gif");
+        
         final FileChooser fileChooser = new FileChooser(Mode.OPEN);
+        fileChooser.setFileTypeFilter(typeFilter);
 
         // 
         fileChooser.setListener(new FileChooserAdapter() {
@@ -106,9 +131,10 @@ public class MainScreen implements Screen {
             public void selected (Array<FileHandle> files) {
                 
                 // 
-                System.out.println("Selected File: " + files.get(0).file().getAbsolutePath());
-                
                 sourceImage = new Pixmap(new FileHandle(files.get(0).file().getAbsolutePath()));
+                
+                // Enable Set Source Image
+                setSourceImageButton.setDisabled(false);
             }
         });
         
@@ -124,12 +150,15 @@ public class MainScreen implements Screen {
             }
         });
         
-        startEvolvingButton.addListener(new ChangeListener() {
+        /**
+         * Set Source Image Button
+         */
+        setSourceImageButton.addListener(new ChangeListener() {
             @Override
             public void changed (ChangeEvent event, Actor actor) {
                 
                 // start evolving the image
-                System.out.println("Start Evolving!");
+                System.out.println("Set Source Image!");
                 System.out.println("sourceImage: " + sourceImage.getWidth() + " x " + sourceImage.getHeight());
                 
                 // Create a Texture from Pixmap
@@ -153,20 +182,59 @@ public class MainScreen implements Screen {
                 
                 evolverTable.clear();
                 evolverTable.add(imageFitter);
+                
+                /**
+                 * Enable Evolution Start Button
+                 */
+                startButton.setDisabled(false);
             }
         });
         
         //
-        menuTable.row();
-        menuTable.add(startEvolvingButton);
-        menuTable.row();
-        menuTable.add(selectFileButton);
+        startButton.addListener(new ChangeListener() {
+            @Override
+            public void changed (ChangeEvent event, Actor actor) {
+                
+                System.out.println("START EVOLVING!");
+                
+                //
+                stopButton.setDisabled(false);
+                startButton.setDisabled(true);
+            }
+        });
+        
+        //
+        stopButton.addListener(new ChangeListener() {
+            @Override
+            public void changed (ChangeEvent event, Actor actor) {
+                
+                System.out.println("STOP EVOLVING!");
+                
+                //
+                startButton.setDisabled(false);
+                stopButton.setDisabled(true);
+            }
+        });
+        
+        //
+        menuTable.row().colspan(2);
+        menuTable.add(setSourceImageButton).fill();
+        
+        //
+        menuTable.row().colspan(2);
+        menuTable.add(selectFileButton).fill();
+        
+        menuTable.row().colspan(2);
+        menuTable.addSeparator();
+        
+        menuTable.add(startButton).fill();
+        menuTable.add(stopButton).fill();
 
         /**
-         * TODO: menu size relative to screen width, make dynamic when resizing
+         * Menu size relative to screen width, make dynamic when resizing
          */
-        table.add(evolverTable).width(Gdx.graphics.getWidth()-160).expand();
-        table.add(menuTable).width(160).expand().right().top();
+        table.add(evolverTable).width(Gdx.graphics.getWidth()*0.9f).expand();
+        table.add(menuTable).width(Gdx.graphics.getWidth()*0.1f).expand().right().top();
         
         stage.addActor(table);
     }

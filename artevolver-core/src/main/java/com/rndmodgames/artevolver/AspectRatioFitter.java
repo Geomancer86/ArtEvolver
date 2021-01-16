@@ -33,19 +33,7 @@ public class AspectRatioFitter<T extends Actor> extends VisTable {
             
             System.out.println("containerAspectRatio: " + containerAspectRatio);
             System.out.println("actorAspectRatio    : " + actorAspectRatio);
-            
-//            if (this.getWidth() > this.getHeight()) {
-//            
-//                
-//                
-//            } else {
-                
-//                actorCell.width(1280-160).height(this.getWidth() / actorAspectRatio).grow();
-//            }
-            
-            
-            
-            
+
             if (containerAspectRatio > actorAspectRatio) {
                 
                 // too wide (or equal): match the height!
@@ -57,26 +45,7 @@ public class AspectRatioFitter<T extends Actor> extends VisTable {
                 // too tall: match the width!
                 System.out.println("too tall: match the width!");
                 actorCell.fillY().height(this.getWidth() / actorAspectRatio);
-                
             } 
-//            else {
-//                
-//                System.out.println("FIX THIS RATIO");
-//                
-//                /**
-//                 * 
-//                 */
-//                if (actorCell.getMinHeight() > actorCell.getMinWidth()) {
-//                    
-//                    System.out.println("STRETCH HEIGHT");
-//                    actorCell.growX().growY();
-//                    
-//                } else {
-                    
-//                    System.out.println("STRETCH WIDTH");
-//                    actorCell.width(1024-160).height(this.getWidth() / actorAspectRatio).grow();
-//                }
-//            }
         }
         
         if (actorCell != null) {

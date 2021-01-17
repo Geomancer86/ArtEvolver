@@ -11,7 +11,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
-public class Pallete {
+public class Palette {
 
 	String name;
 	int totalPalletes;
@@ -19,7 +19,7 @@ public class Pallete {
 	
 	List <PalleteColor> colors = new ArrayList<PalleteColor>();
 	
-	public Pallete(String name, int repetitions) throws IOException{
+	public Palette(String name, int repetitions) throws IOException {
 		this.name = name;
 		this.totalPalletes = repetitions;
 		
@@ -75,6 +75,14 @@ public class Pallete {
 		
 		// Todo dynamic pallete loading or combobox
 //		System.out.println("Pallete " + name + " Loaded: " + colors.size() + " colors in " + repetitions + " repetitions.");
+	}
+	
+	/**
+	 * @return the number of colors in this Palette
+	 */
+	public int getNumberOfColors() {
+	    
+	    return colors.size();
 	}
 	
 	public void randomize(){

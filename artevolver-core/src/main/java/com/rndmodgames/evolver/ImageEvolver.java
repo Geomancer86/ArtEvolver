@@ -43,7 +43,7 @@ public class ImageEvolver extends AbstractEvolver {
 	private float height;
 	private float width;
 
-	private Pallete pallete;
+	private Palette pallete;
 
 	private int triangleHeight;
 	private int triangleWidth;
@@ -63,7 +63,7 @@ public class ImageEvolver extends AbstractEvolver {
 	private boolean isDirty = true;
 	private boolean exportNextAndClose = false;
 
-	public ImageEvolver(int population, int randomJumpDistance, int crossoverMax, float scale, Pallete pallete,
+	public ImageEvolver(int population, int randomJumpDistance, int crossoverMax, float scale, Palette pallete,
 			float width, float height, int triangleWidth, int triangleHeight) {
 		
 		this.population = population;

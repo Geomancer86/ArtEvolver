@@ -35,7 +35,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	
 	private JFrame mainFrame;
 	private JPanel imagePanel;
-	private Pallete pallete;
+	private Palette pallete;
 
 	/**
 	 * TODO: Save Parameters for DROPDOWN SIZE SELECT
@@ -152,7 +152,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         
     	super("ArtEvolver 2021 v2.02");
     	
-    	pallete = new Pallete("Sherwin-Williams", TOTAL_PALLETES);
+    	pallete = new Palette("Sherwin-Williams", TOTAL_PALLETES);
 
     	// Create Evolver instances as configured by the THREADS parameter
     	for (int a = 0; a < THREADS; a ++) {
@@ -361,7 +361,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         });
     }
 
-    public void loadImage() throws IOException{
+    public void loadImage() throws IOException {
         
     	this.chooser.resetChoosableFileFilters();
     	

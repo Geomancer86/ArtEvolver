@@ -16,6 +16,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener.ChangeEvent;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.kotcrab.vis.ui.widget.VisLabel;
@@ -73,9 +74,10 @@ public class MainScreen implements Screen {
     /**
      * Statistics
      */
-    VisLabel triangleCount = new VisLabel("");
+    VisLabel triangleCount = new VisLabel("0");
     VisLabel bestScore = new VisLabel("0.0");
     
+    VisLabel population = new VisLabel("0");
     VisLabel totalMutations = new VisLabel("0");
     VisLabel goodMutations = new VisLabel("0");
     VisLabel goodMutationRate = new VisLabel("0.0");
@@ -286,9 +288,19 @@ public class MainScreen implements Screen {
          */
         VisLabel triangleCountLabel = new VisLabel("Triangle Count:");
         VisLabel bestScoreLabel = new VisLabel("Best Score:");
-        VisLabel totalMutationsLabel = new VisLabel("Total Mutations:");
-        VisLabel goodMutationsLabel = new VisLabel("Good Mutations:");
+        
+        VisLabel populationLabel = new VisLabel("Population:");
+        VisLabel totalMutationsLabel = new VisLabel("Total:");
+        VisLabel goodMutationsLabel = new VisLabel("Good:");
         VisLabel goodMutationRateLabel = new VisLabel("Success Rate:");
+        
+        // align numbers to the right
+        triangleCount.setAlignment(Align.right);
+        bestScore.setAlignment(Align.right);
+        population.setAlignment(Align.right);
+        totalMutations.setAlignment(Align.right);
+        goodMutations.setAlignment(Align.right);
+        goodMutationRate.setAlignment(Align.right);
         
         //
         statistics.add(triangleCountLabel).grow();
@@ -298,6 +310,11 @@ public class MainScreen implements Screen {
         statistics.row();
         statistics.add(bestScoreLabel).grow();
         statistics.add(bestScore).grow();
+        
+        // 
+        statistics.row();
+        statistics.add(populationLabel).grow();
+        statistics.add(population).grow();
         
         //
         statistics.row();
@@ -325,6 +342,13 @@ public class MainScreen implements Screen {
                 isRunning = true;
                 stopButton.setDisabled(false);
                 startButton.setDisabled(true);
+                
+                /**
+                 * - If Evolvers are null this is the first run,
+                 *      - Initialize Evolvers
+                 *  
+                 * - Start Evolvers
+                 */
             }
         });
         
@@ -339,6 +363,10 @@ public class MainScreen implements Screen {
                 isRunning = false;
                 startButton.setDisabled(false);
                 stopButton.setDisabled(true);
+                
+                /**
+                 * Stop Evolvers
+                 */
             }
         });
         
@@ -417,6 +445,13 @@ public class MainScreen implements Screen {
         stage.draw();  
     }
 
+    /**
+     * 
+     */
+    public void evolve() {
+        
+    }
+    
     /**
      * Loads/Reloads the Palettes
      */

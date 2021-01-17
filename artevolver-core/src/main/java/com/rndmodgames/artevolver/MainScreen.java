@@ -29,6 +29,7 @@ import com.kotcrab.vis.ui.widget.file.FileChooser.Mode;
 import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
 import com.kotcrab.vis.ui.widget.file.FileTypeFilter;
 import com.rndmodgames.evolver.AbstractEvolver;
+import com.rndmodgames.evolver.LibGDXEvolver;
 import com.rndmodgames.evolver.Palette;
 
 /**
@@ -59,8 +60,8 @@ public class MainScreen implements Screen {
     /**
      * Parameters
      */
-    private static int CPU_CORES                    = 1; // 1-ALL_CORES
-    private static int THREADS                      = 1; // 1-x
+    private static int CPU_CORES                    = 2; // 1-ALL_CORES
+    private static int THREADS                      = 2; // 1-x
     private static int POPULATION                   = 2; // 2-x
     
     private static final String DEFAULT_PALETTE = "Sherwin-Williams";
@@ -76,9 +77,9 @@ public class MainScreen implements Screen {
 
     private static Integer [] AVAILABLE_PALETTE_COUNTS = new Integer [] { 1, 2, 3, 4, 5, 6, 7, 8 };
     
-    private static Integer [] AVAILABLE_TRIANGLE_WIDTHS = new Integer [] {  10, 20, 80, 90};
+    private static Integer [] AVAILABLE_TRIANGLE_WIDTHS = new Integer [] {  10, 20, 30, 40, 50, 60, 70, 80 };
     
-    private static Integer [] AVAILABLE_TRIANGLE_HEIGHTS = new Integer [] { 10, 20, 53, 80, 90 };
+    private static Integer [] AVAILABLE_TRIANGLE_HEIGHTS = new Integer [] { 10, 20, 30, 40, 50, 53, 60, 70, 80 };
      
     private VisSelectBox<Integer> trianglesWidthSelectBox = null;
     private VisSelectBox<Integer> trianglesHeightSelectBox = null;
@@ -99,6 +100,7 @@ public class MainScreen implements Screen {
      */
     private static Palette palette;
     private boolean isRunning = false;
+    
     private List<AbstractEvolver> population = new ArrayList<>();
     
     /**
@@ -405,10 +407,27 @@ public class MainScreen implements Screen {
                 if (population.isEmpty()) {
                     
                     // create Evolver Instances as configured by THREADS x CORES
-                    for (int a = 0; a < THREADS*CPU_CORES; a++) {
+                    for (int a = 0; a < (THREADS*CPU_CORES); a++) {
                         
-                        //
-//                        population.add(e)
+                        population.add(new LibGDXEvolver());
+                        
+                        // start evolver thread
+                        new Thread(population.get(a)).start();
+                        
+                        // set thread id
+                        ((LibGDXEvolver) population.get(a)).setThreadId(a);
+                        
+                        // set evolution to running
+                        ((LibGDXEvolver) population.get(a)).setRunning(true);
+                    }
+                } else {
+                    
+                    System.out.println("RESUMING THREADS!"); 
+                    
+                    for (AbstractEvolver evolver: population) {
+                        
+                        // set evolution to resume
+                        ((LibGDXEvolver) evolver).setRunning(true);
                     }
                 }
             }
@@ -429,6 +448,11 @@ public class MainScreen implements Screen {
                 /**
                  * Stop Evolvers
                  */
+                for (AbstractEvolver evolver: population) {
+                    
+                    // set evolution to stop
+                    ((LibGDXEvolver) evolver).setRunning(false);
+                }
             }
         });
         

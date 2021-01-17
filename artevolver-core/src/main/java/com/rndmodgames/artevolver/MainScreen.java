@@ -1,6 +1,8 @@
 package com.rndmodgames.artevolver;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
@@ -14,7 +16,6 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
-import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener.ChangeEvent;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
@@ -27,7 +28,8 @@ import com.kotcrab.vis.ui.widget.file.FileChooser;
 import com.kotcrab.vis.ui.widget.file.FileChooser.Mode;
 import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
 import com.kotcrab.vis.ui.widget.file.FileTypeFilter;
-import com.rndmodgames.evolver.Pallete;
+import com.rndmodgames.evolver.AbstractEvolver;
+import com.rndmodgames.evolver.Palette;
 
 /**
  * Main Art Evolver Screen
@@ -59,6 +61,7 @@ public class MainScreen implements Screen {
      */
     private static int CPU_CORES                    = 1; // 1-ALL_CORES
     private static int THREADS                      = 1; // 1-x
+    private static int POPULATION                   = 2; // 2-x
     
     private static final String DEFAULT_PALETTE = "Sherwin-Williams";
     private static int PALETTES                     = 1; // 1-x
@@ -68,8 +71,17 @@ public class MainScreen implements Screen {
     
     private static float TRIANGLE_SIZE_WIDTH  = 3.0f;
     private static float TRIANGLE_SIZE_HEIGHT = 3.0f;
+    
+    private static float TRIANGLE_SCALE = 1.0f;
 
-    private static final Integer [] AVAILABLE_PALETTE_COUNTS = new Integer [] { 1, 2, 3, 4, 5, 6, 7, 8 };
+    private static Integer [] AVAILABLE_PALETTE_COUNTS = new Integer [] { 1, 2, 3, 4, 5, 6, 7, 8 };
+    
+    private static Integer [] AVAILABLE_TRIANGLE_WIDTHS = new Integer [] {  10, 20, 80, 90};
+    
+    private static Integer [] AVAILABLE_TRIANGLE_HEIGHTS = new Integer [] { 10, 20, 53, 80, 90 };
+     
+    private VisSelectBox<Integer> trianglesWidthSelectBox = null;
+    private VisSelectBox<Integer> trianglesHeightSelectBox = null;
     
     /**
      * Statistics
@@ -77,7 +89,7 @@ public class MainScreen implements Screen {
     VisLabel triangleCount = new VisLabel("0");
     VisLabel bestScore = new VisLabel("0.0");
     
-    VisLabel population = new VisLabel("0");
+    VisLabel populationValueLabel = new VisLabel("0");
     VisLabel totalMutations = new VisLabel("0");
     VisLabel goodMutations = new VisLabel("0");
     VisLabel goodMutationRate = new VisLabel("0.0");
@@ -85,8 +97,9 @@ public class MainScreen implements Screen {
     /**
      * Evolver
      */
-    private static Pallete pallete;
+    private static Palette palette;
     private boolean isRunning = false;
+    private List<AbstractEvolver> population = new ArrayList<>();
     
     /**
      * Source Image File
@@ -248,7 +261,9 @@ public class MainScreen implements Screen {
         /**
          * Parameters
          */
-        VisLabel palettesLabel = new VisLabel("Palettes");
+        VisLabel palettesLabel = new VisLabel("Palettes:");
+        VisLabel trianglesWidth = new VisLabel("Width (Triangles):");
+        VisLabel trianglesHeight = new VisLabel("Height (Triangles):");
 
         // 
         VisSelectBox<Integer> palettesSelectBox = new VisSelectBox<>();
@@ -269,8 +284,46 @@ public class MainScreen implements Screen {
             }
         });
         
+        //
+        trianglesWidthSelectBox = new VisSelectBox<>();
+        trianglesWidthSelectBox.setItems(AVAILABLE_TRIANGLE_WIDTHS);
+        
+        trianglesWidthSelectBox.addListener(new ChangeListener() {
+            
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+
+                //
+                updateTrianglesArrangement();
+            }
+        });
+        
+        trianglesHeightSelectBox = new VisSelectBox<>();
+        trianglesHeightSelectBox.setItems(AVAILABLE_TRIANGLE_HEIGHTS);
+        
+        trianglesHeightSelectBox.addListener(new ChangeListener() {
+            
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+
+                //
+                updateTrianglesArrangement();
+            }
+        });
+        
+        //
         parameters.add(palettesLabel).grow();
         parameters.add(palettesSelectBox).grow();
+        parameters.row();
+        
+        //
+        parameters.add(trianglesWidth).grow();
+        parameters.add(trianglesWidthSelectBox).grow();
+        parameters.row();
+        
+        //
+        parameters.add(trianglesHeight).grow();
+        parameters.add(trianglesHeightSelectBox).grow();
         parameters.row();
         
         /**
@@ -297,7 +350,7 @@ public class MainScreen implements Screen {
         // align numbers to the right
         triangleCount.setAlignment(Align.right);
         bestScore.setAlignment(Align.right);
-        population.setAlignment(Align.right);
+        populationValueLabel.setAlignment(Align.right);
         totalMutations.setAlignment(Align.right);
         goodMutations.setAlignment(Align.right);
         goodMutationRate.setAlignment(Align.right);
@@ -314,7 +367,7 @@ public class MainScreen implements Screen {
         // 
         statistics.row();
         statistics.add(populationLabel).grow();
-        statistics.add(population).grow();
+        statistics.add(populationValueLabel).grow();
         
         //
         statistics.row();
@@ -349,6 +402,15 @@ public class MainScreen implements Screen {
                  *  
                  * - Start Evolvers
                  */
+                if (population.isEmpty()) {
+                    
+                    // create Evolver Instances as configured by THREADS x CORES
+                    for (int a = 0; a < THREADS*CPU_CORES; a++) {
+                        
+                        //
+//                        population.add(e)
+                    }
+                }
             }
         });
         
@@ -453,6 +515,26 @@ public class MainScreen implements Screen {
     }
     
     /**
+     * 80x53
+     */
+    public void setDefaultTrianglesArrangement() {
+        
+        // ideal width for 4 palettes
+        if (palette.getNumberOfColors() == 4260) {
+            
+            trianglesWidthSelectBox.setSelected(80);
+            trianglesHeightSelectBox.setSelected(53);
+        }
+    }
+    
+    /**
+     * 
+     */
+    public void updateTrianglesArrangement() {
+        
+    }
+    
+    /**
      * Loads/Reloads the Palettes
      */
     public void loadPalettes() {
@@ -460,7 +542,7 @@ public class MainScreen implements Screen {
         //
         try {
             
-            pallete = new Pallete(DEFAULT_PALETTE, PALETTES);
+            palette = new Palette(DEFAULT_PALETTE, PALETTES);
             
         } catch (IOException e) {
             
@@ -469,7 +551,10 @@ public class MainScreen implements Screen {
             System.exit(-1);
         }
         
-        triangleCount.setText(pallete.getNumberOfColors());
+        triangleCount.setText(palette.getNumberOfColors());
+        
+        // update parameters
+        setDefaultTrianglesArrangement();
     }
     
     @Override

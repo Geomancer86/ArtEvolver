@@ -11,7 +11,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
-public class Pallete {
+public class Palette {
 
 	String name;
 	int totalPalletes;
@@ -19,7 +19,7 @@ public class Pallete {
 	
 	List <PalleteColor> colors = new ArrayList<PalleteColor>();
 	
-	public Pallete(String name, int repetitions) throws IOException {
+	public Palette(String name, int repetitions) throws IOException {
 		this.name = name;
 		this.totalPalletes = repetitions;
 		

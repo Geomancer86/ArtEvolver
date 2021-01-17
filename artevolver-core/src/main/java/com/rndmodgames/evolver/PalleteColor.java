@@ -4,12 +4,12 @@ import java.awt.Color;
 
 public class PalleteColor {
 	
-	Pallete pallete;
+	Palette pallete;
 	Long id;
 	String name;
 	Color color;
 	
-	public PalleteColor(Pallete pallete, Long id, String name, int r, int g, int b){
+	public PalleteColor(Palette pallete, Long id, String name, int r, int g, int b){
 		this.pallete = pallete;
 		this.id = id;
 		this.name = name;

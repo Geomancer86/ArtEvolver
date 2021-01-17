@@ -361,7 +361,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         });
     }
 
-    public void loadImage() throws IOException{
+    public void loadImage() throws IOException {
         
     	this.chooser.resetChoosableFileFilters();
     	

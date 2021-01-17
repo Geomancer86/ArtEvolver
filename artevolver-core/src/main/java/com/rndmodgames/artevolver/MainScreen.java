@@ -1,5 +1,7 @@
 package com.rndmodgames.artevolver;
 
+import java.io.IOException;
+
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
@@ -12,20 +14,22 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener.ChangeEvent;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.kotcrab.vis.ui.widget.VisLabel;
+import com.kotcrab.vis.ui.widget.VisSelectBox;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 import com.kotcrab.vis.ui.widget.file.FileChooser;
 import com.kotcrab.vis.ui.widget.file.FileChooser.Mode;
 import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
 import com.kotcrab.vis.ui.widget.file.FileTypeFilter;
+import com.rndmodgames.evolver.Pallete;
 
 /**
  * Main Art Evolver Screen
- * 
- * https://github.com/libgdx/libgdx/wiki/Pixmaps
  * 
  * @author Geomancer86
  */
@@ -50,20 +54,57 @@ public class MainScreen implements Screen {
     AspectRatioFitter<VisTable> imageFitter = null;
     
     /**
+     * Parameters
+     */
+    private static int CPU_CORES                    = 1; // 1-ALL_CORES
+    private static int THREADS                      = 1; // 1-x
+    
+    private static final String DEFAULT_PALETTE = "Sherwin-Williams";
+    private static int PALETTES                     = 1; // 1-x
+    
+    private static int TRIANGLES_WIDTH            = 1; // 
+    private static int TRIANGLES_HEIGHT           = 1; // 
+    
+    private static float TRIANGLE_SIZE_WIDTH  = 3.0f;
+    private static float TRIANGLE_SIZE_HEIGHT = 3.0f;
+
+    private static final Integer [] AVAILABLE_PALETTE_COUNTS = new Integer [] { 1, 2, 3, 4, 5, 6, 7, 8 };
+    
+    /**
+     * Statistics
+     */
+    VisLabel triangleCount = new VisLabel("");
+    VisLabel bestScore = new VisLabel("0.0");
+    
+    VisLabel totalMutations = new VisLabel("0");
+    VisLabel goodMutations = new VisLabel("0");
+    VisLabel goodMutationRate = new VisLabel("0.0");
+    
+    /**
+     * Evolver
+     */
+    private static Pallete pallete;
+    private boolean isRunning = false;
+    
+    /**
      * Source Image File
      */
-    Pixmap sourceImage = null; 
+    Pixmap sourceImage = null;
     
+    //
     public MainScreen(Game game) {
         
         this.game = game;
+        
+        //
+        loadPalettes();
         
         //
         batch = new SpriteBatch();
         
         // 
         stage = new Stage(new ScreenViewport());
-
+        
         /**
          * Main Screen Table
          */
@@ -86,6 +127,18 @@ public class MainScreen implements Screen {
          */
         menuTable = new VisTable(true);
         menuTable.pad(5);
+        
+        /**
+         * Parameters Table
+         */
+        final VisTable parameters = new VisTable(true);
+//        parameters.setDebug(true);
+        
+        /**
+         * Statistics Table
+         */
+        final VisTable statistics = new VisTable(true);
+//        statistics.setDebug(true);
         
         /**
          * Set Source Image Button
@@ -190,6 +243,77 @@ public class MainScreen implements Screen {
             }
         });
         
+        /**
+         * Parameters
+         */
+        VisLabel palettesLabel = new VisLabel("Palettes");
+
+        // 
+        VisSelectBox<Integer> palettesSelectBox = new VisSelectBox<>();
+        palettesSelectBox.setItems(AVAILABLE_PALETTE_COUNTS);
+        
+        palettesSelectBox.addListener(new ChangeListener() {
+            
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                
+                // The selected number of Palettes
+                PALETTES = palettesSelectBox.getSelected();
+                
+                System.out.println("PALETTES: " + PALETTES);
+                
+                // Update Palettes
+                loadPalettes();
+            }
+        });
+        
+        parameters.add(palettesLabel).grow();
+        parameters.add(palettesSelectBox).grow();
+        parameters.row();
+        
+        /**
+         * Statistics
+         *  - Triangle Count
+         *  - Best Score
+         *  - Average Score
+         *  - Population Size
+         *  - Total Mutations
+         *  - Good Mutations
+         *  - Good Mutation Overall Rate
+         *  - Good Mutation Rate Past 5 Minutes
+         *  - Good Mutations Per Minute
+         *  - Good Mutations Per Hour
+         */
+        VisLabel triangleCountLabel = new VisLabel("Triangle Count:");
+        VisLabel bestScoreLabel = new VisLabel("Best Score:");
+        VisLabel totalMutationsLabel = new VisLabel("Total Mutations:");
+        VisLabel goodMutationsLabel = new VisLabel("Good Mutations:");
+        VisLabel goodMutationRateLabel = new VisLabel("Success Rate:");
+        
+        //
+        statistics.add(triangleCountLabel).grow();
+        statistics.add(triangleCount).grow();
+        
+        //
+        statistics.row();
+        statistics.add(bestScoreLabel).grow();
+        statistics.add(bestScore).grow();
+        
+        //
+        statistics.row();
+        statistics.add(totalMutationsLabel).grow();
+        statistics.add(totalMutations).grow();
+        
+        //
+        statistics.row();
+        statistics.add(goodMutationsLabel).grow();
+        statistics.add(goodMutations).grow();
+        
+        //
+        statistics.row();
+        statistics.add(goodMutationRateLabel).grow();
+        statistics.add(goodMutationRate).grow();
+        
         //
         startButton.addListener(new ChangeListener() {
             @Override
@@ -198,6 +322,7 @@ public class MainScreen implements Screen {
                 System.out.println("START EVOLVING!");
                 
                 //
+                isRunning = true;
                 stopButton.setDisabled(false);
                 startButton.setDisabled(true);
             }
@@ -211,6 +336,7 @@ public class MainScreen implements Screen {
                 System.out.println("STOP EVOLVING!");
                 
                 //
+                isRunning = false;
                 startButton.setDisabled(false);
                 stopButton.setDisabled(true);
             }
@@ -224,6 +350,18 @@ public class MainScreen implements Screen {
         menuTable.row().colspan(2);
         menuTable.add(selectFileButton).fill();
         
+        menuTable.row().colspan(2);
+        menuTable.addSeparator();
+        
+        //
+        menuTable.row().colspan(2);
+        menuTable.add(parameters).grow();
+        menuTable.row().colspan(2);
+        menuTable.addSeparator();
+        
+        //
+        menuTable.row().colspan(2);
+        menuTable.add(statistics).grow();
         menuTable.row().colspan(2);
         menuTable.addSeparator();
         
@@ -252,7 +390,7 @@ public class MainScreen implements Screen {
         // Clear blit
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        
+                
         /**
          * Draw Source Texture/Current Best Evolver
          * 
@@ -279,6 +417,26 @@ public class MainScreen implements Screen {
         stage.draw();  
     }
 
+    /**
+     * Loads/Reloads the Palettes
+     */
+    public void loadPalettes() {
+        
+        //
+        try {
+            
+            pallete = new Pallete(DEFAULT_PALETTE, PALETTES);
+            
+        } catch (IOException e) {
+            
+            // TODO error loading palette/exit
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        
+        triangleCount.setText(pallete.getNumberOfColors());
+    }
+    
     @Override
     public void resize(int width, int height) {
         

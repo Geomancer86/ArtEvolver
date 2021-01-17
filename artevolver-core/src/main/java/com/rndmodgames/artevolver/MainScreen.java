@@ -63,6 +63,7 @@ public class MainScreen implements Screen {
     private static int CPU_CORES                    = 2; // 1-ALL_CORES
     private static int THREADS                      = 2; // 1-x
     private static int POPULATION                   = 2; // 2-x
+    private static int ITERATIONS_PER_CYCLE         = 1; // 1-x
     
     private static final String DEFAULT_PALETTE = "Sherwin-Williams";
     private static int PALETTES                     = 1; // 1-x
@@ -76,13 +77,13 @@ public class MainScreen implements Screen {
     private static float TRIANGLE_SCALE = 1.0f;
 
     private static Integer [] AVAILABLE_PALETTE_COUNTS = new Integer [] { 1, 2, 3, 4, 5, 6, 7, 8 };
-    
     private static Integer [] AVAILABLE_TRIANGLE_WIDTHS = new Integer [] {  10, 20, 30, 40, 50, 60, 70, 80 };
-    
     private static Integer [] AVAILABLE_TRIANGLE_HEIGHTS = new Integer [] { 10, 20, 30, 40, 50, 53, 60, 70, 80 };
-     
+    private static Integer [] AVAILABLE_ITERATIONS_PER_CYCLE = new Integer [] { 1, 2, 4, 8, 16, 32, 64, 128, 256 };
+    
     private VisSelectBox<Integer> trianglesWidthSelectBox = null;
     private VisSelectBox<Integer> trianglesHeightSelectBox = null;
+    private VisSelectBox<Integer> iterationsPerCycleSelectBox = null;
     
     /**
      * Statistics
@@ -266,6 +267,7 @@ public class MainScreen implements Screen {
         VisLabel palettesLabel = new VisLabel("Palettes:");
         VisLabel trianglesWidth = new VisLabel("Width (Triangles):");
         VisLabel trianglesHeight = new VisLabel("Height (Triangles):");
+        VisLabel iterationsPerCycleLabel = new VisLabel("Iterations/Cycle:");
 
         // 
         VisSelectBox<Integer> palettesSelectBox = new VisSelectBox<>();
@@ -300,6 +302,7 @@ public class MainScreen implements Screen {
             }
         });
         
+        //
         trianglesHeightSelectBox = new VisSelectBox<>();
         trianglesHeightSelectBox.setItems(AVAILABLE_TRIANGLE_HEIGHTS);
         
@@ -314,6 +317,30 @@ public class MainScreen implements Screen {
         });
         
         //
+        iterationsPerCycleSelectBox = new VisSelectBox<>();
+        iterationsPerCycleSelectBox.setItems(AVAILABLE_ITERATIONS_PER_CYCLE);
+        
+        iterationsPerCycleSelectBox.addListener(new ChangeListener() {
+            
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+
+                //
+                ITERATIONS_PER_CYCLE = iterationsPerCycleSelectBox.getSelected();
+                
+                // reset iterations per evolve cycle
+                for (AbstractEvolver evolver: population) {
+                    
+                    ((LibGDXEvolver) evolver).setIterationsPerCycle(ITERATIONS_PER_CYCLE);
+                }
+            }
+        });
+        
+        // hacky
+        iterationsPerCycleSelectBox.setSelectedIndex(1);
+        iterationsPerCycleSelectBox.setSelectedIndex(0);
+        
+        //
         parameters.add(palettesLabel).grow();
         parameters.add(palettesSelectBox).grow();
         parameters.row();
@@ -326,6 +353,11 @@ public class MainScreen implements Screen {
         //
         parameters.add(trianglesHeight).grow();
         parameters.add(trianglesHeightSelectBox).grow();
+        parameters.row();
+        
+        // 
+        parameters.add(iterationsPerCycleLabel).grow();
+        parameters.add(iterationsPerCycleSelectBox).grow();
         parameters.row();
         
         /**
@@ -411,24 +443,21 @@ public class MainScreen implements Screen {
                         
                         population.add(new LibGDXEvolver());
                         
-                        // start evolver thread
-                        new Thread(population.get(a)).start();
-                        
                         // set thread id
                         ((LibGDXEvolver) population.get(a)).setThreadId(a);
-                        
-                        // set evolution to running
-                        ((LibGDXEvolver) population.get(a)).setRunning(true);
+
+                        // start evolver thread
+                        new Thread(population.get(a)).start();
                     }
-                } else {
+                } 
                     
-                    System.out.println("RESUMING THREADS!"); 
+                System.out.println("STARTING/RESUMING THREADS!"); 
+                
+                for (AbstractEvolver evolver: population) {
                     
-                    for (AbstractEvolver evolver: population) {
-                        
-                        // set evolution to resume
-                        ((LibGDXEvolver) evolver).setRunning(true);
-                    }
+                    // set evolution to start/resume
+                    ((LibGDXEvolver) evolver).setIterationsPerCycle(ITERATIONS_PER_CYCLE);
+                    ((LibGDXEvolver) evolver).setRunning(true);
                 }
             }
         });
@@ -451,6 +480,7 @@ public class MainScreen implements Screen {
                 for (AbstractEvolver evolver: population) {
                     
                     // set evolution to stop
+                    ((LibGDXEvolver) evolver).setIterationsPerCycle(0);
                     ((LibGDXEvolver) evolver).setRunning(false);
                 }
             }
@@ -485,8 +515,8 @@ public class MainScreen implements Screen {
         /**
          * Menu size relative to screen width, make dynamic when resizing
          */
-        table.add(evolverTable).width(Gdx.graphics.getWidth()*0.9f).expand();
-        table.add(menuTable).width(Gdx.graphics.getWidth()*0.1f).expand().right().top();
+        table.add(evolverTable).width(Gdx.graphics.getWidth()*0.85f).expand();
+        table.add(menuTable).width(Gdx.graphics.getWidth()*0.15f).expand().right().top();
         
         stage.addActor(table);
     }
@@ -498,13 +528,54 @@ public class MainScreen implements Screen {
         Gdx.input.setInputProcessor(stage);
     }
 
+    private static float FPS = 30;
+    private static float millisPerFrame = 1000f / FPS; 
+    private static float accumulated = 0f;
+    private static float maxMillisPerFrame = 1000f / 3f;
+    
     @Override
     public void render(float delta) {
        
         // Clear blit
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+              
+        // keep timeframe
+        while (accumulated < millisPerFrame) {
+            
+            // accumulate delta milliseconds between frames
+            accumulated += delta;
+            
+            // break if taking too long
+            if (accumulated >= maxMillisPerFrame) {
                 
+                break;
+            }
+            
+            /**
+             * Update Evolution Cycles/Stats
+             */
+            for (AbstractEvolver evolver: population) {
+                
+                
+            }
+        }
+        
+        // leftover for next frames
+        accumulated -= millisPerFrame;
+        
+        /**
+         * Update UI Statistics
+         */
+        updateEvolutionStats();
+        
+//        int 
+        
+//        for (AbstractEvolver evolver: population) {
+//            
+//            
+//        }
+        
         /**
          * Draw Source Texture/Current Best Evolver
          * 
@@ -530,12 +601,24 @@ public class MainScreen implements Screen {
         stage.act();
         stage.draw();  
     }
-
+    
     /**
      * 
      */
-    public void evolve() {
+    public void updateEvolutionStats() {
+
+        long mutationsCount = 0;
+        long goodMutationsCount = 0;
         
+        for (AbstractEvolver evolver: population) {
+            
+            mutationsCount += ((LibGDXEvolver)evolver).getIterations();
+            goodMutationsCount += ((LibGDXEvolver)evolver).getGoodIterations();
+        }
+        
+        populationValueLabel.setText(population.size() + "");
+        totalMutations.setText(mutationsCount + "");
+        goodMutations.setText(goodMutationsCount + "");
     }
     
     /**

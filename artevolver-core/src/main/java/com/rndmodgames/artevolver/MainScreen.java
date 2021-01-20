@@ -3,6 +3,7 @@ package com.rndmodgames.artevolver;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
@@ -95,6 +96,7 @@ public class MainScreen implements Screen {
     VisLabel totalMutations = new VisLabel("0");
     VisLabel goodMutations = new VisLabel("0");
     VisLabel goodMutationRate = new VisLabel("0.0");
+    VisLabel processingTimeValueLabel = new VisLabel("0s");
     
     /**
      * Evolver
@@ -380,6 +382,7 @@ public class MainScreen implements Screen {
         VisLabel totalMutationsLabel = new VisLabel("Total:");
         VisLabel goodMutationsLabel = new VisLabel("Good:");
         VisLabel goodMutationRateLabel = new VisLabel("Success Rate:");
+        VisLabel processingTimeLabel = new VisLabel("CPU Time:");
         
         // align numbers to the right
         triangleCount.setAlignment(Align.right);
@@ -388,6 +391,7 @@ public class MainScreen implements Screen {
         totalMutations.setAlignment(Align.right);
         goodMutations.setAlignment(Align.right);
         goodMutationRate.setAlignment(Align.right);
+        processingTimeValueLabel.setAlignment(Align.right);
         
         //
         statistics.add(triangleCountLabel).grow();
@@ -417,6 +421,11 @@ public class MainScreen implements Screen {
         statistics.row();
         statistics.add(goodMutationRateLabel).grow();
         statistics.add(goodMutationRate).grow();
+        
+        //
+        statistics.row();
+        statistics.add(processingTimeLabel).grow();
+        statistics.add(processingTimeValueLabel).grow();
         
         //
         startButton.addListener(new ChangeListener() {
@@ -609,16 +618,28 @@ public class MainScreen implements Screen {
 
         long mutationsCount = 0;
         long goodMutationsCount = 0;
+        long processingTime = 0;
         
         for (AbstractEvolver evolver: population) {
             
             mutationsCount += ((LibGDXEvolver)evolver).getIterations();
             goodMutationsCount += ((LibGDXEvolver)evolver).getGoodIterations();
+            processingTime += ((LibGDXEvolver)evolver).getElapsedTime();
         }
         
         populationValueLabel.setText(population.size() + "");
         totalMutations.setText(mutationsCount + "");
         goodMutations.setText(goodMutationsCount + "");
+        
+        /**
+         * CPU time
+         */
+        long seconds = TimeUnit.MILLISECONDS.toSeconds(processingTime);
+        long minutes = TimeUnit.MILLISECONDS.toMinutes(processingTime);
+        long hours = TimeUnit.MILLISECONDS.toHours(processingTime);
+        
+        // 
+        processingTimeValueLabel.setText(hours + " h : " + minutes + " m : " + seconds + " s");
     }
     
     /**

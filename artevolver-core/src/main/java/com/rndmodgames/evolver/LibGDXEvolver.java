@@ -19,6 +19,7 @@ public class LibGDXEvolver extends AbstractEvolver {
     private boolean isRunning = false;
     
     private long started = 0;
+    private long previousTime = 0;
     private long elapsedTime = 0;
     private long iterations = 0;
     private long goodIterations = 0;
@@ -54,9 +55,16 @@ public class LibGDXEvolver extends AbstractEvolver {
         return iterations;
     }
     
+    //
     public long getGoodIterations() {
         
         return goodIterations;
+    }
+    
+    //
+    public long getElapsedTime() {
+        
+        return elapsedTime;
     }
     
     @Override
@@ -64,47 +72,44 @@ public class LibGDXEvolver extends AbstractEvolver {
         // TODO Auto-generated method stub
         
         System.out.println("Start new LibGDXEvolver thread!");
-        
-        this.started = System.currentTimeMillis();
-        
+
         while(true) {
 
+            // initialize time counts
+            this.started = System.currentTimeMillis();
+            this.previousTime = this.started;
+            
             while(isRunning) {
                 
-//                long start = System.currentTimeMillis();
+                long start = System.currentTimeMillis();
 
-//                evolve(start, this.iterationsPerCycle);
-                evolve(1, this.iterationsPerCycle);
+                //
+                evolve(start, this.iterationsPerCycle);
             }
             
             // hack to avoid losing sysou access after setting isRunning to false
             // TODO: research why/how to fix
-//            System.out.print("");
+            System.out.print("");
         }
     }
 
     @Override
     public void evolve(long start, int iterations) {
 
-//        this.elapsedTime += start - this.started;
-        this.iterations += iterations;
+        if (isRunning) {
+            this.elapsedTime += start - this.previousTime;
+            this.iterations += iterations;
+            this.previousTime = start;
+            
+            // evolve
+            for (int a = 0; a < iterations; a++) {
+                
+                
+            }
+        }
         
-//        System.out.println("elapsed: " + ((float) this.elapsedTime / 1000000f) + ", iterations: " + this.iterations);
-        
-        // evolve
-//        for (int a = 0; a < iterations; a++) {
-//            
-//            
-//        }
-        
-//        System.out.println(toString());
+        // hack to avoid losing sysou access after setting isRunning to false
+        // TODO: research why/how to fix
+        System.out.print(""); 
     }
-
-//    @Override
-//    public String toString() {
-//        return "LibGDXEvolver [threadID=" + threadID + ", isStarted=" + isStarted + ", isRunning=" + isRunning
-//                + ", started=" + started + ", elapsedTime=" + elapsedTime + ", iterations=" + iterations + ", "
-//                + (getClass() != null ? "getClass()=" + getClass() + ", " : "") + "hashCode()=" + hashCode() + ", "
-//                + (super.toString() != null ? "toString()=" + super.toString() : "") + "]";
-//    }
 }

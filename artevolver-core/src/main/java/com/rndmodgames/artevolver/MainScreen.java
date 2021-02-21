@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import javax.swing.plaf.synth.SynthOptionPaneUI;
+
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
@@ -537,46 +539,61 @@ public class MainScreen implements Screen {
         Gdx.input.setInputProcessor(stage);
     }
 
-    private static float FPS = 30;
-    private static float millisPerFrame = 1000f / FPS; 
+    private static float FPS = 1;
+    private static float millisPerFrame = 1f / FPS; 
     private static float accumulated = 0f;
-    private static float maxMillisPerFrame = 1000f / 3f;
+    private static float maxMillisPerFrame = 10f / 3f;
     
     @Override
     public void render(float delta) {
-       
+
         // Clear blit
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-              
-        // keep timeframe
-        while (accumulated < millisPerFrame) {
-            
-            // accumulate delta milliseconds between frames
-            accumulated += delta;
-            
-            // break if taking too long
-            if (accumulated >= maxMillisPerFrame) {
-                
-                break;
-            }
-            
-            /**
-             * Update Evolution Cycles/Stats
-             */
-            for (AbstractEvolver evolver: population) {
-                
-                
-            }
-        }
-        
-        // leftover for next frames
-        accumulated -= millisPerFrame;
-        
+
         /**
          * Update UI Statistics
          */
         updateEvolutionStats();
+
+        // Draw UI
+        stage.act();
+        stage.draw();
+    }
+    
+//    @Override
+//    public void render(float delta) {
+//       
+//        System.out.println("delta: " + delta);
+//        
+//        // Clear blit
+//        Gdx.gl.glClearColor(0, 0, 0, 1);
+//        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+              
+        // keep timeframe
+//        while (accumulated < millisPerFrame) {
+//            
+//            // accumulate delta milliseconds between frames
+//            accumulated += delta;
+//            
+//            // break if taking too long
+//            if (accumulated >= maxMillisPerFrame) {
+//                
+//                break;
+//            }
+//        }
+        
+//        System.out.println("accumulated:: " + accumulated);
+        
+        // leftover for next frames
+//        accumulated -= millisPerFrame;
+        
+        /**
+         * Update UI Statistics
+         */
+//        updateEvolutionStats();
+        
+
         
 //        int 
         
@@ -607,15 +624,17 @@ public class MainScreen implements Screen {
 //        }
         
         // Draw UI
-        stage.act();
-        stage.draw();  
-    }
+//        stage.act();
+//        stage.draw();  
+//    }
     
     /**
-     * 
+     * TODO: limit updates to x per second
      */
     public void updateEvolutionStats() {
 
+        System.out.println("Update UI! - Current FPS: " + Gdx.graphics.getFramesPerSecond());
+        
         long mutationsCount = 0;
         long goodMutationsCount = 0;
         long processingTime = 0;

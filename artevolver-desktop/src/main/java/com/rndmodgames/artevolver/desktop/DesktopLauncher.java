@@ -16,6 +16,13 @@ public class DesktopLauncher {
 		config.width = 1280;
 		config.height = 768;
 		
+		/**
+		 * Disable FPS Throttling
+		 */
+		config.vSyncEnabled = false;
+		config.foregroundFPS = 0;
+		config.backgroundFPS = 0;
+		
 		new LwjglApplication(new ArtEvolver(), config);
 	}
 }

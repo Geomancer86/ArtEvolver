@@ -299,6 +299,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         JButton export = new JButton("Export");
         export.setAlignmentX(Component.CENTER_ALIGNMENT);
         export.addActionListener(this);
+        
         menuContainer.add(export);
         
         Container labelContainer = new JPanel();
@@ -337,18 +338,25 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    
       	// NOTE: set minimum size
       	if (triangleScaleWidth < 1f) {
+      	    
       		setSize(380, 260);
+      		
       	} else {
+      	    
       		setSize((int) (320 * triangleScaleWidth), (int) (200 * triangleScaleHeight));
       	}
 
+      	//
 		chooser = new JFileChooser(new File(System.getProperty("user.dir")));
 		chooser.setAcceptAllFileFilterUsed(false);
+		
+		//
         mainFrame.setLocationRelativeTo(null);
         mainFrame.setVisible(true);
     }
 
     public static void main(String[] args) {
+        
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
@@ -452,6 +460,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     }
 
     public void start(){
+        
     	start = System.currentTimeMillis();
 
 //    	this.isRunning = true;

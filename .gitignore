@@ -1,3 +1,7 @@
 /target/
 
 \.settings/
+artevolver-core/target/
+artevolver-desktop/target/
+*.project
+*.classpath

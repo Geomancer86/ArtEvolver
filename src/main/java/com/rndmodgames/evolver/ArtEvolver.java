@@ -43,8 +43,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * width = 3 * scale
 	 * triangles = 80x53
 	 */
-	float triangleScaleHeight = 0.5f;
-	float triangleScaleWidth = 0.5f;
+	float triangleScaleHeight = 3.0f;
+	float triangleScaleWidth = 3.0f;
 	
 	float width = 3.0f * triangleScaleWidth;
 	float height = 3.0f * triangleScaleHeight;
@@ -67,7 +67,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 		- Quick way to crossover pixels
 	 * 		- Quick way to chunk full pixel chunks
 	 */
-	static final int POPULATION 				= 2; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
+	static final int POPULATION 				= 8; // GeneticEvolver: 2-4096 // GreedyEvolver: 1-1 
 	static final int RANDOM_JUMP_MAX_DISTANCE	= 4239/2; // MAX: 4239/2
 	static final int CROSSOVER_MAX 				= 2;
 	static final int TOTAL_PALLETES             = 4;
@@ -105,8 +105,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	double currentScore = 0.0d;
 	double averagePopulationScore = 0.0d;
 
-    public ArtEvolver() throws IOException{
-    	super("ArtEvolver 2019 v1");
+    public ArtEvolver() throws IOException {
+        
+    	super("ArtEvolver 2021 v3");
+    	
     	pallete = new Pallete("Sherwin-Williams", TOTAL_PALLETES);
     	
     	evolver = new ImageEvolver(POPULATION, RANDOM_JUMP_MAX_DISTANCE, CROSSOVER_MAX, triangleScaleHeight, pallete, width, height, widthTriangles, heightTriangles);

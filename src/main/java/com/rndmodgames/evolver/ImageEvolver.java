@@ -21,7 +21,9 @@ public class ImageEvolver extends AbstractEvolver {
 
 //	public static final MersenneTwisterFast random = new MersenneTwisterFast();
 	public static final SplittableRandom random = new SplittableRandom();
-	public static final boolean KILL_PARENTS = false;
+	
+	public static boolean KILL_PARENTS    = false;
+	public static boolean TOURNAMENT_MODE = false;
 
 	public static final DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("####.###################", new DecimalFormatSymbols(Locale.ITALIAN));
 	
@@ -932,18 +934,16 @@ public class ImageEvolver extends AbstractEvolver {
 				 * 
 				 * - Kill worst Drawing each 100k iterations
 				 */
-				if (totalIterations % 1000 == 0) {
-					if (pop.size() > 2) {
-						
-						// Comparator used only once, no need to extract
-						// NOTE: last is best!
-						Collections.sort(pop, new TrianglesComparator());
-						
-//						for (int j = 0; j < pop.size(); j ++) {
-//							System.out.println("Drawing " + j + " score: " + pop.get(j).getScore());
-//						}
-						pop.remove(0);
-					}
+				if (TOURNAMENT_MODE && (totalIterations % 1000 == 0) && (pop.size() > 2)) {
+					// Comparator used only once, no need to extract
+					// NOTE: last is best!
+					Collections.sort(pop, new TrianglesComparator());
+				
+//					for (int j = 0; j < pop.size(); j ++) {
+//						System.out.println("Drawing " + j + " score: " + pop.get(j).getScore());
+//					}
+					
+					pop.remove(0);
 				}
 				
 				/**

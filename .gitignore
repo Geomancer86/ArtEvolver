@@ -1,1 +1,8 @@
 /target/
+*.project
+artevolver-core/.settings/org.eclipse.jdt.core.prefs
+artevolver-core/.settings/org.eclipse.m2e.core.prefs
+artevolver-core/target/
+*.classpath
+artevolver-desktop/.settings/
+artevolver-desktop/target/

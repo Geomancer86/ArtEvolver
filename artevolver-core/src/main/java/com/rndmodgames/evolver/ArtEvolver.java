@@ -29,7 +29,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-public class ArtEvolver extends JFrame implements ActionListener, ChangeListener{
+public class ArtEvolver extends JFrame implements ActionListener, ChangeListener {
 
 	private static final long serialVersionUID = 6291204469421642923L;
 	
@@ -86,6 +86,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	
 	public static int EVOLVE_ITERATIONS    = 1000;
 	private int MAX_ITERATIONS             = 10000000;
+	
+	private static String EXPORT_FOLDER = "D:\\Media\\ArtEvolver";
 	
 	private List <ImageEvolver> evolvers = new ArrayList<>();
 
@@ -290,6 +292,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         stopButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         stopButton.addActionListener(this);
         menuContainer.add(stopButton);
+        
+        JButton sourceButton = new JButton("Source");
+        sourceButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sourceButton.addActionListener(this);
+        menuContainer.add(sourceButton);
         
         JButton enableSecuentialButton = new JButton("Secuential");
         enableSecuentialButton.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -528,6 +535,16 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //			evolver.switchSecuential();
 		}
 		
+		/**
+		 * Source 
+		 */
+        if (event.getActionCommand().equals("Source")) {
+            
+        }
+		
+		/**
+		 * Export
+		 */
 		if (event.getActionCommand().equals("Export")) {
 //			evolver.setExportNextAndClose(true);
 		}

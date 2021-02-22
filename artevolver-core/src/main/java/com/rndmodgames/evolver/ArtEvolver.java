@@ -42,11 +42,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	/**
 	 * MODES
 	 */
-	private static int CURRENT_MODE              = 1;
 	private static final int QUICK_MODE          = 0;
 	private static final int QUICK_EXTENDED_MODE = 1;
 	private static final int QUICK_EXTENDED_24_THREADS   = 2;
-	private static final int QUALITY_MODE        = 9;
+	private static final int FASTEST_MODE           = 10;
+	private static final int QUALITY_MODE        = 90;
+	
+	private static int CURRENT_MODE              = FASTEST_MODE;
 	
 	/**
 	 * TODO: Save Parameters for DROPDOWN SIZE SELECT
@@ -192,6 +194,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	case QUICK_EXTENDED_24_THREADS:
     	    THREADS = 24;
             MAX_ITERATIONS = 250000;
+            triangleScaleHeight = 0.5f;
+            triangleScaleWidth = 0.5f;
+            width = 3.0f * triangleScaleWidth;
+            height = 3.0f * triangleScaleHeight;
+            break;
+            
+    	case FASTEST_MODE:
+            THREADS = 32;
+            MAX_ITERATIONS = 2500;
             triangleScaleHeight = 0.5f;
             triangleScaleWidth = 0.5f;
             width = 3.0f * triangleScaleWidth;

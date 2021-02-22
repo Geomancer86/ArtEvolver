@@ -980,6 +980,7 @@ public class ImageEvolver extends AbstractEvolver {
 //		System.out.println("evolve with " + iterations + " iterations took " + (float)(evolveNow - evolveThen) / 1000f + " seconds");
 	}
 
+	boolean isStarted = false;
 	boolean isRunning = false;
 	
 	public void setRunning(boolean running) {

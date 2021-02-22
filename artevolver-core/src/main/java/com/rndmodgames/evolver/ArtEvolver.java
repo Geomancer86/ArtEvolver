@@ -445,7 +445,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     			((ImageEvolver)currentEvolver).initializeIsosceles();
     		}
     		
-//    		this.resizedOriginal = resizedOriginal;
+    		this.resizedOriginal = resizedOriginal;
     	}
 
 //    	 evolver.initialize();
@@ -478,6 +478,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //    	evolver.initializeFromFile("campito_beta_test_2.txt", 6f);
     }
 
+    /**
+     * TODO: this breaks processing if start is pressed twice (or after stopping)
+     */
     public void start(){
         
     	start = System.currentTimeMillis();
@@ -487,8 +490,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	// run() Evolver instances and as configured by THREADS parameter
 		for (AbstractEvolver currentEvolver : evolvers) {
 			
-			Thread t = new Thread(currentEvolver);
-	        t.start();
+		    // Only start Thread once!
+            if (!((ImageEvolver) currentEvolver).isStarted) {
+
+                Thread t = new Thread(currentEvolver);
+                t.start();
+                
+                ((ImageEvolver) currentEvolver).isStarted = true;
+            }
 
 			((ImageEvolver)currentEvolver).setRunning(true);
 		}

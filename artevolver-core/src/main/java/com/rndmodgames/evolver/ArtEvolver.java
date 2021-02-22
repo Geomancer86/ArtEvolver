@@ -293,11 +293,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         stopButton.addActionListener(this);
         menuContainer.add(stopButton);
         
-        JButton sourceButton = new JButton("Source");
-        sourceButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        sourceButton.addActionListener(this);
-        menuContainer.add(sourceButton);
-        
         JButton enableSecuentialButton = new JButton("Secuential");
         enableSecuentialButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         enableSecuentialButton.addActionListener(this);
@@ -534,13 +529,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		if (event.getActionCommand().equals("Secuential")) {
 //			evolver.switchSecuential();
 		}
-		
-		/**
-		 * Source 
-		 */
-        if (event.getActionCommand().equals("Source")) {
-            
-        }
 		
 		/**
 		 * Export

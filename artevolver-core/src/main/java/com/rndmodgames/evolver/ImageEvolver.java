@@ -43,7 +43,11 @@ public class ImageEvolver extends AbstractEvolver {
 	private float height;
 	private float width;
 
+<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ImageEvolver.java
 	private Palette pallete;
+=======
+	private Pallete pallete;
+>>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ImageEvolver.java
 
 	private int triangleHeight;
 	private int triangleWidth;
@@ -63,7 +67,11 @@ public class ImageEvolver extends AbstractEvolver {
 	private boolean isDirty = true;
 	private boolean exportNextAndClose = false;
 
+<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ImageEvolver.java
 	public ImageEvolver(int population, int randomJumpDistance, int crossoverMax, float scale, Palette pallete,
+=======
+	public ImageEvolver(int population, int randomJumpDistance, int crossoverMax, float scale, Pallete pallete,
+>>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ImageEvolver.java
 			float width, float height, int triangleWidth, int triangleHeight) {
 		
 		this.population = population;
@@ -927,6 +935,7 @@ public class ImageEvolver extends AbstractEvolver {
 			totalIterations++;
 			
 //			if (totalIterations % ((population / 2) * 1000) == 0) {
+<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ImageEvolver.java
 			if (totalIterations % 1000 == 0){
 
 //				long now = System.currentTimeMillis();
@@ -973,6 +982,58 @@ public class ImageEvolver extends AbstractEvolver {
 				if (CrossOver.CLOSE_MUTATIONS_PER_CHILD < 1) {
 					CrossOver.CLOSE_MUTATIONS_PER_CHILD = 1;
 				}
+=======
+			boolean tournamentEnabled = false;
+			
+			if (tournamentEnabled) {
+			    if (totalIterations % 1000 == 0){
+
+//	              long now = System.currentTimeMillis();
+	//
+//	              System.out.println("id: " + id + " - i: " + totalIterations
+//	                               + " - good: " + goodIterations
+//	                               + " - p: " + pop.size()
+//	                               + " - jump: " + crossOver.getRandomJumpDistance()
+//	                               + " - cross: " + crossoverMax
+//	                               + " - best: " + DEFAULT_DECIMAL_FORMAT.format(bestScore)
+//	                               + " - total time: " + DEFAULT_DECIMAL_FORMAT.format(((float) (now - start)) / 1000f) + " seconds");
+
+//	              System.out.println(DEFAULT_DECIMAL_FORMAT.format(bestScore));
+	                
+	                crossOver.halveParameters();
+	                
+	                /**
+	                 * v.1.0.0 optimizations
+	                 *  - CLOSE_MUTATIONS_PER_CHILD * pop
+	                 */
+	                
+	                float factor = 1.0f;
+	                
+	                if (totalIterations == 2500 * pop.size() * factor) {
+	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+	                }
+	                
+	                if (totalIterations == 15000 * pop.size() * factor) {
+	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+	                }
+	                
+	                if (totalIterations == 35000 * pop.size() * factor) {
+	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+	                }
+	                
+	                if (totalIterations == 75000 * pop.size() * factor) {
+	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+	                }
+	                
+	                if (totalIterations % 75000 * 2 == 0) {
+	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+	                }
+	                
+	                if (CrossOver.CLOSE_MUTATIONS_PER_CHILD < 1) {
+	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = 1;
+	                }
+	            }
+>>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ImageEvolver.java
 			}
 		}
 //	}
@@ -980,6 +1041,10 @@ public class ImageEvolver extends AbstractEvolver {
 //		System.out.println("evolve with " + iterations + " iterations took " + (float)(evolveNow - evolveThen) / 1000f + " seconds");
 	}
 
+<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ImageEvolver.java
+=======
+	boolean isStarted = false;
+>>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ImageEvolver.java
 	boolean isRunning = false;
 	
 	public void setRunning(boolean running) {

@@ -11,7 +11,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
+<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/Palette.java
 public class Palette {
+=======
+public class Pallete {
+>>>>>>> threaded_2021:artevolver-core/src/main/java/com/rndmodgames/evolver/Pallete.java
 
 	String name;
 	int totalPalletes;
@@ -19,7 +23,11 @@ public class Palette {
 	
 	List <PalleteColor> colors = new ArrayList<PalleteColor>();
 	
+<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/Palette.java
 	public Palette(String name, int repetitions) throws IOException {
+=======
+	public Pallete(String name, int repetitions) throws IOException{
+>>>>>>> threaded_2021:artevolver-core/src/main/java/com/rndmodgames/evolver/Pallete.java
 		this.name = name;
 		this.totalPalletes = repetitions;
 		
@@ -77,6 +85,7 @@ public class Palette {
 //		System.out.println("Pallete " + name + " Loaded: " + colors.size() + " colors in " + repetitions + " repetitions.");
 	}
 	
+<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/Palette.java
 	/**
 	 * @return the number of colors in this Palette
 	 */
@@ -85,6 +94,8 @@ public class Palette {
 	    return colors.size();
 	}
 	
+=======
+>>>>>>> threaded_2021:artevolver-core/src/main/java/com/rndmodgames/evolver/Pallete.java
 	public void randomize(){
 		Collections.shuffle(colors);
 	}

@@ -121,6 +121,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	double averagePopulationScore = 0d;
 	boolean isDirty = false;
 	boolean isRunning = false;
+	boolean showSource = false;
 	
 	private TriangleList<Triangle> bestPop = new TriangleList<Triangle>();
 
@@ -223,16 +224,23 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				}
 				
 				// draw bestImage to panel
-				if (currentFrame % GUI_UPDATE_MS == 0 && isDirty) {
+				if (showSource) {
 				    
-	            	imagePanel.getGraphics().drawImage(bestImage,
-	            									   32, // TODO: make both offsets dynamic to center in JPanel
-	            									   32,
-	            									   null);
-	            	
-	            	imagePanel.getGraphics().dispose();
-	            	
-	            	isDirty = false;
+				    // 
+				    showSource();
+				    
+				} else {
+				    if (currentFrame % GUI_UPDATE_MS == 0 && isDirty) {
+	                    
+	                    imagePanel.getGraphics().drawImage(bestImage,
+	                                                       32, // TODO: make both offsets dynamic to center in JPanel
+	                                                       32,
+	                                                       null);
+	                    
+	                    imagePanel.getGraphics().dispose();
+	                    
+	                    isDirty = false;
+	                }
 				}
 				
 				// sync best images
@@ -275,6 +283,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	
 			@Override
 	        protected void paintComponent(Graphics g) {
+			    
 	            super.paintComponent(g);
 	        }
 	    };
@@ -302,6 +311,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         enableSecuentialButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         enableSecuentialButton.addActionListener(this);
 //        menuContainer.add(enableSecuentialButton);
+        
+        JButton source = new JButton("Source");
+        source.setAlignmentX(Component.CENTER_ALIGNMENT);
+        source.addActionListener(this);
+        menuContainer.add(source);
         
         JButton export = new JButton("Export");
         export.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -517,14 +531,21 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	
     	processTimer.stop();
     	
-    	// Draw Original Image for Comparison TODO: move to different button
-    	// draw bestImage to panel
-    	imagePanel.getGraphics().drawImage(resizedOriginal,
-    									   32, // TODO: make both offsets dynamic to center in JPanel
-    									   32,
-    									   null);
-    	
-    	imagePanel.getGraphics().dispose();
+
+    }
+    
+    /**
+     * 
+     */
+    public void showSource() {
+        // Draw Original Image for Comparison TODO: move to different button
+        // draw bestImage to panel
+        imagePanel.getGraphics().drawImage(resizedOriginal,
+                                           32, // TODO: make both offsets dynamic to center in JPanel
+                                           32,
+                                           null);
+        
+        imagePanel.getGraphics().dispose();
     }
     
 	@Override
@@ -555,6 +576,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		if (event.getActionCommand().equals("Secuential")) {
 //			evolver.switchSecuential();
 		}
+		
+        if (event.getActionCommand().equals("Source")) {
+
+            showSource = !showSource;
+        }
 		
 		/**
 		 * Export

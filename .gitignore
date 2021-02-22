@@ -5,3 +5,4 @@ artevolver-core/target/
 artevolver-desktop/target/
 *.project
 *.classpath
+bin/

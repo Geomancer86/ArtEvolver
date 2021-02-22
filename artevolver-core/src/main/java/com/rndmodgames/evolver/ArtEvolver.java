@@ -88,6 +88,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private int MAX_ITERATIONS             = 10000000;
 	
 	private static String EXPORT_FOLDER = "D:\\Media\\ArtEvolver";
+	private static String IMAGE_SOURCE_NAME = null;
 	
 	private List <ImageEvolver> evolvers = new ArrayList<>();
 
@@ -100,6 +101,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private JLabel lblAverageScore;
 	private JLabel lblPopulation;
 	private JLabel lblIterations;
+	private JLabel lblIterationsPerSecond;
+	private JLabel lblGoodIterationsPerSecond;
 	
 	private String path;
 	
@@ -192,7 +195,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				// reset as needed
 				totalIterations = 0;
 				goodIterations = 0;
-				
+
 				for (AbstractEvolver currentEvolver : evolvers) {
 					
 					totalIterations += ((ImageEvolver)currentEvolver).getTotalIterations();
@@ -221,6 +224,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				
 				// draw bestImage to panel
 				if (currentFrame % GUI_UPDATE_MS == 0 && isDirty) {
+				    
 	            	imagePanel.getGraphics().drawImage(bestImage,
 	            									   32, // TODO: make both offsets dynamic to center in JPanel
 	            									   32,
@@ -254,6 +258,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	 * This stats only make sense for benchmarking and should keep consistent, for example, printed once each 1 second
             	 */
             	if (currentFrame++ % FPS == 0) {
+
 //           		System.out.println(steps++ + "," + totalIterations + "," + goodIterations + ","  + ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
 //            		System.out.println(ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
             	}
@@ -305,12 +310,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         menuContainer.add(export);
         
         Container labelContainer = new JPanel();
+        
+        //
 		lblScore = new JLabel("S: 0.0");
 		lblScore.setMinimumSize(new Dimension(160, 24));
 		lblScore.setPreferredSize(new Dimension(160, 24));
 		lblScore.setMaximumSize(new Dimension(160, 24));
-		
-		labelContainer.add(lblScore);
 		
 //		lblAverageScore = new JLabel("S(AVG): 0.0");
 //		lblAverageScore.setMinimumSize(new Dimension(160, 24));
@@ -318,20 +323,29 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //		lblAverageScore.setMaximumSize(new Dimension(160, 24));
 //		
 //		labelContainer.add(lblAverageScore);
-		
+
+		//
 		lblPopulation = new JLabel("Pop: 0");
 		lblPopulation.setMinimumSize(new Dimension(160, 24));
 		lblPopulation.setPreferredSize(new Dimension(160, 24));
 		lblPopulation.setMaximumSize(new Dimension(160, 24));
-		
-		labelContainer.add(lblPopulation);
-		
+
+		//
 		lblIterations = new JLabel("I: 0/0");
 		lblIterations.setMinimumSize(new Dimension(160, 24));
 		lblIterations.setPreferredSize(new Dimension(160, 24));
 		lblIterations.setMaximumSize(new Dimension(160, 24));
 		
+		//
+		lblIterationsPerSecond = new JLabel("I/second: 0.0");
+		lblIterationsPerSecond.setMinimumSize(new Dimension(160, 24));
+		lblIterationsPerSecond.setPreferredSize(new Dimension(160, 24));
+		lblIterationsPerSecond.setMaximumSize(new Dimension(160, 24));
+        
+		labelContainer.add(lblPopulation);
+        labelContainer.add(lblScore);
 		labelContainer.add(lblIterations);
+		labelContainer.add(lblIterationsPerSecond);
 		
 		menuContainer.add(labelContainer);
       	
@@ -383,6 +397,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 			    
 				originalImage = ImageIO.read(new File(chooser.getCurrentDirectory().toString() + "\\"	+ chooser.getSelectedFile().getName()));
 				path = (chooser.getCurrentDirectory().toString() + "\\" + chooser.getSelectedFile().getName());
+				
+				// 
+				IMAGE_SOURCE_NAME = chooser.getSelectedFile().getName();
 				
 			} catch (Exception localException) {
 			    
@@ -465,7 +482,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         
     	start = System.currentTimeMillis();
 
-//    	this.isRunning = true;
+    	this.isRunning = true;
     	
     	// run() Evolver instances and as configured by THREADS parameter
 		for (AbstractEvolver currentEvolver : evolvers) {
@@ -534,7 +551,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		 * Export
 		 */
 		if (event.getActionCommand().equals("Export")) {
-//			evolver.setExportNextAndClose(true);
+		    
+		    // 
+		    if (IMAGE_SOURCE_NAME != null) {
+		        
+		        System.out.println(IMAGE_SOURCE_NAME);
+		    }
+		    
+		    
+		    
 		}
 	}
 }

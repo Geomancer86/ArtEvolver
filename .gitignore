@@ -1,7 +1,6 @@
 /target/
 
 \.settings/
-<<<<<<< HEAD
 .classpath
 .project
 .gradle/6.7/executionHistory/executionHistory.lock
@@ -17,9 +16,8 @@ artevolver-desktop/.project
 gradle/wrapper/gradle-wrapper.jar
 gradle/wrapper/gradle-wrapper.properties
 /.gradle/
-=======
 artevolver-core/target/
 artevolver-desktop/target/
 *.project
 *.classpath
->>>>>>> threaded_2021
+bin/

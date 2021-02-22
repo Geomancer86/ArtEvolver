@@ -29,23 +29,16 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-public class ArtEvolver extends JFrame implements ActionListener, ChangeListener{
-=======
+import com.rndmodgames.evolver.Palette;
 import com.rndmodgames.evolver.render.Renderer;
 
 public class ArtEvolver extends JFrame implements ActionListener, ChangeListener {
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
 
 	private static final long serialVersionUID = 6291204469421642923L;
 	
 	private JFrame mainFrame;
 	private JPanel imagePanel;
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
 	private Palette pallete;
-
-=======
-	private Pallete pallete;
 	
 	/**
 	 * MODES
@@ -58,9 +51,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private static final int BEST_SMALL_MODE           = 30;
 	private static final int QUALITY_MODE              = 90;
 	
-	private static int CURRENT_MODE = QUALITY_SMALL_MODE;
+	private static int CURRENT_MODE = QUICK_EXTENDED_MODE;
 	
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
 	/**
 	 * TODO: Save Parameters for DROPDOWN SIZE SELECT
 	 * 
@@ -68,14 +60,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * width = 3 * scale
 	 * triangles = 80x53
 	 */
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
 	float triangleScaleHeight = 3.0f; // 0.25f, 0.5f, 0.66f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f 
 	float triangleScaleWidth = 3.0f;
-=======
-	float triangleScaleHeight = 0.5f; // 0.25f, 0.5f, 0.66f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f 
-	float triangleScaleWidth = 0.5f;
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-	
+
 	float width = 3.0f * triangleScaleWidth;
 	float height = 3.0f * triangleScaleHeight;
 	
@@ -111,22 +98,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private int CROSSOVERS_MAX [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
 	
 	public static final int IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB;
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-//	public static final int IMAGE_TYPE = BufferedImage.TYPE_INT_RGB;
-=======
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
 	
 	public static int EVOLVE_ITERATIONS    = 1000;
 	private int MAX_ITERATIONS             = 10000000;
-	
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-=======
+
 	private static String SEPARATOR = ",";
 	private static String EXPORT_FOLDER = "D:\\Media\\ArtEvolver\\";
 	private static String IMAGE_SOURCE_NAME = null;
 	private static int EXPORTED_IMAGES = 0;
-	
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
+
 	private List <ImageEvolver> evolvers = new ArrayList<>();
 
 	// Timer
@@ -138,11 +118,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private JLabel lblAverageScore;
 	private JLabel lblPopulation;
 	private JLabel lblIterations;
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-=======
 	private JLabel lblIterationsPerSecond;
 	private JLabel lblGoodIterationsPerSecond;
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
 	
 	private String path;
 	
@@ -161,11 +138,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	double averagePopulationScore = 0d;
 	boolean isDirty = false;
 	boolean isRunning = false;
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-=======
 	boolean showSource = false;
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-	
+
 	private TriangleList<Triangle> bestPop = new TriangleList<Triangle>();
 
 	/**
@@ -199,13 +173,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
     public ArtEvolver() throws IOException{
         
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-    	super("ArtEvolver 2021 v2.02");
-    	
-    	pallete = new Palette("Sherwin-Williams", TOTAL_PALLETES);
-=======
-    	super("ArtEvolver 2021 v2.03");
-    	
+        super("ArtEvolver 2021 v2.03");
+
     	switch (CURRENT_MODE) {
     	
     	case QUALITY_MODE:
@@ -272,8 +241,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	    break;
     	}
     	
-    	pallete = new Pallete("Sherwin-Williams", TOTAL_PALLETES);
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
+    	pallete = new Palette("Sherwin-Williams", TOTAL_PALLETES);
 
     	// Create Evolver instances as configured by the THREADS parameter
     	for (int a = 0; a < THREADS; a ++) {
@@ -303,23 +271,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         // init timer
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
         processTimer = new Timer(EVOLVER_UPDATE_MS, new ActionListener() { 
-=======
-        processTimer = new Timer(EVOLVER_UPDATE_MS, new ActionListener() {
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
 
-			@Override
+            @Override
             public void actionPerformed(ActionEvent e) {
 
 				// reset as needed
 				totalIterations = 0;
 				goodIterations = 0;
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-				
-=======
 
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
 				for (AbstractEvolver currentEvolver : evolvers) {
 					
 					totalIterations += ((ImageEvolver)currentEvolver).getTotalIterations();
@@ -347,8 +307,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				}
 				
 				// draw bestImage to panel
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
 				if (currentFrame % GUI_UPDATE_MS == 0 && isDirty) {
+				    
+				}
 	            	imagePanel.getGraphics().drawImage(bestImage,
 	            									   32, // TODO: make both offsets dynamic to center in JPanel
 	            									   32,
@@ -357,7 +318,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	            	imagePanel.getGraphics().dispose();
 	            	
 	            	isDirty = false;
-=======
+
 				if (showSource) {
 				    
 				    // 
@@ -375,7 +336,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	                    
 	                    isDirty = false;
 	                }
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
 				}
 				
 				// sync best images
@@ -401,12 +361,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	 * This stats only make sense for benchmarking and should keep consistent, for example, printed once each 1 second
             	 */
             	if (currentFrame++ % FPS == 0) {
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-//           		System.out.println(steps++ + "," + totalIterations + "," + goodIterations + ","  + ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
-//            		System.out.println(ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
-            	}
-=======
-
 //           		System.out.println(steps++ + "," + totalIterations + "," + goodIterations + ","  + ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
 //            		System.out.println(ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
             	}
@@ -423,7 +377,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                         System.exit(0);
                     }
             	}
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
             }
         });
         
@@ -437,10 +390,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	
 			@Override
 	        protected void paintComponent(Graphics g) {
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-=======
+
+
 			    
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
+
 	            super.paintComponent(g);
 	        }
 	    };
@@ -464,38 +417,30 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         stopButton.addActionListener(this);
         menuContainer.add(stopButton);
         
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
         JButton enableSecuentialButton = new JButton("Secuential");
         enableSecuentialButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         enableSecuentialButton.addActionListener(this);
 //        menuContainer.add(enableSecuentialButton);
-=======
+
         JButton source = new JButton("Source");
         source.setAlignmentX(Component.CENTER_ALIGNMENT);
         source.addActionListener(this);
         menuContainer.add(source);
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
         
         JButton export = new JButton("Export");
         export.setAlignmentX(Component.CENTER_ALIGNMENT);
         export.addActionListener(this);
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
         menuContainer.add(export);
         
         Container labelContainer = new JPanel();
-=======
         
         menuContainer.add(export);
-        
-        Container labelContainer = new JPanel();
         
         //
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
 		lblScore = new JLabel("S: 0.0");
 		lblScore.setMinimumSize(new Dimension(160, 24));
 		lblScore.setPreferredSize(new Dimension(160, 24));
 		lblScore.setMaximumSize(new Dimension(160, 24));
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
 		
 		labelContainer.add(lblScore);
 		
@@ -505,31 +450,23 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //		lblAverageScore.setMaximumSize(new Dimension(160, 24));
 //		
 //		labelContainer.add(lblAverageScore);
-		
-=======
 
 		//
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
 		lblPopulation = new JLabel("Pop: 0");
 		lblPopulation.setMinimumSize(new Dimension(160, 24));
 		lblPopulation.setPreferredSize(new Dimension(160, 24));
 		lblPopulation.setMaximumSize(new Dimension(160, 24));
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
 		
 		labelContainer.add(lblPopulation);
-		
-=======
 
 		//
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
 		lblIterations = new JLabel("I: 0/0");
 		lblIterations.setMinimumSize(new Dimension(160, 24));
 		lblIterations.setPreferredSize(new Dimension(160, 24));
 		lblIterations.setMaximumSize(new Dimension(160, 24));
-		
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
+
 		labelContainer.add(lblIterations);
-=======
+
 		//
 //		lblIterationsPerSecond = new JLabel("I/second: 0.0");
 //		lblIterationsPerSecond.setMinimumSize(new Dimension(160, 24));
@@ -540,7 +477,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         labelContainer.add(lblScore);
 		labelContainer.add(lblIterations);
 //		labelContainer.add(lblIterationsPerSecond);
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
 		
 		menuContainer.add(labelContainer);
       	
@@ -549,16 +485,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    
       	// NOTE: set minimum size
       	if (triangleScaleWidth < 1f) {
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-      		setSize(380, 260);
-      	} else {
-      		setSize((int) (320 * triangleScaleWidth), (int) (200 * triangleScaleHeight));
-      	}
 
-		chooser = new JFileChooser(new File(System.getProperty("user.dir")));
-		chooser.setAcceptAllFileFilterUsed(false);
-=======
-      	    
       		setSize(420, 300);
       		
       	} else {
@@ -571,16 +498,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		chooser.setAcceptAllFileFilterUsed(false);
 		
 		//
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
         mainFrame.setLocationRelativeTo(null);
         mainFrame.setVisible(true);
     }
 
     public static void main(String[] args) {
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-=======
-        
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
+
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
@@ -593,12 +516,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         });
     }
 
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
+
     public void loadImage() throws IOException {
-=======
-    public void loadImage() throws IOException{
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-        
+
     	this.chooser.resetChoosableFileFilters();
     	
 		this.chooser.setFileFilter(new FileNameExtensionFilter("Image Files", new String[] { "jpg", "jpeg", "png", "gif", "bmp" }));
@@ -609,28 +529,22 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 			    
 				originalImage = ImageIO.read(new File(chooser.getCurrentDirectory().toString() + "\\"	+ chooser.getSelectedFile().getName()));
 				path = (chooser.getCurrentDirectory().toString() + "\\" + chooser.getSelectedFile().getName());
-				
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-=======
+
 				// 
 				IMAGE_SOURCE_NAME = chooser.getSelectedFile().getName();
-				
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
+
 			} catch (Exception localException) {
 			    
 				JOptionPane.showMessageDialog(null, "Unable to Load Image", "Fail", 2);
 			}
 		}
 
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-=======
 		// Ignore on Select File Window Close (without picking a file)
 		if (originalImage == null) {
 		    
 		    return;
 		}
-		
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
+
 		/**
 		 * Resizing code seems to be OK
 		 */
@@ -668,12 +582,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //    			((ImageEvolver)currentEvolver).setCurrentImage(resizedOriginal);
     			((ImageEvolver)currentEvolver).initializeIsosceles();
     		}
-    		
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-//    		this.resizedOriginal = resizedOriginal;
-=======
+
     		this.resizedOriginal = resizedOriginal;
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
     	}
 
 //    	 evolver.initialize();
@@ -706,12 +616,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //    	evolver.initializeFromFile("campito_beta_test_2.txt", 6f);
     }
 
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-    public void start(){
-    	start = System.currentTimeMillis();
-
-//    	this.isRunning = true;
-=======
     /**
      * TODO: this breaks processing if start is pressed twice (or after stopping)
      */
@@ -720,15 +624,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	start = System.currentTimeMillis();
 
     	this.isRunning = true;
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
     	
     	// run() Evolver instances and as configured by THREADS parameter
 		for (AbstractEvolver currentEvolver : evolvers) {
-			
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-			Thread t = new Thread(currentEvolver);
-	        t.start();
-=======
+
 		    // Only start Thread once!
             if (!((ImageEvolver) currentEvolver).isStarted) {
 
@@ -737,7 +636,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                 
                 ((ImageEvolver) currentEvolver).isStarted = true;
             }
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
 
 			((ImageEvolver)currentEvolver).setRunning(true);
 		}
@@ -756,17 +654,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	this.isRunning = false;
     	
     	processTimer.stop();
-    	
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-    	// Draw Original Image for Comparison TODO: move to different button
-    	// draw bestImage to panel
-    	imagePanel.getGraphics().drawImage(resizedOriginal,
-    									   32, // TODO: make both offsets dynamic to center in JPanel
-    									   32,
-    									   null);
-    	
-    	imagePanel.getGraphics().dispose();
-=======
 
     }
     
@@ -807,8 +694,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                 (int) (height * (heightTriangles - 1)), // do not render last row
                 IMAGE_TYPE,
                 1);
+    
         
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
     }
     
 	@Override
@@ -820,22 +707,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public void actionPerformed(ActionEvent event) {
 		
 		if (event.getActionCommand().equals("Load")) {
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-			try {
-				loadImage();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-=======
 			
 		    try {
-				loadImage();
+
+		        loadImage();
 				
 			} catch (IOException e) {
 			    
 			    // ignore close button
 //				e.printStackTrace();
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
 			}
 		}
 		
@@ -851,10 +731,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //			evolver.switchSecuential();
 		}
 		
-<<<<<<< HEAD:artevolver-core/src/main/java/com/rndmodgames/evolver/ArtEvolver.java
-		if (event.getActionCommand().equals("Export")) {
-//			evolver.setExportNextAndClose(true);
-=======
         if (event.getActionCommand().equals("Source")) {
 
             showSource = !showSource;
@@ -873,7 +749,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		        // 
 		        EXPORTED_IMAGES++;
 		    }
->>>>>>> threaded_2021:src/main/java/com/rndmodgames/evolver/ArtEvolver.java
 		}
 	}
 }

@@ -29,6 +29,8 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import com.rndmodgames.evolver.render.Renderer;
+
 public class ArtEvolver extends JFrame implements ActionListener, ChangeListener {
 
 	private static final long serialVersionUID = 6291204469421642923L;
@@ -88,8 +90,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private int MAX_ITERATIONS             = 10000000;
 	
 	private static String SEPARATOR = ",";
-	private static String EXPORT_FOLDER = "D:\\Media\\ArtEvolver";
+	private static String EXPORT_FOLDER = "D:\\Media\\ArtEvolver\\";
 	private static String IMAGE_SOURCE_NAME = null;
+	private static int EXPORTED_IMAGES = 0;
 	
 	private List <ImageEvolver> evolvers = new ArrayList<>();
 
@@ -546,11 +549,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public void actionPerformed(ActionEvent event) {
 		
 		if (event.getActionCommand().equals("Load")) {
-			try {
+			
+		    try {
 				loadImage();
+				
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			    
+			    // ignore close button
+//				e.printStackTrace();
 			}
 		}
 		
@@ -579,6 +585,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		    // 
 		    if (IMAGE_SOURCE_NAME != null) {
 		        
+		        String [] splitted = IMAGE_SOURCE_NAME.split("\\.");
+		        
+		        System.out.println("IMAGE_SOURCE_NAME: " + IMAGE_SOURCE_NAME);
+		        System.out.println("name             : " + splitted[0]);
+		        
 		        System.out.println(IMAGE_SOURCE_NAME + SEPARATOR
 		                            + THREADS + SEPARATOR
 		                            + (THREADS * POPULATION) + SEPARATOR
@@ -586,6 +597,18 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		                            + goodIterations + SEPARATOR
 		                            + bestScore);
 		        
+		        
+		        Renderer.renderToPNG(bestPop,
+		                            splitted[0],
+		                            EXPORT_FOLDER,
+		                            EXPORTED_IMAGES,
+		                            (int) (width * widthTriangles),
+		                            (int) (height * (heightTriangles - 1)), // do not render last row
+		                            IMAGE_TYPE,
+		                            1);
+		        
+		        // 
+		        EXPORTED_IMAGES++;
 		    }
 		    
 		    

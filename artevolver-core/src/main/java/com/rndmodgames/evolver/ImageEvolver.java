@@ -927,52 +927,56 @@ public class ImageEvolver extends AbstractEvolver {
 			totalIterations++;
 			
 //			if (totalIterations % ((population / 2) * 1000) == 0) {
-			if (totalIterations % 1000 == 0){
+			boolean tournamentEnabled = true;
+			
+			if (tournamentEnabled) {
+			    if (totalIterations % 1000 == 0){
 
-//				long now = System.currentTimeMillis();
-//
-//				System.out.println("id: " + id + " - i: " + totalIterations
-//								 + " - good: " + goodIterations
-//								 + " - p: " + pop.size()
-//								 + " - jump: " + crossOver.getRandomJumpDistance()
-//								 + " - cross: " + crossoverMax
-//								 + " - best: " + DEFAULT_DECIMAL_FORMAT.format(bestScore)
-//								 + " - total time: " + DEFAULT_DECIMAL_FORMAT.format(((float) (now - start)) / 1000f) + " seconds");
+//	              long now = System.currentTimeMillis();
+	//
+//	              System.out.println("id: " + id + " - i: " + totalIterations
+//	                               + " - good: " + goodIterations
+//	                               + " - p: " + pop.size()
+//	                               + " - jump: " + crossOver.getRandomJumpDistance()
+//	                               + " - cross: " + crossoverMax
+//	                               + " - best: " + DEFAULT_DECIMAL_FORMAT.format(bestScore)
+//	                               + " - total time: " + DEFAULT_DECIMAL_FORMAT.format(((float) (now - start)) / 1000f) + " seconds");
 
-//				System.out.println(DEFAULT_DECIMAL_FORMAT.format(bestScore));
-				
-				crossOver.halveParameters();
-				
-				/**
-				 * v.1.0.0 optimizations
-				 * 	- CLOSE_MUTATIONS_PER_CHILD * pop
-				 */
-				
-				float factor = 1.0f;
-				
-				if (totalIterations == 2500 * pop.size() * factor) {
-					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
-				}
-				
-				if (totalIterations == 15000 * pop.size() * factor) {
-					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
-				}
-				
-				if (totalIterations == 35000 * pop.size() * factor) {
-					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
-				}
-				
-				if (totalIterations == 75000 * pop.size() * factor) {
-					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
-				}
-				
-				if (totalIterations % 75000 * 2 == 0) {
-					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
-				}
-				
-				if (CrossOver.CLOSE_MUTATIONS_PER_CHILD < 1) {
-					CrossOver.CLOSE_MUTATIONS_PER_CHILD = 1;
-				}
+//	              System.out.println(DEFAULT_DECIMAL_FORMAT.format(bestScore));
+	                
+	                crossOver.halveParameters();
+	                
+	                /**
+	                 * v.1.0.0 optimizations
+	                 *  - CLOSE_MUTATIONS_PER_CHILD * pop
+	                 */
+	                
+	                float factor = 1.0f;
+	                
+	                if (totalIterations == 2500 * pop.size() * factor) {
+	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+	                }
+	                
+	                if (totalIterations == 15000 * pop.size() * factor) {
+	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+	                }
+	                
+	                if (totalIterations == 35000 * pop.size() * factor) {
+	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+	                }
+	                
+	                if (totalIterations == 75000 * pop.size() * factor) {
+	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+	                }
+	                
+	                if (totalIterations % 75000 * 2 == 0) {
+	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+	                }
+	                
+	                if (CrossOver.CLOSE_MUTATIONS_PER_CHILD < 1) {
+	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = 1;
+	                }
+	            }
 			}
 		}
 //	}

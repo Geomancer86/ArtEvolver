@@ -87,6 +87,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static int EVOLVE_ITERATIONS    = 1000;
 	private int MAX_ITERATIONS             = 10000000;
 	
+	private static String SEPARATOR = ",";
 	private static String EXPORT_FOLDER = "D:\\Media\\ArtEvolver";
 	private static String IMAGE_SOURCE_NAME = null;
 	
@@ -307,11 +308,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         stopButton.addActionListener(this);
         menuContainer.add(stopButton);
         
-        JButton enableSecuentialButton = new JButton("Secuential");
-        enableSecuentialButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        enableSecuentialButton.addActionListener(this);
-//        menuContainer.add(enableSecuentialButton);
-        
         JButton source = new JButton("Source");
         source.setAlignmentX(Component.CENTER_ALIGNMENT);
         source.addActionListener(this);
@@ -330,13 +326,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		lblScore.setMinimumSize(new Dimension(160, 24));
 		lblScore.setPreferredSize(new Dimension(160, 24));
 		lblScore.setMaximumSize(new Dimension(160, 24));
-		
-//		lblAverageScore = new JLabel("S(AVG): 0.0");
-//		lblAverageScore.setMinimumSize(new Dimension(160, 24));
-//		lblAverageScore.setPreferredSize(new Dimension(160, 24));
-//		lblAverageScore.setMaximumSize(new Dimension(160, 24));
-//		
-//		labelContainer.add(lblAverageScore);
 
 		//
 		lblPopulation = new JLabel("Pop: 0");
@@ -351,15 +340,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		lblIterations.setMaximumSize(new Dimension(160, 24));
 		
 		//
-		lblIterationsPerSecond = new JLabel("I/second: 0.0");
-		lblIterationsPerSecond.setMinimumSize(new Dimension(160, 24));
-		lblIterationsPerSecond.setPreferredSize(new Dimension(160, 24));
-		lblIterationsPerSecond.setMaximumSize(new Dimension(160, 24));
+//		lblIterationsPerSecond = new JLabel("I/second: 0.0");
+//		lblIterationsPerSecond.setMinimumSize(new Dimension(160, 24));
+//		lblIterationsPerSecond.setPreferredSize(new Dimension(160, 24));
+//		lblIterationsPerSecond.setMaximumSize(new Dimension(160, 24));
         
 		labelContainer.add(lblPopulation);
         labelContainer.add(lblScore);
 		labelContainer.add(lblIterations);
-		labelContainer.add(lblIterationsPerSecond);
+//		labelContainer.add(lblIterationsPerSecond);
 		
 		menuContainer.add(labelContainer);
       	
@@ -590,7 +579,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		    // 
 		    if (IMAGE_SOURCE_NAME != null) {
 		        
-		        System.out.println(IMAGE_SOURCE_NAME);
+		        System.out.println(IMAGE_SOURCE_NAME + SEPARATOR
+		                            + THREADS + SEPARATOR
+		                            + (THREADS * POPULATION) + SEPARATOR
+		                            + totalIterations + SEPARATOR
+		                            + goodIterations + SEPARATOR
+		                            + bestScore);
+		        
 		    }
 		    
 		    

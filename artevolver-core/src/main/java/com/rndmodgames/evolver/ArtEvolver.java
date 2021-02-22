@@ -42,13 +42,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	/**
 	 * MODES
 	 */
-	private static final int QUICK_MODE          = 0;
-	private static final int QUICK_EXTENDED_MODE = 1;
-	private static final int QUICK_EXTENDED_24_THREADS   = 2;
-	private static final int FASTEST_MODE           = 10;
-	private static final int QUALITY_MODE        = 90;
+	private static final int QUICK_MODE                =  0;
+	private static final int QUICK_EXTENDED_MODE       =  1;
+ 	private static final int QUICK_EXTENDED_24_THREADS =  2;
+	private static final int FASTEST_MODE              = 10;
+	private static final int QUALITY_SMALL_MODE        = 20;
+	private static final int BEST_SMALL_MODE           = 30;
+	private static final int QUALITY_MODE              = 90;
 	
-	private static int CURRENT_MODE              = FASTEST_MODE;
+	private static int CURRENT_MODE = QUALITY_SMALL_MODE;
 	
 	/**
 	 * TODO: Save Parameters for DROPDOWN SIZE SELECT
@@ -178,6 +180,24 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	    THREADS = 8;
             triangleScaleHeight = 3f;
             triangleScaleWidth = 3f;
+            width = 3.0f * triangleScaleWidth;
+            height = 3.0f * triangleScaleHeight;
+            break;
+            
+    	case BEST_SMALL_MODE:
+            THREADS = 32;
+            MAX_ITERATIONS = 2500000;
+            triangleScaleHeight = 0.5f;
+            triangleScaleWidth = 0.5f;
+            width = 3.0f * triangleScaleWidth;
+            height = 3.0f * triangleScaleHeight;
+            break;
+            
+    	case QUALITY_SMALL_MODE:
+            THREADS = 32;
+            MAX_ITERATIONS = 1000000;
+            triangleScaleHeight = 0.5f;
+            triangleScaleWidth = 0.5f;
             width = 3.0f * triangleScaleWidth;
             height = 3.0f * triangleScaleHeight;
             break;

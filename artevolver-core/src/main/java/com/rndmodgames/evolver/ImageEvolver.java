@@ -927,7 +927,7 @@ public class ImageEvolver extends AbstractEvolver {
 			totalIterations++;
 			
 //			if (totalIterations % ((population / 2) * 1000) == 0) {
-			boolean tournamentEnabled = true;
+			boolean tournamentEnabled = false;
 			
 			if (tournamentEnabled) {
 			    if (totalIterations % 1000 == 0){

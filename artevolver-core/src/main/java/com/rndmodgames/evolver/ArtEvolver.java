@@ -38,7 +38,16 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private JFrame mainFrame;
 	private JPanel imagePanel;
 	private Pallete pallete;
-
+	
+	/**
+	 * MODES
+	 */
+	private static int CURRENT_MODE              = 1;
+	private static final int QUICK_MODE          = 0;
+	private static final int QUICK_EXTENDED_MODE = 1;
+	private static final int QUICK_EXTENDED_24_THREADS   = 2;
+	private static final int QUALITY_MODE        = 9;
+	
 	/**
 	 * TODO: Save Parameters for DROPDOWN SIZE SELECT
 	 * 
@@ -46,8 +55,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * width = 3 * scale
 	 * triangles = 80x53
 	 */
-	float triangleScaleHeight = 3.0f; // 0.25f, 0.5f, 0.66f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f 
-	float triangleScaleWidth = 3.0f;
+	float triangleScaleHeight = 0.5f; // 0.25f, 0.5f, 0.66f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f 
+	float triangleScaleWidth = 0.5f;
 	
 	float width = 3.0f * triangleScaleWidth;
 	float height = 3.0f * triangleScaleHeight;
@@ -84,7 +93,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private int CROSSOVERS_MAX [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
 	
 	public static final int IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB;
-//	public static final int IMAGE_TYPE = BufferedImage.TYPE_INT_RGB;
 	
 	public static int EVOLVE_ITERATIONS    = 1000;
 	private int MAX_ITERATIONS             = 10000000;
@@ -160,7 +168,46 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
     public ArtEvolver() throws IOException{
         
-    	super("ArtEvolver 2021 v2.02");
+    	super("ArtEvolver 2021 v2.03");
+    	
+    	switch (CURRENT_MODE) {
+    	
+    	case QUALITY_MODE:
+    	    THREADS = 8;
+            triangleScaleHeight = 3f;
+            triangleScaleWidth = 3f;
+            width = 3.0f * triangleScaleWidth;
+            height = 3.0f * triangleScaleHeight;
+            break;
+    	
+    	case QUICK_EXTENDED_MODE:
+            THREADS = 16;
+            MAX_ITERATIONS = 250000;
+            triangleScaleHeight = 0.5f;
+            triangleScaleWidth = 0.5f;
+            width = 3.0f * triangleScaleWidth;
+            height = 3.0f * triangleScaleHeight;
+            break;
+
+    	case QUICK_EXTENDED_24_THREADS:
+    	    THREADS = 24;
+            MAX_ITERATIONS = 250000;
+            triangleScaleHeight = 0.5f;
+            triangleScaleWidth = 0.5f;
+            width = 3.0f * triangleScaleWidth;
+            height = 3.0f * triangleScaleHeight;
+            break;
+            
+    	case QUICK_MODE:
+    	default:
+    	    THREADS = 16;
+    	    MAX_ITERATIONS = 25000;
+    	    triangleScaleHeight = 0.5f;
+    	    triangleScaleWidth = 0.5f;
+    	    width = 3.0f * triangleScaleWidth;
+    	    height = 3.0f * triangleScaleHeight;
+    	    break;
+    	}
     	
     	pallete = new Pallete("Sherwin-Williams", TOTAL_PALLETES);
 
@@ -274,6 +321,19 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //           		System.out.println(steps++ + "," + totalIterations + "," + goodIterations + ","  + ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
 //            		System.out.println(ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
             	}
+            	
+            	/**
+            	 * Close and Export for Quick and Quick Extended Modes
+            	 */
+            	if (CURRENT_MODE != QUALITY_MODE) {
+            	    
+            	    if (totalIterations >= MAX_ITERATIONS) {
+                        
+                        //
+                        renderBestImage();
+                        System.exit(0);
+                    }
+            	}
             }
         });
         
@@ -361,7 +421,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
       	// NOTE: set minimum size
       	if (triangleScaleWidth < 1f) {
       	    
-      		setSize(380, 260);
+      		setSize(420, 300);
       		
       	} else {
       	    
@@ -413,6 +473,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 			}
 		}
 
+		// Ignore on Select File Window Close (without picking a file)
+		if (originalImage == null) {
+		    
+		    return;
+		}
+		
 		/**
 		 * Resizing code seems to be OK
 		 */
@@ -540,6 +606,32 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         imagePanel.getGraphics().dispose();
     }
     
+    /**
+     * 
+     */
+    public void renderBestImage() {
+        
+        System.out.println(IMAGE_SOURCE_NAME + SEPARATOR
+                + THREADS + SEPARATOR
+                + (THREADS * POPULATION) + SEPARATOR
+                + totalIterations + SEPARATOR
+                + goodIterations + SEPARATOR
+                + ((float) goodIterations / (float) totalIterations) + SEPARATOR
+                + bestScore);
+        
+        String [] splitted = IMAGE_SOURCE_NAME.split("\\.");
+        
+        Renderer.renderToPNG(bestPop,
+                splitted[0],
+                EXPORT_FOLDER,
+                EXPORTED_IMAGES,
+                (int) (width * widthTriangles),
+                (int) (height * (heightTriangles - 1)), // do not render last row
+                IMAGE_TYPE,
+                1);
+        
+    }
+    
 	@Override
 	public void stateChanged(ChangeEvent e) {
 
@@ -585,34 +677,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		    // 
 		    if (IMAGE_SOURCE_NAME != null) {
 		        
-		        String [] splitted = IMAGE_SOURCE_NAME.split("\\.");
-		        
-		        System.out.println("IMAGE_SOURCE_NAME: " + IMAGE_SOURCE_NAME);
-		        System.out.println("name             : " + splitted[0]);
-		        
-		        System.out.println(IMAGE_SOURCE_NAME + SEPARATOR
-		                            + THREADS + SEPARATOR
-		                            + (THREADS * POPULATION) + SEPARATOR
-		                            + totalIterations + SEPARATOR
-		                            + goodIterations + SEPARATOR
-		                            + bestScore);
-		        
-		        
-		        Renderer.renderToPNG(bestPop,
-		                            splitted[0],
-		                            EXPORT_FOLDER,
-		                            EXPORTED_IMAGES,
-		                            (int) (width * widthTriangles),
-		                            (int) (height * (heightTriangles - 1)), // do not render last row
-		                            IMAGE_TYPE,
-		                            1);
+		        renderBestImage();
 		        
 		        // 
 		        EXPORTED_IMAGES++;
 		    }
-		    
-		    
-		    
 		}
 	}
 }

@@ -28,13 +28,10 @@ public class Renderer {
 	 * 	-i broken.mp4 -c:v libx264 -profile:v baseline -level 3.0 -pix_fmt yuv420p working.mp4
 	 *  mpeg4 -b:v 600k -c:a libmp3lame output.avi
 	 */
-	public static void renderToPNG(TriangleList<Triangle> drawing, int order, int width, int height, int mode) {
-		
-		// scaled 4x
-		int scale = 1;
+	public static void renderToPNG(TriangleList<Triangle> drawing, String sourceName, String folder, int order, int width, int height, int imageType, float scale) {
 		
 		// TODO: parametrize image mode
-		BufferedImage export = new BufferedImage(width * scale, height * scale, BufferedImage.TYPE_INT_ARGB);
+		BufferedImage export = new BufferedImage((int) (width * scale), (int) (height * scale), imageType);
 		
 		Graphics g = export.getGraphics();
 		Graphics2D g2d = (Graphics2D) g;
@@ -60,10 +57,18 @@ public class Renderer {
 		}
 		
 		try {
-			// D:\Media\ArtEvolver2019\export
-            ImageIO.write(export, "png", new File("D:/Media/ArtEvolver2019/export_final_1/" + order + ".png"));
-//            ImageIO.write(export, "gif", new File("D:/Media/ArtEvolver2019/export/" + order + ".gif"));
+		    
+		    System.out.println("width : " + width);
+		    System.out.println("height: " + height);
+		    
+		    //
+		    System.out.println("target: " + folder + sourceName + "_" + order + ".png");
+		    
+		    // 
+            ImageIO.write(export, "png", new File(folder + sourceName + "_" + order + ".png"));
+
 	    } catch (IOException e) {
+	        
             e.printStackTrace();
 	    }
 		

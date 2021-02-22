@@ -64,7 +64,7 @@ public class ImageEvolver extends AbstractEvolver {
 	private boolean exportNextAndClose = false;
 
 	public ImageEvolver(int population, int randomJumpDistance, int crossoverMax, float scale, Palette pallete,
-			float width, float height, int triangleWidth, int triangleHeight) {
+	                    float width, float height, int triangleWidth, int triangleHeight) {
 		
 		this.population = population;
 		this.scale = scale * pallete.totalPalletes / 2;
@@ -925,54 +925,58 @@ public class ImageEvolver extends AbstractEvolver {
 			}
 
 			totalIterations++;
+
+			boolean tournamentEnabled = false;
 			
-//			if (totalIterations % ((population / 2) * 1000) == 0) {
-			if (totalIterations % 1000 == 0){
+			if (tournamentEnabled) {
+			    if (totalIterations % 1000 == 0){
 
-//				long now = System.currentTimeMillis();
-//
-//				System.out.println("id: " + id + " - i: " + totalIterations
-//								 + " - good: " + goodIterations
-//								 + " - p: " + pop.size()
-//								 + " - jump: " + crossOver.getRandomJumpDistance()
-//								 + " - cross: " + crossoverMax
-//								 + " - best: " + DEFAULT_DECIMAL_FORMAT.format(bestScore)
-//								 + " - total time: " + DEFAULT_DECIMAL_FORMAT.format(((float) (now - start)) / 1000f) + " seconds");
+//	              long now = System.currentTimeMillis();
+	//
+//	              System.out.println("id: " + id + " - i: " + totalIterations
+//	                               + " - good: " + goodIterations
+//	                               + " - p: " + pop.size()
+//	                               + " - jump: " + crossOver.getRandomJumpDistance()
+//	                               + " - cross: " + crossoverMax
+//	                               + " - best: " + DEFAULT_DECIMAL_FORMAT.format(bestScore)
+//	                               + " - total time: " + DEFAULT_DECIMAL_FORMAT.format(((float) (now - start)) / 1000f) + " seconds");
 
-//				System.out.println(DEFAULT_DECIMAL_FORMAT.format(bestScore));
-				
-				crossOver.halveParameters();
-				
-				/**
-				 * v.1.0.0 optimizations
-				 * 	- CLOSE_MUTATIONS_PER_CHILD * pop
-				 */
-				
-				float factor = 1.0f;
-				
-				if (totalIterations == 2500 * pop.size() * factor) {
-					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
-				}
-				
-				if (totalIterations == 15000 * pop.size() * factor) {
-					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
-				}
-				
-				if (totalIterations == 35000 * pop.size() * factor) {
-					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
-				}
-				
-				if (totalIterations == 75000 * pop.size() * factor) {
-					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
-				}
-				
-				if (totalIterations % 75000 * 2 == 0) {
-					CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
-				}
-				
-				if (CrossOver.CLOSE_MUTATIONS_PER_CHILD < 1) {
-					CrossOver.CLOSE_MUTATIONS_PER_CHILD = 1;
-				}
+//	              System.out.println(DEFAULT_DECIMAL_FORMAT.format(bestScore));
+	                
+	                crossOver.halveParameters();
+	                
+	                /**
+	                 * v.1.0.0 optimizations
+	                 *  - CLOSE_MUTATIONS_PER_CHILD * pop
+	                 */
+	                
+	                float factor = 1.0f;
+	                
+	                if (totalIterations == 2500 * pop.size() * factor) {
+	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+	                }
+	                
+	                if (totalIterations == 15000 * pop.size() * factor) {
+	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+	                }
+	                
+	                if (totalIterations == 35000 * pop.size() * factor) {
+	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+	                }
+	                
+	                if (totalIterations == 75000 * pop.size() * factor) {
+	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+	                }
+	                
+	                if (totalIterations % 75000 * 2 == 0) {
+	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+	                }
+	                
+	                if (CrossOver.CLOSE_MUTATIONS_PER_CHILD < 1) {
+	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = 1;
+	                }
+	            }
+
 			}
 		}
 //	}
@@ -980,6 +984,7 @@ public class ImageEvolver extends AbstractEvolver {
 //		System.out.println("evolve with " + iterations + " iterations took " + (float)(evolveNow - evolveThen) / 1000f + " seconds");
 	}
 
+	boolean isStarted = false;
 	boolean isRunning = false;
 	
 	public void setRunning(boolean running) {

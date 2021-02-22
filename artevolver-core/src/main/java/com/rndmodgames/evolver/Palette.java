@@ -18,8 +18,9 @@ public class Palette {
 	long currentId = 0;
 	
 	List <PalleteColor> colors = new ArrayList<PalleteColor>();
-	
-	public Palette(String name, int repetitions) throws IOException {
+
+	public Palette(String name, int repetitions) throws IOException{
+
 		this.name = name;
 		this.totalPalletes = repetitions;
 		
@@ -77,6 +78,7 @@ public class Palette {
 //		System.out.println("Pallete " + name + " Loaded: " + colors.size() + " colors in " + repetitions + " repetitions.");
 	}
 	
+
 	/**
 	 * @return the number of colors in this Palette
 	 */
@@ -84,7 +86,7 @@ public class Palette {
 	    
 	    return colors.size();
 	}
-	
+
 	public void randomize(){
 		Collections.shuffle(colors);
 	}

@@ -16,3 +16,8 @@ artevolver-desktop/.project
 gradle/wrapper/gradle-wrapper.jar
 gradle/wrapper/gradle-wrapper.properties
 /.gradle/
+artevolver-core/target/
+artevolver-desktop/target/
+*.project
+*.classpath
+bin/

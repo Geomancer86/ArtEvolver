@@ -51,7 +51,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private static final int BEST_SMALL_MODE           = 30;
 	private static final int QUALITY_MODE              = 90;
 	
-	private static int CURRENT_MODE = QUICK_EXTENDED_MODE;
+	private static int CURRENT_MODE = QUALITY_SMALL_MODE;
 	
 	/**
 	 * TODO: Save Parameters for DROPDOWN SIZE SELECT

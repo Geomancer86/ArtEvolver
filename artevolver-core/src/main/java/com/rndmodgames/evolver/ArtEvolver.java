@@ -115,11 +115,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static int EVOLVE_ITERATIONS    = 1000;
 	private static int MAX_ITERATIONS      = 10000000;
 
-	private static String SEPARATOR = ",";
+	private static String SEPARATOR = ";";
 	private static String EXPORT_FOLDER = "D:\\Media\\ArtEvolver\\";
 	
-	private String IMAGE_SOURCE_NAME = null;
-	private int EXPORTED_IMAGES = 0;
+	private String imageSourceName = null;
+	private String imageCategory = null;
+	private int exportedImages = 0;
 
 	private List <ImageEvolver> evolvers = new ArrayList<>();
 
@@ -548,11 +549,18 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         
         try {
             
-            originalImage = ImageIO.read(new File(imageName));
+            File imageFile = new File(imageName);
+            
+            originalImage = ImageIO.read(imageFile);
             setPath((imageName));
 
             // 
-            IMAGE_SOURCE_NAME = new File(imageName).getName();
+            imageSourceName = imageFile.getName();
+            
+            /**
+             * Main Category/Tags
+             */
+            imageCategory = imageFile.getParentFile().getName();
 
         } catch (Exception localException) {
             
@@ -577,7 +585,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				setPath((chooser.getCurrentDirectory().toString() + "\\" + chooser.getSelectedFile().getName()));
 
 				// 
-				IMAGE_SOURCE_NAME = chooser.getSelectedFile().getName();
+				imageSourceName = chooser.getSelectedFile().getName();
 
 			} catch (Exception localException) {
 			    
@@ -698,25 +706,27 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
      */
     public void renderBestImage() {
         
-        System.out.println(IMAGE_SOURCE_NAME + SEPARATOR
+        String [] splitted = imageSourceName.split("\\.");
+        
+//        String [] splittedPath = path.split("\\");
+        
+        System.out.println(imageSourceName + SEPARATOR
 //                + THREADS + SEPARATOR
 //                + (THREADS * POPULATION) + SEPARATOR
 //                + totalIterations + SEPARATOR
 //                + goodIterations + SEPARATOR
                 + ((float) goodIterations / (float) totalIterations) + SEPARATOR
-                + bestScore);
-        
-        String [] splitted = IMAGE_SOURCE_NAME.split("\\.");
-        
+                + bestScore + SEPARATOR
+                + imageCategory);
+
         Renderer.renderToPNG(bestPop,
                 splitted[0],
                 EXPORT_FOLDER,
-                EXPORTED_IMAGES,
+                exportedImages,
                 (int) (width * widthTriangles),
                 (int) (height * (heightTriangles - 1)), // do not render last row
                 IMAGE_TYPE,
                 1);
-    
         
     }
     
@@ -764,12 +774,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		if (event.getActionCommand().equals("Export")) {
 		    
 		    // 
-		    if (IMAGE_SOURCE_NAME != null) {
+		    if (imageSourceName != null) {
 		        
 		        renderBestImage();
 		        
 		        // 
-		        EXPORTED_IMAGES++;
+		        exportedImages++;
 		    }
 		}
 	}

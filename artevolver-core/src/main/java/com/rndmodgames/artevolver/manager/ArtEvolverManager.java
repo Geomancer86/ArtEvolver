@@ -10,8 +10,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.swing.SwingUtilities;
-
 import com.rndmodgames.evolver.ArtEvolver;
 
 /**
@@ -46,7 +44,7 @@ public class ArtEvolverManager {
         this.timeout = timeout;
         
         //
-        System.out.println("PROCESSING IN " + ArtEvolver.MODES[ArtEvolver.CURRENT_MODE]);
+//        System.out.println("PROCESSING IN " + ArtEvolver.MODES[ArtEvolver.CURRENT_MODE]);
     }
     
     public void readAllFiles() {
@@ -59,6 +57,7 @@ public class ArtEvolverManager {
 
             for (String file : result) {
 
+                // 
                 processArtEvolver(file);
                 
                 filecount++;
@@ -68,7 +67,7 @@ public class ArtEvolverManager {
             e.printStackTrace();
         }
         
-        System.out.println("FINISHED READING " + filecount + " IMAGES.");
+//        System.out.println("FINISHED READING " + filecount + " IMAGES.");
         
         /**
          * TODO: compare load all/run all to download and run at the same time
@@ -114,7 +113,7 @@ public class ArtEvolverManager {
             }
         }
         
-        System.out.println("FINISHED PROCESSING " + filecount + " IMAGES.");
+//        System.out.println("FINISHED PROCESSING " + filecount + " IMAGES.");
         System.exit(0);
     }
     
@@ -126,6 +125,7 @@ public class ArtEvolverManager {
         try {
             
             ArtEvolver evolver = new ArtEvolver();
+            
             evolver.setOfflineSourceImage(image);
             
             evolvers.add(evolver);
@@ -145,14 +145,14 @@ public class ArtEvolverManager {
      */
     public static void main(String[] args) {
 
-        String sourceFolder = "F:\\Media\\ArtEvolver2021\\sources";
+        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources";
         
         /**
          * Static Configuration
          */
         ArtEvolver.CURRENT_MODE = ArtEvolver.FASTEST_BATCH_MODE;
         
-        ArtEvolverManager manager = new ArtEvolverManager(sourceFolder, 1, 1);
+        ArtEvolverManager manager = new ArtEvolverManager(sourceFolder, 1, 5);
         
         // 
         manager.readAllFiles();

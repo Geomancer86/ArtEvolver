@@ -255,7 +255,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             width = 3.0f * triangleScaleWidth;
             height = 3.0f * triangleScaleHeight;
             break;
-    	    
             
     	case QUICK_MODE:
     	default:

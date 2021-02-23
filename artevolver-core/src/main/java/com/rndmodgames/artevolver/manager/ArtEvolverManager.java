@@ -67,17 +67,6 @@ public class ArtEvolverManager {
             e.printStackTrace();
         }
         
-//        System.out.println("FINISHED READING " + filecount + " IMAGES.");
-        
-        /**
-         * TODO: compare load all/run all to download and run at the same time
-         */
-//        for (ArtEvolver evolver : evolvers) {
-//
-//            // 
-//            evolver.start();
-//        }
-        
         /**
          * 
          */
@@ -150,7 +139,7 @@ public class ArtEvolverManager {
         /**
          * Static Configuration
          */
-        ArtEvolver.CURRENT_MODE = ArtEvolver.FASTEST_BATCH_MODE;
+        ArtEvolver.CURRENT_MODE = ArtEvolver.QUICK_MODE;
         
         ArtEvolverManager manager = new ArtEvolverManager(sourceFolder, 1, 5);
         

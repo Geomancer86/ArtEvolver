@@ -74,9 +74,8 @@ public class ArtEvolverManager {
          * 
          */
         for (ArtEvolver evolver : evolvers) {
-            
-//            System.out.println(evolver.getPath());
-            
+
+            // 
             evolver.start();
         }
         
@@ -96,19 +95,22 @@ public class ArtEvolverManager {
                 }
             }
             
+            // 
             if (activeCount == 0) {
                 
-                System.out.println("FINISHED PROCESSING " + filecount + " IMAGES.");
-                System.exit(0);
+                break;
             }
             
             try {
-                TimeUnit.SECONDS.sleep(5);
+                TimeUnit.SECONDS.sleep(timeout);
             } catch (InterruptedException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
+        
+        System.out.println("FINISHED PROCESSING " + filecount + " IMAGES.");
+        System.exit(0);
     }
     
     /**
@@ -143,7 +145,7 @@ public class ArtEvolverManager {
          */
         ArtEvolver.CURRENT_MODE = ArtEvolver.FASTEST_MODE;
         
-        ArtEvolverManager manager = new ArtEvolverManager(sourceFolder, 1, 50);
+        ArtEvolverManager manager = new ArtEvolverManager(sourceFolder, 1, 1);
         
         // 
         manager.readAllFiles();

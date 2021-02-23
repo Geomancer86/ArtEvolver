@@ -150,6 +150,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	boolean isDirty = false;
 	boolean isRunning = false;
 	boolean showSource = false;
+	
+	boolean offlineExport = false;
 
 	private TriangleList<Triangle> bestPop = new TriangleList<Triangle>();
 
@@ -291,6 +293,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				totalIterations = 0;
 				goodIterations = 0;
 
+				// ignore
+				if (imagePanel == null || imagePanel.getGraphics() == null) {
+				    
+				    return;
+				}
+				
 				for (AbstractEvolver currentEvolver : evolvers) {
 					
 					totalIterations += ((ImageEvolver)currentEvolver).getTotalIterations();
@@ -371,15 +379,20 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	    
             	    if (totalIterations >= MAX_ITERATIONS) {
                         
-                        //
-                        renderBestImage();
-                        
-                        /**
-                         * Only call System.exit if required
-                         */
-                        
-                        setVisible(false);
-                        dispose();
+            	        if (!offlineExport) {
+            	        
+                            //
+                            renderBestImage();
+                            
+                            /**
+                             * Only call System.exit if required
+                             */
+                            
+                            setVisible(false);
+                            dispose();
+                            
+                            offlineExport = true;
+            	        }
                     }
             	}
             }

@@ -58,18 +58,18 @@ public class Renderer {
 		
 		try {
 		    
-		    System.out.println("width : " + width);
-		    System.out.println("height: " + height);
-		    
-		    //
-		    System.out.println("target: " + folder + sourceName + "_" + order + ".png");
+//		    System.out.println("width : " + width);
+//		    System.out.println("height: " + height);
+//		    
+//		    //
+//		    System.out.println("target: " + folder + sourceName + "_" + order + ".png");
 		    
 		    // 
             ImageIO.write(export, "png", new File(folder + sourceName + "_" + order + ".png"));
 
 	    } catch (IOException e) {
 	        
-            e.printStackTrace();
+//            e.printStackTrace();
 	    }
 		
 		//

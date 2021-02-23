@@ -29,7 +29,6 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-import com.rndmodgames.evolver.Palette;
 import com.rndmodgames.evolver.render.Renderer;
 
 public class ArtEvolver extends JFrame implements ActionListener, ChangeListener {
@@ -43,15 +42,29 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	/**
 	 * MODES
 	 */
-	private static final int QUICK_MODE                =  0;
-	private static final int QUICK_EXTENDED_MODE       =  1;
- 	private static final int QUICK_EXTENDED_24_THREADS =  2;
-	private static final int FASTEST_MODE              = 10;
-	private static final int QUALITY_SMALL_MODE        = 20;
-	private static final int BEST_SMALL_MODE           = 30;
-	private static final int QUALITY_MODE              = 90;
+	public static final int QUICK_MODE                =  0;
+	public static final int QUICK_EXTENDED_MODE       =  1;
+	public static final int QUICK_EXTENDED_24_THREADS =  2;
+	public static final int FASTEST_MODE              = 10;
+	public static final int FASTEST_BATCH_MODE        = 11;
+	public static final int QUALITY_SMALL_MODE        = 20;
+	public static final int BEST_SMALL_MODE           = 30;
+	public static final int QUALITY_MODE              = 90;
 	
-	private static int CURRENT_MODE = QUALITY_SMALL_MODE;
+	public static int CURRENT_MODE = QUALITY_MODE;
+	
+	public static final String [] MODES = new String [100];
+	
+	static {
+	    MODES[0] = "QUICK_MODE";
+	    MODES[1] = "QUICK_EXTENDED_MODE";
+	    MODES[2] = "QUICK_EXTENDED_24_THREADS";
+	    MODES[10] = "FASTEST_MODE";
+	    MODES[11] = "FASTEST_BATCH_MODE";
+	    MODES[20] = "QUALITY_SMALL_MODE";
+	    MODES[30] = "BEST_SMALL_MODE";
+	    MODES[90] = "QUALITY_MODE";
+	}
 	
 	/**
 	 * TODO: Save Parameters for DROPDOWN SIZE SELECT
@@ -100,12 +113,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static final int IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB;
 	
 	public static int EVOLVE_ITERATIONS    = 1000;
-	private int MAX_ITERATIONS             = 10000000;
+	private static int MAX_ITERATIONS      = 10000000;
 
 	private static String SEPARATOR = ",";
 	private static String EXPORT_FOLDER = "D:\\Media\\ArtEvolver\\";
-	private static String IMAGE_SOURCE_NAME = null;
-	private static int EXPORTED_IMAGES = 0;
+	
+	private String IMAGE_SOURCE_NAME = null;
+	private int EXPORTED_IMAGES = 0;
 
 	private List <ImageEvolver> evolvers = new ArrayList<>();
 
@@ -139,6 +153,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	boolean isDirty = false;
 	boolean isRunning = false;
 	boolean showSource = false;
+	
+	boolean offlineExport = false;
 
 	private TriangleList<Triangle> bestPop = new TriangleList<Triangle>();
 
@@ -171,7 +187,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 
 	 * @throws IOException
 	 */
-    public ArtEvolver() throws IOException{
+    public ArtEvolver() throws IOException {
         
         super("ArtEvolver 2021 v2.03");
 
@@ -230,6 +246,16 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             height = 3.0f * triangleScaleHeight;
             break;
             
+    	case FASTEST_BATCH_MODE:
+    	    THREADS = 2;
+            MAX_ITERATIONS = 2500;
+            triangleScaleHeight = 0.5f;
+            triangleScaleWidth = 0.5f;
+            width = 3.0f * triangleScaleWidth;
+            height = 3.0f * triangleScaleHeight;
+            break;
+    	    
+            
     	case QUICK_MODE:
     	default:
     	    THREADS = 16;
@@ -280,6 +306,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				totalIterations = 0;
 				goodIterations = 0;
 
+				// ignore
+				if (imagePanel == null || imagePanel.getGraphics() == null) {
+				    
+				    return;
+				}
+				
 				for (AbstractEvolver currentEvolver : evolvers) {
 					
 					totalIterations += ((ImageEvolver)currentEvolver).getTotalIterations();
@@ -307,18 +339,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				}
 				
 				// draw bestImage to panel
-				if (currentFrame % GUI_UPDATE_MS == 0 && isDirty) {
-				    
-				}
-	            	imagePanel.getGraphics().drawImage(bestImage,
-	            									   32, // TODO: make both offsets dynamic to center in JPanel
-	            									   32,
-	            									   null);
-	            	
-	            	imagePanel.getGraphics().dispose();
-	            	
-	            	isDirty = false;
-
 				if (showSource) {
 				    
 				    // 
@@ -372,9 +392,20 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	    
             	    if (totalIterations >= MAX_ITERATIONS) {
                         
-                        //
-                        renderBestImage();
-                        System.exit(0);
+            	        if (!offlineExport) {
+            	        
+                            //
+                            renderBestImage();
+                            
+                            /**
+                             * Only call System.exit if required
+                             */
+                            
+                            setVisible(false);
+                            dispose();
+                            
+                            offlineExport = true;
+            	        }
                     }
             	}
             }
@@ -386,14 +417,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         menuContainer.setPreferredSize(new Dimension(160, 480));
 
 		imagePanel = new JPanel() {
-			private static final long serialVersionUID = -4992430268801679523L;
-	
-			@Override
+
+            @Override
 	        protected void paintComponent(Graphics g) {
 
-
-			    
-
+                //
 	            super.paintComponent(g);
 	        }
 	    };
@@ -516,6 +544,24 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         });
     }
 
+    public void setOfflineSourceImage(String imageName) throws IOException {
+        
+        try {
+            
+            originalImage = ImageIO.read(new File(imageName));
+            setPath((imageName));
+
+            // 
+            IMAGE_SOURCE_NAME = new File(imageName).getName();
+
+        } catch (Exception localException) {
+            
+            JOptionPane.showMessageDialog(null, "Unable to Load Image", "Fail", 2);
+        }
+        
+        //
+        setSourceImage();
+    }
 
     public void loadImage() throws IOException {
 
@@ -528,7 +574,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 			try {
 			    
 				originalImage = ImageIO.read(new File(chooser.getCurrentDirectory().toString() + "\\"	+ chooser.getSelectedFile().getName()));
-				path = (chooser.getCurrentDirectory().toString() + "\\" + chooser.getSelectedFile().getName());
+				setPath((chooser.getCurrentDirectory().toString() + "\\" + chooser.getSelectedFile().getName()));
 
 				// 
 				IMAGE_SOURCE_NAME = chooser.getSelectedFile().getName();
@@ -539,81 +585,57 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 			}
 		}
 
-		// Ignore on Select File Window Close (without picking a file)
-		if (originalImage == null) {
-		    
-		    return;
-		}
+		//
+		setSourceImage();
+    }
+    
+    public void setSourceImage() {
+     // Ignore on Select File Window Close (without picking a file)
+        if (originalImage == null) {
+            
+            return;
+        }
 
-		/**
-		 * Resizing code seems to be OK
-		 */
-		int newWidth = (int) (width * widthTriangles);
-		int newHeight = (int) (((height * heightTriangles))  - height); // substract last serrated row
-    	
-//    	System.out.println("originalImage.width: " + originalImage.getWidth() + " - originalImage.height: " + originalImage.getHeight());
-		
-		// initialize currentImage and resizedOriginal
-    	if (resizedOriginal == null){
-    		
-    		BufferedImage resizedOriginal = new BufferedImage(newWidth, newHeight, IMAGE_TYPE);
-    		
-    		Graphics2D g = resizedOriginal.createGraphics();
-    		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-    						   RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-    		
-    		g.drawImage(originalImage,
-    					0, 0,
-    					newWidth, newHeight,
-    					0, 0,
-    					originalImage.getWidth(), 
-    					originalImage.getHeight(),
-    					null);
-    		
-    		g.dispose();
-    		
-//    		System.out.println("resizedOriginal.width: " + resizedOriginal.getWidth() + " - resizedOriginal.height: " + resizedOriginal.getHeight());
-    		
-//			evolver.setResizedOriginal(resizedOriginal);
-//			evolver.setCurrentImage(resizedOriginal);
+        /**
+         * Resizing code seems to be OK
+         */
+        int newWidth = (int) (width * widthTriangles);
+        int newHeight = (int) (((height * heightTriangles))  - height); // substract last serrated row
 
-    		for (AbstractEvolver currentEvolver : evolvers) {
-    			((ImageEvolver)currentEvolver).setResizedOriginal(resizedOriginal);
-//    			((ImageEvolver)currentEvolver).setCurrentImage(resizedOriginal);
-    			((ImageEvolver)currentEvolver).initializeIsosceles();
-    		}
+        // initialize currentImage and resizedOriginal
+        if (resizedOriginal == null){
+            
+            BufferedImage resizedOriginal = new BufferedImage(newWidth, newHeight, IMAGE_TYPE);
+            
+            Graphics2D g = resizedOriginal.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                               RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            
+            g.drawImage(originalImage,
+                        0, 0,
+                        newWidth, newHeight,
+                        0, 0,
+                        originalImage.getWidth(), 
+                        originalImage.getHeight(),
+                        null);
+            
+            g.dispose();
 
-    		this.resizedOriginal = resizedOriginal;
-    	}
+            for (AbstractEvolver currentEvolver : evolvers) {
+                ((ImageEvolver)currentEvolver).setResizedOriginal(resizedOriginal);
+                ((ImageEvolver)currentEvolver).initializeIsosceles();
+            }
 
-//    	 evolver.initialize();
-    	
-//    	evolver.initializeIsosceles();
-    	
-//    	evolver.initializeFromFile("campito_78.txt");
-//    	evolver.initializeFromFile("campito_78.txt");
-//    	evolver.initializeFromFile("campito_80.txt");
-//    	evolver.initializeFromFile("campito_805.txt");
-//    	evolver.initializeFromFile("campito_81.txt");
-//    	evolver.initializeFromFile("campito_811.txt");
-//    	evolver.initializeFromFile("campito_8114.txt");
-//    	evolver.initializeFromFile("campito_8115.txt");
-//    	evolver.initializeFromFile("campito_8116.txt");
-//    	evolver.initializeFromFile("campito_81163.txt");
-//    	evolver.initializeFromFile("campito_8117.txt");
-//    	evolver.initializeFromFile("campito_8118.txt");
-//    	evolver.initializeFromFile("campito_8119.txt");
-//    	evolver.initializeFromFile("campito_812.txt");
-//    	evolver.initializeFromFile("campito_812.txt");
+            this.resizedOriginal = resizedOriginal;
+        }
+    }
 
-//    	evolver.initializeFromFile("campito_big2.txt");
-//    	evolver.initializeFromFile("campito_big2.txt");
-    	
-//    	evolver.initializeFromFile("campito_beta_test_1.txt");
-//    	evolver.initializeFromFile("campito_beta_test_1.txt");
-    	
-//    	evolver.initializeFromFile("campito_beta_test_2.txt", 6f);
-//    	evolver.initializeFromFile("campito_beta_test_2.txt", 6f);
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
     }
 
     /**
@@ -677,10 +699,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     public void renderBestImage() {
         
         System.out.println(IMAGE_SOURCE_NAME + SEPARATOR
-                + THREADS + SEPARATOR
-                + (THREADS * POPULATION) + SEPARATOR
-                + totalIterations + SEPARATOR
-                + goodIterations + SEPARATOR
+//                + THREADS + SEPARATOR
+//                + (THREADS * POPULATION) + SEPARATOR
+//                + totalIterations + SEPARATOR
+//                + goodIterations + SEPARATOR
                 + ((float) goodIterations / (float) totalIterations) + SEPARATOR
                 + bestScore);
         

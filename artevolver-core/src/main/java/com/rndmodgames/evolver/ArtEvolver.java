@@ -46,6 +46,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static final int QUICK_EXTENDED_MODE       =  1;
 	public static final int QUICK_EXTENDED_24_THREADS =  2;
 	public static final int FASTEST_MODE              = 10;
+	public static final int FASTEST_BATCH_MODE        = 11;
 	public static final int QUALITY_SMALL_MODE        = 20;
 	public static final int BEST_SMALL_MODE           = 30;
 	public static final int QUALITY_MODE              = 90;
@@ -59,6 +60,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    MODES[1] = "QUICK_EXTENDED_MODE";
 	    MODES[2] = "QUICK_EXTENDED_24_THREADS";
 	    MODES[10] = "FASTEST_MODE";
+	    MODES[11] = "FASTEST_BATCH_MODE";
 	    MODES[20] = "QUALITY_SMALL_MODE";
 	    MODES[30] = "BEST_SMALL_MODE";
 	    MODES[90] = "QUALITY_MODE";
@@ -111,12 +113,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static final int IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB;
 	
 	public static int EVOLVE_ITERATIONS    = 1000;
-	private static int MAX_ITERATIONS             = 10000000;
+	private static int MAX_ITERATIONS      = 10000000;
 
 	private static String SEPARATOR = ",";
 	private static String EXPORT_FOLDER = "D:\\Media\\ArtEvolver\\";
-	private static String IMAGE_SOURCE_NAME = null;
-	private static int EXPORTED_IMAGES = 0;
+	
+	private String IMAGE_SOURCE_NAME = null;
+	private int EXPORTED_IMAGES = 0;
 
 	private List <ImageEvolver> evolvers = new ArrayList<>();
 
@@ -242,6 +245,16 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             width = 3.0f * triangleScaleWidth;
             height = 3.0f * triangleScaleHeight;
             break;
+            
+    	case FASTEST_BATCH_MODE:
+    	    THREADS = 2;
+            MAX_ITERATIONS = 2500;
+            triangleScaleHeight = 0.5f;
+            triangleScaleWidth = 0.5f;
+            width = 3.0f * triangleScaleWidth;
+            height = 3.0f * triangleScaleHeight;
+            break;
+    	    
             
     	case QUICK_MODE:
     	default:

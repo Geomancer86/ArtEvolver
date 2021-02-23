@@ -71,13 +71,13 @@ public class ArtEvolverManager {
         System.out.println("FINISHED READING " + filecount + " IMAGES.");
         
         /**
-         * 
+         * TODO: compare load all/run all to download and run at the same time
          */
-        for (ArtEvolver evolver : evolvers) {
-
-            // 
-            evolver.start();
-        }
+//        for (ArtEvolver evolver : evolvers) {
+//
+//            // 
+//            evolver.start();
+//        }
         
         /**
          * 
@@ -102,7 +102,12 @@ public class ArtEvolverManager {
             }
             
             try {
+                
+                /**
+                 * TODO: maybe timeout * activeCount
+                 */
                 TimeUnit.SECONDS.sleep(timeout);
+                
             } catch (InterruptedException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -125,6 +130,8 @@ public class ArtEvolverManager {
             
             evolvers.add(evolver);
             
+            evolver.start();
+            
         } catch (IOException e) {
 
             e.printStackTrace();
@@ -143,7 +150,7 @@ public class ArtEvolverManager {
         /**
          * Static Configuration
          */
-        ArtEvolver.CURRENT_MODE = ArtEvolver.FASTEST_MODE;
+        ArtEvolver.CURRENT_MODE = ArtEvolver.FASTEST_BATCH_MODE;
         
         ArtEvolverManager manager = new ArtEvolverManager(sourceFolder, 1, 1);
         

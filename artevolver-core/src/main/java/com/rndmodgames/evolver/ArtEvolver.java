@@ -52,6 +52,18 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	
 	public static int CURRENT_MODE = QUALITY_MODE;
 	
+	public static final String [] MODES = new String [100];
+	
+	static {
+	    MODES[0] = "QUICK_MODE";
+	    MODES[1] = "QUICK_EXTENDED_MODE";
+	    MODES[2] = "QUICK_EXTENDED_24_THREADS";
+	    MODES[10] = "FASTEST_MODE";
+	    MODES[20] = "QUALITY_SMALL_MODE";
+	    MODES[30] = "BEST_SMALL_MODE";
+	    MODES[90] = "QUALITY_MODE";
+	}
+	
 	/**
 	 * TODO: Save Parameters for DROPDOWN SIZE SELECT
 	 * 
@@ -99,7 +111,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static final int IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB;
 	
 	public static int EVOLVE_ITERATIONS    = 1000;
-	private int MAX_ITERATIONS             = 10000000;
+	private static int MAX_ITERATIONS             = 10000000;
 
 	private static String SEPARATOR = ",";
 	private static String EXPORT_FOLDER = "D:\\Media\\ArtEvolver\\";
@@ -306,18 +318,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				}
 				
 				// draw bestImage to panel
-				if (currentFrame % GUI_UPDATE_MS == 0 && isDirty) {
-				    
-				}
-	            	imagePanel.getGraphics().drawImage(bestImage,
-	            									   32, // TODO: make both offsets dynamic to center in JPanel
-	            									   32,
-	            									   null);
-	            	
-	            	imagePanel.getGraphics().dispose();
-	            	
-	            	isDirty = false;
-
 				if (showSource) {
 				    
 				    // 
@@ -373,7 +373,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                         
                         //
                         renderBestImage();
-                        System.exit(0);
+                        
+                        /**
+                         * Only call System.exit if required
+                         */
+                        
+                        setVisible(false);
+                        dispose();
                     }
             	}
             }
@@ -385,14 +391,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         menuContainer.setPreferredSize(new Dimension(160, 480));
 
 		imagePanel = new JPanel() {
-			private static final long serialVersionUID = -4992430268801679523L;
-	
-			@Override
+
+            @Override
 	        protected void paintComponent(Graphics g) {
 
-
-			    
-
+                //
 	            super.paintComponent(g);
 	        }
 	    };
@@ -520,7 +523,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         try {
             
             originalImage = ImageIO.read(new File(imageName));
-            path = (imageName);
+            setPath((imageName));
 
             // 
             IMAGE_SOURCE_NAME = new File(imageName).getName();
@@ -545,7 +548,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 			try {
 			    
 				originalImage = ImageIO.read(new File(chooser.getCurrentDirectory().toString() + "\\"	+ chooser.getSelectedFile().getName()));
-				path = (chooser.getCurrentDirectory().toString() + "\\" + chooser.getSelectedFile().getName());
+				setPath((chooser.getCurrentDirectory().toString() + "\\" + chooser.getSelectedFile().getName()));
 
 				// 
 				IMAGE_SOURCE_NAME = chooser.getSelectedFile().getName();
@@ -599,6 +602,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
             this.resizedOriginal = resizedOriginal;
         }
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
     }
 
     /**
@@ -662,10 +673,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     public void renderBestImage() {
         
         System.out.println(IMAGE_SOURCE_NAME + SEPARATOR
-                + THREADS + SEPARATOR
-                + (THREADS * POPULATION) + SEPARATOR
-                + totalIterations + SEPARATOR
-                + goodIterations + SEPARATOR
+//                + THREADS + SEPARATOR
+//                + (THREADS * POPULATION) + SEPARATOR
+//                + totalIterations + SEPARATOR
+//                + goodIterations + SEPARATOR
                 + ((float) goodIterations / (float) totalIterations) + SEPARATOR
                 + bestScore);
         

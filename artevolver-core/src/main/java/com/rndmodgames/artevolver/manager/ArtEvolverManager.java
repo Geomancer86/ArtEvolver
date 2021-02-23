@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -24,6 +25,7 @@ public class ArtEvolverManager {
      */
     int instances;
     int qualityMode;
+    int timeout;
     
     //
     List<ArtEvolver> evolvers = new ArrayList<>();
@@ -37,13 +39,19 @@ public class ArtEvolverManager {
      * Run ArtEvolver in the fastest mode
      * Log all the stats
      */
-    public ArtEvolverManager(String sourceFolder, int instances) {
+    public ArtEvolverManager(String sourceFolder, int instances, int timeout) {
         
         this.sourceFolder = sourceFolder;
         this.instances = instances;
+        this.timeout = timeout;
+        
+        //
+        System.out.println("PROCESSING IN " + ArtEvolver.MODES[ArtEvolver.CURRENT_MODE]);
     }
     
     public void readAllFiles() {
+        
+        int filecount = 0;
         
         try (Stream<Path> walk = Files.walk(Paths.get(sourceFolder))) {
 
@@ -52,10 +60,54 @@ public class ArtEvolverManager {
             for (String file : result) {
 
                 processArtEvolver(file);
+                
+                filecount++;
             }
 
         } catch (IOException e) {
             e.printStackTrace();
+        }
+        
+        System.out.println("FINISHED READING " + filecount + " IMAGES.");
+        
+        /**
+         * 
+         */
+        for (ArtEvolver evolver : evolvers) {
+            
+//            System.out.println(evolver.getPath());
+            
+            evolver.start();
+        }
+        
+        /**
+         * 
+         */
+        while(true) {
+            
+            // reset count
+            int activeCount = 0;
+            
+            for (ArtEvolver evolver : evolvers) {
+                
+                if (evolver.isVisible()) {
+                    
+                    activeCount++;
+                }
+            }
+            
+            if (activeCount == 0) {
+                
+                System.out.println("FINISHED PROCESSING " + filecount + " IMAGES.");
+                System.exit(0);
+            }
+            
+            try {
+                TimeUnit.SECONDS.sleep(5);
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
         }
     }
     
@@ -64,28 +116,18 @@ public class ArtEvolverManager {
      */
     public void processArtEvolver(String image) {
         
-        SwingUtilities.invokeLater(new Runnable() {
+        try {
+            
+            ArtEvolver evolver = new ArtEvolver();
+            evolver.setOfflineSourceImage(image);
+            
+            evolvers.add(evolver);
+            
+        } catch (IOException e) {
 
-            @Override
-            public void run() {
+            e.printStackTrace();
+        }
 
-                try {
-
-                    ArtEvolver instance = new ArtEvolver();
-
-                    /**
-                     * Set the Image Name
-                     */
-                    instance.setOfflineSourceImage(image);
-                    instance.start();
-
-                } catch (IOException e) {
-
-                    e.printStackTrace();
-                }
-            }
-
-        });
     }
     
     /**
@@ -101,30 +143,9 @@ public class ArtEvolverManager {
          */
         ArtEvolver.CURRENT_MODE = ArtEvolver.FASTEST_MODE;
         
-        ArtEvolverManager manager = new ArtEvolverManager(sourceFolder, 1);
+        ArtEvolverManager manager = new ArtEvolverManager(sourceFolder, 1, 50);
         
+        // 
         manager.readAllFiles();
-        
-//        SwingUtilities.invokeLater(new Runnable() {
-//            
-//            @Override
-//            public void run() {
-//                
-//                try {
-//                    
-//                    ArtEvolver instance = new ArtEvolver();
-//                    
-//                    /**
-//                     * Set the Data Folder
-//                     */
-//                    
-//                    
-//                } catch (IOException e) {
-//                    
-//                    e.printStackTrace();
-//                }
-//            }
-//            
-//        });
     }
 }

@@ -29,7 +29,6 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-import com.rndmodgames.evolver.Palette;
 import com.rndmodgames.evolver.render.Renderer;
 
 public class ArtEvolver extends JFrame implements ActionListener, ChangeListener {
@@ -43,15 +42,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	/**
 	 * MODES
 	 */
-	private static final int QUICK_MODE                =  0;
-	private static final int QUICK_EXTENDED_MODE       =  1;
- 	private static final int QUICK_EXTENDED_24_THREADS =  2;
-	private static final int FASTEST_MODE              = 10;
-	private static final int QUALITY_SMALL_MODE        = 20;
-	private static final int BEST_SMALL_MODE           = 30;
-	private static final int QUALITY_MODE              = 90;
+	public static final int QUICK_MODE                =  0;
+	public static final int QUICK_EXTENDED_MODE       =  1;
+	public static final int QUICK_EXTENDED_24_THREADS =  2;
+	public static final int FASTEST_MODE              = 10;
+	public static final int QUALITY_SMALL_MODE        = 20;
+	public static final int BEST_SMALL_MODE           = 30;
+	public static final int QUALITY_MODE              = 90;
 	
-	private static int CURRENT_MODE = QUALITY_SMALL_MODE;
+	public static int CURRENT_MODE = QUALITY_MODE;
 	
 	/**
 	 * TODO: Save Parameters for DROPDOWN SIZE SELECT
@@ -171,7 +170,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 
 	 * @throws IOException
 	 */
-    public ArtEvolver() throws IOException{
+    public ArtEvolver() throws IOException {
         
         super("ArtEvolver 2021 v2.03");
 
@@ -516,6 +515,24 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         });
     }
 
+    public void setOfflineSourceImage(String imageName) throws IOException {
+        
+        try {
+            
+            originalImage = ImageIO.read(new File(imageName));
+            path = (imageName);
+
+            // 
+            IMAGE_SOURCE_NAME = new File(imageName).getName();
+
+        } catch (Exception localException) {
+            
+            JOptionPane.showMessageDialog(null, "Unable to Load Image", "Fail", 2);
+        }
+        
+        //
+        setSourceImage();
+    }
 
     public void loadImage() throws IOException {
 
@@ -539,81 +556,49 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 			}
 		}
 
-		// Ignore on Select File Window Close (without picking a file)
-		if (originalImage == null) {
-		    
-		    return;
-		}
+		//
+		setSourceImage();
+    }
+    
+    public void setSourceImage() {
+     // Ignore on Select File Window Close (without picking a file)
+        if (originalImage == null) {
+            
+            return;
+        }
 
-		/**
-		 * Resizing code seems to be OK
-		 */
-		int newWidth = (int) (width * widthTriangles);
-		int newHeight = (int) (((height * heightTriangles))  - height); // substract last serrated row
-    	
-//    	System.out.println("originalImage.width: " + originalImage.getWidth() + " - originalImage.height: " + originalImage.getHeight());
-		
-		// initialize currentImage and resizedOriginal
-    	if (resizedOriginal == null){
-    		
-    		BufferedImage resizedOriginal = new BufferedImage(newWidth, newHeight, IMAGE_TYPE);
-    		
-    		Graphics2D g = resizedOriginal.createGraphics();
-    		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-    						   RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-    		
-    		g.drawImage(originalImage,
-    					0, 0,
-    					newWidth, newHeight,
-    					0, 0,
-    					originalImage.getWidth(), 
-    					originalImage.getHeight(),
-    					null);
-    		
-    		g.dispose();
-    		
-//    		System.out.println("resizedOriginal.width: " + resizedOriginal.getWidth() + " - resizedOriginal.height: " + resizedOriginal.getHeight());
-    		
-//			evolver.setResizedOriginal(resizedOriginal);
-//			evolver.setCurrentImage(resizedOriginal);
+        /**
+         * Resizing code seems to be OK
+         */
+        int newWidth = (int) (width * widthTriangles);
+        int newHeight = (int) (((height * heightTriangles))  - height); // substract last serrated row
 
-    		for (AbstractEvolver currentEvolver : evolvers) {
-    			((ImageEvolver)currentEvolver).setResizedOriginal(resizedOriginal);
-//    			((ImageEvolver)currentEvolver).setCurrentImage(resizedOriginal);
-    			((ImageEvolver)currentEvolver).initializeIsosceles();
-    		}
+        // initialize currentImage and resizedOriginal
+        if (resizedOriginal == null){
+            
+            BufferedImage resizedOriginal = new BufferedImage(newWidth, newHeight, IMAGE_TYPE);
+            
+            Graphics2D g = resizedOriginal.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                               RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            
+            g.drawImage(originalImage,
+                        0, 0,
+                        newWidth, newHeight,
+                        0, 0,
+                        originalImage.getWidth(), 
+                        originalImage.getHeight(),
+                        null);
+            
+            g.dispose();
 
-    		this.resizedOriginal = resizedOriginal;
-    	}
+            for (AbstractEvolver currentEvolver : evolvers) {
+                ((ImageEvolver)currentEvolver).setResizedOriginal(resizedOriginal);
+                ((ImageEvolver)currentEvolver).initializeIsosceles();
+            }
 
-//    	 evolver.initialize();
-    	
-//    	evolver.initializeIsosceles();
-    	
-//    	evolver.initializeFromFile("campito_78.txt");
-//    	evolver.initializeFromFile("campito_78.txt");
-//    	evolver.initializeFromFile("campito_80.txt");
-//    	evolver.initializeFromFile("campito_805.txt");
-//    	evolver.initializeFromFile("campito_81.txt");
-//    	evolver.initializeFromFile("campito_811.txt");
-//    	evolver.initializeFromFile("campito_8114.txt");
-//    	evolver.initializeFromFile("campito_8115.txt");
-//    	evolver.initializeFromFile("campito_8116.txt");
-//    	evolver.initializeFromFile("campito_81163.txt");
-//    	evolver.initializeFromFile("campito_8117.txt");
-//    	evolver.initializeFromFile("campito_8118.txt");
-//    	evolver.initializeFromFile("campito_8119.txt");
-//    	evolver.initializeFromFile("campito_812.txt");
-//    	evolver.initializeFromFile("campito_812.txt");
-
-//    	evolver.initializeFromFile("campito_big2.txt");
-//    	evolver.initializeFromFile("campito_big2.txt");
-    	
-//    	evolver.initializeFromFile("campito_beta_test_1.txt");
-//    	evolver.initializeFromFile("campito_beta_test_1.txt");
-    	
-//    	evolver.initializeFromFile("campito_beta_test_2.txt", 6f);
-//    	evolver.initializeFromFile("campito_beta_test_2.txt", 6f);
+            this.resizedOriginal = resizedOriginal;
+        }
     }
 
     /**

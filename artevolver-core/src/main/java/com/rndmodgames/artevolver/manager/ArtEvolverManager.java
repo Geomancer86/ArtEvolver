@@ -13,6 +13,11 @@ import java.util.stream.Stream;
 import com.rndmodgames.evolver.ArtEvolver;
 
 /**
+ * Art Evolver Manager v1
+ * 
+ * This manager is used to run/batch several instances of ArtEvolver
+ * 
+ * General purpose is to automatize folder processing for quick image candidate preselection
  * 
  * @author Geomancer86
  */

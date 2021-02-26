@@ -2,6 +2,16 @@ package com.rndmodgames.evolver;
 
 import java.awt.image.BufferedImage;
 
+/**
+ * AbstractEvolver v1
+ * 
+ * TODO: optimize the compare function
+ * 
+ *  - 1) set height, width as a parameter to avoid recalculating every time as images will always be the same size during processing
+ *  - 2) 
+ * 
+ * @author Geomancer86
+ */
 public abstract class AbstractEvolver implements Runnable {
 
 	public abstract void evolve(long start, int iterations);
@@ -25,10 +35,6 @@ public abstract class AbstractEvolver implements Runnable {
 	private double n;
 	private double p;
 	
-	private final double CONSTANT_SCORE_DIVIDER = 255d;
-	private final int CONSTANT_SCORE_MULTIPLIER = 3;
-	private final int CONSTANT_SCORE_ONE = 1;
-
 	public double compare(BufferedImage img1, BufferedImage img2) {
 
 //		long compareThen = System.currentTimeMillis();
@@ -45,6 +51,9 @@ public abstract class AbstractEvolver implements Runnable {
 			return 0;
 		}
 		
+		/**
+		 * TODO: parametrize
+		 */
 		boolean fitnessByColor = true;
 		diff = 0;
 		
@@ -54,6 +63,8 @@ public abstract class AbstractEvolver implements Runnable {
 					
 					/**
 					 * Working by RGB
+					 * 
+					 * TODO: parametrize
 					 */
 					rgb1 = img1.getRGB(x, y);
 					rgb2 = img2.getRGB(x, y);
@@ -72,6 +83,8 @@ public abstract class AbstractEvolver implements Runnable {
 					
 					/**
 					 * Working by Raster
+					 * 
+					 * TODO: parametrize
 					 */
 //					px1 = img1.getRaster().getPixel(x, y, px1);
 //					px2 = img2.getRaster().getPixel(x, y, px2);
@@ -102,12 +115,12 @@ public abstract class AbstractEvolver implements Runnable {
 			}
 		}
 
-		n = width1 * height1 * CONSTANT_SCORE_MULTIPLIER;
-		p = diff / n / CONSTANT_SCORE_DIVIDER;
+		n = width1 * height1 * 3;
+		p = diff / n / 255;
 		
 //		long compareNow = System.currentTimeMillis();
 //		System.out.println("compare took " + (float)(compareNow - compareThen) / 1000f + " seconds");
 		
-		return CONSTANT_SCORE_ONE - p;
+		return 1 - p;
 	}
 }

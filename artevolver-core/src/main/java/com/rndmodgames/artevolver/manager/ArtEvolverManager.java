@@ -134,12 +134,15 @@ public class ArtEvolverManager {
      */
     public static void main(String[] args) {
 
-        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources";
+//        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources";
+//        String sourceFolder = "D:\\Media\\Exported - Instagram";
+        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources2\\own";
         
         /**
          * Static Configuration
          */
-        ArtEvolver.CURRENT_MODE = ArtEvolver.QUICK_MODE;
+//        ArtEvolver.CURRENT_MODE = ArtEvolver.QUICK_MODE;
+        ArtEvolver.CURRENT_MODE = ArtEvolver.FASTEST_BATCH_MODE;
         
         ArtEvolverManager manager = new ArtEvolverManager(sourceFolder, 1, 5);
         

@@ -190,7 +190,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
     public ArtEvolver() throws IOException {
         
-        super("ArtEvolver 2021 v2.03");
+        super("ArtEvolver 2021 v2.05");
 
     	switch (CURRENT_MODE) {
     	

@@ -737,6 +737,14 @@ public class ImageEvolver extends AbstractEvolver {
 		// replace Child with worst element / worstParent
 	}
 	
+	/**
+	 * DEFAULT
+	 * 
+	 *     - secuential = false;
+	 *     - parentAlwaysA = true;
+	 *     - flipParents5050 = false;
+	 * 
+	 */
 	private boolean secuential = false;
 	private boolean randomSecuential = false;
 	private boolean secuentialHorizontal = false;
@@ -744,6 +752,9 @@ public class ImageEvolver extends AbstractEvolver {
 	private int currentParentB = 1;
 	private int startTriangle = 0;
 	private int targetTriangle = 1;
+	
+	private boolean parentAlwaysA = true;
+	private boolean flipParents5050 = false;
 
 	public void switchSecuential() {
 		secuential = !secuential;
@@ -765,7 +776,7 @@ public class ImageEvolver extends AbstractEvolver {
 		for (int a = 0; a < iterations; a++) {
 
 			/**
-			 * Non Secuental: standard roll
+			 * Non Secuental: standard roll [FULLY RANDOM]
 			 */
 			if (!secuential) {
 				// TEST : always pick the best as ParentA
@@ -779,13 +790,93 @@ public class ImageEvolver extends AbstractEvolver {
 					rollB = roll(pop.size() - 1);
 				}
 
-				parentA = pop.get(rollA);
-				parentB = pop.get(rollB);
+				/**
+				 * IF TRUE
+				 */
+				if (parentAlwaysA) {
+				    
+				    parentA = pop.get(rollA);
+				    parentB = pop.get(rollB);
+				    
+				} else {
+				    
+				    /**
+				     * 
+				     */
+				    if (flipParents5050) {
+				        
+				        // random parent
+				        if (random.nextDouble() > 0.5d) {
+				            parentA = pop.get(rollA);
+	                        parentB = pop.get(rollB);
+				        } else {
+				            parentA = pop.get(rollB);
+	                        parentB = pop.get(rollA);
+				        }
+				        
+				    } else {
+				        
+				        // parent is b
+	                    parentA = pop.get(rollB);
+	                    parentB = pop.get(rollA);
+				    }
+				}
+				
 			} else {
 				
-				// parent is always 0, order by score so 0 is always the best
-				parentA = pop.get(currentParentA);
-				parentB = pop.get(currentParentB);
+//				 parent is always 0, order by score so 0 is always the best
+			    
+			    /**
+			     * FITNESS BASED PARENT SELECTION
+			     * 
+			     * - population should be ordered
+			     * - position 0 is best fitness
+			     */
+			    Collections.sort(pop, new TrianglesComparator());
+			    
+			    boolean isSelectedParentA = false;
+			    int selectedId = 0;
+			    
+			    float fitnessRoll = (float) random.nextDouble();
+			    
+			    while(!isSelectedParentA) {
+			        
+			        /**
+			         * Higher fitness have higher chances to be picked
+			         */
+			        if (fitnessRoll >= pop.get(selectedId).getScore()) {
+			            
+			            parentA = pop.get(selectedId);
+			            isSelectedParentA = true;
+			            
+			        } else {
+			            
+			            selectedId++;
+			            fitnessRoll = (float) random.nextDouble();
+			        }
+			    }
+			    
+			    boolean isSelectedParentB = false;
+			    int selectedBId = 0;
+			    
+			    fitnessRoll = (float) random.nextDouble();
+			    
+			    while(!isSelectedParentB) {
+                    
+                    /**
+                     * Higher fitness have higher chances to be picked
+                     */
+                    if (fitnessRoll >= pop.get(selectedId).getScore() && selectedBId != selectedId) {
+                        
+                        parentB = pop.get(selectedBId);
+                        isSelectedParentB = true;
+                        
+                    } else {
+                        
+                        selectedBId++;
+                        fitnessRoll = (float) random.nextDouble();
+                    }
+                }
 			}
 
 			if (!secuential) {
@@ -885,7 +976,10 @@ public class ImageEvolver extends AbstractEvolver {
 			double scoreC = compare(imgChildA, resizedOriginal);
 			childA.setScore(scoreC);
 			
-//			Collections.sort(pop, new TrianglesComparator());
+//			if (secuential) {
+//			    
+//			    Collections.sort(pop, new TrianglesComparator());
+//			}
 			
 			// Just in case parent is not evaluated, and it's the first best score
 			if (scoreA > bestScore) {

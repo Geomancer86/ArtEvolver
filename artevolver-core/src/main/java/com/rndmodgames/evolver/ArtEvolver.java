@@ -50,8 +50,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static final int QUALITY_SMALL_MODE        = 20;
 	public static final int BEST_SMALL_MODE           = 30;
 	public static final int QUALITY_MODE              = 90;
+	public static final int QUALITY_MODE_FULL_THREADS = 91;
 	
-	public static int CURRENT_MODE = QUALITY_MODE;
+	public static int CURRENT_MODE = QUALITY_MODE_FULL_THREADS;
 	
 	public static final String [] MODES = new String [100];
 	
@@ -64,6 +65,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    MODES[20] = "QUALITY_SMALL_MODE";
 	    MODES[30] = "BEST_SMALL_MODE";
 	    MODES[90] = "QUALITY_MODE";
+	    MODES[91] = "QUALITY_MODE_FULL_THREADS";
 	}
 	
 	/**
@@ -92,6 +94,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private int RANDOM_JUMP_MAX_DISTANCE	= 2; // 1-x MAX: 4239/2
 	private int CROSSOVER_MAX 				= 2;
 	
+	private boolean FITNESS_BASED_PARENT_SELECTION = false;
+	
 	/**
 	 * TOTAL_PALLETES
 	 * 
@@ -117,7 +121,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	
 	public static final int IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB;
 	
-	public static int EVOLVE_ITERATIONS    = 1000;
+	/**
+	 * TODO: document & optimize
+	 * 
+	 * EVOLVE_ITERATIONS: 
+	 */
+	public static int EVOLVE_ITERATIONS    = 100;
 	private static int MAX_ITERATIONS      = 10000000;
 
 	private static String SEPARATOR = ";";
@@ -204,8 +213,18 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
     	switch (CURRENT_MODE) {
     	
+    	case QUALITY_MODE_FULL_THREADS:
+            THREADS = 32;
+            POPULATION = 5;
+            triangleScaleHeight = 3f;
+            triangleScaleWidth = 3f;
+            width = 3.0f * triangleScaleWidth;
+            height = 3.0f * triangleScaleHeight;
+            break;
+    	
     	case QUALITY_MODE:
     	    THREADS = 8;
+    	    POPULATION = 8;
             triangleScaleHeight = 3f;
             triangleScaleWidth = 3f;
             width = 3.0f * triangleScaleWidth;

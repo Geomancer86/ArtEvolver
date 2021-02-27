@@ -72,6 +72,8 @@ public class ArtEvolverManager {
             e.printStackTrace();
         }
         
+        List<ArtEvolver> finishedEvolvers = new ArrayList<>();
+        
         /**
          * 
          */
@@ -85,8 +87,18 @@ public class ArtEvolverManager {
                 if (evolver.isVisible()) {
                     
                     activeCount++;
+                } else {
+                    
+                    /**
+                     * TEST: remove finished art evolver from list and try to release memory back
+                     */
+                    evolver.stop();
+                    finishedEvolvers.add(evolver);
                 }
             }
+            
+            // remove finished evolvers
+            evolvers.remove(finishedEvolvers);
             
             // 
             if (activeCount == 0) {
@@ -99,7 +111,7 @@ public class ArtEvolverManager {
                 /**
                  * TODO: maybe timeout * activeCount
                  */
-                TimeUnit.SECONDS.sleep(timeout);
+                TimeUnit.SECONDS.sleep(timeout * activeCount);
                 
             } catch (InterruptedException e) {
                 // TODO Auto-generated catch block
@@ -141,7 +153,8 @@ public class ArtEvolverManager {
 
 //        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources";
 //        String sourceFolder = "D:\\Media\\Exported - Instagram";
-        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources2\\own";
+//        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources2\\own";
+        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources2\\batch 4";
         
         /**
          * Static Configuration

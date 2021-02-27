@@ -82,9 +82,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	int widthTriangles  = 80; // 71
 	int heightTriangles = 53; // 60
 
+	/**
+	 * PARAMETERS:
+	 * 
+	 * TODO: fix random removal of drawings from population list
+	 */
 	private int THREADS                 	= 8; // 1-x (32-48 peak)
-	private int POPULATION 					= 16; // GeneticEvolver: 2-4096 (multiply by thread count to get the final population number)
-	private int RANDOM_JUMP_MAX_DISTANCE	= 423/2; // 1-x MAX: 4239/2
+	private int POPULATION 					= 8; // GeneticEvolver: 2-4096 (multiply by thread count to get the final population number)
+	private int RANDOM_JUMP_MAX_DISTANCE	= 2; // 1-x MAX: 4239/2
 	private int CROSSOVER_MAX 				= 2;
 	
 	/**
@@ -193,7 +198,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
     public ArtEvolver() throws IOException {
         
-        super("ArtEvolver 2021 v2.05");
+        super("ArtEvolver 2021 v2.03");
 
     	switch (CURRENT_MODE) {
     	

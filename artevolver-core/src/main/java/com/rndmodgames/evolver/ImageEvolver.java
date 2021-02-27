@@ -934,6 +934,7 @@ public class ImageEvolver extends AbstractEvolver {
 			boolean tournamentEnabled = false;
 			
 			if (tournamentEnabled) {
+			    
 			    if (totalIterations % 1000 == 0){
 
 //	              long now = System.currentTimeMillis();

@@ -18,6 +18,15 @@ import java.util.SplittableRandom;
 import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 
+/**
+ * ImageEvolver v1
+ * 
+ * This is the current/latest ImageEvolver used by ArtEvolver
+ * 
+ * TODO: ImageEvolver 2.0
+ * 
+ * @author Geomancer86
+ */
 public class ImageEvolver extends AbstractEvolver {
 
 //	public static final MersenneTwisterFast random = new MersenneTwisterFast();
@@ -51,14 +60,7 @@ public class ImageEvolver extends AbstractEvolver {
 	private CrossOver crossOver;
 
 	// The population for this Evolver instance
-	// TODO: Synchronize:  Collections.synchronizedList(
-	/**
-	 * Synchronized vs Concurrent performance
-	 * 
-	 * 
-	 */
 	private List<TriangleList<Triangle>> pop = new TriangleList<TriangleList<Triangle>>();
-//	private static List<TriangleList<Triangle>> pop = Collections.synchronizedList(new TriangleList<TriangleList<Triangle>>());
 
 	private boolean isDirty = true;
 	private boolean exportNextAndClose = false;
@@ -94,10 +96,12 @@ public class ImageEvolver extends AbstractEvolver {
 
 	/**
 	 * Initialize the triangles from a TXT file listing all the triangle coordinates and colors
+	 * 
 	 * @param filename
 	 * @throws IOException 
 	 */
 	public void initializeFromFile(String filename, double scale) throws IOException {
+	    
 		URL url = getClass().getResource("../../../" + filename);
 		File file = new File(url.getPath());
 
@@ -148,6 +152,7 @@ public class ImageEvolver extends AbstractEvolver {
 			g = imgParentA.getGraphics();
 
 			for (Triangle triangle : triangles) {
+			    
 				if (triangle.getColor() != null) {
 					g.setColor(triangle.getColor());
 					g.drawPolygon(triangle);
@@ -156,6 +161,7 @@ public class ImageEvolver extends AbstractEvolver {
 					g.setColor(Color.BLUE);
 					g.drawPolygon(triangle);
 				}
+				
 			}
 
 			scoreA = compare(imgParentA, resizedOriginal);
@@ -175,7 +181,9 @@ public class ImageEvolver extends AbstractEvolver {
 
 		for (int kk = 0; kk < preGenerations; kk++) {
 			for (int i = 0; i < population; i++) {
+			    
 				TriangleList<Triangle> triangles = new TriangleList<Triangle>();
+				
 				int count = 0;
 				int position = 0;
 
@@ -311,6 +319,7 @@ public class ImageEvolver extends AbstractEvolver {
 //			pallete.orderByBLUE();
 
 			for (int i = 0; i < population; i++) {
+			    
 				TriangleList<Triangle> triangles = new TriangleList<Triangle>();
 				int count = 0;
 
@@ -530,10 +539,6 @@ public class ImageEvolver extends AbstractEvolver {
 		return pop;
 	}
 
-//	public void setPopulation(List<TriangleList<Triangle>> pop) {
-//		this.pop = pop;
-//	}
-
 	public BufferedImage getResizedOriginal() {
 		return resizedOriginal;
 	}
@@ -654,12 +659,12 @@ public class ImageEvolver extends AbstractEvolver {
 	}
 	
 	public void updateStats() {
+	    
 		totalIterations++;
 
 		if (totalIterations % ((population / 2) * 1000) == 0) {
 			System.out.println(new DecimalFormat("####.###################", 
-							   new DecimalFormatSymbols(Locale.ITALIAN))
-					  .format(bestScore));
+							   new DecimalFormatSymbols(Locale.ITALIAN)).format(bestScore));
 		}
 	}
 	

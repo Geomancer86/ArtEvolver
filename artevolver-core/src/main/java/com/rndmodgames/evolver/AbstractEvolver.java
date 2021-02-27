@@ -35,6 +35,10 @@ public abstract class AbstractEvolver implements Runnable {
 	private double n;
 	private double p;
 	
+	private final double CONSTANT_SCORE_DIVIDER = 255d;
+	private final int CONSTANT_SCORE_MULTIPLIER = 3;
+	private final int CONSTANT_SCORE_ONE = 1;
+
 	public double compare(BufferedImage img1, BufferedImage img2) {
 
 //		long compareThen = System.currentTimeMillis();
@@ -43,16 +47,14 @@ public abstract class AbstractEvolver implements Runnable {
 		int width2 = img2.getWidth(null);
 		int height1 = img1.getHeight(null);
 		int height2 = img2.getHeight(null);
-		
-//		System.out.println("width1: " + width1 + ", height1: " + height1 + ", width2: " + width2 + ", height2: " + height2);
-		
+
 		if ((width1 != width2) || (height1 != height2)) {
 			System.err.println("Error: Images dimensions mismatch");
 			return 0;
 		}
 		
 		/**
-		 * TODO: parametrize
+		 * TODO: parametrize & document
 		 */
 		boolean fitnessByColor = true;
 		diff = 0;
@@ -115,12 +117,12 @@ public abstract class AbstractEvolver implements Runnable {
 			}
 		}
 
-		n = width1 * height1 * 3;
-		p = diff / n / 255;
+		n = width1 * height1 * CONSTANT_SCORE_MULTIPLIER;
+		p = diff / n / CONSTANT_SCORE_DIVIDER;
 		
 //		long compareNow = System.currentTimeMillis();
 //		System.out.println("compare took " + (float)(compareNow - compareThen) / 1000f + " seconds");
 		
-		return 1 - p;
+		return CONSTANT_SCORE_ONE - p;
 	}
 }

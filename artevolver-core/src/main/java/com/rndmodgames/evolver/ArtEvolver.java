@@ -83,8 +83,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	int heightTriangles = 53; // 60
 
 	private int THREADS                 	= 8; // 1-x (32-48 peak)
-	private int POPULATION 					= 4; // GeneticEvolver: 2-4096 (multiply by thread count to get the final population number)
-	private int RANDOM_JUMP_MAX_DISTANCE	= 4239/2; // 1-x MAX: 4239/2
+	private int POPULATION 					= 16; // GeneticEvolver: 2-4096 (multiply by thread count to get the final population number)
+	private int RANDOM_JUMP_MAX_DISTANCE	= 423/2; // 1-x MAX: 4239/2
 	private int CROSSOVER_MAX 				= 2;
 	
 	/**
@@ -155,6 +155,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	boolean isRunning = false;
 	boolean showSource = false;
 	
+	/**
+	 * TODO: document
+	 */
 	boolean offlineExport = false;
 
 	private TriangleList<Triangle> bestPop = new TriangleList<Triangle>();
@@ -190,7 +193,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
     public ArtEvolver() throws IOException {
         
-        super("ArtEvolver 2021 v2.03");
+        super("ArtEvolver 2021 v2.05");
 
     	switch (CURRENT_MODE) {
     	
@@ -399,8 +402,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                             
                             /**
                              * Only call System.exit if required
+                             * 
+                             * TODO: app keeps running on standalone mode (with window invisible and disposed). FIX
                              */
-                            
                             setVisible(false);
                             dispose();
                             
@@ -417,6 +421,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         menuContainer.setPreferredSize(new Dimension(160, 480));
 
 		imagePanel = new JPanel() {
+
+            private static final long serialVersionUID = -1275189729010345619L;
 
             @Override
 	        protected void paintComponent(Graphics g) {

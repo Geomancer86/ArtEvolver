@@ -168,6 +168,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private TriangleList<Triangle> bestPop = new TriangleList<Triangle>();
 
 	/**
+	 * v2.05: Fitness Based Parent Selection (FBPS)
+	 * 
 	 * v2.01: Basic Multithreading
 	 * 
 	 * 			- Main intention is to scale up the speed with the cores in use by firing multiple Evolver instances on separate Threads.
@@ -198,7 +200,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
     public ArtEvolver() throws IOException {
         
-        super("ArtEvolver 2021 v2.03");
+        super("ArtEvolver 2021 v2.05");
 
     	switch (CURRENT_MODE) {
     	

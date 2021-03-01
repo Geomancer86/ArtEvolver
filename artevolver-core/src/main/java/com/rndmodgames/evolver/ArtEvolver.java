@@ -50,8 +50,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static final int QUALITY_SMALL_MODE        = 20;
 	public static final int BEST_SMALL_MODE           = 30;
 	public static final int QUALITY_MODE              = 90;
+	public static final int QUALITY_MODE_FULL_THREADS = 91;
 	
-	public static int CURRENT_MODE = QUALITY_MODE;
+	public static int CURRENT_MODE = QUALITY_MODE_FULL_THREADS;
 	
 	public static final String [] MODES = new String [100];
 	
@@ -64,6 +65,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    MODES[20] = "QUALITY_SMALL_MODE";
 	    MODES[30] = "BEST_SMALL_MODE";
 	    MODES[90] = "QUALITY_MODE";
+	    MODES[91] = "QUALITY_MODE_FULL_THREADS";
 	}
 	
 	/**
@@ -82,10 +84,17 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	int widthTriangles  = 80; // 71
 	int heightTriangles = 53; // 60
 
+	/**
+	 * PARAMETERS:
+	 * 
+	 * TODO: fix random removal of drawings from population list
+	 */
 	private int THREADS                 	= 8; // 1-x (32-48 peak)
-	private int POPULATION 					= 4; // GeneticEvolver: 2-4096 (multiply by thread count to get the final population number)
-	private int RANDOM_JUMP_MAX_DISTANCE	= 4239/2; // 1-x MAX: 4239/2
+	private int POPULATION 					= 8; // GeneticEvolver: 2-4096 (multiply by thread count to get the final population number)
+	private int RANDOM_JUMP_MAX_DISTANCE	= 2; // 1-x MAX: 4239/2
 	private int CROSSOVER_MAX 				= 2;
+	
+	private boolean FITNESS_BASED_PARENT_SELECTION = false;
 	
 	/**
 	 * TOTAL_PALLETES
@@ -112,7 +121,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	
 	public static final int IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB;
 	
-	public static int EVOLVE_ITERATIONS    = 1000;
+	/**
+	 * TODO: document & optimize
+	 * 
+	 * EVOLVE_ITERATIONS: 
+	 */
+	public static int EVOLVE_ITERATIONS    = 100;
 	private static int MAX_ITERATIONS      = 10000000;
 
 	private static String SEPARATOR = ";";
@@ -125,7 +139,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private List <ImageEvolver> evolvers = new ArrayList<>();
 
 	// Timer
-	private Timer processTimer;
+	public Timer processTimer;
 	
 	// Components
 	private JFileChooser chooser;
@@ -155,11 +169,17 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	boolean isRunning = false;
 	boolean showSource = false;
 	
+	/**
+	 * TODO: document
+	 */
 	boolean offlineExport = false;
+	public static boolean EXPORT_ENABLED = true;
 
 	private TriangleList<Triangle> bestPop = new TriangleList<Triangle>();
 
 	/**
+	 * v2.05: Fitness Based Parent Selection (FBPS)
+	 * 
 	 * v2.01: Basic Multithreading
 	 * 
 	 * 			- Main intention is to scale up the speed with the cores in use by firing multiple Evolver instances on separate Threads.
@@ -190,12 +210,22 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
     public ArtEvolver() throws IOException {
         
-        super("ArtEvolver 2021 v2.03");
+        super("ArtEvolver 2021 v2.05");
 
     	switch (CURRENT_MODE) {
     	
+    	case QUALITY_MODE_FULL_THREADS:
+            THREADS = 32;
+            POPULATION = 5;
+            triangleScaleHeight = 3f;
+            triangleScaleWidth = 3f;
+            width = 3.0f * triangleScaleWidth;
+            height = 3.0f * triangleScaleHeight;
+            break;
+    	
     	case QUALITY_MODE:
     	    THREADS = 8;
+    	    POPULATION = 8;
             triangleScaleHeight = 3f;
             triangleScaleWidth = 3f;
             width = 3.0f * triangleScaleWidth;
@@ -388,19 +418,21 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	/**
             	 * Close and Export for Quick and Quick Extended Modes
             	 */
-            	if (CURRENT_MODE != QUALITY_MODE) {
+            	if (CURRENT_MODE != QUALITY_MODE 
+            	        && CURRENT_MODE != QUALITY_MODE_FULL_THREADS) {
             	    
             	    if (totalIterations >= MAX_ITERATIONS) {
                         
             	        if (!offlineExport) {
             	        
                             //
-                            renderBestImage();
-                            
+            	            renderBestImage();
+
                             /**
                              * Only call System.exit if required
+                             * 
+                             * TODO: app keeps running on standalone mode (with window invisible and disposed). FIX
                              */
-                            
                             setVisible(false);
                             dispose();
                             
@@ -417,6 +449,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         menuContainer.setPreferredSize(new Dimension(160, 480));
 
 		imagePanel = new JPanel() {
+
+            private static final long serialVersionUID = -1275189729010345619L;
 
             @Override
 	        protected void paintComponent(Graphics g) {
@@ -683,7 +717,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	this.isRunning = false;
     	
     	processTimer.stop();
-
     }
     
     /**
@@ -718,15 +751,16 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                 + bestScore + SEPARATOR
                 + imageCategory);
 
-        Renderer.renderToPNG(bestPop,
-                splitted[0],
-                EXPORT_FOLDER,
-                exportedImages,
-                (int) (width * widthTriangles),
-                (int) (height * (heightTriangles - 1)), // do not render last row
-                IMAGE_TYPE,
-                1);
-        
+        if (EXPORT_ENABLED) {
+            Renderer.renderToPNG(bestPop,
+                    splitted[0],
+                    EXPORT_FOLDER,
+                    exportedImages,
+                    (int) (width * widthTriangles),
+                    (int) (height * (heightTriangles - 1)), // do not render last row
+                    IMAGE_TYPE,
+                    1);
+        }
     }
     
 	@Override

@@ -18,6 +18,15 @@ import java.util.SplittableRandom;
 import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 
+/**
+ * ImageEvolver v1
+ * 
+ * This is the current/latest ImageEvolver used by ArtEvolver
+ * 
+ * TODO: ImageEvolver 2.0
+ * 
+ * @author Geomancer86
+ */
 public class ImageEvolver extends AbstractEvolver {
 
 //	public static final MersenneTwisterFast random = new MersenneTwisterFast();
@@ -51,14 +60,7 @@ public class ImageEvolver extends AbstractEvolver {
 	private CrossOver crossOver;
 
 	// The population for this Evolver instance
-	// TODO: Synchronize:  Collections.synchronizedList(
-	/**
-	 * Synchronized vs Concurrent performance
-	 * 
-	 * 
-	 */
 	private List<TriangleList<Triangle>> pop = new TriangleList<TriangleList<Triangle>>();
-//	private static List<TriangleList<Triangle>> pop = Collections.synchronizedList(new TriangleList<TriangleList<Triangle>>());
 
 	private boolean isDirty = true;
 	private boolean exportNextAndClose = false;
@@ -94,10 +96,12 @@ public class ImageEvolver extends AbstractEvolver {
 
 	/**
 	 * Initialize the triangles from a TXT file listing all the triangle coordinates and colors
+	 * 
 	 * @param filename
 	 * @throws IOException 
 	 */
 	public void initializeFromFile(String filename, double scale) throws IOException {
+	    
 		URL url = getClass().getResource("../../../" + filename);
 		File file = new File(url.getPath());
 
@@ -148,6 +152,7 @@ public class ImageEvolver extends AbstractEvolver {
 			g = imgParentA.getGraphics();
 
 			for (Triangle triangle : triangles) {
+			    
 				if (triangle.getColor() != null) {
 					g.setColor(triangle.getColor());
 					g.drawPolygon(triangle);
@@ -156,6 +161,7 @@ public class ImageEvolver extends AbstractEvolver {
 					g.setColor(Color.BLUE);
 					g.drawPolygon(triangle);
 				}
+				
 			}
 
 			scoreA = compare(imgParentA, resizedOriginal);
@@ -175,7 +181,9 @@ public class ImageEvolver extends AbstractEvolver {
 
 		for (int kk = 0; kk < preGenerations; kk++) {
 			for (int i = 0; i < population; i++) {
+			    
 				TriangleList<Triangle> triangles = new TriangleList<Triangle>();
+				
 				int count = 0;
 				int position = 0;
 
@@ -311,6 +319,7 @@ public class ImageEvolver extends AbstractEvolver {
 //			pallete.orderByBLUE();
 
 			for (int i = 0; i < population; i++) {
+			    
 				TriangleList<Triangle> triangles = new TriangleList<Triangle>();
 				int count = 0;
 
@@ -530,10 +539,6 @@ public class ImageEvolver extends AbstractEvolver {
 		return pop;
 	}
 
-//	public void setPopulation(List<TriangleList<Triangle>> pop) {
-//		this.pop = pop;
-//	}
-
 	public BufferedImage getResizedOriginal() {
 		return resizedOriginal;
 	}
@@ -654,12 +659,12 @@ public class ImageEvolver extends AbstractEvolver {
 	}
 	
 	public void updateStats() {
+	    
 		totalIterations++;
 
 		if (totalIterations % ((population / 2) * 1000) == 0) {
 			System.out.println(new DecimalFormat("####.###################", 
-							   new DecimalFormatSymbols(Locale.ITALIAN))
-					  .format(bestScore));
+							   new DecimalFormatSymbols(Locale.ITALIAN)).format(bestScore));
 		}
 	}
 	
@@ -732,6 +737,14 @@ public class ImageEvolver extends AbstractEvolver {
 		// replace Child with worst element / worstParent
 	}
 	
+	/**
+	 * DEFAULT
+	 * 
+	 *     - secuential = false;
+	 *     - parentAlwaysA = true;
+	 *     - flipParents5050 = false;
+	 * 
+	 */
 	private boolean secuential = false;
 	private boolean randomSecuential = false;
 	private boolean secuentialHorizontal = false;
@@ -739,6 +752,9 @@ public class ImageEvolver extends AbstractEvolver {
 	private int currentParentB = 1;
 	private int startTriangle = 0;
 	private int targetTriangle = 1;
+	
+	private boolean parentAlwaysA = true;
+	private boolean flipParents5050 = false;
 
 	public void switchSecuential() {
 		secuential = !secuential;
@@ -760,7 +776,7 @@ public class ImageEvolver extends AbstractEvolver {
 		for (int a = 0; a < iterations; a++) {
 
 			/**
-			 * Non Secuental: standard roll
+			 * Non Secuental: standard roll [FULLY RANDOM]
 			 */
 			if (!secuential) {
 				// TEST : always pick the best as ParentA
@@ -774,13 +790,93 @@ public class ImageEvolver extends AbstractEvolver {
 					rollB = roll(pop.size() - 1);
 				}
 
-				parentA = pop.get(rollA);
-				parentB = pop.get(rollB);
+				/**
+				 * IF TRUE
+				 */
+				if (parentAlwaysA) {
+				    
+				    parentA = pop.get(rollA);
+				    parentB = pop.get(rollB);
+				    
+				} else {
+				    
+				    /**
+				     * 
+				     */
+				    if (flipParents5050) {
+				        
+				        // random parent
+				        if (random.nextDouble() > 0.5d) {
+				            parentA = pop.get(rollA);
+	                        parentB = pop.get(rollB);
+				        } else {
+				            parentA = pop.get(rollB);
+	                        parentB = pop.get(rollA);
+				        }
+				        
+				    } else {
+				        
+				        // parent is b
+	                    parentA = pop.get(rollB);
+	                    parentB = pop.get(rollA);
+				    }
+				}
+				
 			} else {
 				
-				// parent is always 0, order by score so 0 is always the best
-				parentA = pop.get(currentParentA);
-				parentB = pop.get(currentParentB);
+//				 parent is always 0, order by score so 0 is always the best
+			    
+			    /**
+			     * FITNESS BASED PARENT SELECTION
+			     * 
+			     * - population should be ordered
+			     * - position 0 is best fitness
+			     */
+			    Collections.sort(pop, new TrianglesComparator());
+			    
+			    boolean isSelectedParentA = false;
+			    int selectedId = 0;
+			    
+			    float fitnessRoll = (float) random.nextDouble();
+			    
+			    while(!isSelectedParentA) {
+			        
+			        /**
+			         * Higher fitness have higher chances to be picked
+			         */
+			        if (fitnessRoll >= pop.get(selectedId).getScore()) {
+			            
+			            parentA = pop.get(selectedId);
+			            isSelectedParentA = true;
+			            
+			        } else {
+			            
+			            selectedId++;
+			            fitnessRoll = (float) random.nextDouble();
+			        }
+			    }
+			    
+			    boolean isSelectedParentB = false;
+			    int selectedBId = 0;
+			    
+			    fitnessRoll = (float) random.nextDouble();
+			    
+			    while(!isSelectedParentB) {
+                    
+                    /**
+                     * Higher fitness have higher chances to be picked
+                     */
+                    if (fitnessRoll >= pop.get(selectedId).getScore() && selectedBId != selectedId) {
+                        
+                        parentB = pop.get(selectedBId);
+                        isSelectedParentB = true;
+                        
+                    } else {
+                        
+                        selectedBId++;
+                        fitnessRoll = (float) random.nextDouble();
+                    }
+                }
 			}
 
 			if (!secuential) {
@@ -880,7 +976,10 @@ public class ImageEvolver extends AbstractEvolver {
 			double scoreC = compare(imgChildA, resizedOriginal);
 			childA.setScore(scoreC);
 			
-//			Collections.sort(pop, new TrianglesComparator());
+//			if (secuential) {
+//			    
+//			    Collections.sort(pop, new TrianglesComparator());
+//			}
 			
 			// Just in case parent is not evaluated, and it's the first best score
 			if (scoreA > bestScore) {
@@ -929,6 +1028,7 @@ public class ImageEvolver extends AbstractEvolver {
 			boolean tournamentEnabled = false;
 			
 			if (tournamentEnabled) {
+			    
 			    if (totalIterations % 1000 == 0){
 
 //	              long now = System.currentTimeMillis();

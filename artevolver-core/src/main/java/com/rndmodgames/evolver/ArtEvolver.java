@@ -139,7 +139,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private List <ImageEvolver> evolvers = new ArrayList<>();
 
 	// Timer
-	private Timer processTimer;
+	public Timer processTimer;
 	
 	// Components
 	private JFileChooser chooser;
@@ -173,6 +173,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * TODO: document
 	 */
 	boolean offlineExport = false;
+	public static boolean EXPORT_ENABLED = true;
 
 	private TriangleList<Triangle> bestPop = new TriangleList<Triangle>();
 
@@ -417,15 +418,16 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	/**
             	 * Close and Export for Quick and Quick Extended Modes
             	 */
-            	if (CURRENT_MODE != QUALITY_MODE) {
+            	if (CURRENT_MODE != QUALITY_MODE 
+            	        && CURRENT_MODE != QUALITY_MODE_FULL_THREADS) {
             	    
             	    if (totalIterations >= MAX_ITERATIONS) {
                         
             	        if (!offlineExport) {
             	        
                             //
-                            renderBestImage();
-                            
+            	            renderBestImage();
+
                             /**
                              * Only call System.exit if required
                              * 
@@ -715,7 +717,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	this.isRunning = false;
     	
     	processTimer.stop();
-
     }
     
     /**
@@ -750,15 +751,16 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                 + bestScore + SEPARATOR
                 + imageCategory);
 
-        Renderer.renderToPNG(bestPop,
-                splitted[0],
-                EXPORT_FOLDER,
-                exportedImages,
-                (int) (width * widthTriangles),
-                (int) (height * (heightTriangles - 1)), // do not render last row
-                IMAGE_TYPE,
-                1);
-        
+        if (EXPORT_ENABLED) {
+            Renderer.renderToPNG(bestPop,
+                    splitted[0],
+                    EXPORT_FOLDER,
+                    exportedImages,
+                    (int) (width * widthTriangles),
+                    (int) (height * (heightTriangles - 1)), // do not render last row
+                    IMAGE_TYPE,
+                    1);
+        }
     }
     
 	@Override

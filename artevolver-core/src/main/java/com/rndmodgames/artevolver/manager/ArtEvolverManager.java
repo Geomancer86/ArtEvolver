@@ -53,9 +53,7 @@ public class ArtEvolverManager {
     }
     
     public void readAllFiles() {
-        
-        int filecount = 0;
-        
+
         try (Stream<Path> walk = Files.walk(Paths.get(sourceFolder))) {
 
             List<String> result = walk.filter(Files::isRegularFile).map(x -> x.toString()).collect(Collectors.toList());
@@ -64,13 +62,16 @@ public class ArtEvolverManager {
 
                 // 
                 processArtEvolver(file);
-                
-                filecount++;
             }
 
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+    
+    public void processFinished() {
+        
+        List<ArtEvolver> finishedEvolvers = new ArrayList<>();
         
         /**
          * 
@@ -85,11 +86,23 @@ public class ArtEvolverManager {
                 if (evolver.isVisible()) {
                     
                     activeCount++;
+                } else {
+                    
+                    /**
+                     * TEST: remove finished art evolver from list and try to release memory back
+                     */
+                    evolver.stop();
+                    evolver.processTimer.stop();
+                    finishedEvolvers.add(evolver);
                 }
             }
             
+            // remove finished evolvers
+            evolvers.removeAll(finishedEvolvers);
+            finishedEvolvers.clear();
+            
             // 
-            if (activeCount == 0) {
+            if (activeCount <= 0) {
                 
                 break;
             }
@@ -99,7 +112,7 @@ public class ArtEvolverManager {
                 /**
                  * TODO: maybe timeout * activeCount
                  */
-                TimeUnit.SECONDS.sleep(timeout);
+                TimeUnit.MILLISECONDS.sleep(timeout * activeCount);
                 
             } catch (InterruptedException e) {
                 // TODO Auto-generated catch block
@@ -141,17 +154,20 @@ public class ArtEvolverManager {
 
 //        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources";
 //        String sourceFolder = "D:\\Media\\Exported - Instagram";
-        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources2\\own";
+//        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources2\\own";
+        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources2\\batch 12";
         
         /**
          * Static Configuration
          */
 //        ArtEvolver.CURRENT_MODE = ArtEvolver.QUICK_MODE;
         ArtEvolver.CURRENT_MODE = ArtEvolver.FASTEST_BATCH_MODE;
+        ArtEvolver.EXPORT_ENABLED = false;
         
-        ArtEvolverManager manager = new ArtEvolverManager(sourceFolder, 1, 5);
+        ArtEvolverManager manager = new ArtEvolverManager(sourceFolder, 1, 100);
         
         // 
         manager.readAllFiles();
+        manager.processFinished();
     }
 }

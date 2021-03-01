@@ -2,6 +2,16 @@ package com.rndmodgames.evolver;
 
 import java.awt.image.BufferedImage;
 
+/**
+ * AbstractEvolver v1
+ * 
+ * TODO: optimize the compare function
+ * 
+ *  - 1) set height, width as a parameter to avoid recalculating every time as images will always be the same size during processing
+ *  - 2) 
+ * 
+ * @author Geomancer86
+ */
 public abstract class AbstractEvolver implements Runnable {
 
 	public abstract void evolve(long start, int iterations);
@@ -37,14 +47,15 @@ public abstract class AbstractEvolver implements Runnable {
 		int width2 = img2.getWidth(null);
 		int height1 = img1.getHeight(null);
 		int height2 = img2.getHeight(null);
-		
-//		System.out.println("width1: " + width1 + ", height1: " + height1 + ", width2: " + width2 + ", height2: " + height2);
-		
+
 		if ((width1 != width2) || (height1 != height2)) {
 			System.err.println("Error: Images dimensions mismatch");
 			return 0;
 		}
 		
+		/**
+		 * TODO: parametrize & document
+		 */
 		boolean fitnessByColor = true;
 		diff = 0;
 		
@@ -54,6 +65,8 @@ public abstract class AbstractEvolver implements Runnable {
 					
 					/**
 					 * Working by RGB
+					 * 
+					 * TODO: parametrize
 					 */
 					rgb1 = img1.getRGB(x, y);
 					rgb2 = img2.getRGB(x, y);
@@ -72,6 +85,8 @@ public abstract class AbstractEvolver implements Runnable {
 					
 					/**
 					 * Working by Raster
+					 * 
+					 * TODO: parametrize
 					 */
 //					px1 = img1.getRaster().getPixel(x, y, px1);
 //					px2 = img2.getRaster().getPixel(x, y, px2);

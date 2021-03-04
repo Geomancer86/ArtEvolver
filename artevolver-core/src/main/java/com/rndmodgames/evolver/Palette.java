@@ -24,12 +24,19 @@ public class Palette {
 		this.name = name;
 		this.totalPalletes = repetitions;
 		
-		URL url = getClass().getResource("../../../sherwin.txt");
+//		URL url = getClass().getResource("../../../sherwin.txt");
+		URL url = getClass().getResource("../../../post_it_capetown.txt");
 		File file = new File(url.getPath());
 		
 		for (int a = 0; a < repetitions; a++){
 			try (Stream<String>stream = Files.lines(file.toPath(), StandardCharsets.UTF_8)) {
 				stream.forEach((line)->{
+				    
+				    if (line.startsWith("#")) {
+				        
+				        return;
+				    }
+				    
 					PalleteColor color = null;
 					String [] splitted = line.split(" ");
 	

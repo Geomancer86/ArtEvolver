@@ -104,8 +104,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
      *      - This will generate 4 triangles for each color.
      *      - Current code uses equilateral triangles resorting in using squared palletes, when the physical ones 
      *          are rectangular, we should take real world measures into consideration if wanting >efficiency over >symetrism
+     *          
+     *          
+     * POSTIT: 100 palettes (each color is used once)
 	 */
-	private int TOTAL_PALLETES             	= 4;
+	private int TOTAL_PALLETES             	= 850;
 	
 	private int GUI_FPS = 60;
 	private int FPS = 120;

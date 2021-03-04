@@ -155,7 +155,8 @@ public class ArtEvolverManager {
 //        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources";
 //        String sourceFolder = "D:\\Media\\Exported - Instagram";
 //        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources2\\own";
-        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources2\\batch 12";
+//        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources2\\batch 12";
+        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources\\landscapes";
         
         /**
          * Static Configuration

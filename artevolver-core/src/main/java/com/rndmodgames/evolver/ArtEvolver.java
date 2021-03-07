@@ -80,7 +80,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 	float width = 3.0f * triangleScaleWidth;
 	float height = 3.0f * triangleScaleHeight;
-	
+
 	/**
 	 * TODO:
 	 *     - parametrize and configure for different aspect ratios:
@@ -88,9 +88,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 *         - 4:3
 	 *         - 1:1
 	 *         - 9:16
+	 *         
+	 *          4 PALETTES:  80 x  53  ( 4260 colors)
+	 *         16 PALETTES: 162 x 105  (17040 colors)
 	 */
-	int widthTriangles  = 80; // 71
-	int heightTriangles = 53; // 60
+	int widthTriangles  = 162; // 71
+	int heightTriangles = 105; // 60
 
 	/**
 	 * PARAMETERS:
@@ -113,7 +116,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
      *      - Current code uses equilateral triangles resorting in using squared palletes, when the physical ones 
      *          are rectangular, we should take real world measures into consideration if wanting >efficiency over >symetrism
 	 */
-	private int TOTAL_PALLETES             	= 4;
+	private int TOTAL_PALLETES             	= 16;
 	
 	private int GUI_FPS = 60;
 	private int FPS = 120;
@@ -229,7 +232,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	switch (CURRENT_MODE) {
     	
     	case QUALITY_MODE_FULL_THREADS:
-            THREADS = 48; // 24, 32, 48, 64
+            THREADS = 16; // 24, 32, 48, 64
             POPULATION = 8;
             triangleScaleHeight = 3f;
             triangleScaleWidth = 3f;

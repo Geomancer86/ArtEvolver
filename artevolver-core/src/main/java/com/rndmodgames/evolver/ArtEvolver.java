@@ -81,6 +81,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	float width = 3.0f * triangleScaleWidth;
 	float height = 3.0f * triangleScaleHeight;
 	
+	/**
+	 * TODO:
+	 *     - parametrize and configure for different aspect ratios:
+	 *         - 16:9 [80x50]
+	 *         - 4:3
+	 *         - 1:1
+	 *         - 9:16
+	 */
 	int widthTriangles  = 80; // 71
 	int heightTriangles = 53; // 60
 
@@ -112,10 +120,16 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private int EVOLVER_UPDATE_MS = 1000 / FPS;
 	private int GUI_UPDATE_MS = 1000 / GUI_FPS;
 	
-	private int RANDOM_JUMP_MAX_DISTANCES [] = {4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2,
-												4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2,
-												4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2,
-												4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2};
+	/**
+	 * TODO: document and benchmark
+	 * 
+	 *     - each thread will have the random max jump distance set to the index of this array
+	 *     - TODO: find the optimum values for optimum drawing generation (fastest speed)
+	 */
+	private int RANDOM_JUMP_MAX_DISTANCES [] = {4239/2, 4239/2, 4239/2, 4239/2, 128, 128, 128, 128, 64, 64, 64, 64, 32, 32, 32, 32,
+												16, 16, 16, 16, 8, 8, 8, 8, 2, 2, 2, 2, 1, 1, 1, 1,
+												1, 1, 1, 1, 1, 1, 1, 1, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2,
+												1, 1, 1, 1, 1, 1, 1, 1, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2};
 	
 	private int CROSSOVERS_MAX [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
 	
@@ -215,8 +229,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	switch (CURRENT_MODE) {
     	
     	case QUALITY_MODE_FULL_THREADS:
-            THREADS = 32;
-            POPULATION = 6;
+            THREADS = 48; // 24, 32, 48, 64
+            POPULATION = 8;
             triangleScaleHeight = 3f;
             triangleScaleWidth = 3f;
             width = 3.0f * triangleScaleWidth;

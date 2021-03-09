@@ -126,10 +126,18 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 *     - each thread will have the random max jump distance set to the index of this array
 	 *     - TODO: find the optimum values for optimum drawing generation (fastest speed)
 	 */
-	private int RANDOM_JUMP_MAX_DISTANCES [] = {4239/2, 4239/2, 4239/2, 4239/2, 128, 128, 128, 128, 64, 64, 64, 64, 32, 32, 32, 32,
+	private int RANDOM_JUMP_MAX_DISTANCES2 [] = {4239/2, 4239/2, 4239/2, 4239/2, 128, 128, 128, 128, 64, 64, 64, 64, 32, 32, 32, 32,
 												16, 16, 16, 16, 8, 8, 8, 8, 2, 2, 2, 2, 1, 1, 1, 1,
 												1, 1, 1, 1, 1, 1, 1, 1, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2,
 												1, 1, 1, 1, 1, 1, 1, 1, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2};
+	
+	/**
+	 * TODO: new version with enhanced parameters
+	 */
+	private int RANDOM_JUMP_MAX_DISTANCES [] = {4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2,
+	                                            4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2,
+	                                            4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2,
+	                                            4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2,};
 	
 	private int CROSSOVERS_MAX [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
 	
@@ -184,6 +192,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	boolean showSource = false;
 	
 	/**
+	 * Benchmark Option
+	 *     - If Score reach this threshold and benchmarking is enabled, processing will export and finish
+	 */
+	
+	
+	/**
 	 * TODO: document
 	 */
 	boolean offlineExport = false;
@@ -229,7 +243,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	switch (CURRENT_MODE) {
     	
     	case QUALITY_MODE_FULL_THREADS:
-            THREADS = 48; // 24, 32, 48, 64
+            THREADS = 32; // 24, 32, 48, 64
             POPULATION = 8;
             triangleScaleHeight = 3f;
             triangleScaleWidth = 3f;
@@ -759,8 +773,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         System.out.println(imageSourceName + SEPARATOR
 //                + THREADS + SEPARATOR
 //                + (THREADS * POPULATION) + SEPARATOR
-//                + totalIterations + SEPARATOR
-//                + goodIterations + SEPARATOR
+                + totalIterations + SEPARATOR
+                + goodIterations + SEPARATOR
                 + ((float) goodIterations / (float) totalIterations) + SEPARATOR
                 + bestScore + SEPARATOR
                 + imageCategory);

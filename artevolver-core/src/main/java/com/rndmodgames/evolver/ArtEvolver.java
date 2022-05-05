@@ -52,7 +52,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static final int QUALITY_MODE              = 90;
 	public static final int QUALITY_MODE_FULL_THREADS = 91;
 	
-	public static int CURRENT_MODE = QUALITY_MODE_FULL_THREADS;
+//	public static int CURRENT_MODE = QUALITY_MODE_FULL_THREADS;
+	public static int CURRENT_MODE = QUALITY_MODE;
 	
 	public static final String [] MODES = new String [100];
 	
@@ -115,7 +116,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
 	private int TOTAL_PALLETES             	= 4;
 	
-	private int GUI_FPS = 60;
+	private int GUI_FPS = 60; // twitch fps are set to 20
 	private int FPS = 120;
 	private int EVOLVER_UPDATE_MS = 1000 / FPS;
 	private int GUI_UPDATE_MS = 1000 / GUI_FPS;
@@ -125,19 +126,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 
 	 *     - each thread will have the random max jump distance set to the index of this array
 	 *     - TODO: find the optimum values for optimum drawing generation (fastest speed)
+	 *     
+	 *     4239/2
 	 */
-	private int RANDOM_JUMP_MAX_DISTANCES2 [] = {4239/2, 4239/2, 4239/2, 4239/2, 128, 128, 128, 128, 64, 64, 64, 64, 32, 32, 32, 32,
-												16, 16, 16, 16, 8, 8, 8, 8, 2, 2, 2, 2, 1, 1, 1, 1,
-												1, 1, 1, 1, 1, 1, 1, 1, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2,
-												1, 1, 1, 1, 1, 1, 1, 1, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2};
-	
-	/**
-	 * TODO: new version with enhanced parameters
-	 */
-	private int RANDOM_JUMP_MAX_DISTANCES [] = {4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2,
-	                                            4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2,
-	                                            4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2,
-	                                            4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2,};
+	private int RANDOM_JUMP_MAX_DISTANCES [] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64,  4239/2,  4239/2, 
+	                                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64, 4239/2, 4239/2,};
 	
 	private int CROSSOVERS_MAX [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
 	
@@ -192,9 +187,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	boolean showSource = false;
 	
 	/**
-	 * Benchmark Option
-	 *     - If Score reach this threshold and benchmarking is enabled, processing will export and finish
+	 * Benchmark Options
+	 *     TODO: If Score reach this threshold and benchmarking is enabled, processing will export and finish
 	 */
+	
 	
 	
 	/**
@@ -243,8 +239,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	switch (CURRENT_MODE) {
     	
     	case QUALITY_MODE_FULL_THREADS:
-            THREADS = 32; // 24, 32, 48, 64
-            POPULATION = 8;
+            THREADS = 24; // 24, 32, 48, 64
+            POPULATION = 5;
             triangleScaleHeight = 3f;
             triangleScaleWidth = 3f;
             width = 3.0f * triangleScaleWidth;
@@ -254,8 +250,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	case QUALITY_MODE:
     	    THREADS = 8;
     	    POPULATION = 8;
-            triangleScaleHeight = 3f;
-            triangleScaleWidth = 3f;
+            triangleScaleHeight = 5f;
+            triangleScaleWidth = 5f;
             width = 3.0f * triangleScaleWidth;
             height = 3.0f * triangleScaleHeight;
             break;
@@ -306,8 +302,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             break;
             
     	case FASTEST_BATCH_MODE:
-    	    THREADS = 2;
-            MAX_ITERATIONS = 2500;
+    	    THREADS = 1;
+            MAX_ITERATIONS = 5000;
             triangleScaleHeight = 0.5f;
             triangleScaleWidth = 0.5f;
             width = 3.0f * triangleScaleWidth;
@@ -316,7 +312,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             
     	case QUICK_MODE:
     	default:
-    	    THREADS = 16;
+    	    THREADS = 1;
     	    MAX_ITERATIONS = 25000;
     	    triangleScaleHeight = 0.5f;
     	    triangleScaleWidth = 0.5f;
@@ -493,18 +489,28 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    JButton loadButton = new JButton("Load");
 	    loadButton.setAlignmentX(Component.CENTER_ALIGNMENT);
 	    loadButton.addActionListener(this);
+	    loadButton.setMinimumSize(new Dimension(160, 24));
+	    loadButton.setPreferredSize(new Dimension(160, 24));
+	    loadButton.setMaximumSize(new Dimension(160, 24));
 	    
 	    menuContainer.add(loadButton);
 	    
 	    JButton startButton = new JButton("Start");
 	    startButton.setAlignmentX(Component.CENTER_ALIGNMENT);
       	startButton.addActionListener(this);
+      	startButton.setMinimumSize(new Dimension(160, 24));
+      	startButton.setPreferredSize(new Dimension(160, 24));
+      	startButton.setMaximumSize(new Dimension(160, 24));
       	
       	menuContainer.add(startButton);
       	
         JButton stopButton = new JButton("Stop");
         stopButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         stopButton.addActionListener(this);
+        stopButton.setMinimumSize(new Dimension(160, 24));
+        stopButton.setPreferredSize(new Dimension(160, 24));
+        stopButton.setMaximumSize(new Dimension(160, 24));
+        
         menuContainer.add(stopButton);
         
         JButton enableSecuentialButton = new JButton("Secuential");
@@ -515,11 +521,19 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         JButton source = new JButton("Source");
         source.setAlignmentX(Component.CENTER_ALIGNMENT);
         source.addActionListener(this);
+        source.setMinimumSize(new Dimension(160, 24));
+        source.setPreferredSize(new Dimension(160, 24));
+        source.setMaximumSize(new Dimension(160, 24));
+        
         menuContainer.add(source);
         
         JButton export = new JButton("Export");
         export.setAlignmentX(Component.CENTER_ALIGNMENT);
         export.addActionListener(this);
+        export.setMinimumSize(new Dimension(160, 24));
+        export.setPreferredSize(new Dimension(160, 24));
+        export.setMaximumSize(new Dimension(160, 24));
+        
         menuContainer.add(export);
         
         Container labelContainer = new JPanel();
@@ -569,7 +583,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //		labelContainer.add(lblIterationsPerSecond);
 		
 		menuContainer.add(labelContainer);
+		
+		// padding
+		menuContainer.setPreferredSize(new Dimension(200, 800));
       	
+		
       	container.add(menuContainer, BorderLayout.LINE_END);
       	container.add(imagePanel, BorderLayout.CENTER);
 	    
@@ -580,7 +598,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
       		
       	} else {
       	    
-      		setSize((int) (320 * triangleScaleWidth), (int) (200 * triangleScaleHeight));
+      		setSize((int) (325 * triangleScaleWidth), (int) (200 * triangleScaleHeight));
       	}
 
       	//
@@ -769,10 +787,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         String [] splitted = imageSourceName.split("\\.");
         
 //        String [] splittedPath = path.split("\\");
+        long elapsed = System.currentTimeMillis() - start;
         
         System.out.println(imageSourceName + SEPARATOR
 //                + THREADS + SEPARATOR
 //                + (THREADS * POPULATION) + SEPARATOR
+                + (float) elapsed / 1000f + SEPARATOR
                 + totalIterations + SEPARATOR
                 + goodIterations + SEPARATOR
                 + ((float) goodIterations / (float) totalIterations) + SEPARATOR

@@ -1,6 +1,7 @@
 package com.rndmodgames.evolver;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
@@ -16,8 +17,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.imageio.ImageIO;
+import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -42,20 +45,21 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	/**
 	 * MODES
 	 */
-	public static final int QUICK_MODE                =  0;
-	public static final int QUICK_EXTENDED_MODE       =  1;
-	public static final int QUICK_EXTENDED_24_THREADS =  2;
-	public static final int FASTEST_MODE              = 10;
-	public static final int FASTEST_BATCH_MODE        = 11;
-	public static final int QUALITY_SMALL_MODE        = 20;
-	public static final int BEST_SMALL_MODE           = 30;
-	public static final int QUALITY_MODE              = 90;
-	public static final int QUALITY_MODE_FULL_THREADS = 91;
+	public static final int QUICK_MODE                =   0;
+	public static final int QUICK_EXTENDED_MODE       =   1;
+	public static final int QUICK_EXTENDED_24_THREADS =   2;
+	public static final int FASTEST_MODE              =  10;
+	public static final int FASTEST_BATCH_MODE        =  11;
+	public static final int QUALITY_SMALL_MODE        =  20;
+	public static final int BEST_SMALL_MODE           =  30;
+	public static final int QUALITY_MODE              =  90;
+	public static final int QUALITY_MODE_FULL_THREADS =  91;
+	public static final int QUALITY_MODE_STREAM       = 191;
 	
-//	public static int CURRENT_MODE = QUALITY_MODE_FULL_THREADS;
+//	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
 	public static int CURRENT_MODE = QUALITY_MODE;
 	
-	public static final String [] MODES = new String [100];
+	public static final String [] MODES = new String [200];
 	
 	static {
 	    MODES[0] = "QUICK_MODE";
@@ -67,6 +71,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    MODES[30] = "BEST_SMALL_MODE";
 	    MODES[90] = "QUALITY_MODE";
 	    MODES[91] = "QUALITY_MODE_FULL_THREADS";
+	    MODES[191] = "QUALITY_MODE_STREAM";
 	}
 	
 	/**
@@ -119,6 +124,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private int GUI_FPS = 60; // twitch fps are set to 20
 	private int FPS = 120;
 	private int EVOLVER_UPDATE_MS = 1000 / FPS;
+//	private int EVOLVER_UPDATE_MS = 0;
 	private int GUI_UPDATE_MS = 1000 / GUI_FPS;
 	
 	/**
@@ -247,11 +253,29 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             height = 3.0f * triangleScaleHeight;
             break;
     	
-    	case QUALITY_MODE:
-    	    THREADS = 8;
-    	    POPULATION = 8;
+        /**
+         *  Multipliers and Resolution:
+         *  
+         *      - 3x =  720 x  468
+         *      - 4x =  960 x  624
+         *      - 5x = 1200 x  780
+         *      - 6x = 1440 x  936
+         *      - 7x = 1680 x 1092 [HD]
+         */
+    	case QUALITY_MODE_STREAM:
+    	    THREADS = 16;
+            POPULATION = 12;
             triangleScaleHeight = 5f;
             triangleScaleWidth = 5f;
+            width = 3.0f * triangleScaleWidth;
+            height = 3.0f * triangleScaleHeight;
+            break;
+            
+    	case QUALITY_MODE:
+    	    THREADS = 12;
+    	    POPULATION = 12;
+            triangleScaleHeight = 3f;
+            triangleScaleWidth = 3f;
             width = 3.0f * triangleScaleWidth;
             height = 3.0f * triangleScaleHeight;
             break;
@@ -469,8 +493,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         
         Container container = getContentPane();
         Container menuContainer = new JPanel();
+        
         menuContainer.setLayout(new BoxLayout(menuContainer, BoxLayout.Y_AXIS));
-        menuContainer.setPreferredSize(new Dimension(160, 480));
+        ((JComponent) menuContainer).setBorder(BorderFactory.createEmptyBorder(32, 0, 0, 0));
+
+//        menuContainer.setPreferredSize(new Dimension(160, 480));
 
 		imagePanel = new JPanel() {
 
@@ -585,8 +612,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		menuContainer.add(labelContainer);
 		
 		// padding
-		menuContainer.setPreferredSize(new Dimension(200, 800));
-      	
+		menuContainer.setPreferredSize(new Dimension(200, 900));
+		menuContainer.setSize(new Dimension(200, 900));
+		menuContainer.setMaximumSize(new Dimension(200, 900));
+//		menuContainer.setBackground(Color.BLUE);
+		
+//		menuContainer.setBorder(BorderFactory.createCompoundBorder(
+//	               BorderFactory.createLineBorder(Color.CYAN, 5),
+//	               BorderFactory.createLineBorder(Color.BLACK, 20)));
 		
       	container.add(menuContainer, BorderLayout.LINE_END);
       	container.add(imagePanel, BorderLayout.CENTER);

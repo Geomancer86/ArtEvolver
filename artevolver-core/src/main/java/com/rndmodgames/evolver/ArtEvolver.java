@@ -275,7 +275,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         // Patreon Banner is 1600x400
         if (HIGH_RESOLUTION_PATREON_BANNER) {
             TOTAL_PALLETES = 8;
-            widthTriangles = 177; // 116
+            widthTriangles = 178; // 116
             heightTriangles = 45; // 73
         }
         

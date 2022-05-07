@@ -990,6 +990,8 @@ public class ImageEvolver extends AbstractEvolver {
 				isDirty = true;
 			}
 
+			boolean killWorst = false;
+			
 			// BETTER IMAGE
 			if (scoreC > bestScore) {
 				bestScore = scoreC;
@@ -997,7 +999,16 @@ public class ImageEvolver extends AbstractEvolver {
 				goodIterations++;
 				
 				// NOTE: worst cases will be taken care by the Tournament Optimizations
-				pop.remove(0);
+				if (killWorst) {
+				    
+				    // remove last, should be ordered
+				    pop.remove(pop.size()-1);
+				} else {
+				
+				    // by default we kill the best parent?
+				    pop.remove(0);
+				}
+				
 //				pop.remove(parentA);
 				pop.add(childA);
 
@@ -1019,7 +1030,19 @@ public class ImageEvolver extends AbstractEvolver {
 				// IF CHILDREN IS BETTER THAN PARENT, KEEP IT AND KILL THE PARENT
 				
 				goodIterations++;
-				pop.remove(parentA);
+				
+				if (killWorst) {
+				    
+				    // remove last, should be ordered
+                    pop.remove(pop.size()-1);
+				    
+				} else {
+				    
+				    // by default we kill the best parent?
+				    pop.remove(parentA);
+				}
+				
+				
 				pop.add(childA);
 			}
 

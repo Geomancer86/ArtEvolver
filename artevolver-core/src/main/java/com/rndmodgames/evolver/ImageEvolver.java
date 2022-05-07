@@ -301,7 +301,7 @@ public class ImageEvolver extends AbstractEvolver {
 		// Comparator used only once, no need to extract
 		Collections.sort(pop, new TrianglesComparator());
 
-//		System.out.println("total pixels is " + pop.get(0).size());
+		System.out.println("total pixels is " + pop.get(0).size());
 
 		// keep only defined population
 //		pop = pop.subList(0, population);

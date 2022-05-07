@@ -59,6 +59,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
 //	public static int CURRENT_MODE = QUALITY_MODE;
 	
+	public static boolean HIGH_RESOLUTION_EXPORT = true;
+	
 	public static final String [] MODES = new String [200];
 	
 	static {
@@ -242,6 +244,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         
         super("ArtEvolver 2021 v2.05");
 
+        // add extra palettes if HIGH RES is enabled
+        if (HIGH_RESOLUTION_EXPORT) {
+            
+            // 8 palettes = 8520 triangles
+            TOTAL_PALLETES = 8;
+            widthTriangles = 116; // 116
+            heightTriangles = 73; // 73
+        }
+        
     	switch (CURRENT_MODE) {
     	
     	case QUALITY_MODE_FULL_THREADS:
@@ -263,21 +274,24 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
          *      - 7x = 1680 x 1092 [HD]
          */
     	case QUALITY_MODE_STREAM:
-    	    THREADS = 24;
-            POPULATION = 32;
-            triangleScaleHeight = 5f;
-            triangleScaleWidth = 5f;
+    	    THREADS = 16;
+            POPULATION = 16;
+            triangleScaleHeight = 6f;
+            triangleScaleWidth = 6f;
             width = 3.0f * triangleScaleWidth;
             height = 3.0f * triangleScaleHeight;
+            
             break;
             
     	case QUALITY_MODE:
-    	    THREADS = 8;
-    	    POPULATION = 8;
+
+    	    THREADS = 4;
+    	    POPULATION = 4;
             triangleScaleHeight = 2f;
             triangleScaleWidth = 2f;
             width = 3.0f * triangleScaleWidth;
             height = 3.0f * triangleScaleHeight;
+              
             break;
             
     	case BEST_SMALL_MODE:

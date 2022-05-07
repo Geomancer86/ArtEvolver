@@ -60,6 +60,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //	public static int CURRENT_MODE = QUALITY_MODE;
 	
 	public static boolean HIGH_RESOLUTION_EXPORT = true;
+	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = false;
 	
 	public static final String [] MODES = new String [200];
 	
@@ -137,9 +138,17 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 *     
 	 *     4239/2
 	 */
-	private int RANDOM_JUMP_MAX_DISTANCES [] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64,  4239/2,  4239/2, 
-	                                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+//	private int RANDOM_JUMP_MAX_DISTANCES [] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+//	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64,  4239/2,  4239/2, 
+//	                                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+//	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64, 4239/2, 4239/2,};
+	private int RANDOM_JUMP_MAX_DISTANCES [] = {1, 1, 1, 1,
+	                                            2, 2, 2, 2,
+	                                            4, 4, 4, 4,
+	                                            8, 8, 8, 8,
+	                                            16, 16, 16, 16,
+	                                            32, 32, 32, 32, 32, 32, 32, 32, 64, 64,  4239/2,  4239/2, 
+	                                            32, 32, 32, 32, 32, 32, 32, 32, 64, 64,  4239/2,  4239/2,
 	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64, 4239/2, 4239/2,};
 	
 	private int CROSSOVERS_MAX [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
@@ -253,6 +262,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             heightTriangles = 73; // 73
         }
         
+        // add extra palettes if ULTRA_HIGH_RESOLUTION_EXPORT is enabled
+        if (ULTRA_HIGH_RESOLUTION_EXPORT) {
+            
+            // 16 palettes = 17040 triangles
+            TOTAL_PALLETES = 16;
+            widthTriangles = 116; // 116
+            heightTriangles = 73; // 73
+        }
+        
     	switch (CURRENT_MODE) {
     	
     	case QUALITY_MODE_FULL_THREADS:
@@ -274,8 +292,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
          *      - 7x = 1680 x 1092 [HD]
          */
     	case QUALITY_MODE_STREAM:
-    	    THREADS = 16;
-            POPULATION = 16;
+    	    THREADS = 24;
+            POPULATION = 12;
             triangleScaleHeight = 6f;
             triangleScaleWidth = 6f;
             width = 3.0f * triangleScaleWidth;

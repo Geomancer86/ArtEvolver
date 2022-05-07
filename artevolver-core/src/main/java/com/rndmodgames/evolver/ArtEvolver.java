@@ -56,11 +56,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static final int QUALITY_MODE_FULL_THREADS =  91;
 	public static final int QUALITY_MODE_STREAM       = 191;
 	
-	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
-//	public static int CURRENT_MODE = QUALITY_MODE;
+//	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
+	public static int CURRENT_MODE = QUALITY_MODE;
 	
-	public static boolean HIGH_RESOLUTION_EXPORT = true;
-	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = false;
+	public static boolean HIGH_RESOLUTION_EXPORT = false;
+	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = true;
 	public static boolean HIGH_RESOLUTION_PATREON_BANNER = false;
 	
 	public static final String [] MODES = new String [200];
@@ -268,8 +268,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             
             // 16 palettes = 17040 triangles
             TOTAL_PALLETES = 16;
-            widthTriangles = 116; // 116
-            heightTriangles = 73; // 73
+            widthTriangles = 162; // 162
+            heightTriangles = 105; // 105
         }
         
         // Patreon Banner is 1600x400

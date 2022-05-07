@@ -56,8 +56,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static final int QUALITY_MODE_FULL_THREADS =  91;
 	public static final int QUALITY_MODE_STREAM       = 191;
 	
-	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
-//	public static int CURRENT_MODE = QUALITY_MODE;
+//	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
+	public static int CURRENT_MODE = QUALITY_MODE;
+	
+	public static boolean HIGH_RESOLUTION_EXPORT = false;
+	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = false;
+	public static boolean HIGH_RESOLUTION_PATREON_BANNER = true;
 	
 	public static final String [] MODES = new String [200];
 	
@@ -135,9 +139,17 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 *     
 	 *     4239/2
 	 */
-	private int RANDOM_JUMP_MAX_DISTANCES [] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64,  4239/2,  4239/2, 
-	                                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+//	private int RANDOM_JUMP_MAX_DISTANCES [] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+//	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64,  4239/2,  4239/2, 
+//	                                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+//	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64, 4239/2, 4239/2,};
+	private int RANDOM_JUMP_MAX_DISTANCES [] = {1, 1, 1, 1,
+	                                            2, 2, 2, 2,
+	                                            4, 4, 4, 4,
+	                                            8, 8, 8, 8,
+	                                            16, 16, 16, 16,
+	                                            32, 32, 32, 32, 32, 32, 32, 32, 64, 64,  4239/2,  4239/2, 
+	                                            32, 32, 32, 32, 32, 32, 32, 32, 64, 64,  4239/2,  4239/2,
 	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64, 4239/2, 4239/2,};
 	
 	private int CROSSOVERS_MAX [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
@@ -242,6 +254,31 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         
         super("ArtEvolver 2021 v2.05");
 
+        // add extra palettes if HIGH RES is enabled
+        if (HIGH_RESOLUTION_EXPORT) {
+            
+            // 8 palettes = 8520 triangles
+            TOTAL_PALLETES = 8;
+            widthTriangles = 116; // 116
+            heightTriangles = 73; // 73
+        }
+        
+        // add extra palettes if ULTRA_HIGH_RESOLUTION_EXPORT is enabled
+        if (ULTRA_HIGH_RESOLUTION_EXPORT) {
+            
+            // 16 palettes = 17040 triangles
+            TOTAL_PALLETES = 16;
+            widthTriangles = 116; // 116
+            heightTriangles = 73; // 73
+        }
+        
+        // Patreon Banner is 1600x400
+        if (HIGH_RESOLUTION_PATREON_BANNER) {
+            TOTAL_PALLETES = 8;
+            widthTriangles = 178; // 116
+            heightTriangles = 45; // 73
+        }
+        
     	switch (CURRENT_MODE) {
     	
     	case QUALITY_MODE_FULL_THREADS:
@@ -264,20 +301,23 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
          */
     	case QUALITY_MODE_STREAM:
     	    THREADS = 24;
-            POPULATION = 32;
-            triangleScaleHeight = 5f;
-            triangleScaleWidth = 5f;
+            POPULATION = 12;
+            triangleScaleHeight = 6f;
+            triangleScaleWidth = 6f;
             width = 3.0f * triangleScaleWidth;
             height = 3.0f * triangleScaleHeight;
+            
             break;
             
     	case QUALITY_MODE:
-    	    THREADS = 8;
-    	    POPULATION = 8;
-            triangleScaleHeight = 2f;
-            triangleScaleWidth = 2f;
+
+    	    THREADS = 4;
+    	    POPULATION = 4;
+            triangleScaleHeight = 3f;
+            triangleScaleWidth = 3f;
             width = 3.0f * triangleScaleWidth;
             height = 3.0f * triangleScaleHeight;
+              
             break;
             
     	case BEST_SMALL_MODE:

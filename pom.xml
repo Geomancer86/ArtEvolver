@@ -34,7 +34,7 @@
    		<junit.version>5.4.0</junit.version>
    		
    		<!-- JaCoCo -->
-   		<jacoco.version>0.7.9</jacoco.version>
+   		<jacoco.version>0.8.5</jacoco.version>
     </properties>
 
 	<repositories>

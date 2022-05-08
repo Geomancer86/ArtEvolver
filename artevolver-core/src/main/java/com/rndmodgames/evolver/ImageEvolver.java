@@ -838,86 +838,99 @@ public class ImageEvolver extends AbstractEvolver {
 			    int selectedId = 0;
 			    
 			    // fitness based is default
-//			    boolean fitnessBasedEnabled = true;
+			    boolean fitnessBasedEnabled = true;
 			    
 			    // default is false
 			    boolean fitnessPickLowerScore = false;
 			    
-			    float fitnessRoll = (float) random.nextDouble();
+			    // START OF FITNESS BASED
+			    if (fitnessBasedEnabled) {
 			    
-			    while(!isSelectedParentA) {
+    			    float fitnessRoll = (float) random.nextDouble();
+    			    
+    			    while(!isSelectedParentA) {
+    			        
+    			        /**
+    			         * Higher fitness have higher chances to be picked
+    			         */
+    			        if (fitnessPickLowerScore) {
+    			            
+    			            if (fitnessRoll <= pop.get(selectedId).getScore()) {
+    	                        
+    	                        parentA = pop.get(selectedId);
+    	                        isSelectedParentA = true;
+    	                        
+    	                    } else {
+    	                        
+    	                        selectedId++;
+    	                        fitnessRoll = (float) random.nextDouble();
+    	                    }
+    			            
+    			        } else {
+    			            
+    			            if (fitnessRoll >= pop.get(selectedId).getScore()) {
+    	                        
+    	                        parentA = pop.get(selectedId);
+    	                        isSelectedParentA = true;
+    	                        
+    	                    } else {
+    	                        
+    	                        selectedId++;
+    	                        fitnessRoll = (float) random.nextDouble();
+    	                    }
+    			        }
+    			    }
+    			    
+    			    boolean isSelectedParentB = false;
+    			    int selectedBId = 0;
+    			    
+    			    fitnessRoll = (float) random.nextDouble();
+    			    
+    			    while(!isSelectedParentB) {
+                        
+    			        if (fitnessPickLowerScore) {
+    			            
+    			            /**
+    	                     * Higher fitness have higher chances to be picked
+    	                     */
+    	                    if (fitnessRoll <= pop.get(selectedId).getScore() && selectedBId != selectedId) {
+    	                        
+    	                        parentB = pop.get(selectedBId);
+    	                        isSelectedParentB = true;
+    	                        
+    	                    } else {
+    	                        
+    	                        selectedBId++;
+    	                        fitnessRoll = (float) random.nextDouble();
+    	                    }
+    			            
+    			        } else {
+    			            
+    			            /**
+    	                     * Higher fitness have higher chances to be picked
+    	                     */
+    	                    if (fitnessRoll >= pop.get(selectedId).getScore() && selectedBId != selectedId) {
+    	                        
+    	                        parentB = pop.get(selectedBId);
+    	                        isSelectedParentB = true;
+    	                        
+    	                    } else {
+    	                        
+    	                        selectedBId++;
+    	                        fitnessRoll = (float) random.nextDouble();
+    	                    }
+    			        }
+                    }
+			    
+    			 // END OF FITNESS BASED
+    			    
+			    } else {
 			        
-			        /**
-			         * Higher fitness have higher chances to be picked
-			         */
-			        if (fitnessPickLowerScore) {
-			            
-			            if (fitnessRoll <= pop.get(selectedId).getScore()) {
-	                        
-	                        parentA = pop.get(selectedId);
-	                        isSelectedParentA = true;
-	                        
-	                    } else {
-	                        
-	                        selectedId++;
-	                        fitnessRoll = (float) random.nextDouble();
-	                    }
-			            
-			        } else {
-			            
-			            if (fitnessRoll >= pop.get(selectedId).getScore()) {
-	                        
-	                        parentA = pop.get(selectedId);
-	                        isSelectedParentA = true;
-	                        
-	                    } else {
-	                        
-	                        selectedId++;
-	                        fitnessRoll = (float) random.nextDouble();
-	                    }
-			        }
+			        // pick both best parents
+			        parentA = pop.get(0);
+			        parentB = pop.get(1);
 			    }
-			    
-			    boolean isSelectedParentB = false;
-			    int selectedBId = 0;
-			    
-			    fitnessRoll = (float) random.nextDouble();
-			    
-			    while(!isSelectedParentB) {
-                    
-			        if (fitnessPickLowerScore) {
-			            
-			            /**
-	                     * Higher fitness have higher chances to be picked
-	                     */
-	                    if (fitnessRoll <= pop.get(selectedId).getScore() && selectedBId != selectedId) {
-	                        
-	                        parentB = pop.get(selectedBId);
-	                        isSelectedParentB = true;
-	                        
-	                    } else {
-	                        
-	                        selectedBId++;
-	                        fitnessRoll = (float) random.nextDouble();
-	                    }
-			            
-			        } else {
-			            
-			            /**
-	                     * Higher fitness have higher chances to be picked
-	                     */
-	                    if (fitnessRoll >= pop.get(selectedId).getScore() && selectedBId != selectedId) {
-	                        
-	                        parentB = pop.get(selectedBId);
-	                        isSelectedParentB = true;
-	                        
-	                    } else {
-	                        
-	                        selectedBId++;
-	                        fitnessRoll = (float) random.nextDouble();
-	                    }
-			        }
-                }
+
 			}
 
 			if (!secuential) {

@@ -35,6 +35,11 @@
    		
    		<!-- JaCoCo -->
    		<jacoco.version>0.8.5</jacoco.version>
+   		
+   		<sonar.tests>${project.basedir}/src/test/</sonar.tests>
+        <sonar.core.codeCoveragePlugin>jacoco</sonar.core.codeCoveragePlugin>
+        <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
+        <sonar.jacoco.reportPath>${project.basedir}/../target/jacoco.exec</sonar.jacoco.reportPath>
     </properties>
 
 	<repositories>

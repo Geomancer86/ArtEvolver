@@ -39,7 +39,7 @@
                 <directory>\${basedir}/src/test/resources</directory>
                 <filtering>true</filtering>
             </testResource>
-            </testResources>
+        </testResources>
     
         <plugins>
             <plugin>

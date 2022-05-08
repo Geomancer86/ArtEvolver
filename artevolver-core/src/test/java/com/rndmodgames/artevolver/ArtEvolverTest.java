@@ -7,17 +7,17 @@ import java.io.IOException;
 
 import org.junit.jupiter.api.Test;
 
-class ArtEvolverTest {
+public class ArtEvolverTest {
 
     @Test
-    void basicArtEvolverTest() {
+    public void basicArtEvolverTest() {
         
         //
         assertEquals(1, 1);
     }
     
     @Test
-    void artEvolverInstanceSecondTest() {
+    public void artEvolverInstanceSecondTest() {
         
         com.rndmodgames.evolver.ArtEvolver evolver = null;
         

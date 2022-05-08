@@ -5,10 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-class ArtEvolverTest {
+public class ArtEvolverTest {
 
     @Test
-    void basicArtEvolverTest() {
+    public void basicArtEvolverTest() {
         
         //
         assertEquals(1, 1);

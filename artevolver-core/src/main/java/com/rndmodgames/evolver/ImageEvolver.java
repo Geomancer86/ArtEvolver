@@ -990,7 +990,7 @@ public class ImageEvolver extends AbstractEvolver {
 				isDirty = true;
 			}
 
-			boolean killWorst = false;
+			boolean killWorst = true;
 			
 			// BETTER IMAGE
 			if (scoreC > bestScore) {

@@ -62,14 +62,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static final int QUALITY_MODE_FULL_THREADS =  91;
 	public static final int QUALITY_MODE_STREAM       = 191;
 	
-//	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
-	public static int CURRENT_MODE = QUALITY_MODE;
+	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
+//	public static int CURRENT_MODE = QUALITY_MODE;
 	
 	// 
 	public static boolean HIGH_RESOLUTION_EXPORT = false;
 	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = false;
-	public static boolean MEGA_HIGH_RESOLUTION_EXPORT = false;
-	public static boolean MASTER_RESOLUTION_EXPORT = true;
+	public static boolean MEGA_HIGH_RESOLUTION_EXPORT = true;
+	public static boolean MASTER_RESOLUTION_EXPORT = false;
 	
 	//
 	public static boolean HIGH_RESOLUTION_PATREON_BANNER = false;
@@ -136,7 +136,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
 	private int TOTAL_PALLETES             	= 4;
 	
-	private int GUI_FPS = 60; // twitch fps are set to 20
+	private int GUI_FPS = 30; // twitch fps are set to 20
 	private int FPS = 120;
 	private int EVOLVER_UPDATE_MS = 1000 / FPS;
 //	private int EVOLVER_UPDATE_MS = 0;
@@ -337,8 +337,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
          */
     	case QUALITY_MODE_STREAM:
     	    
-    	    THREADS = 16;
-            POPULATION = 16;
+    	    THREADS = 24;
+            POPULATION = 4;
             
             triangleScaleHeight = 6f;
             triangleScaleWidth = 6f;
@@ -478,6 +478,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         // init timer
+//        processTimer = new Timer(0, new ActionListener() { 
         processTimer = new Timer(EVOLVER_UPDATE_MS, new ActionListener() { 
 
             @Override
@@ -552,21 +553,22 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             		
             		population += ((ImageEvolver)currentEvolver).getPopulation().size();
             	}
-            	
-            	lblScore.setText("S: " + bestScore);
-            	
-            	if (goodIterations > 0 && totalIterations > 0) {
-            	    float healthScore = ((float) goodIterations / (float) totalIterations) * 100f;
-            	    lblAverageScore.setText("Health: " + df.format(healthScore) + PERCENT_SIGN);
-            	}
-            	
-            	lblPopulation.setText("Pop: " + population);
-            	lblIterations.setText("I: " + goodIterations + "/" + totalIterations);
 
             	/**
             	 * This stats only make sense for benchmarking and should keep consistent, for example, printed once each 1 second
             	 */
-            	if (currentFrame++ % FPS == 0) {
+            	if (currentFrame++ % 10 == 0) {
+            	    
+            	    lblScore.setText("S: " + df.format(bestScore * 100f) + PERCENT_SIGN);
+                    
+                    if (goodIterations > 0 && totalIterations > 0) {
+                        float healthScore = ((float) goodIterations / (float) totalIterations) * 100f;
+                        lblAverageScore.setText("H: " + df.format(healthScore) + PERCENT_SIGN);
+                    }
+                    
+                    lblPopulation.setText("Pop: " + population);
+                    lblIterations.setText("I: " + goodIterations + "/" + totalIterations);
+            	    
 //           		System.out.println(steps++ + "," + totalIterations + "," + goodIterations + ","  + ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
 //            		System.out.println(ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
             	}
@@ -604,8 +606,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         
         menuContainer.setLayout(new BoxLayout(menuContainer, BoxLayout.Y_AXIS));
         ((JComponent) menuContainer).setBorder(BorderFactory.createEmptyBorder(32, 0, 0, 0));
-
-//        menuContainer.setPreferredSize(new Dimension(160, 480));
 
 		imagePanel = new JPanel() {
 
@@ -698,7 +698,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		//
 		lblIterations = new JLabel("I: 0/0");
 		lblIterations.setHorizontalAlignment(SwingConstants.CENTER);
-		lblIterations.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 30));
+		lblIterations.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 20));
 		lblIterations.setMinimumSize(new Dimension(220, 44));
 		lblIterations.setPreferredSize(new Dimension(220, 44));
 		lblIterations.setMaximumSize(new Dimension(220, 44));
@@ -730,27 +730,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		menuContainer.add(labelContainer);
 		
 		// padding
-		menuContainer.setPreferredSize(new Dimension(240, 900));
-		menuContainer.setSize(new Dimension(240, 900));
-		menuContainer.setMaximumSize(new Dimension(240, 900));
-		
-		//
-//		menuContainer.setBackground(Color.BLUE);
-		
+		menuContainer.setPreferredSize(new Dimension(280, 900));
+		menuContainer.setSize(new Dimension(280, 900));
+		menuContainer.setMaximumSize(new Dimension(280, 900));
 
-		
-//        lblAverageScore.setMinimumSize(new Dimension(160, 44));
-//        lblAverageScore.setPreferredSize(new Dimension(160, 44));
-//        lblAverageScore.setMaximumSize(new Dimension(160, 44));
-        
-        //
-//        menuContainer.add(lblAverageScore);
-		
-		
-//		menuContainer.setBorder(BorderFactory.createCompoundBorder(
-//	               BorderFactory.createLineBorder(Color.CYAN, 5),
-//	               BorderFactory.createLineBorder(Color.BLACK, 20)));
-		
+		//
       	container.add(menuContainer, BorderLayout.LINE_END);
       	container.add(imagePanel, BorderLayout.CENTER);
 	    

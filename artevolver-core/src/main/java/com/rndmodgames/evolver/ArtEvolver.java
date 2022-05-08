@@ -347,7 +347,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
          */
     	case QUALITY_MODE_STREAM:
     	    
-    	    THREADS = 1;
+    	    THREADS = 10;
             POPULATION = 2;
             
 //            triangleScaleHeight = 6f;
@@ -593,7 +593,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                     lblPopulation.setText("Pop: " + population);
                     lblIterations.setText("I: " + goodIterations + "/" + totalIterations);
                     
-                    // total_iterations, good_iterations, 
+                    // total_iterations, good_iterations, health, best_score
                     System.out.println(totalIterations 
                                         + "," + goodIterations
                                         + "," + streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS)

@@ -990,7 +990,9 @@ public class ImageEvolver extends AbstractEvolver {
 				isDirty = true;
 			}
 
+			// this is ok default to false, when a better image is found the better parent (position zero) is replaced
 			boolean killWorst = true;
+			boolean insertBetterChildFirst = true;
 			
 			// BETTER IMAGE
 			if (scoreC > bestScore) {
@@ -1008,9 +1010,16 @@ public class ImageEvolver extends AbstractEvolver {
 				    // by default we kill the best parent?
 				    pop.remove(0);
 				}
-				
-//				pop.remove(parentA);
-				pop.add(childA);
+
+				if (insertBetterChildFirst) {
+				    
+				    pop.add(0, childA);
+				    
+				} else {
+				    
+				    // default
+				    pop.add(childA);
+				}
 
 				isDirty = true;
 				
@@ -1042,8 +1051,15 @@ public class ImageEvolver extends AbstractEvolver {
 				    pop.remove(parentA);
 				}
 				
-				
-				pop.add(childA);
+				if (insertBetterChildFirst) {
+                    
+                    pop.add(0, childA);
+                    
+                } else {
+                    
+                    // default
+                    pop.add(childA);
+                }
 			}
 
 			totalIterations++;

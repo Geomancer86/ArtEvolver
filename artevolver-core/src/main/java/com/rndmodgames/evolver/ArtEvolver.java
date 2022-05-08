@@ -347,8 +347,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
          */
     	case QUALITY_MODE_STREAM:
     	    
-    	    THREADS = 16;
-            POPULATION = 10;
+    	    THREADS = 8;
+            POPULATION = 2;
             
 //            triangleScaleHeight = 6f;
 //            triangleScaleWidth = 6f;

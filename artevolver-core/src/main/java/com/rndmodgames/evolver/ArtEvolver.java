@@ -46,6 +46,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	
 	//
 	DecimalFormat df = new DecimalFormat();
+	DecimalFormat df4 = new DecimalFormat();
 	private static final String PERCENT_SIGN = "%";
 	
 	/**
@@ -68,7 +69,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	// 
 	public static boolean HIGH_RESOLUTION_EXPORT = false;
 	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = false;
-	public static boolean MEGA_HIGH_RESOLUTION_EXPORT = true;
+	public static boolean MEGA_HIGH_RESOLUTION_EXPORT = false;
 	public static boolean MASTER_RESOLUTION_EXPORT = false;
 	
 	//
@@ -143,6 +144,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private int GUI_UPDATE_MS = 1000 / GUI_FPS;
 	
 	/**
+	 * Keep track of past n iterations result for better indicators
+	 */
+	private static final int HEALTH_ITERATIONS = 100;
+	private final float [] GOOD_ITERATIONS  = new float [HEALTH_ITERATIONS];
+	
+	/**
 	 * TODO: document and benchmark
 	 * 
 	 *     - each thread will have the random max jump distance set to the index of this array
@@ -208,6 +215,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	long currentFrame = 1L;
 	long totalIterations = 0L;
 	long goodIterations = 0L;
+	long prevGoodIterations = 0L;
 	double bestScore = Double.MIN_VALUE;
 	double currentScore = Double.MIN_VALUE;
 	double averagePopulationScore = 0d;
@@ -268,6 +276,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         //
         df.setMaximumFractionDigits(2);
         df.setMinimumFractionDigits(2);
+        df4.setMaximumFractionDigits(6);
+        df4.setMinimumFractionDigits(6);
         
         // add extra palettes if HIGH RES is enabled
         if (HIGH_RESOLUTION_EXPORT) {
@@ -337,11 +347,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
          */
     	case QUALITY_MODE_STREAM:
     	    
-    	    THREADS = 24;
-            POPULATION = 4;
+    	    THREADS = 1;
+            POPULATION = 2;
             
-            triangleScaleHeight = 6f;
-            triangleScaleWidth = 6f;
+//            triangleScaleHeight = 6f;
+//            triangleScaleWidth = 6f;
+            
+            triangleScaleHeight = 3f;
+            triangleScaleWidth = 3f;
             
             if (ULTRA_HIGH_RESOLUTION_EXPORT) {
                 
@@ -555,23 +568,41 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	}
 
             	/**
+            	 * Keep track of the last n iterations and good iteration count
+            	 */
+//            	float healthScore = ((float) goodIterations / (float) totalIterations) * 100f;
+            	
+            	// keep track of only the NEW GOOD ITERATIONS
+                GOOD_ITERATIONS[(int) (currentFrame % HEALTH_ITERATIONS)] = (float) (goodIterations - prevGoodIterations) * 100;
+
+            	/**
             	 * This stats only make sense for benchmarking and should keep consistent, for example, printed once each 1 second
             	 */
-            	if (currentFrame++ % 10 == 0) {
-            	    
-            	    lblScore.setText("S: " + df.format(bestScore * 100f) + PERCENT_SIGN);
+            	if (currentFrame++ % HEALTH_ITERATIONS == 0) {
+
+            	    lblScore.setText("S: " + df4.format(bestScore * 100f) + PERCENT_SIGN);
                     
-                    if (goodIterations > 0 && totalIterations > 0) {
-                        float healthScore = ((float) goodIterations / (float) totalIterations) * 100f;
-                        lblAverageScore.setText("H: " + df.format(healthScore) + PERCENT_SIGN);
+            	    // avoid divisions by zero just in case
+                    if (goodIterations > 0 && totalIterations > HEALTH_ITERATIONS) {
+
+                        // health is the average of the last HEALTH_ITERATIONS count
+                        lblAverageScore.setText("H: " + df.format(streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS)) + PERCENT_SIGN);
                     }
                     
+                    // 
                     lblPopulation.setText("Pop: " + population);
                     lblIterations.setText("I: " + goodIterations + "/" + totalIterations);
-            	    
-//           		System.out.println(steps++ + "," + totalIterations + "," + goodIterations + ","  + ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
-//            		System.out.println(ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
+                    
+                    // total_iterations, good_iterations, 
+                    System.out.println(totalIterations 
+                                        + "," + goodIterations
+                                        + "," + streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS)
+                                        + "," + bestScore);
+                    
+//                    System.out.println("Evolver " + ((ImageEvolver)currentEvolver).getId() + ", iterations: " + ((ImageEvolver)currentEvolver).getTotalIterations() + ", bestScore: " + ((ImageEvolver)currentEvolver).getBestScore());
             	}
+            	
+            	prevGoodIterations = goodIterations;
             	
             	/**
             	 * Close and Export for Quick and Quick Extended Modes
@@ -679,7 +710,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		lblScore = new JLabel("S: 0.0");
 		lblScore.setHorizontalAlignment(SwingConstants.CENTER);
 		lblScore.setMinimumSize(new Dimension(220, 44));
-		lblScore.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 30));
+		lblScore.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 20));
 		lblScore.setPreferredSize(new Dimension(220, 44));
 		lblScore.setMaximumSize(new Dimension(220, 44));
 		
@@ -1011,4 +1042,23 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		    }
 		}
 	}
+	
+	// Returns the new average after including x
+    static float getAvg(float prevAvg, float x, int n) {
+        
+        return (prevAvg * n + x) / (n + 1);
+    }
+	
+    // Returns the average of a stream of numbers
+    static float streamAvg(float [] array, int n) {
+        
+        float avg = 0;
+        
+        for (int i = 0; i < n; i++) {
+            
+            avg = getAvg(avg, array[i], i);
+        }
+        
+        return avg;
+    }
 }

@@ -53,65 +53,15 @@
         </repository>
 	</repositories>
 
-<!--     <build> -->
-<!-- 		<sourceDirectory>\${basedir}/src/main/java</sourceDirectory> -->
-<!-- 		<resources> -->
-<!-- 			<resource> -->
-<!-- 				<directory>\${basedir}/src/main/resources</directory> -->
-<!-- 				<filtering>true</filtering> -->
-<!-- 			</resource> -->
-<!-- 		</resources> -->
-<!-- 		<finalName>ArtEvolver</finalName> -->
-<!-- 		<testSourceDirectory>\${basedir}/src/test/java</testSourceDirectory> -->
-<!-- 		<testOutputDirectory>\${basedir}/target/test-classes</testOutputDirectory> -->
-<!-- 		<testResources> -->
-<!-- 			<testResource> -->
-<!-- 				<directory>\${basedir}/src/test/resources</directory> -->
-<!-- 				<filtering>true</filtering> -->
-<!-- 			</testResource> -->
-<!-- 		</testResources> -->
-<!-- 		<plugins> -->
-<!-- 			<plugin> -->
-<!-- 				<artifactId>maven-compiler-plugin</artifactId> -->
-<!-- 				<version>3.5.1</version> TODO: parametrize version -->
-<!-- 				<configuration> -->
-<!-- 					<source>1.8</source> TODO: parametrize version -->
-<!-- 					<target>1.8</target> TODO: parametrize version -->
-<!-- 				</configuration> -->
-<!-- 			</plugin> -->
-<!-- 			<plugin> -->
-<!-- 				<groupId>org.apache.maven.plugins</groupId> -->
-<!-- 				<artifactId>maven-surefire-plugin</artifactId> -->
-<!-- 				<version>2.19.1</version> TODO: parametrize version -->
-<!-- 			</plugin> -->
-<!-- 			<plugin> -->
-<!-- 				<groupId>org.apache.maven.plugins</groupId> -->
-<!-- 				<artifactId>maven-jar-plugin</artifactId> -->
-<!-- 				<configuration> -->
-<!-- 					<finalName>ArtEvolver</finalName> -->
-<!-- 					<archive> -->
-<!-- 						<manifest> -->
-<!-- 							<addDefaultImplementationEntries>true</addDefaultImplementationEntries> -->
-<!-- 						</manifest> -->
-<!-- 						<manifestEntries> -->
-<!-- 							<Implementation-Build>${buildNumber}</Implementation-Build> -->
-<!-- 						</manifestEntries> -->
-<!-- 					</archive> -->
-<!-- 				</configuration> -->
-<!-- 			</plugin> -->
-<!-- 		</plugins> -->
-<!-- 	</build> -->
-
     <dependencies>
-    
-        
     
     	<!-- JUnit -->
 		<dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
             <version>${junit.version}</version>
-        <scope>test</scope>
-    </dependency>
+            <scope>test</scope>
+        </dependency>
+        
     </dependencies>
 </project>

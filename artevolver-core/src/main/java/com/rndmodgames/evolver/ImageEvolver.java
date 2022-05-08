@@ -837,8 +837,8 @@ public class ImageEvolver extends AbstractEvolver {
 			    boolean isSelectedParentA = false;
 			    int selectedId = 0;
 			    
-			    // fitness based is default
-			    boolean fitnessBasedEnabled = true;
+			    // fitness based is default true
+			    boolean fitnessBasedEnabled = false;
 			    
 			    // default is false
 			    boolean fitnessPickLowerScore = false;

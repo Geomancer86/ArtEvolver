@@ -837,6 +837,12 @@ public class ImageEvolver extends AbstractEvolver {
 			    boolean isSelectedParentA = false;
 			    int selectedId = 0;
 			    
+			    // fitness based is default
+//			    boolean fitnessBasedEnabled = true;
+			    
+			    // default is false
+			    boolean fitnessPickLowerScore = false;
+			    
 			    float fitnessRoll = (float) random.nextDouble();
 			    
 			    while(!isSelectedParentA) {
@@ -844,15 +850,31 @@ public class ImageEvolver extends AbstractEvolver {
 			        /**
 			         * Higher fitness have higher chances to be picked
 			         */
-			        if (fitnessRoll >= pop.get(selectedId).getScore()) {
+			        if (fitnessPickLowerScore) {
 			            
-			            parentA = pop.get(selectedId);
-			            isSelectedParentA = true;
+			            if (fitnessRoll <= pop.get(selectedId).getScore()) {
+	                        
+	                        parentA = pop.get(selectedId);
+	                        isSelectedParentA = true;
+	                        
+	                    } else {
+	                        
+	                        selectedId++;
+	                        fitnessRoll = (float) random.nextDouble();
+	                    }
 			            
 			        } else {
 			            
-			            selectedId++;
-			            fitnessRoll = (float) random.nextDouble();
+			            if (fitnessRoll >= pop.get(selectedId).getScore()) {
+	                        
+	                        parentA = pop.get(selectedId);
+	                        isSelectedParentA = true;
+	                        
+	                    } else {
+	                        
+	                        selectedId++;
+	                        fitnessRoll = (float) random.nextDouble();
+	                    }
 			        }
 			    }
 			    
@@ -863,19 +885,38 @@ public class ImageEvolver extends AbstractEvolver {
 			    
 			    while(!isSelectedParentB) {
                     
-                    /**
-                     * Higher fitness have higher chances to be picked
-                     */
-                    if (fitnessRoll >= pop.get(selectedId).getScore() && selectedBId != selectedId) {
-                        
-                        parentB = pop.get(selectedBId);
-                        isSelectedParentB = true;
-                        
-                    } else {
-                        
-                        selectedBId++;
-                        fitnessRoll = (float) random.nextDouble();
-                    }
+			        if (fitnessPickLowerScore) {
+			            
+			            /**
+	                     * Higher fitness have higher chances to be picked
+	                     */
+	                    if (fitnessRoll <= pop.get(selectedId).getScore() && selectedBId != selectedId) {
+	                        
+	                        parentB = pop.get(selectedBId);
+	                        isSelectedParentB = true;
+	                        
+	                    } else {
+	                        
+	                        selectedBId++;
+	                        fitnessRoll = (float) random.nextDouble();
+	                    }
+			            
+			        } else {
+			            
+			            /**
+	                     * Higher fitness have higher chances to be picked
+	                     */
+	                    if (fitnessRoll >= pop.get(selectedId).getScore() && selectedBId != selectedId) {
+	                        
+	                        parentB = pop.get(selectedBId);
+	                        isSelectedParentB = true;
+	                        
+	                    } else {
+	                        
+	                        selectedBId++;
+	                        fitnessRoll = (float) random.nextDouble();
+	                    }
+			        }
                 }
 			}
 
@@ -991,8 +1032,9 @@ public class ImageEvolver extends AbstractEvolver {
 			}
 
 			// this is ok default to false, when a better image is found the better parent (position zero) is replaced
-			boolean killWorst = true;
-			boolean insertBetterChildFirst = true;
+			// NOTE: keep both set to false for optimal results
+			boolean killWorst = false;
+			boolean insertBetterChildFirst = false;
 			
 			// BETTER IMAGE
 			if (scoreC > bestScore) {

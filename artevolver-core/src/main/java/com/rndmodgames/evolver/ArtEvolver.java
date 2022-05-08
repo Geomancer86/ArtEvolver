@@ -1,10 +1,10 @@
 package com.rndmodgames.evolver;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -13,6 +13,7 @@ import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,6 +27,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;
@@ -41,6 +43,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private JFrame mainFrame;
 	private JPanel imagePanel;
 	private Palette pallete;
+	
+	//
+	DecimalFormat df = new DecimalFormat();
+	private static final String PERCENT_SIGN = "%";
 	
 	/**
 	 * MODES
@@ -259,6 +265,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         
         super("ArtEvolver 2021 v2.05");
 
+        //
+        df.setMaximumFractionDigits(2);
+        df.setMinimumFractionDigits(2);
+        
         // add extra palettes if HIGH RES is enabled
         if (HIGH_RESOLUTION_EXPORT) {
             
@@ -543,8 +553,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             		population += ((ImageEvolver)currentEvolver).getPopulation().size();
             	}
             	
-            	lblScore.setText("S     : " + bestScore);
-//            	lblAverageScore.setText("S(AVG): " + evolver.getAverageScore());
+            	lblScore.setText("S: " + bestScore);
+            	
+            	if (goodIterations > 0 && totalIterations > 0) {
+            	    float healthScore = ((float) goodIterations / (float) totalIterations) * 100f;
+            	    lblAverageScore.setText("Health: " + df.format(healthScore) + PERCENT_SIGN);
+            	}
+            	
             	lblPopulation.setText("Pop: " + population);
             	lblIterations.setText("I: " + goodIterations + "/" + totalIterations);
 
@@ -662,32 +677,31 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         
         //
 		lblScore = new JLabel("S: 0.0");
-		lblScore.setMinimumSize(new Dimension(160, 24));
-		lblScore.setPreferredSize(new Dimension(160, 24));
-		lblScore.setMaximumSize(new Dimension(160, 24));
+		lblScore.setHorizontalAlignment(SwingConstants.CENTER);
+		lblScore.setMinimumSize(new Dimension(220, 44));
+		lblScore.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 30));
+		lblScore.setPreferredSize(new Dimension(220, 44));
+		lblScore.setMaximumSize(new Dimension(220, 44));
 		
 		labelContainer.add(lblScore);
-		
-//		lblAverageScore = new JLabel("S(AVG): 0.0");
-//		lblAverageScore.setMinimumSize(new Dimension(160, 24));
-//		lblAverageScore.setPreferredSize(new Dimension(160, 24));
-//		lblAverageScore.setMaximumSize(new Dimension(160, 24));
-//		
-//		labelContainer.add(lblAverageScore);
 
 		//
 		lblPopulation = new JLabel("Pop: 0");
-		lblPopulation.setMinimumSize(new Dimension(160, 24));
-		lblPopulation.setPreferredSize(new Dimension(160, 24));
-		lblPopulation.setMaximumSize(new Dimension(160, 24));
+		lblPopulation.setHorizontalAlignment(SwingConstants.CENTER);
+		lblPopulation.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 30));
+		lblPopulation.setMinimumSize(new Dimension(220, 44));
+		lblPopulation.setPreferredSize(new Dimension(220, 44));
+		lblPopulation.setMaximumSize(new Dimension(220, 44));
 		
 		labelContainer.add(lblPopulation);
 
 		//
 		lblIterations = new JLabel("I: 0/0");
-		lblIterations.setMinimumSize(new Dimension(160, 24));
-		lblIterations.setPreferredSize(new Dimension(160, 24));
-		lblIterations.setMaximumSize(new Dimension(160, 24));
+		lblIterations.setHorizontalAlignment(SwingConstants.CENTER);
+		lblIterations.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 30));
+		lblIterations.setMinimumSize(new Dimension(220, 44));
+		lblIterations.setPreferredSize(new Dimension(220, 44));
+		lblIterations.setMaximumSize(new Dimension(220, 44));
 
 		labelContainer.add(lblIterations);
 
@@ -702,13 +716,36 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		labelContainer.add(lblIterations);
 //		labelContainer.add(lblIterationsPerSecond);
 		
+        lblAverageScore = new JLabel("H: 100.00%");
+        
+        lblAverageScore.setHorizontalAlignment(SwingConstants.CENTER);
+        
+        lblAverageScore.setMinimumSize(new Dimension(220, 44));
+        lblAverageScore.setPreferredSize(new Dimension(220, 44));
+        lblAverageScore.setMaximumSize(new Dimension(220, 44));
+        lblAverageScore.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 30));
+        
+        labelContainer.add(lblAverageScore);
+		
 		menuContainer.add(labelContainer);
 		
 		// padding
-		menuContainer.setPreferredSize(new Dimension(200, 900));
-		menuContainer.setSize(new Dimension(200, 900));
-		menuContainer.setMaximumSize(new Dimension(200, 900));
+		menuContainer.setPreferredSize(new Dimension(240, 900));
+		menuContainer.setSize(new Dimension(240, 900));
+		menuContainer.setMaximumSize(new Dimension(240, 900));
+		
+		//
 //		menuContainer.setBackground(Color.BLUE);
+		
+
+		
+//        lblAverageScore.setMinimumSize(new Dimension(160, 44));
+//        lblAverageScore.setPreferredSize(new Dimension(160, 44));
+//        lblAverageScore.setMaximumSize(new Dimension(160, 44));
+        
+        //
+//        menuContainer.add(lblAverageScore);
+		
 		
 //		menuContainer.setBorder(BorderFactory.createCompoundBorder(
 //	               BorderFactory.createLineBorder(Color.CYAN, 5),

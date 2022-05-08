@@ -824,7 +824,7 @@ public class ImageEvolver extends AbstractEvolver {
 				
 			} else {
 				
-//				 parent is always 0, order by score so 0 is always the best
+//				parent is always 0, order by score so 0 is always the best
 			    
 			    /**
 			     * FITNESS BASED PARENT SELECTION
@@ -832,13 +832,19 @@ public class ImageEvolver extends AbstractEvolver {
 			     * - population should be ordered
 			     * - position 0 is best fitness
 			     */
-			    Collections.sort(pop, new TrianglesComparator());
+			    
+			    // default is true
+			    boolean sortPopulation = true;
+			    
+			    if (sortPopulation) {
+			        Collections.sort(pop, new TrianglesComparator());
+			    }
 			    
 			    boolean isSelectedParentA = false;
 			    int selectedId = 0;
 			    
 			    // fitness based is default true
-			    boolean fitnessBasedEnabled = false;
+			    boolean fitnessBasedEnabled = true;
 			    
 			    // default is false
 			    boolean fitnessPickLowerScore = false;

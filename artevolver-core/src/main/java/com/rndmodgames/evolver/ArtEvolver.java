@@ -56,8 +56,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static final int QUALITY_MODE_FULL_THREADS =  91;
 	public static final int QUALITY_MODE_STREAM       = 191;
 	
-//	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
-	public static int CURRENT_MODE = QUALITY_MODE;
+	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
+//	public static int CURRENT_MODE = QUALITY_MODE;
 	
 	// 
 	public static boolean HIGH_RESOLUTION_EXPORT = false;
@@ -326,6 +326,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                 
                 triangleScaleHeight = 4f;
                 triangleScaleWidth = 4f;
+            }
+            
+            if (MEGA_HIGH_RESOLUTION_EXPORT) {
+                
+                triangleScaleHeight = 3f;
+                triangleScaleWidth = 3f;
             }
             
             width = 3.0f * triangleScaleWidth;

@@ -1134,10 +1134,13 @@ public class ImageEvolver extends AbstractEvolver {
 			// factor default 0.01f
 			float factor = 0.01f;
 			
+			// float tournament round size default is 1000
+			int tournamentRoundSize = 1000;
+			
 			// close mutations per child default to false
 			boolean closeMutationsTournamentEnabled = true;
 			
-			if (tournamentEnabled && totalIterations % 1000 == 0) {
+			if (tournamentEnabled && totalIterations % tournamentRoundSize == 0) {
 
 	             //
                 if (crossoverHalvingEnabled) {
@@ -1243,5 +1246,13 @@ public class ImageEvolver extends AbstractEvolver {
 
     public void setRandomJumpDistance(int randomJumpDistance) {
         this.randomJumpDistance = randomJumpDistance;
+    }
+
+    public boolean isSecuential() {
+        return secuential;
+    }
+
+    public void setSecuential(boolean secuential) {
+        this.secuential = secuential;
     }
 }

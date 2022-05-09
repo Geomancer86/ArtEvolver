@@ -67,8 +67,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //	public static int CURRENT_MODE = QUALITY_MODE;
 	
 	// 
-	public static boolean HIGH_RESOLUTION_EXPORT = false;
-	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = true;
+	public static boolean HIGH_RESOLUTION_EXPORT = true;
+	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = false;
 	public static boolean MEGA_HIGH_RESOLUTION_EXPORT = false;
 	public static boolean MASTER_RESOLUTION_EXPORT = false;
 	
@@ -348,8 +348,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
          */
     	case QUALITY_MODE_STREAM:
     	    
-    	    THREADS = 8;
-            POPULATION = 40;
+    	    THREADS = 16;
+            POPULATION = 4;
             
             triangleScaleHeight = 6f;
             triangleScaleWidth = 6f;
@@ -374,6 +374,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                 RANDOM_JUMP_MAX_DISTANCES [5] = 17040 / 2;
                 RANDOM_JUMP_MAX_DISTANCES [6] = 17040 / 2;
                 RANDOM_JUMP_MAX_DISTANCES [7] = 17040 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [8] = 17040 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [9] = 17040 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [10] = 17040 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [11] = 17040 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [12] = 17040 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [13] = 17040 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [14] = 17040 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [15] = 17040 / 2;
             }
             
             if (MEGA_HIGH_RESOLUTION_EXPORT) {

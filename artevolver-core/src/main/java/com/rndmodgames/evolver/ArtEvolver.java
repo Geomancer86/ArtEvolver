@@ -67,7 +67,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //	public static int CURRENT_MODE = QUALITY_MODE;
 	
 	// 
-	public static boolean HIGH_RESOLUTION_EXPORT = true;
+	public static boolean HIGH_RESOLUTION_EXPORT = false;
 	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = false;
 	public static boolean MEGA_HIGH_RESOLUTION_EXPORT = false;
 	public static boolean MASTER_RESOLUTION_EXPORT = false;
@@ -130,8 +130,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	// halve parameters on low health default to false
 	private boolean HALVE_PARAMETERS_ON_LOW_HEALTH = true;
 	
-	// will halve parameters if health reaches zero (default is zero)
-	private float LOW_HEALTH_HALVE_PARAMETERS_TRESHOLD = 100f;
+	// will halve parameters if health reaches zero (default is 15)
+	private float LOW_HEALTH_HALVE_PARAMETERS_TRESHOLD = 15f;
 	
 	// evolution jumps default to false
 	private boolean EVOLUTION_JUMPS_ENABLED = true;
@@ -369,17 +369,34 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
          */
     	case QUALITY_MODE_STREAM:
     	    
-    	    THREADS = 16;
-            POPULATION = 4;
+    	    THREADS = 12;
+            POPULATION = 2;
             
             triangleScaleHeight = 6f;
             triangleScaleWidth = 6f;
             
             // 4k
-            RANDOM_JUMP_MAX_DISTANCES [0] = 8520 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [1] = 8520 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [2] = 8520 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [3] = 8520 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [0] = 8520 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [1] = 8520 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [2] = 8520 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [3] = 8520 / 2;
+            
+//            RANDOM_JUMP_MAX_DISTANCES [0] = 17040 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [1] = 17040 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [2] = 17040 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [3] = 17040 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [4] = 17040 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [5] = 17040 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [6] = 17040 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [7] = 17040 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [8] = 17040 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [9] = 17040 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [10] = 17040 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [11] = 17040 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [12] = 17040 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [13] = 17040 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [14] = 17040 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [15] = 17040 / 2;
             
             if (ULTRA_HIGH_RESOLUTION_EXPORT) {
                 
@@ -652,7 +669,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                     if (goodIterations > 0 && totalIterations > HEALTH_ITERATIONS) {
 
                         // health is the average of the last HEALTH_ITERATIONS count
-                        lblAverageScore.setText("H: " + df.format(streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS)) + PERCENT_SIGN);
+                        lblAverageScore.setText("H: " + df.format(streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS) / population) + PERCENT_SIGN);
                     }
                     
                     // 
@@ -664,7 +681,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                      */
                     if (HALVE_PARAMETERS_ON_LOW_HEALTH) {
                         
-                        if (streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS) <= LOW_HEALTH_HALVE_PARAMETERS_TRESHOLD) {
+                        if ((streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS) / population) <= LOW_HEALTH_HALVE_PARAMETERS_TRESHOLD ) {
 
                             for (AbstractEvolver currentEvolver : evolvers) {
                                 
@@ -690,7 +707,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                     // total_iterations, good_iterations, health, best_score, max_jump_average
                     System.out.println(totalIterations 
                                         + "," + goodIterations
-                                        + "," + streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS)
+                                        + "," + streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS) / population
                                         + "," + bestScore
                                         + "," + ((float) maxJumpDistanceSum / (float) THREADS));
                     

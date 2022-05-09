@@ -1126,10 +1126,10 @@ public class ImageEvolver extends AbstractEvolver {
 			totalIterations++;
 
 			// tournament enabled defaults to false
-			boolean tournamentEnabled = true;
+			boolean tournamentEnabled = false;
 			
 			// cross over halving default to false
-			boolean crossoverHalvingEnabled = true;
+			boolean crossoverHalvingEnabled = false;
 			
 			// factor default 0.01f
 //			float factor = 0.01f;
@@ -1240,6 +1240,17 @@ public class ImageEvolver extends AbstractEvolver {
 		}
 	}
 
+	public void raiseMaxJumpDistance(int eVOLVE_JUMPS_ADD) {
+	    
+	    crossOver.incrementParameters(eVOLVE_JUMPS_ADD);
+	    this.randomJumpDistance = crossOver.getRandomJumpDistance();
+	}
+	
+	public void halveGeneralParameters() {
+	    crossOver.halveParameters();
+        this.randomJumpDistance = crossOver.getRandomJumpDistance();
+	}
+	
     public int getRandomJumpDistance() {
         return randomJumpDistance;
     }

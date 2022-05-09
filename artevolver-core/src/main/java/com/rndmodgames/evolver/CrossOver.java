@@ -46,12 +46,14 @@ public class CrossOver {
 		}
 	}
 	
-	public void incrementParameters() {
-		if (getRandomJumpDistance() > 128) {
-			return;
-		}
-		
-		setRandomJumpDistance(getRandomJumpDistance() + 1);
+	/**
+	 * TODO: validate max distance before raising number
+	 * 
+	 * @param distance
+	 */
+	public void incrementParameters(int distance) {
+
+		setRandomJumpDistance(getRandomJumpDistance() + distance);
 	}
 	
 	private TriangleList<Triangle> unusedColors = new TriangleList<>();

@@ -124,6 +124,25 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private int CROSSOVER_MAX 				= 2;
 	
 	/**
+	 * DYNAMIC HEALTH PARAMETERS
+	 */
+	
+	// halve parameters on low health default to false
+	private boolean HALVE_PARAMETERS_ON_LOW_HEALTH = true;
+	
+	// will halve parameters if health reaches zero (default is zero)
+	private float LOW_HEALTH_HALVE_PARAMETERS_TRESHOLD = 100f;
+	
+	// evolution jumps default to false
+	private boolean EVOLUTION_JUMPS_ENABLED = false;
+	
+	// evolve each 1000 steps default
+	private int EVOLVE_COUNT_ADD_MAX_JUMP_DISTANCE = 1000;
+	
+	// add 1 to max jump distance default
+	private int EVOLVE_JUMPS_ADD = 1;
+	
+	/**
 	 * TOTAL_PALLETES
 	 * 
      *    - This is the number of times each triangle will be subdivided.
@@ -613,7 +632,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             		
             		population += ((ImageEvolver)currentEvolver).getPopulation().size();
             	}
-
+            	
             	/**
             	 * Keep track of the last n iterations and good iteration count
             	 */
@@ -639,6 +658,29 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                     // 
                     lblPopulation.setText("Pop: " + population);
                     lblIterations.setText("I: " + goodIterations + "/" + totalIterations);
+                    
+                    /**
+                     * DYNAMIC HEALTH CHECK
+                     */
+                    if (HALVE_PARAMETERS_ON_LOW_HEALTH) {
+                        
+                        if (streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS) <= LOW_HEALTH_HALVE_PARAMETERS_TRESHOLD) {
+
+                            for (AbstractEvolver currentEvolver : evolvers) {
+                                
+                                ((ImageEvolver) currentEvolver).halveGeneralParameters();
+                            }
+                        }
+                        
+                        // healthy evolve, add max jumps if count reaches treshold
+                        if (currentFrame % EVOLVE_COUNT_ADD_MAX_JUMP_DISTANCE == 0) {
+                            
+                            for (AbstractEvolver currentEvolver : evolvers) {
+                             
+                                ((ImageEvolver) currentEvolver).raiseMaxJumpDistance(EVOLVE_JUMPS_ADD);
+                            }
+                        }
+                    }
                     
                     // total_iterations, good_iterations, health, best_score, max_jump_average
                     System.out.println(totalIterations 

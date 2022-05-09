@@ -198,6 +198,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private JLabel lblScore;
 	private JLabel lblAverageScore;
 	private JLabel lblPopulation;
+	private JLabel labelSequential;
 	private JLabel lblIterations;
 	private JLabel lblIterationsPerSecond;
 	private JLabel lblGoodIterationsPerSecond;
@@ -223,6 +224,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	boolean isDirty = false;
 	boolean isRunning = false;
 	boolean showSource = false;
+	boolean sequential = false;
 	
 	/**
 	 * Benchmark Options
@@ -548,6 +550,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				
 				for (AbstractEvolver currentEvolver : evolvers) {
 					
+				    // update sequential
+				    ((ImageEvolver)currentEvolver).setSecuential(sequential);
+				    
 					totalIterations += ((ImageEvolver)currentEvolver).getTotalIterations();
 					goodIterations += ((ImageEvolver)currentEvolver).getGoodIterations();
 					
@@ -742,9 +747,23 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         export.setMinimumSize(new Dimension(160, 24));
         export.setPreferredSize(new Dimension(160, 24));
         export.setMaximumSize(new Dimension(160, 24));
-        
+
         menuContainer.add(export);
         
+        /**
+         * HALVE PARAMETERS
+         * DOUBLE PARAMETERS
+         * TOGGLE SECUENTIAL
+         */
+        JButton sequential = new JButton("Sequential");
+        sequential.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sequential.addActionListener(this);
+        sequential.setMinimumSize(new Dimension(160, 24));
+        sequential.setPreferredSize(new Dimension(160, 24));
+        sequential.setMaximumSize(new Dimension(160, 24));
+        
+        menuContainer.add(sequential);
+                
         Container labelContainer = new JPanel();
         
         menuContainer.add(export);
@@ -756,8 +775,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		lblScore.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 20));
 		lblScore.setPreferredSize(new Dimension(220, 44));
 		lblScore.setMaximumSize(new Dimension(220, 44));
-		
-		labelContainer.add(lblScore);
 
 		//
 		lblPopulation = new JLabel("Pop: 0");
@@ -766,8 +783,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		lblPopulation.setMinimumSize(new Dimension(220, 44));
 		lblPopulation.setPreferredSize(new Dimension(220, 44));
 		lblPopulation.setMaximumSize(new Dimension(220, 44));
-		
-		labelContainer.add(lblPopulation);
 
 		//
 		lblIterations = new JLabel("I: 0/0");
@@ -777,8 +792,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		lblIterations.setPreferredSize(new Dimension(220, 44));
 		lblIterations.setMaximumSize(new Dimension(220, 44));
 
-		labelContainer.add(lblIterations);
-
+		labelSequential = new JLabel("Sequential: OFF");
+		labelSequential.setHorizontalAlignment(SwingConstants.CENTER);
+		labelSequential.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 20));
+		labelSequential.setMinimumSize(new Dimension(220, 44));
+		labelSequential.setPreferredSize(new Dimension(220, 44));
+		labelSequential.setMaximumSize(new Dimension(220, 44));
+		
 		//
 //		lblIterationsPerSecond = new JLabel("I/second: 0.0");
 //		lblIterationsPerSecond.setMinimumSize(new Dimension(160, 24));
@@ -788,7 +808,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		labelContainer.add(lblPopulation);
         labelContainer.add(lblScore);
 		labelContainer.add(lblIterations);
-//		labelContainer.add(lblIterationsPerSecond);
+		labelContainer.add(labelSequential);
 		
         lblAverageScore = new JLabel("H: 100.00%");
         
@@ -1061,8 +1081,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 			stop();
 		}
 		
-		if (event.getActionCommand().equals("Secuential")) {
-//			evolver.switchSecuential();
+		if (event.getActionCommand().equals("Sequential")) {
+		    
+		    sequential = !sequential;
+		    
+		    labelSequential.setText("Sequential: " + (sequential ? "ON" : "OFF"));
 		}
 		
         if (event.getActionCommand().equals("Source")) {

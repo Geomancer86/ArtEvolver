@@ -1132,7 +1132,7 @@ public class ImageEvolver extends AbstractEvolver {
 			boolean crossoverHalvingEnabled = true;
 			
 			// factor default 0.01f
-			float factor = 0.01f;
+//			float factor = 0.01f;
 			
 			// float tournament round size default is 1000
 			int tournamentRoundSize = 1000;

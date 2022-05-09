@@ -1125,14 +1125,22 @@ public class ImageEvolver extends AbstractEvolver {
 
 			totalIterations++;
 
-			boolean tournamentEnabled = false;
+			// tournament enabled defaults to false
+			boolean tournamentEnabled = true;
 			
-			if (tournamentEnabled) {
-			    
-			    if (totalIterations % 1000 == 0){
+			// cross over halving default to false
+			boolean crossoverHalvingEnabled = false;
+			
+			// factor default 0.1f
+			float factor = 0.1f;
+			
+			// close mutations per child default to false
+			boolean closeMutationsTournamentEnabled = true;
+			
+			if (tournamentEnabled && totalIterations % 1000 == 0) {
 
 //	              long now = System.currentTimeMillis();
-	//
+////
 //	              System.out.println("id: " + id + " - i: " + totalIterations
 //	                               + " - good: " + goodIterations
 //	                               + " - p: " + pop.size()
@@ -1142,16 +1150,19 @@ public class ImageEvolver extends AbstractEvolver {
 //	                               + " - total time: " + DEFAULT_DECIMAL_FORMAT.format(((float) (now - start)) / 1000f) + " seconds");
 
 //	              System.out.println(DEFAULT_DECIMAL_FORMAT.format(bestScore));
-	                
-	                crossOver.halveParameters();
-	                
-	                /**
-	                 * v.1.0.0 optimizations
-	                 *  - CLOSE_MUTATIONS_PER_CHILD * pop
-	                 */
-	                
-	                float factor = 1.0f;
-	                
+                
+		        //
+		        if (crossoverHalvingEnabled) {
+		            crossOver.halveParameters();
+		        }
+                
+                /**
+                 * v.1.0.0 optimizations
+                 *  - CLOSE_MUTATIONS_PER_CHILD * pop
+                 */
+                
+                if (closeMutationsTournamentEnabled) {
+                
 	                if (totalIterations == 2500 * pop.size() * factor) {
 	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
 	                }
@@ -1175,9 +1186,8 @@ public class ImageEvolver extends AbstractEvolver {
 	                if (CrossOver.CLOSE_MUTATIONS_PER_CHILD < 1) {
 	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = 1;
 	                }
-	            }
-
-			}
+                }
+            }
 		}
 //	}
 //		long evolveNow = System.currentTimeMillis();

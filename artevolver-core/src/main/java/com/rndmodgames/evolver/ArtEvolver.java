@@ -67,8 +67,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //	public static int CURRENT_MODE = QUALITY_MODE;
 	
 	// 
-	public static boolean HIGH_RESOLUTION_EXPORT = true;
-	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = false;
+	public static boolean HIGH_RESOLUTION_EXPORT = false;
+	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = true;
 	public static boolean MEGA_HIGH_RESOLUTION_EXPORT = false;
 	public static boolean MASTER_RESOLUTION_EXPORT = false;
 	
@@ -121,10 +121,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
 	private int THREADS                 	= 8; // 1-x (32-48 peak)
 	private int POPULATION 					= 8; // GeneticEvolver: 2-4096 (multiply by thread count to get the final population number)
-	private int RANDOM_JUMP_MAX_DISTANCE	= 2; // 1-x MAX: 4239/2
 	private int CROSSOVER_MAX 				= 2;
-	
-	private boolean FITNESS_BASED_PARENT_SELECTION = false;
 	
 	/**
 	 * TOTAL_PALLETES
@@ -162,10 +159,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //	                                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 //	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64, 4239/2, 4239/2,};
 	
-	private int RANDOM_JUMP_MAX_DISTANCES [] = {1, 1, 1, 1, //  4
-	                                            1, 1, 1, 1, //  8
-	                                            1, 1, 1, 1, // 12
-	                                            1, 1, 1, 1, // 16 
+	private int RANDOM_JUMP_MAX_DISTANCES [] = {2048, 2048, 2048, 2048, //  4
+	                                            2048, 2048, 2048, 2048, //  8
+	                                            2048, 2048, 2048, 2048, // 12
+	                                            2048, 2048, 2048, 2048, // 16 
 	                                            1, 1, 1, 1, // 20
 	                                            1, 1, 1, 1, // 24
 	                                            1, 1, 1, 1, // 28
@@ -349,31 +346,52 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
          */
     	case QUALITY_MODE_STREAM:
     	    
-    	    THREADS = 12;
-            POPULATION = 2;
+    	    THREADS = 4;
+            POPULATION = 40;
             
-//            triangleScaleHeight = 6f;
-//            triangleScaleWidth = 6f;
+            triangleScaleHeight = 6f;
+            triangleScaleWidth = 6f;
             
-            triangleScaleHeight = 3f;
-            triangleScaleWidth = 3f;
+            // 4k
+            RANDOM_JUMP_MAX_DISTANCES [0] = 4096 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [1] = 4096 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [2] = 4096 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [3] = 4096 / 2;
             
             if (ULTRA_HIGH_RESOLUTION_EXPORT) {
                 
                 triangleScaleHeight = 4f;
                 triangleScaleWidth = 4f;
+                
+                // 8k
+                RANDOM_JUMP_MAX_DISTANCES [0] = 8520 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [1] = 8520 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [2] = 8520 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [3] = 8520 / 2;
             }
             
             if (MEGA_HIGH_RESOLUTION_EXPORT) {
                 
                 triangleScaleHeight = 3f;
                 triangleScaleWidth = 3f;
+                
+                // 17k
+                RANDOM_JUMP_MAX_DISTANCES [0] = 17040 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [1] = 17040 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [2] = 17040 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [3] = 17040 / 2;
             }
             
             if (MASTER_RESOLUTION_EXPORT) {
                 
                 triangleScaleHeight = 2f;
                 triangleScaleWidth = 2f;
+                
+                // 34k
+                RANDOM_JUMP_MAX_DISTANCES [0] = 34080 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [1] = 34080 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [2] = 34080 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [3] = 34080 / 2;
             }
             
             width = 3.0f * triangleScaleWidth;

@@ -218,6 +218,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	double bestScore = Double.MIN_VALUE;
 	double currentScore = Double.MIN_VALUE;
 	double averagePopulationScore = 0d;
+	long maxJumpDistanceSum = 0l;
+	double averageMaxJumpDistance = 0d;
 	boolean isDirty = false;
 	boolean isRunning = false;
 	boolean showSource = false;
@@ -346,28 +348,32 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
          */
     	case QUALITY_MODE_STREAM:
     	    
-    	    THREADS = 4;
+    	    THREADS = 8;
             POPULATION = 40;
             
             triangleScaleHeight = 6f;
             triangleScaleWidth = 6f;
             
             // 4k
-            RANDOM_JUMP_MAX_DISTANCES [0] = 4096 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [1] = 4096 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [2] = 4096 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [3] = 4096 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [0] = 8520 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [1] = 8520 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [2] = 8520 / 2;
+            RANDOM_JUMP_MAX_DISTANCES [3] = 8520 / 2;
             
             if (ULTRA_HIGH_RESOLUTION_EXPORT) {
                 
                 triangleScaleHeight = 4f;
                 triangleScaleWidth = 4f;
                 
-                // 8k
-                RANDOM_JUMP_MAX_DISTANCES [0] = 8520 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [1] = 8520 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [2] = 8520 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [3] = 8520 / 2;
+                // 17k
+                RANDOM_JUMP_MAX_DISTANCES [0] = 17040 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [1] = 17040 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [2] = 17040 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [3] = 17040 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [4] = 17040 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [5] = 17040 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [6] = 17040 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [7] = 17040 / 2;
             }
             
             if (MEGA_HIGH_RESOLUTION_EXPORT) {
@@ -375,11 +381,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                 triangleScaleHeight = 3f;
                 triangleScaleWidth = 3f;
                 
-                // 17k
-                RANDOM_JUMP_MAX_DISTANCES [0] = 17040 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [1] = 17040 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [2] = 17040 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [3] = 17040 / 2;
+                // 34k
+                RANDOM_JUMP_MAX_DISTANCES [0] = 34080 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [1] = 34080 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [2] = 34080 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [3] = 34080 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [4] = 34080 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [5] = 34080 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [6] = 34080 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [7] = 34080 / 2;
             }
             
             if (MASTER_RESOLUTION_EXPORT) {
@@ -387,11 +397,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                 triangleScaleHeight = 2f;
                 triangleScaleWidth = 2f;
                 
-                // 34k
-                RANDOM_JUMP_MAX_DISTANCES [0] = 34080 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [1] = 34080 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [2] = 34080 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [3] = 34080 / 2;
+                // TODO WIP
+//                RANDOM_JUMP_MAX_DISTANCES [0] = 34080 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [1] = 34080 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [2] = 34080 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [3] = 34080 / 2;
             }
             
             width = 3.0f * triangleScaleWidth;
@@ -520,6 +530,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				// reset as needed
 				totalIterations = 0;
 				goodIterations = 0;
+				maxJumpDistanceSum = 0;
 
 				// ignore
 				if (imagePanel == null || imagePanel.getGraphics() == null) {
@@ -532,6 +543,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 					totalIterations += ((ImageEvolver)currentEvolver).getTotalIterations();
 					goodIterations += ((ImageEvolver)currentEvolver).getGoodIterations();
 					
+					// average max jump distance
+//					((ImageEvolver)currentEvolver).m
+					maxJumpDistanceSum += ((ImageEvolver)currentEvolver).getRandomJumpDistance();
 
 					if (((ImageEvolver)currentEvolver).isDirty()) {
 
@@ -544,7 +558,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 							bestImage = ((ImageEvolver)currentEvolver).getBestImage();
 							
 							bestPop = ((ImageEvolver)currentEvolver).getBestPop();
-							
+														
 							isDirty = true;
         				}
 						
@@ -613,11 +627,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                     lblPopulation.setText("Pop: " + population);
                     lblIterations.setText("I: " + goodIterations + "/" + totalIterations);
                     
-                    // total_iterations, good_iterations, health, best_score
+                    // total_iterations, good_iterations, health, best_score, max_jump_average
                     System.out.println(totalIterations 
                                         + "," + goodIterations
                                         + "," + streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS)
-                                        + "," + bestScore);
+                                        + "," + bestScore
+                                        + "," + ((float) maxJumpDistanceSum / (float) THREADS));
                     
 //                    System.out.println("Evolver " + ((ImageEvolver)currentEvolver).getId() + ", iterations: " + ((ImageEvolver)currentEvolver).getTotalIterations() + ", bestScore: " + ((ImageEvolver)currentEvolver).getBestScore());
             	}

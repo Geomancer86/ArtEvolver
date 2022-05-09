@@ -38,9 +38,9 @@ public class CrossOver {
 	}
 	
 	public void halveParameters() {
-		setRandomJumpDistance(getRandomJumpDistance() - 1);
-//		crossoverMax -= -2;
-		
+	    
+	    setRandomJumpDistance(getRandomJumpDistance() / 2);
+
 		if (getRandomJumpDistance() <= 0) {
 			setRandomJumpDistance(1);
 		}
@@ -178,7 +178,7 @@ public class CrossOver {
 		TriangleList<Triangle> child = new TriangleList<Triangle>();
 
 		// base parent chance 50/50
-		Boolean isParentA = random.nextBoolean();
+		boolean isParentA = random.nextBoolean();
 		
 		if (isParentA){
 			for (Triangle triangle : parentA){

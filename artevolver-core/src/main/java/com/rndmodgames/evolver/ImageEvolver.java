@@ -73,7 +73,7 @@ public class ImageEvolver extends AbstractEvolver {
 		this.pallete = pallete;
 		this.height = height;
 		this.width = width;
-		this.randomJumpDistance = randomJumpDistance;
+		this.setRandomJumpDistance(randomJumpDistance);
 		this.crossoverMax = crossoverMax;
 
 		this.triangleHeight = triangleHeight;
@@ -91,7 +91,7 @@ public class ImageEvolver extends AbstractEvolver {
 	}
 
 	public void initCrossOver() {
-		crossOver = new CrossOver(randomJumpDistance, crossoverMax);
+		crossOver = new CrossOver(getRandomJumpDistance(), crossoverMax);
 	}
 
 	/**
@@ -1129,18 +1129,25 @@ public class ImageEvolver extends AbstractEvolver {
 			boolean tournamentEnabled = true;
 			
 			// cross over halving default to false
-			boolean crossoverHalvingEnabled = false;
+			boolean crossoverHalvingEnabled = true;
 			
-			// factor default 0.1f
-			float factor = 0.1f;
+			// factor default 0.01f
+			float factor = 0.01f;
 			
 			// close mutations per child default to false
 			boolean closeMutationsTournamentEnabled = true;
 			
 			if (tournamentEnabled && totalIterations % 1000 == 0) {
 
+	             //
+                if (crossoverHalvingEnabled) {
+                    
+                    crossOver.halveParameters();
+                    this.randomJumpDistance = crossOver.getRandomJumpDistance();
+                }
+			    
 //	              long now = System.currentTimeMillis();
-////
+//////
 //	              System.out.println("id: " + id + " - i: " + totalIterations
 //	                               + " - good: " + goodIterations
 //	                               + " - p: " + pop.size()
@@ -1151,42 +1158,39 @@ public class ImageEvolver extends AbstractEvolver {
 
 //	              System.out.println(DEFAULT_DECIMAL_FORMAT.format(bestScore));
                 
-		        //
-		        if (crossoverHalvingEnabled) {
-		            crossOver.halveParameters();
-		        }
+
                 
                 /**
                  * v.1.0.0 optimizations
                  *  - CLOSE_MUTATIONS_PER_CHILD * pop
                  */
                 
-                if (closeMutationsTournamentEnabled) {
+//                if (closeMutationsTournamentEnabled) {
                 
-	                if (totalIterations == 2500 * pop.size() * factor) {
-	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
-	                }
-	                
-	                if (totalIterations == 15000 * pop.size() * factor) {
-	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
-	                }
-	                
-	                if (totalIterations == 35000 * pop.size() * factor) {
-	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
-	                }
-	                
-	                if (totalIterations == 75000 * pop.size() * factor) {
-	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
-	                }
-	                
-	                if (totalIterations % 75000 * 2 == 0) {
-	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
-	                }
-	                
-	                if (CrossOver.CLOSE_MUTATIONS_PER_CHILD < 1) {
-	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = 1;
-	                }
-                }
+//	                if (totalIterations == 2500 * pop.size() * factor) {
+//	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+//	                }
+//	                
+//	                if (totalIterations == 15000 * pop.size() * factor) {
+//	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+//	                }
+//	                
+//	                if (totalIterations == 35000 * pop.size() * factor) {
+//	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+//	                }
+//	                
+//	                if (totalIterations == 75000 * pop.size() * factor) {
+//	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+//	                }
+//	                
+//	                if (totalIterations % 75000 * 2 == 0) {
+//	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+//	                }
+//	                
+//	                if (CrossOver.CLOSE_MUTATIONS_PER_CHILD < 1) {
+//	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = 1;
+//	                }
+//                }
             }
 		}
 //	}
@@ -1232,4 +1236,12 @@ public class ImageEvolver extends AbstractEvolver {
 			}
 		}
 	}
+
+    public int getRandomJumpDistance() {
+        return randomJumpDistance;
+    }
+
+    public void setRandomJumpDistance(int randomJumpDistance) {
+        this.randomJumpDistance = randomJumpDistance;
+    }
 }

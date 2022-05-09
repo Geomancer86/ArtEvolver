@@ -134,10 +134,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private float LOW_HEALTH_HALVE_PARAMETERS_TRESHOLD = 100f;
 	
 	// evolution jumps default to false
-	private boolean EVOLUTION_JUMPS_ENABLED = false;
+	private boolean EVOLUTION_JUMPS_ENABLED = true;
 	
 	// evolve each 1000 steps default
-	private int EVOLVE_COUNT_ADD_MAX_JUMP_DISTANCE = 1000;
+	private int EVOLVE_HEALTH_CHECKS_ADD_MAX_JUMP_DISTANCE = 1;
 	
 	// add 1 to max jump distance default
 	private int EVOLVE_JUMPS_ADD = 1;
@@ -644,7 +644,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	/**
             	 * This stats only make sense for benchmarking and should keep consistent, for example, printed once each 1 second
             	 */
-            	if (currentFrame++ % HEALTH_ITERATIONS == 0) {
+            	if (currentFrame % HEALTH_ITERATIONS == 0) {
 
             	    lblScore.setText("S: " + df4.format(bestScore * 100f) + PERCENT_SIGN);
                     
@@ -672,16 +672,21 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                             }
                         }
                         
-                        // healthy evolve, add max jumps if count reaches treshold
-                        if (currentFrame % EVOLVE_COUNT_ADD_MAX_JUMP_DISTANCE == 0) {
-                            
+                        
+                    }
+                    
+                    // healthy evolve, add max jumps if count reaches treshold
+                    if (EVOLUTION_JUMPS_ENABLED) {
+
+                        if (currentFrame % (EVOLVE_HEALTH_CHECKS_ADD_MAX_JUMP_DISTANCE * HEALTH_ITERATIONS) == 0) {
+
                             for (AbstractEvolver currentEvolver : evolvers) {
                              
                                 ((ImageEvolver) currentEvolver).raiseMaxJumpDistance(EVOLVE_JUMPS_ADD);
                             }
                         }
                     }
-                    
+
                     // total_iterations, good_iterations, health, best_score, max_jump_average
                     System.out.println(totalIterations 
                                         + "," + goodIterations
@@ -692,6 +697,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //                    System.out.println("Evolver " + ((ImageEvolver)currentEvolver).getId() + ", iterations: " + ((ImageEvolver)currentEvolver).getTotalIterations() + ", bestScore: " + ((ImageEvolver)currentEvolver).getBestScore());
             	}
             	
+            	currentFrame++;
             	prevGoodIterations = goodIterations;
             	
             	/**

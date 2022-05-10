@@ -25,12 +25,9 @@ public class Palette {
 		this.name = name;
 		this.totalPalletes = repetitions;
 		
-		
-		
 		URL url = getClass().getResource("../../../sherwin.txt").toURI().toURL();
 		
-//		URI uri = new URI(url.toString());
-//		FileInputStream fis = new FileInputStream(uri.getPath());
+		System.out.println("PALETTE FILE: " + url.getFile());
 		
 		File file = new File(url.getPath());
 		

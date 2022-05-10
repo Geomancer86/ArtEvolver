@@ -68,9 +68,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	
 	// 
 	public static boolean HIGH_RESOLUTION_EXPORT = false;
-	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = true;
+	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = false;
 	public static boolean MEGA_HIGH_RESOLUTION_EXPORT = false;
 	public static boolean MASTER_RESOLUTION_EXPORT = false;
+	public static boolean VIDEO_FULL_HD_RESOLUTION_EXPORT = false;
+	public static boolean VIDEO_4K_RESOLUTION_EXPORT = true;
 	
 	// default to false
 	public static boolean EXPORT_VIDEO = true;
@@ -373,8 +375,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
          */
     	case QUALITY_MODE_STREAM:
     	    
-    	    THREADS = 24;
-            POPULATION = 8;
+    	    THREADS = 4;
+            POPULATION = 4;
             
             triangleScaleHeight = 6f;
             triangleScaleWidth = 6f;
@@ -452,6 +454,22 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //                RANDOM_JUMP_MAX_DISTANCES [1] = 34080 / 2;
 //                RANDOM_JUMP_MAX_DISTANCES [2] = 34080 / 2;
 //                RANDOM_JUMP_MAX_DISTANCES [3] = 34080 / 2;
+            }
+            
+            // 3840 x 2160 target resolution
+            if (VIDEO_4K_RESOLUTION_EXPORT) {
+                
+                // 4 k triangles (default)
+                triangleScaleHeight = 16f;
+                triangleScaleWidth = 16f;
+            }
+            
+            // 1920 x 1248
+            if (VIDEO_FULL_HD_RESOLUTION_EXPORT) {
+
+                // 4 k triangles (default)
+                triangleScaleHeight = 8f;
+                triangleScaleWidth = 8f;
             }
             
             width = 3.0f * triangleScaleWidth;
@@ -711,16 +729,24 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                     }
 
                     // total_iterations, good_iterations, health, best_score, max_jump_average
-                    System.out.println(totalIterations 
-                                        + "," + goodIterations
-                                        + "," + streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS)
-                                        + "," + bestScore
-                                        + "," + ((float) maxJumpDistanceSum / (float) THREADS));
+//                    System.out.println(totalIterations 
+//                                        + "," + goodIterations
+//                                        + "," + streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS)
+//                                        + "," + bestScore
+//                                        + "," + ((float) maxJumpDistanceSum / (float) THREADS));
                     
 //                    System.out.println("Evolver " + ((ImageEvolver)currentEvolver).getId() + ", iterations: " + ((ImageEvolver)currentEvolver).getTotalIterations() + ", bestScore: " + ((ImageEvolver)currentEvolver).getBestScore());
             	}
             	
-            	
+            	/**
+            	 * EXPORT n FRAMES per second
+            	 */
+            	if (EXPORT_VIDEO && currentFrame % (FPS / EXPORT_VIDEO_FRAMES_FPS) == 0) {
+            	    
+            	    //
+            	    renderBestImage();
+            	    exportedImages++;
+            	}
             	
             	currentFrame++;
             	prevGoodIterations = goodIterations;

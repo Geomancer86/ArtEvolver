@@ -1242,8 +1242,16 @@ public class ImageEvolver extends AbstractEvolver {
 
 	public void raiseMaxJumpDistance(int eVOLVE_JUMPS_ADD) {
 	    
-	    crossOver.incrementParameters(eVOLVE_JUMPS_ADD);
-	    this.randomJumpDistance = crossOver.getRandomJumpDistance();
+	    if (this.randomJumpDistance >= 1) {
+	        
+	        crossOver.incrementParameters(eVOLVE_JUMPS_ADD);
+	        this.randomJumpDistance = crossOver.getRandomJumpDistance();
+	        
+	    } else {
+	        
+	        crossOver.setRandomJumpDistance(1);
+	        this.randomJumpDistance = 1;
+	    }
 	}
 	
 	public void halveGeneralParameters() {

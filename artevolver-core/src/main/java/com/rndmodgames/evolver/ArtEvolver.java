@@ -63,20 +63,27 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static final int QUALITY_MODE_FULL_THREADS =  91;
 	public static final int QUALITY_MODE_STREAM       = 191;
 	
-	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
+//	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
 //	public static int CURRENT_MODE = QUALITY_MODE;
+	public static int CURRENT_MODE = FASTEST_MODE;
 	
 	// 
 	public static boolean HIGH_RESOLUTION_EXPORT = false;
 	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = false;
 	public static boolean MEGA_HIGH_RESOLUTION_EXPORT = false;
 	public static boolean MASTER_RESOLUTION_EXPORT = false;
-	public static boolean VIDEO_FULL_HD_RESOLUTION_EXPORT = false;
-	public static boolean VIDEO_4K_RESOLUTION_EXPORT = true;
 	
 	// default to false
-	public static boolean EXPORT_VIDEO = true;
+	public static boolean EXPORT_VIDEO = false;
 	public static int EXPORT_VIDEO_FRAMES_FPS = 1;
+	public static boolean VIDEO_FULL_HD_RESOLUTION_EXPORT = false;
+    public static boolean VIDEO_4K_RESOLUTION_EXPORT = false;
+    
+    // default to false
+    public static boolean VIDEO_REGULAR_QUALITY = false;
+    public static boolean VIDEO_GOOD_QUALITY = true;
+    
+    public static boolean isRendering = false;
 	
 	//
 	public static boolean HIGH_RESOLUTION_PATREON_BANNER = false;
@@ -203,7 +210,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 
 	 * EVOLVE_ITERATIONS: 
 	 */
-	public static int EVOLVE_ITERATIONS    = 100;
+	public static int EVOLVE_ITERATIONS    = 1000;
 	private static int MAX_ITERATIONS      = 10000000;
 
 	private static String SEPARATOR = ";";
@@ -375,8 +382,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
          */
     	case QUALITY_MODE_STREAM:
     	    
-    	    THREADS = 4;
-            POPULATION = 4;
+    	    THREADS = 16;
+            POPULATION = 8;
             
             triangleScaleHeight = 6f;
             triangleScaleWidth = 6f;
@@ -459,21 +466,35 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             // 3840 x 2160 target resolution
             if (VIDEO_4K_RESOLUTION_EXPORT) {
                 
-                // 4 k triangles (default)
-                triangleScaleHeight = 16f;
-                triangleScaleWidth = 16f;
+                // 4 k triangles (default) BAD_QUALITY
+                triangleScaleWidth = 1f;
+                triangleScaleWidth = 1f;
+                RENDERING_SCALE = 16;
+                
+                if (VIDEO_REGULAR_QUALITY) {
+                    
+                    triangleScaleWidth = 2f;
+                    triangleScaleWidth = 2f;
+                    RENDERING_SCALE = 8;
+                }
+                
+                if (VIDEO_GOOD_QUALITY) {
+                    
+                    triangleScaleWidth = 4f;
+                    triangleScaleWidth = 4f;
+                    RENDERING_SCALE = 4;
+                }
             }
             
             // 1920 x 1248
             if (VIDEO_FULL_HD_RESOLUTION_EXPORT) {
 
                 // 4 k triangles (default)
-                triangleScaleHeight = 8f;
-                triangleScaleWidth = 8f;
+                RENDERING_SCALE = 1;
             }
             
             width = 3.0f * triangleScaleWidth;
-            height = 3.0f * triangleScaleHeight;
+            height = 3.0f * triangleScaleWidth;
             
             break;
             
@@ -532,7 +553,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             
     	case FASTEST_MODE:
             THREADS = 32;
-            MAX_ITERATIONS = 2500;
+//            MAX_ITERATIONS = 2500;
             triangleScaleHeight = 0.5f;
             triangleScaleWidth = 0.5f;
             width = 3.0f * triangleScaleWidth;
@@ -743,9 +764,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	 */
             	if (EXPORT_VIDEO && currentFrame % (FPS / EXPORT_VIDEO_FRAMES_FPS) == 0) {
             	    
-            	    //
-            	    renderBestImage();
-            	    exportedImages++;
+            	    if (isRendering) {
+            	        
+            	    } else {
+            	        isRendering = true;
+            	        
+                        renderBestImage();
+                        exportedImages++;
+            	    }
             	}
             	
             	currentFrame++;
@@ -1122,22 +1148,25 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     /**
      * 
      */
+    // TODO MOVE UP WITH OTHER RENDERING PARAMETERS
+    int RENDERING_SCALE = 1; // default 1
+    
     public void renderBestImage() {
         
         String [] splitted = imageSourceName.split("\\.");
         
 //        String [] splittedPath = path.split("\\");
-        long elapsed = System.currentTimeMillis() - start;
+//        long elapsed = System.currentTimeMillis() - start;
         
-        System.out.println(imageSourceName + SEPARATOR
-//                + THREADS + SEPARATOR
-//                + (THREADS * POPULATION) + SEPARATOR
-                + (float) elapsed / 1000f + SEPARATOR
-                + totalIterations + SEPARATOR
-                + goodIterations + SEPARATOR
-                + ((float) goodIterations / (float) totalIterations) + SEPARATOR
-                + bestScore + SEPARATOR
-                + imageCategory);
+//        System.out.println(imageSourceName + SEPARATOR
+////                + THREADS + SEPARATOR
+////                + (THREADS * POPULATION) + SEPARATOR
+//                + (float) elapsed / 1000f + SEPARATOR
+//                + totalIterations + SEPARATOR
+//                + goodIterations + SEPARATOR
+//                + ((float) goodIterations / (float) totalIterations) + SEPARATOR
+//                + bestScore + SEPARATOR
+//                + imageCategory);
 
         if (EXPORT_ENABLED) {
             Renderer.renderToPNG(bestPop,
@@ -1147,8 +1176,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                     (int) (width * widthTriangles),
                     (int) (height * (heightTriangles - 1)), // do not render last row
                     IMAGE_TYPE,
-                    1);
+                    RENDERING_SCALE);
         }
+        
+        ArtEvolver.isRendering = false;
     }
     
 	@Override

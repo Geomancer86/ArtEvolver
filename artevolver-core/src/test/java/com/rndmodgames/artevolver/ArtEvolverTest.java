@@ -1,44 +1,39 @@
 package com.rndmodgames.artevolver;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class ArtEvolverTest {
+import com.rndmodgames.evolver.Palette;
 
+class ArtEvolverTest {
+
+    static com.rndmodgames.evolver.ArtEvolver evolver;
+    
     @BeforeAll
-    static void beforeAll() {
+    static void beforeAll() throws IOException, URISyntaxException {
         
-//        System.setProperty("java.awt.headless", "true");
+         evolver = new com.rndmodgames.evolver.ArtEvolver();
     }
     
-    
     @Test
-    public void basicArtEvolverTest() {
+    void artEvolverInstanceSecondTest() {
         
         //
-        assertEquals(1, 1);
+        assertNotNull(evolver);
     }
     
     @Test
-    public void artEvolverInstanceSecondTest() {
+    void paletteTest() throws IOException, URISyntaxException {
         
-        com.rndmodgames.evolver.ArtEvolver evolver = null;
-        
-        try {
-            
-            evolver = new com.rndmodgames.evolver.ArtEvolver();
-            
-        } catch (IOException e) {
-            
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        //
+        Palette pallete = new Palette("Sherwin-Williams", 1);
 
-        assertNotNull(evolver);
+        //
+        assertNotNull(pallete);
     }
 }

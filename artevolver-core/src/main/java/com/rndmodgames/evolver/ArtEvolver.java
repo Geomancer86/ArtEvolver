@@ -13,6 +13,7 @@ import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -310,8 +311,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 		- Quick way to chunk full pixel chunks
 	 * 
 	 * @throws IOException
+	 * @throws URISyntaxException 
 	 */
-    public ArtEvolver() throws IOException {
+    public ArtEvolver() throws IOException, URISyntaxException {
         
         super("ArtEvolver 2021 v2.05");
 
@@ -1014,7 +1016,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 					new ArtEvolver();
 				} catch (IOException e) {
 					e.printStackTrace();
-				}
+				} catch (URISyntaxException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
             }
         });
     }

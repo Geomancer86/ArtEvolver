@@ -2,6 +2,7 @@ package com.rndmodgames.evolver;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -19,12 +20,18 @@ public class Palette {
 	
 	List <PalleteColor> colors = new ArrayList<PalleteColor>();
 
-	public Palette(String name, int repetitions) throws IOException{
+	public Palette(String name, int repetitions) throws IOException, URISyntaxException {
 
 		this.name = name;
 		this.totalPalletes = repetitions;
 		
-		URL url = getClass().getResource("../../../sherwin.txt");
+		
+		
+		URL url = getClass().getResource("../../../sherwin.txt").toURI().toURL();
+		
+//		URI uri = new URI(url.toString());
+//		FileInputStream fis = new FileInputStream(uri.getPath());
+		
 		File file = new File(url.getPath());
 		
 		for (int a = 0; a < repetitions; a++){

@@ -21,7 +21,8 @@ public class ArtEvolverTools {
                                                int population,
                                                int randomJumpMaxDistance,
                                                int crossoverMax,
-                                               String imageName) {
+                                               String imageName,
+                                               boolean shufflePopulation) {
         
         Palette pallete = null;
         
@@ -75,6 +76,7 @@ public class ArtEvolverTools {
         evolver.setResizedOriginal(originalImage);
         
         // initialize population
+        ImageEvolver.SHUFFLE_PALETTE = shufflePopulation;
         evolver.initialize();
         
         return evolver;

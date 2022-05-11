@@ -1,6 +1,8 @@
 package com.rndmodgames.artevolver;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -16,7 +18,7 @@ class ArtEvolverToolsTest {
     void getImageEvolverTest() throws IOException, URISyntaxException {
         
         // 
-        ImageEvolver evolver = ArtEvolverTools.getImageEvolver(1, 2, 2, 2, null);
+        ImageEvolver evolver = ArtEvolverTools.getImageEvolver(1, 2, 2, 2, null, false);
         
         long timeStart = 0;
         int iterations = 100;
@@ -40,10 +42,33 @@ class ArtEvolverToolsTest {
     }
     
     @Test
+    void shufflePopulationTest() {
+        
+        // 
+        ImageEvolver evolver = ArtEvolverTools.getImageEvolver(1, 8, 8, 2, null, false);
+        ImageEvolver evolver2 = ArtEvolverTools.getImageEvolver(1, 8, 8, 2, null, false);
+        ImageEvolver evolverShuffled = ArtEvolverTools.getImageEvolver(1, 8, 8, 2, null, true);
+        ImageEvolver evolverShuffled2 = ArtEvolverTools.getImageEvolver(1, 8, 8, 2, null, true);
+        
+        long timeStart = 0;
+        int iterations = 100; 
+        
+        // evolver for first score
+        evolver.evolve(timeStart, iterations);
+        evolver2.evolve(timeStart, iterations);
+        evolverShuffled.evolve(timeStart, iterations);
+        evolverShuffled2.evolve(timeStart, iterations);
+        
+        
+        // compare scores
+        assertNotEquals(evolver.getBestScore(), evolver2.getBestScore());
+    }
+    
+    @Test
     void imageEvolverMediumTest() {
         
         // 
-        ImageEvolver evolver = ArtEvolverTools.getImageEvolver(1, 8, 8, 2, null);
+        ImageEvolver evolver = ArtEvolverTools.getImageEvolver(1, 8, 8, 2, null, false);
         
         long timeStart = 0;
         int iterations = 200;
@@ -75,7 +100,7 @@ class ArtEvolverToolsTest {
     void getImageEvolverQuickTest() throws IOException, URISyntaxException {
         
         // 
-        ImageEvolver evolver = ArtEvolverTools.getImageEvolver(1, 2, 2, 2, null);
+        ImageEvolver evolver = ArtEvolverTools.getImageEvolver(1, 2, 2, 2, null, false);
         
         long timeStart = 0;
         int iterations = 20;

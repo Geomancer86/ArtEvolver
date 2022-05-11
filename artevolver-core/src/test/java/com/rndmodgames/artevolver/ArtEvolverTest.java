@@ -5,8 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.awt.Color;
+import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.net.URL;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -27,7 +29,11 @@ class ArtEvolverTest {
     @Test
     void setSourceImageTest() throws IOException {
         
-        evolver.setOfflineSourceImage("0_van.jpg");
+//        URL url = getClass().getResource("../../../sherwin.txt").toURI().toURL();
+
+//        File file = new File(url.getPath().replace("%20"," "));
+        
+        evolver.setOfflineSourceImage("./000_zeldathumb-1920-789452.jpg");
         
         // Load image
         evolver.loadImage();

@@ -1,7 +1,10 @@
 package com.rndmodgames.artevolver;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.awt.Color;
 import java.io.IOException;
 import java.net.URISyntaxException;
 
@@ -9,6 +12,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.rndmodgames.evolver.Palette;
+import com.rndmodgames.evolver.PalleteColor;
 
 class ArtEvolverTest {
 
@@ -31,9 +35,47 @@ class ArtEvolverTest {
     void paletteTest() throws IOException, URISyntaxException {
         
         //
-        Palette pallete = new Palette("Sherwin-Williams", 1);
+        Palette palette = new Palette("Sherwin-Williams", 1);
 
         //
-        assertNotNull(pallete);
+        assertNotNull(palette);
+    }
+    
+    @Test
+    void getPaletteNumberOfColorsTest() throws IOException, URISyntaxException {
+        
+        //
+        Palette palette = new Palette("Sherwin-Williams", 1);
+
+        //
+        assertEquals(1065, palette.getNumberOfColors());
+    }
+    
+    @Test
+    void randomizePaletteTest() throws IOException, URISyntaxException {
+        
+        //
+        Palette palette = new Palette("Sherwin-Williams", 1);
+        
+        PalleteColor first = palette.getColor(0);
+        
+        // shuffle
+        palette.randomize();
+                
+        // might fail sometimes!
+        assertNotEquals(palette.getColor(0), first);
+    }
+    
+    @Test
+    void removeColorTest() throws IOException, URISyntaxException {
+        
+        //
+        Palette palette = new Palette("Sherwin-Williams", 1);
+        
+        // remove one color
+        palette.removeColor(0);
+        
+        //
+        assertEquals(1064, palette.getNumberOfColors());
     }
 }

@@ -40,6 +40,38 @@ class ArtEvolverToolsTest {
     }
     
     @Test
+    void imageEvolverMediumTest() {
+        
+        // 
+        ImageEvolver evolver = ArtEvolverTools.getImageEvolver(1, 8, 8, 2, null);
+        
+        long timeStart = 0;
+        int iterations = 200;
+        
+        // iteration runs
+        int runs = 10;
+        
+        // baseline score
+        evolver.evolve(timeStart, iterations);
+        double score = evolver.getBestScore();
+        
+        // evolve runs
+        for (int a = 0; a < runs; a++) {
+            
+            // evolve
+            evolver.evolve(timeStart, iterations);
+        }
+
+        // measure after evolution runs
+        double secondScore = evolver.getBestScore();
+        
+        System.out.println("starting score: " + score);
+        System.out.println("final score   : " + secondScore);
+        
+        assertNotEquals(score, secondScore);
+    }
+    
+    @Test
     void getImageEvolverQuickTest() throws IOException, URISyntaxException {
         
         // 
@@ -52,6 +84,7 @@ class ArtEvolverToolsTest {
         int runs = 10;
         
         // baseline score
+        evolver.evolve(timeStart, iterations);
         double score = evolver.getBestScore();
         
         // evolve runs

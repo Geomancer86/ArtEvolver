@@ -4,11 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import java.awt.Color;
-import java.io.File;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.net.URL;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -43,6 +41,9 @@ class ArtEvolverTest {
         
         //
         assertNotNull(evolver.getResizedOriginal());
+        
+        // close the window to avoid waiting
+        evolver.dispatchEvent(new WindowEvent(evolver, WindowEvent.WINDOW_CLOSING));
     }
     
     @Test

@@ -48,20 +48,24 @@ class ArtEvolverToolsTest {
         long timeStart = 0;
         int iterations = 20;
         
-        // evolve
-        evolver.evolve(timeStart, iterations);
+        // iteration runs
+        int runs = 10;
         
-        // get score
+        // baseline score
         double score = evolver.getBestScore();
         
-        System.out.println("first best score : " + score);
-        
-        // evolve again
-        evolver.evolve(timeStart, iterations);
-        
+        // evolve runs
+        for (int a = 0; a < runs; a++) {
+            
+            // evolve
+            evolver.evolve(timeStart, iterations);
+        }
+
+        // measure after evolution runs
         double secondScore = evolver.getBestScore();
         
-        System.out.println("second best score: " + secondScore);
+        System.out.println("starting score: " + score);
+        System.out.println("final score   : " + secondScore);
         
         assertNotEquals(score, secondScore);
     }

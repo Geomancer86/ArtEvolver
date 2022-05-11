@@ -45,6 +45,12 @@ class ArtEvolverTest {
         freshEvolver.dispatchEvent(new WindowEvent(freshEvolver, WindowEvent.WINDOW_CLOSING));
         freshEvolver.mainFrame.dispatchEvent(new WindowEvent(freshEvolver, WindowEvent.WINDOW_CLOSING));
         
+        freshEvolver.mainFrame.setVisible(false);
+        freshEvolver.mainFrame.dispose();
+        
+        freshEvolver.setVisible(false);
+        freshEvolver.dispose();
+        
         assertNull(freshEvolver);
     }
     

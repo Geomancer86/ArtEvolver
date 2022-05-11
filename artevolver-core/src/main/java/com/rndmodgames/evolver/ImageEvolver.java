@@ -775,7 +775,7 @@ public class ImageEvolver extends AbstractEvolver {
 	@Override
 	public void evolve(long start, int iterations) {
 
-//		long evolveThen = System.currentTimeMillis();
+		long evolveThen = System.currentTimeMillis();
 
 //	synchronized (pop) {
 		for (int a = 0; a < iterations; a++) {
@@ -1202,8 +1202,8 @@ public class ImageEvolver extends AbstractEvolver {
             }
 		}
 //	}
-//		long evolveNow = System.currentTimeMillis();
-//		System.out.println("evolve with " + iterations + " iterations took " + (float)(evolveNow - evolveThen) / 1000f + " seconds");
+		long evolveNow = System.currentTimeMillis();
+		System.out.println("evolve with " + iterations + " iterations took " + (float)(evolveNow - evolveThen) / 1000f + " seconds");
 	}
 
 	boolean isStarted = false;

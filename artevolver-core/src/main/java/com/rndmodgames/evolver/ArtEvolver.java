@@ -1050,6 +1050,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         setSourceImage();
     }
 
+    /**
+     * Default Load Image method, this is called during normal execution of the App
+     * 
+     * @throws IOException
+     */
     public void loadImage() throws IOException {
 
     	this.chooser.resetChoosableFileFilters();
@@ -1090,7 +1095,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         int newHeight = (int) (((height * heightTriangles))  - height); // substract last serrated row
 
         // initialize currentImage and resizedOriginal
-        if (resizedOriginal == null){
+        if (getResizedOriginal() == null){
             
             BufferedImage resizedOriginal = new BufferedImage(newWidth, newHeight, IMAGE_TYPE);
             
@@ -1113,7 +1118,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                 ((ImageEvolver)currentEvolver).initializeIsosceles();
             }
 
-            this.resizedOriginal = resizedOriginal;
+            this.setResizedOriginal(resizedOriginal);
         }
     }
 
@@ -1171,7 +1176,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     public void showSource() {
         // Draw Original Image for Comparison TODO: move to different button
         // draw bestImage to panel
-        imagePanel.getGraphics().drawImage(resizedOriginal,
+        imagePanel.getGraphics().drawImage(getResizedOriginal(),
                                            32, // TODO: make both offsets dynamic to center in JPanel
                                            32,
                                            null);
@@ -1279,6 +1284,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         return (prevAvg * n + x) / (n + 1);
     }
 	
+    public BufferedImage getResizedOriginal() {
+        return resizedOriginal;
+    }
+
+    public void setResizedOriginal(BufferedImage resizedOriginal) {
+        this.resizedOriginal = resizedOriginal;
+    }
+
     // Returns the average of a stream of numbers
     static float streamAvg(float [] array, int n) {
         

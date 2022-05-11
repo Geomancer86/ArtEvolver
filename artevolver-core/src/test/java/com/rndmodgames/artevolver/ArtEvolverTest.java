@@ -21,7 +21,22 @@ class ArtEvolverTest {
     @BeforeAll
     static void beforeAll() throws IOException, URISyntaxException {
         
-         evolver = new com.rndmodgames.evolver.ArtEvolver();
+        evolver = new com.rndmodgames.evolver.ArtEvolver();
+    }
+    
+    @Test
+    void setSourceImageTest() throws IOException {
+        
+        evolver.setOfflineSourceImage("0_van.jpg");
+        
+        // Load image
+        evolver.loadImage();
+        
+        // Call set source image after setting Original Image to something in Image Load
+        evolver.setSourceImage();
+        
+        //
+        assertNotNull(evolver.getResizedOriginal());
     }
     
     @Test

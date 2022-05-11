@@ -78,4 +78,31 @@ class ArtEvolverTest {
         //
         assertEquals(1064, palette.getNumberOfColors());
     }
+    
+    @Test
+    void getColorFromPaletteTest() throws IOException, URISyntaxException {
+     
+        //
+        Palette palette = new Palette("Sherwin-Williams", 1);
+        
+        //
+        assertNotNull(palette.getColor(0).getColor());
+    }
+    
+    @Test
+    void orderPalettesByColorTest() throws IOException, URISyntaxException {
+        
+        //
+        Palette palette = new Palette("Sherwin-Williams", 1);
+        
+        //
+        palette.orderByBLUE();
+        palette.orderByGREEN();
+        palette.orderByRED();
+        palette.orderByLuminescence();
+        
+        //
+        assertNotNull(palette.getColor(0));
+        assertEquals(1065, palette.getNumberOfColors());
+    }
 }

@@ -64,18 +64,18 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static final int QUALITY_MODE_FULL_THREADS =  91;
 	public static final int QUALITY_MODE_STREAM       = 191;
 	
-	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
+//	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
 //	public static int CURRENT_MODE = QUALITY_MODE;
-//	public static int CURRENT_MODE = FASTEST_MODE;
+	public static int CURRENT_MODE = FASTEST_MODE;
 	
 	// 
 	public static boolean HIGH_RESOLUTION_EXPORT = false;
-	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = true;
+	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = false;
 	public static boolean MEGA_HIGH_RESOLUTION_EXPORT = false;
 	public static boolean MASTER_RESOLUTION_EXPORT = false;
 	
 	// default to false
-	public static boolean EXPORT_VIDEO = true;
+	public static boolean EXPORT_VIDEO = false;
 	public static int EXPORT_VIDEO_FRAMES_FPS = 1;
 	public static boolean VIDEO_FULL_HD_RESOLUTION_EXPORT = false;
     public static boolean VIDEO_4K_RESOLUTION_EXPORT = true;
@@ -174,7 +174,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
 	private int TOTAL_PALLETES             	= 4;
 	
-	private int GUI_FPS = 60; // twitch fps are set to 20
+	private int GUI_FPS = 30; // twitch fps are set to 20
 	private int FPS = 120;
 	private int EVOLVER_UPDATE_MS = 1000 / FPS;
 //	private int EVOLVER_UPDATE_MS = 0;
@@ -199,7 +199,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //	                                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 //	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64, 4239/2, 4239/2,};
 	
-	private int RANDOM_JUMP_MAX_DISTANCES [] = {2048, 2048, 2048, 2048, //  4
+	private int RANDOM_JUMP_MAX_DISTANCES [] = {
+	                                            2048, 2048, 2048, 2048, //  4
 	                                            2048, 2048, 2048, 2048, //  8
 	                                            2048, 2048, 2048, 2048, // 12
 	                                            2048, 2048, 2048, 2048, // 16 
@@ -207,6 +208,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	                                            1, 1, 1, 1, // 24
 	                                            1, 1, 1, 1, // 28
 	                                            1, 1, 1, 1, // 32
+	                                            //
+	                                            2048, 2048, 2048, 2048, //
+                                                2048, 2048, 2048, 2048, //  
+                                                2048, 2048, 2048, 2048, // 
+                                                2048, 2048, 2048, 2048, //  
+                                                1, 1, 1, 1, // 
+                                                1, 1, 1, 1, // 
+                                                1, 1, 1, 1, // 
+                                                1, 1, 1, 1, // 64
 	                                            };
 	
 	private int CROSSOVERS_MAX [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
@@ -561,10 +571,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             break;
             
     	case FASTEST_MODE:
-            THREADS = 32;
+            THREADS = 64;
 //            MAX_ITERATIONS = 2500;
-            triangleScaleHeight = 0.5f;
-            triangleScaleWidth = 0.5f;
+//            triangleScaleHeight = 0.5f;
+//            triangleScaleWidth = 0.5f;
+            triangleScaleHeight = 1f;
+            triangleScaleWidth = 1f;
             width = 3.0f * triangleScaleWidth;
             height = 3.0f * triangleScaleHeight;
             break;

@@ -33,6 +33,9 @@ public class ImageEvolver extends AbstractEvolver {
 	public static final SplittableRandom random = new SplittableRandom();
 	public final boolean KILL_PARENTS = false;
 
+	// default is true
+	public static boolean SHUFFLE_PALETTE = false;
+	
 	public final static DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("##.###################");
 	
 	private Long id = null;
@@ -261,8 +264,10 @@ public class ImageEvolver extends AbstractEvolver {
 				}
 
 				// randomize
-				for (int k = 0; k < triangles.size() * randomMult; k++){
-					switchColor(triangles, roll(triangles.size()), roll(triangles.size()));
+				if (SHUFFLE_PALETTE) {
+				    for (int k = 0; k < triangles.size() * randomMult; k++){
+				        switchColor(triangles, roll(triangles.size()), roll(triangles.size()));
+				    }
 				}
 
 				pop.add(triangles);

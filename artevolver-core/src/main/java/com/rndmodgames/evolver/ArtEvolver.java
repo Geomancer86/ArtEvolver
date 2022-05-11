@@ -64,8 +64,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static final int QUALITY_MODE_FULL_THREADS =  91;
 	public static final int QUALITY_MODE_STREAM       = 191;
 	
-	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
-//	public static int CURRENT_MODE = QUALITY_MODE;
+//	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
+	public static int CURRENT_MODE = QUALITY_MODE;
 //	public static int CURRENT_MODE = FASTEST_MODE;
 	
 	// 
@@ -157,8 +157,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private int EVOLVE_JUMPS_ADD = 10;
 	
 	// default to false
-	private float lastCheckHealth = -1;
-	private boolean JUMPS_DEPEND_ON_FRESH_HEALTH = true;
+	private float lastCheckHealth = -1f;
+	private boolean JUMPS_DEPEND_ON_FRESH_HEALTH = false;
 	
 	// default to 1 (100%)
 	private float FRESH_HEALTH_JUMP_PERCENT = 1f;
@@ -509,8 +509,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             
     	case QUALITY_MODE:
 
-    	    THREADS = 4;
-    	    POPULATION = 4;
+    	    THREADS = 32;
+    	    POPULATION = 2;
             triangleScaleHeight = 3f;
             triangleScaleWidth = 3f;
             
@@ -765,7 +765,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                     
                     // 
                     if (JUMPS_DEPEND_ON_FRESH_HEALTH) {
+                        
                         float healthDifference = lastCheckHealth - streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS);
+                        
+//                        System.out.println("lastCheckHealth: " + lastCheckHealth + ", " + healthDifference);
                         
                         for (AbstractEvolver currentEvolver : evolvers) {
                          
@@ -778,6 +781,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                                 ((ImageEvolver) currentEvolver).setRandomJumpDistance(1);
                             }
                         }
+                        
+                        // need to record this health check for next comparison
+                        lastCheckHealth = streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS);
                     }
 
                     // total_iterations, good_iterations, health, best_score, max_jump_average

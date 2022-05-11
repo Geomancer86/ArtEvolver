@@ -34,7 +34,7 @@ class ArtEvolverTest {
         evolver.setOfflineSourceImage("./000_zeldathumb-1920-789452.jpg");
         
         // Load image
-        evolver.loadImage();
+//        evolver.loadImage();
         
         // Call set source image after setting Original Image to something in Image Load
         evolver.setSourceImage();
@@ -44,6 +44,8 @@ class ArtEvolverTest {
         
         // close the window to avoid waiting
         evolver.dispatchEvent(new WindowEvent(evolver, WindowEvent.WINDOW_CLOSING));
+        evolver.setVisible(false); //you can't see me!
+        evolver.dispose();
     }
     
     @Test

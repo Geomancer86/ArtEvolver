@@ -64,21 +64,21 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static final int QUALITY_MODE_FULL_THREADS =  91;
 	public static final int QUALITY_MODE_STREAM       = 191;
 	
-//	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
-	public static int CURRENT_MODE = QUALITY_MODE;
+	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
+//	public static int CURRENT_MODE = QUALITY_MODE;
 //	public static int CURRENT_MODE = FASTEST_MODE;
 	
 	// 
 	public static boolean HIGH_RESOLUTION_EXPORT = false;
-	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = false;
+	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = true;
 	public static boolean MEGA_HIGH_RESOLUTION_EXPORT = false;
 	public static boolean MASTER_RESOLUTION_EXPORT = false;
 	
 	// default to false
-	public static boolean EXPORT_VIDEO = false;
+	public static boolean EXPORT_VIDEO = true;
 	public static int EXPORT_VIDEO_FRAMES_FPS = 1;
 	public static boolean VIDEO_FULL_HD_RESOLUTION_EXPORT = false;
-    public static boolean VIDEO_4K_RESOLUTION_EXPORT = false;
+    public static boolean VIDEO_4K_RESOLUTION_EXPORT = true;
     
     // default to false
     public static boolean VIDEO_REGULAR_QUALITY = false;
@@ -158,7 +158,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	
 	// default to false
 	private float lastCheckHealth = -1f;
-	private boolean JUMPS_DEPEND_ON_FRESH_HEALTH = false;
+	private boolean JUMPS_DEPEND_ON_FRESH_HEALTH = true;
 	
 	// default to 1 (100%)
 	private float FRESH_HEALTH_JUMP_PERCENT = 1f;

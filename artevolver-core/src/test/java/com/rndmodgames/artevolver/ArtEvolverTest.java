@@ -3,11 +3,12 @@ package com.rndmodgames.artevolver;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.net.URISyntaxException;
+
+import javax.swing.JFrame;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,7 @@ class ArtEvolverTest {
     }
     
     @Test
-    void setSourceImageTest() throws IOException, URISyntaxException {
+    void setSourceImageTest() throws IOException, URISyntaxException  {
         
         com.rndmodgames.evolver.ArtEvolver freshEvolver = new com.rndmodgames.evolver.ArtEvolver();
         
@@ -41,17 +42,24 @@ class ArtEvolverTest {
         //
         assertNotNull(freshEvolver.getResizedOriginal());
         
-        // close the window to avoid waiting
-        freshEvolver.dispatchEvent(new WindowEvent(freshEvolver, WindowEvent.WINDOW_CLOSING));
-        freshEvolver.mainFrame.dispatchEvent(new WindowEvent(freshEvolver, WindowEvent.WINDOW_CLOSING));
-        
-        freshEvolver.mainFrame.setVisible(false);
-        freshEvolver.mainFrame.dispose();
+        freshEvolver.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         freshEvolver.setVisible(false);
-        freshEvolver.dispose();
+//        freshEvolver.dispatchEvent(new WindowEvent(freshEvolver, WindowEvent.WINDOW_CLOSING));
         
-        assertNull(freshEvolver);
+//        freshEvolver.getRootPane().
+        
+        // close the window to avoid waiting
+//        freshEvolver.dispatchEvent(new WindowEvent(freshEvolver, WindowEvent.WINDOW_CLOSING));
+//        freshEvolver.mainFrame.dispatchEvent(new WindowEvent(freshEvolver, WindowEvent.WINDOW_CLOSING));
+//        
+//        freshEvolver.mainFrame.setVisible(false);
+//        freshEvolver.mainFrame.dispose();
+//        
+//        freshEvolver.setVisible(false);
+//        freshEvolver.dispose();
+//        
+//        assertNull(freshEvolver);
     }
     
     @Test

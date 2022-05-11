@@ -26,41 +26,41 @@ class ArtEvolverTest {
         evolver = new com.rndmodgames.evolver.ArtEvolver();
     }
     
-    @Test
-    void setSourceImageTest() throws IOException, URISyntaxException  {
-        
-        com.rndmodgames.evolver.ArtEvolver freshEvolver = new com.rndmodgames.evolver.ArtEvolver();
-        
-        freshEvolver.setOfflineSourceImage("./000_zeldathumb-1920-789452.jpg");
-        
-        // Load image
-//        evolver.loadImage();
-        
-        // Call set source image after setting Original Image to something in Image Load
-        freshEvolver.setSourceImage();
-        
-        //
-        assertNotNull(freshEvolver.getResizedOriginal());
-        
-        freshEvolver.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        
-        freshEvolver.setVisible(false);
-//        freshEvolver.dispatchEvent(new WindowEvent(freshEvolver, WindowEvent.WINDOW_CLOSING));
-        
-//        freshEvolver.getRootPane().
-        
-        // close the window to avoid waiting
-//        freshEvolver.dispatchEvent(new WindowEvent(freshEvolver, WindowEvent.WINDOW_CLOSING));
-//        freshEvolver.mainFrame.dispatchEvent(new WindowEvent(freshEvolver, WindowEvent.WINDOW_CLOSING));
+//    @Test
+//    void setSourceImageTest() throws IOException, URISyntaxException  {
 //        
-//        freshEvolver.mainFrame.setVisible(false);
-//        freshEvolver.mainFrame.dispose();
+//        com.rndmodgames.evolver.ArtEvolver freshEvolver = new com.rndmodgames.evolver.ArtEvolver();
+//        
+//        freshEvolver.setOfflineSourceImage("./000_zeldathumb-1920-789452.jpg");
+//        
+//        // Load image
+////        evolver.loadImage();
+//        
+//        // Call set source image after setting Original Image to something in Image Load
+//        freshEvolver.setSourceImage();
+//        
+//        //
+//        assertNotNull(freshEvolver.getResizedOriginal());
+//        
+//        freshEvolver.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 //        
 //        freshEvolver.setVisible(false);
-//        freshEvolver.dispose();
+////        freshEvolver.dispatchEvent(new WindowEvent(freshEvolver, WindowEvent.WINDOW_CLOSING));
 //        
-//        assertNull(freshEvolver);
-    }
+////        freshEvolver.getRootPane().
+//        
+//        // close the window to avoid waiting
+////        freshEvolver.dispatchEvent(new WindowEvent(freshEvolver, WindowEvent.WINDOW_CLOSING));
+////        freshEvolver.mainFrame.dispatchEvent(new WindowEvent(freshEvolver, WindowEvent.WINDOW_CLOSING));
+////        
+////        freshEvolver.mainFrame.setVisible(false);
+////        freshEvolver.mainFrame.dispose();
+////        
+////        freshEvolver.setVisible(false);
+////        freshEvolver.dispose();
+////        
+////        assertNull(freshEvolver);
+//    }
     
     @Test
     void artEvolverInstanceSecondTest() {

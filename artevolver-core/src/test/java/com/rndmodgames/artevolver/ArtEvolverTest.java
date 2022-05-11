@@ -26,7 +26,7 @@ class ArtEvolverTest {
     }
     
     @Test
-    void setSourceImageTest() throws IOException {
+    void setSourceImageTest() throws IOException, URISyntaxException {
         
         com.rndmodgames.evolver.ArtEvolver freshEvolver = new com.rndmodgames.evolver.ArtEvolver();
         

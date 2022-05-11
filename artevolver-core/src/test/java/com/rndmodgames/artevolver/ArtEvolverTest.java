@@ -3,6 +3,7 @@ package com.rndmodgames.artevolver;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.awt.event.WindowEvent;
 import java.io.IOException;
@@ -27,25 +28,24 @@ class ArtEvolverTest {
     @Test
     void setSourceImageTest() throws IOException {
         
-//        URL url = getClass().getResource("../../../sherwin.txt").toURI().toURL();
-
-//        File file = new File(url.getPath().replace("%20"," "));
+        com.rndmodgames.evolver.ArtEvolver freshEvolver = new com.rndmodgames.evolver.ArtEvolver();
         
-        evolver.setOfflineSourceImage("./000_zeldathumb-1920-789452.jpg");
+        freshEvolver.setOfflineSourceImage("./000_zeldathumb-1920-789452.jpg");
         
         // Load image
 //        evolver.loadImage();
         
         // Call set source image after setting Original Image to something in Image Load
-        evolver.setSourceImage();
+        freshEvolver.setSourceImage();
         
         //
-        assertNotNull(evolver.getResizedOriginal());
+        assertNotNull(freshEvolver.getResizedOriginal());
         
         // close the window to avoid waiting
-        evolver.dispatchEvent(new WindowEvent(evolver, WindowEvent.WINDOW_CLOSING));
-        evolver.setVisible(false); //you can't see me!
-        evolver.dispose();
+        freshEvolver.dispatchEvent(new WindowEvent(freshEvolver, WindowEvent.WINDOW_CLOSING));
+        freshEvolver.mainFrame.dispatchEvent(new WindowEvent(freshEvolver, WindowEvent.WINDOW_CLOSING));
+        
+        assertNull(freshEvolver);
     }
     
     @Test

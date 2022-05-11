@@ -41,7 +41,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 	private static final long serialVersionUID = 6291204469421642923L;
 	
-	private JFrame mainFrame;
+	public JFrame mainFrame;
 	private JPanel imagePanel;
 	private Palette pallete;
 	
@@ -1238,7 +1238,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 			} catch (IOException e) {
 			    
 			    // ignore close button
-//				e.printStackTrace();
+				e.printStackTrace();
 			}
 		}
 		

@@ -69,7 +69,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //	public static int CURRENT_MODE = FASTEST_MODE;
 	
 	// 
-	public static boolean HIGH_RESOLUTION_EXPORT = false;
+	public static boolean HIGH_RESOLUTION_EXPORT = true;
 	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = false;
 	public static boolean MEGA_HIGH_RESOLUTION_EXPORT = false;
 	public static boolean MASTER_RESOLUTION_EXPORT = false;

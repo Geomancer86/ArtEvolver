@@ -77,7 +77,7 @@ public class Palette {
 		}
 		
 		// Todo dynamic pallete loading or combobox
-		System.out.println("Pallete " + name + " Loaded: " + colors.size() + " colors in " + repetitions + " repetitions.");
+//		System.out.println("Pallete " + name + " Loaded: " + colors.size() + " colors in " + repetitions + " repetitions.");
 	}
 	
 

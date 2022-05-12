@@ -65,6 +65,47 @@ class ArtEvolverToolsTest {
     }
     
     @Test
+    void imageEvolverOptimizedRunTest() {
+        
+        // iteration runs
+        int runs = 100;
+        
+        long timeStart = 0;
+        int evolveIterations = 10;
+        
+        // First baseline run:
+        ImageEvolver evolver = ArtEvolverTools.getImageEvolver(1, 2, 1, 1, null, false);
+        ImageEvolver evolver2 = ArtEvolverTools.getImageEvolver(1, 2, 1000, 1, null, false);
+        
+        evolver.evolve(0, evolveIterations);
+        evolver2.evolve(0, evolveIterations);
+        
+        double scoreA = evolver.getBestScore();
+        double scoreB = evolver2.getBestScore();
+        
+        // evolve runs
+        for (int a = 0; a < runs; a++) {
+            
+            System.out.println("evolve run #" + a);
+            
+            // evolve
+            evolver.evolve(timeStart, evolveIterations);
+            evolver2.evolve(timeStart, evolveIterations);
+            
+            System.out.println("score a: " + scoreA);
+            System.out.println("score b: " + scoreB);
+        }
+        
+        System.out.println("--------------------");
+        System.out.println("FINAL SCORES:");
+        
+        System.out.println("score a: " + scoreA);
+        System.out.println("score b: " + scoreB);
+        
+        assertNotEquals(scoreA, scoreB);
+    }
+    
+    @Test
     void imageEvolverMediumTest() {
         
         // 

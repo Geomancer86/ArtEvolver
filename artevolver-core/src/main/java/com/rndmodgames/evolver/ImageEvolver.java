@@ -34,7 +34,7 @@ public class ImageEvolver extends AbstractEvolver {
 	public final boolean KILL_PARENTS = false;
 
 	// default is true
-	public static boolean SHUFFLE_PALETTE = false;
+	public static boolean SHUFFLE_PALETTE = true;
 	
 	public final static DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("##.###################");
 	
@@ -306,7 +306,7 @@ public class ImageEvolver extends AbstractEvolver {
 		// Comparator used only once, no need to extract
 		Collections.sort(pop, new TrianglesComparator());
 
-		System.out.println("total pixels is " + pop.get(0).size());
+//		System.out.println("total pixels is " + pop.get(0).size());
 
 		// keep only defined population
 //		pop = pop.subList(0, population);
@@ -452,14 +452,14 @@ public class ImageEvolver extends AbstractEvolver {
 	 * @param x
 	 * @param y
 	 */
-	public static void switchGridColor(List<Triangle> triangles, int id) {
+	public static void switchGridColor(List<Triangle> triangles, int id, int gridSize) {
 
 		// calculate x,y limits for each grid (per ID)
-		int a = roll(128) + (128 * id);
-		int b = roll(128) + (128 * id);
+		int a = roll(gridSize) + (gridSize * id);
+		int b = roll(gridSize) + (gridSize * id);
 		
 		while (b == a) {
-			a = roll(128) + (128 * id);
+			a = roll(gridSize) + (gridSize * id);
 		}
 		
 		Triangle origin = triangles.get(a);
@@ -775,7 +775,7 @@ public class ImageEvolver extends AbstractEvolver {
 	@Override
 	public void evolve(long start, int iterations) {
 
-		long evolveThen = System.currentTimeMillis();
+//		long evolveThen = System.currentTimeMillis();
 
 //	synchronized (pop) {
 		for (int a = 0; a < iterations; a++) {
@@ -1202,8 +1202,8 @@ public class ImageEvolver extends AbstractEvolver {
             }
 		}
 //	}
-		long evolveNow = System.currentTimeMillis();
-		System.out.println("evolve with " + iterations + " iterations took " + (float)(evolveNow - evolveThen) / 1000f + " seconds");
+//		long evolveNow = System.currentTimeMillis();
+//		System.out.println("evolve with " + iterations + " iterations took " + (float)(evolveNow - evolveThen) / 1000f + " seconds");
 	}
 
 	boolean isStarted = false;

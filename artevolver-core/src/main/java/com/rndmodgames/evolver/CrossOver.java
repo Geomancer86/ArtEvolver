@@ -14,7 +14,7 @@ public class CrossOver {
 	public static final float RANDOM_MULTI_MUTATION 		= 1f; // default is 1f
 	public static final int   RANDOM_MULTI_MUTATION_MAX     = 0; // default is 0
 	public static final int   CLOSE_MUTATIONS_PER_CHILD     = 0; // default is 0
-	public static final int   DEFAULT_GRID_SIZE             = 256; // default is 128
+	public static final int   DEFAULT_GRID_SIZE             = 256; // default is 256
 	
 	// crossover mutations
 	public static final float RANDOM_CROSSOVER_PERCENT 				  = -0.01f;

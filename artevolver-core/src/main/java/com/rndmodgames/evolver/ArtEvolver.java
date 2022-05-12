@@ -174,7 +174,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
 	private int TOTAL_PALLETES             	= 4;
 	
-	private int GUI_FPS = 30; // twitch fps are set to 20
+	private int GUI_FPS = 30; // twitch fps are set to 30
 	private int FPS = 120;
 	private int EVOLVER_UPDATE_MS = 1000 / FPS;
 //	private int EVOLVER_UPDATE_MS = 0;
@@ -200,23 +200,40 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64, 4239/2, 4239/2,};
 	
 	private int RANDOM_JUMP_MAX_DISTANCES [] = {
-	                                            2048, 2048, 2048, 2048, //  4
-	                                            2048, 2048, 2048, 2048, //  8
-	                                            2048, 2048, 2048, 2048, // 12
-	                                            2048, 2048, 2048, 2048, // 16 
+	                                            4, 4, 4, 4, //  4
+	                                            2, 2, 2, 2, //  8
+	                                            2, 2, 2, 2, // 12
+	                                            2, 2, 2, 2, // 16 
 	                                            1, 1, 1, 1, // 20
 	                                            1, 1, 1, 1, // 24
 	                                            1, 1, 1, 1, // 28
 	                                            1, 1, 1, 1, // 32
 	                                            //
-	                                            2048, 2048, 2048, 2048, //
+	                                            1, 1, 1, 1, //
+                                                1, 1, 1, 1, //  
+                                                1, 1, 1, 1, // 
+                                                1, 1, 1, 1, //  
+                                                1, 1, 1, 1, // 
+                                                1, 1, 1, 1, // 
+                                                1, 1, 1, 1, // 
+                                                1, 1, 1, 1, // 64
+                                                2048, 2048, 2048, 2048, //  4
+                                                2048, 2048, 2048, 2048, //  8
+                                                2048, 2048, 2048, 2048, // 12
+                                                2048, 2048, 2048, 2048, // 16 
+                                                1, 1, 1, 1, // 20
+                                                1, 1, 1, 1, // 24
+                                                1, 1, 1, 1, // 28
+                                                1, 1, 1, 1, // 32
+                                                //
+                                                2048, 2048, 2048, 2048, //
                                                 2048, 2048, 2048, 2048, //  
                                                 2048, 2048, 2048, 2048, // 
                                                 2048, 2048, 2048, 2048, //  
                                                 1, 1, 1, 1, // 
                                                 1, 1, 1, 1, // 
                                                 1, 1, 1, 1, // 
-                                                1, 1, 1, 1, // 64
+                                                1, 1, 1, 1, // 128
 	                                            };
 	
 	private int CROSSOVERS_MAX [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
@@ -572,7 +589,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             
     	case FASTEST_MODE:
     	    POPULATION = 2;
-            THREADS = 16;
+            THREADS = 20; // default to 20
 //            MAX_ITERATIONS = 2500;
 //            triangleScaleHeight = 0.5f;
 //            triangleScaleWidth = 0.5f;
@@ -807,6 +824,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //                                        + "," + ((float) maxJumpDistanceSum / (float) THREADS));
                     
                     System.out.println(bestScore);
+//                    System.out.println(bestScore + "," + ((float) maxJumpDistanceSum / (float) THREADS));
                     
 //                    System.out.println("Evolver " + ((ImageEvolver)currentEvolver).getId() + ", iterations: " + ((ImageEvolver)currentEvolver).getTotalIterations() + ", bestScore: " + ((ImageEvolver)currentEvolver).getBestScore());
             	}

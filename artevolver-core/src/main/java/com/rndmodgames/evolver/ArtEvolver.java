@@ -64,6 +64,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static final int QUALITY_MODE_FULL_THREADS =  91;
 	public static final int QUALITY_MODE_STREAM       = 191;
 	
+	// default to false
+	public static boolean TOURNAMENT_MODE_PRINT = true;
+	
 //	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
 //	public static int CURRENT_MODE = QUALITY_MODE;
 	public static int CURRENT_MODE = FASTEST_MODE;
@@ -588,8 +591,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             break;
             
     	case FASTEST_MODE:
+    	    
     	    POPULATION = 2;
-            THREADS = 20; // default to 20
+            THREADS = 17; // default to 20
+            
 //            MAX_ITERATIONS = 2500;
 //            triangleScaleHeight = 0.5f;
 //            triangleScaleWidth = 0.5f;
@@ -816,6 +821,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                         lastCheckHealth = streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS);
                     }
 
+                    // TOURNAMENT PRINT
+                    if (TOURNAMENT_MODE_PRINT) {
+                        for (AbstractEvolver currentEvolver : evolvers) {
+                            System.out.print(((ImageEvolver) currentEvolver).getBestScore() + ",");
+                        }
+                        System.out.println();
+                    }
+                    
                     // total_iterations, good_iterations, health, best_score, max_jump_average
 //                    System.out.println(totalIterations 
 //                                        + "," + goodIterations
@@ -823,7 +836,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //                                        + "," + bestScore
 //                                        + "," + ((float) maxJumpDistanceSum / (float) THREADS));
                     
-                    System.out.println(bestScore);
+//                    System.out.println(bestScore);
 //                    System.out.println(bestScore + "," + ((float) maxJumpDistanceSum / (float) THREADS));
                     
 //                    System.out.println("Evolver " + ((ImageEvolver)currentEvolver).getId() + ", iterations: " + ((ImageEvolver)currentEvolver).getTotalIterations() + ", bestScore: " + ((ImageEvolver)currentEvolver).getBestScore());

@@ -65,11 +65,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static final int QUALITY_MODE_STREAM       = 191;
 	
 	// default to false
-	public static boolean TOURNAMENT_MODE_PRINT = true;
+	public static boolean TOURNAMENT_MODE_PRINT = false;
 	
-//	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
+	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
 //	public static int CURRENT_MODE = QUALITY_MODE;
-	public static int CURRENT_MODE = FASTEST_MODE;
+//	public static int CURRENT_MODE = FASTEST_MODE;
 	
 	// 
 	public static boolean HIGH_RESOLUTION_EXPORT = false;
@@ -81,7 +81,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static boolean EXPORT_VIDEO = false;
 	public static int EXPORT_VIDEO_FRAMES_FPS = 1;
 	public static boolean VIDEO_FULL_HD_RESOLUTION_EXPORT = false;
-    public static boolean VIDEO_4K_RESOLUTION_EXPORT = false;
+    public static boolean VIDEO_4K_RESOLUTION_EXPORT = true;
     
     // default to false
     public static boolean VIDEO_REGULAR_QUALITY = false;
@@ -421,8 +421,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
          */
     	case QUALITY_MODE_STREAM:
     	    
-    	    THREADS = 8;
-            POPULATION = 8;
+    	    THREADS = 16;
+            POPULATION = 2;
             
             triangleScaleHeight = 6f;
             triangleScaleWidth = 6f;
@@ -593,7 +593,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	case FASTEST_MODE:
     	    
     	    POPULATION = 2;
-            THREADS = 17; // default to 20
+            THREADS = 17; // default to 17
             
 //            MAX_ITERATIONS = 2500;
 //            triangleScaleHeight = 0.5f;

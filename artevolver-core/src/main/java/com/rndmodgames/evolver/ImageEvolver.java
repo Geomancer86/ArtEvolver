@@ -34,7 +34,7 @@ public class ImageEvolver extends AbstractEvolver {
 	public final boolean KILL_PARENTS = false;
 
 	// default is true
-	public static boolean SHUFFLE_PALETTE = false;
+	public static boolean SHUFFLE_PALETTE = true;
 	
 	public final static DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("##.###################");
 	
@@ -306,7 +306,7 @@ public class ImageEvolver extends AbstractEvolver {
 		// Comparator used only once, no need to extract
 		Collections.sort(pop, new TrianglesComparator());
 
-		System.out.println("total pixels is " + pop.get(0).size());
+//		System.out.println("total pixels is " + pop.get(0).size());
 
 		// keep only defined population
 //		pop = pop.subList(0, population);
@@ -408,7 +408,7 @@ public class ImageEvolver extends AbstractEvolver {
 		// Comparator used only once, no need to extract
 		Collections.sort(pop, new TrianglesComparator());
 
-		System.out.println("total pixels is " + pop.get(0).size());
+//		System.out.println("total pixels is " + pop.get(0).size());
 
 		// keep only defined population
 		pop = pop.subList(0, population);

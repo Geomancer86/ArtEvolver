@@ -21,7 +21,7 @@ class CrossOverTest {
     @Test
     void basicCrossOverTest() {
         
-        CrossOver crossOver = new CrossOver(1, 1);
+        CrossOver crossOver = new CrossOver(1, 1, null);
         
         assertEquals(1, crossOver.getRandomJumpDistance());
     }
@@ -29,7 +29,7 @@ class CrossOverTest {
     @Test 
     void halveCrossOverParameterTest(){
         
-        CrossOver crossOver = new CrossOver(1000, 1);
+        CrossOver crossOver = new CrossOver(1000, 1, null);
         
         crossOver.halveParameters();
         
@@ -39,7 +39,7 @@ class CrossOverTest {
     @Test
     void incrementCrossOverParameterTest() {
         
-        CrossOver crossOver = new CrossOver(1000, 1);
+        CrossOver crossOver = new CrossOver(1000, 1, null);
         
         crossOver.incrementParameters(10);
         

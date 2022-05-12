@@ -5,6 +5,9 @@ import java.util.Random;
 
 public class CrossOver {
 	
+    // keep track of the evolver to update parameters live
+    ImageEvolver evolverInstance;
+    
 	public static final Random random = new Random();
 	
 	// self mutations
@@ -14,7 +17,7 @@ public class CrossOver {
 	public static final float RANDOM_MULTI_MUTATION 		= 1f; // default is 1f
 	public static final int   RANDOM_MULTI_MUTATION_MAX     = 0; // default is 0
 	public static final int   CLOSE_MUTATIONS_PER_CHILD     = 0; // default is 0
-	public static final int   DEFAULT_GRID_SIZE             = 256; // default is 256
+	public static       int   DEFAULT_GRID_SIZE             = 512; // default is 256
 	
 	// crossover mutations
 	public static final float RANDOM_CROSSOVER_PERCENT 				  = -0.01f;
@@ -30,9 +33,18 @@ public class CrossOver {
 	private int randomJumpDistance;
 	private int crossoverMax;
 	
-	public CrossOver(int randomJumpDistance, int crossoverMax){
+	/**
+	 * Main constructor
+	 * 
+	 * @param randomJumpDistance
+	 * @param crossoverMax
+	 */
+	public CrossOver(int randomJumpDistance, int crossoverMax, ImageEvolver evolverInstance){
 		this.setRandomJumpDistance(randomJumpDistance);
 		this.crossoverMax = crossoverMax;
+		
+		// keep track
+		this.evolverInstance = evolverInstance;
 	}
 	
 	public void halveParameters() {
@@ -192,15 +204,48 @@ public class CrossOver {
 			}
 		}
 
+		int evolverLevel = evolverInstance.getGoodIterations() / 3;
+		
+		// decay levels default to 1f
+		float gridMutationChanceDecayLevel = 0f;
+		float randomCloseMutationChanceDecayLevel = 0f;
+		float randomMutationChanceDecayLevel = 0f;
+//		float gridSizeRecayRate = 0f;
 		// default to 1
 		int gridMutationChances = 1;
+//		int gridMutationChances = (int) (1000 - (evolverLevel * gridMutationChanceDecayLevel));
 		
 		// default to 3
 		int randomCloseMutationChances = 3;
+//		int randomCloseMutationChances = (int) (3000 - (evolverLevel * randomCloseMutationChanceDecayLevel));
 		
 		// default is 1
 		int randomMutationChances = 1;
+//		int randomMutationChances = (int) (1000 - (evolverLevel * randomMutationChanceDecayLevel));
 
+//		DEFAULT_GRID_SIZE = (int) (DEFAULT_GRID_SIZE - (evolverLevel * gridSizeRecayRate));
+		
+		// normalize values
+//		if (gridMutationChances < 1) {
+//		    
+//		    gridMutationChances = 1;
+//		}
+//		
+//		if (randomCloseMutationChances < 1) {
+//		    
+//		    randomCloseMutationChances = 1;
+//		}
+//		
+//		if (randomMutationChances < 1) {
+//		    
+//		    randomMutationChances = 1;
+//		}
+		
+//		if (DEFAULT_GRID_SIZE < 4) {
+//		    
+//		    DEFAULT_GRID_SIZE = 4;
+//		}
+		
 		boolean notEvolved = true;
 		
 		while(notEvolved) {
@@ -250,45 +295,6 @@ public class CrossOver {
                 }
             }
         }
-		
-//		System.out.println("goodRandomCloseMutations: " + goodRandomCloseMutations);
-		
-//		boolean notEvolved = true;
-		
-		// 
-//		while(notEvolved) {
-//			
-//			if (random.nextFloat() < GRID_MUTATION_PERCENT){
-//			    
-//				ImageEvolver.switchGridColor(child, evolverId);
-//				notEvolved = false;
-//				
-//			}
-//			
-//			if (random.nextFloat() < RANDOM_CLOSE_MUTATION_PERCENT){
-//			    
-//				for (int a = 0; a < CLOSE_MUTATIONS_PER_CHILD; a++) {
-//					ImageEvolver.switchCloseColor(child, this.randomJumpDistance);
-//				}
-//				
-//				notEvolved = false;
-//				
-//			}
-//			
-//			if (random.nextFloat() < RANDOM_MUTATION_PERCENT){
-//			    
-//				ImageEvolver.switchRandomColor(child);
-//				notEvolved = false;
-//				
-//			}
-//		
-//			if (random.nextFloat() < RANDOM_MULTI_MUTATION){
-//			    
-//				ImageEvolver.switchRandomMultiColor(child, RANDOM_MULTI_MUTATION_MAX);
-//				notEvolved = false;
-//				
-//			}
-//		}
 		
 		return child;
 	}

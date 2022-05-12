@@ -73,7 +73,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	
 	// 
 	public static boolean HIGH_RESOLUTION_EXPORT = false;
-	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = false;
+	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = true;
 	public static boolean MEGA_HIGH_RESOLUTION_EXPORT = false;
 	public static boolean MASTER_RESOLUTION_EXPORT = false;
 	
@@ -81,7 +81,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static boolean EXPORT_VIDEO = false;
 	public static int EXPORT_VIDEO_FRAMES_FPS = 1;
 	public static boolean VIDEO_FULL_HD_RESOLUTION_EXPORT = false;
-    public static boolean VIDEO_4K_RESOLUTION_EXPORT = true;
+    public static boolean VIDEO_4K_RESOLUTION_EXPORT = false;
     
     // default to false
     public static boolean VIDEO_REGULAR_QUALITY = false;
@@ -432,23 +432,22 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //            RANDOM_JUMP_MAX_DISTANCES [1] = 8520 / 2;
 //            RANDOM_JUMP_MAX_DISTANCES [2] = 8520 / 2;
 //            RANDOM_JUMP_MAX_DISTANCES [3] = 8520 / 2;
-            
 //            RANDOM_JUMP_MAX_DISTANCES [0] = 17040 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [1] = 17040 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [2] = 17040 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [3] = 17040 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [4] = 17040 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [5] = 17040 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [6] = 17040 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [7] = 17040 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [8] = 17040 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [9] = 17040 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [10] = 17040 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [11] = 17040 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [12] = 17040 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [13] = 17040 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [14] = 17040 / 2;
-            RANDOM_JUMP_MAX_DISTANCES [15] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [1] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [2] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [3] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [4] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [5] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [6] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [7] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [8] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [9] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [10] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [11] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [12] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [13] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [14] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [15] = 17040 / 2;
             
             if (ULTRA_HIGH_RESOLUTION_EXPORT) {
                 
@@ -456,22 +455,22 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                 triangleScaleWidth = 4f;
                 
                 // 17k
-                RANDOM_JUMP_MAX_DISTANCES [0] = 17040 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [1] = 17040 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [2] = 17040 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [3] = 17040 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [4] = 17040 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [5] = 17040 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [6] = 17040 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [7] = 17040 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [8] = 17040 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [9] = 17040 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [10] = 17040 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [11] = 17040 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [12] = 17040 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [13] = 17040 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [14] = 17040 / 2;
-                RANDOM_JUMP_MAX_DISTANCES [15] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [0] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [1] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [2] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [3] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [4] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [5] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [6] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [7] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [8] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [9] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [10] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [11] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [12] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [13] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [14] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [15] = 17040 / 2;
             }
             
             if (MEGA_HIGH_RESOLUTION_EXPORT) {
@@ -836,7 +835,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //                                        + "," + bestScore
 //                                        + "," + ((float) maxJumpDistanceSum / (float) THREADS));
                     
-//                    System.out.println(bestScore);
+                    System.out.println(bestScore);
 //                    System.out.println(bestScore + "," + ((float) maxJumpDistanceSum / (float) THREADS));
                     
 //                    System.out.println("Evolver " + ((ImageEvolver)currentEvolver).getId() + ", iterations: " + ((ImageEvolver)currentEvolver).getTotalIterations() + ", bestScore: " + ((ImageEvolver)currentEvolver).getBestScore());

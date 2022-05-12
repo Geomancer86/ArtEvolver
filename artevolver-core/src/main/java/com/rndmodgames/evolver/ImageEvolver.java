@@ -34,7 +34,7 @@ public class ImageEvolver extends AbstractEvolver {
 	public final boolean KILL_PARENTS = false;
 
 	// default is true
-	public static boolean SHUFFLE_PALETTE = true;
+	public static boolean SHUFFLE_PALETTE = false;
 	
 	public final static DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("##.###################");
 	
@@ -82,7 +82,8 @@ public class ImageEvolver extends AbstractEvolver {
 		this.triangleHeight = triangleHeight;
 		this.triangleWidth = triangleWidth;
 
-		initCrossOver();
+		// keep track of instance
+		initCrossOver(this);
 	}
 	
 	public void setId(Long id) {
@@ -93,8 +94,12 @@ public class ImageEvolver extends AbstractEvolver {
 		return this.id;
 	}
 
-	public void initCrossOver() {
-		crossOver = new CrossOver(getRandomJumpDistance(), crossoverMax);
+	/**
+	 * @param evolverInstance
+	 */
+	public void initCrossOver(ImageEvolver evolverInstance) {
+	    
+		crossOver = new CrossOver(getRandomJumpDistance(), crossoverMax, evolverInstance);
 	}
 
 	/**

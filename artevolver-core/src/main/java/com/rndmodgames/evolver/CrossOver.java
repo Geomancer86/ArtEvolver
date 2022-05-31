@@ -266,19 +266,19 @@ public class CrossOver {
 		// reset
 		notEvolved = true;
 		
-		while(notEvolved) {
-		
-		    for (int a = 0; a < randomMutationChances; a++) {
-                
-		        //
-                if (random.nextFloat() < RANDOM_MUTATION_PERCENT) {
-        
-                    ImageEvolver.switchRandomColor(child);
-                    notEvolved = false;
-        
-                }
-		    }
-		}
+//		while(notEvolved) {
+//		
+//		    for (int a = 0; a < randomMutationChances; a++) {
+//                
+//		        //
+//                if (random.nextFloat() < RANDOM_MUTATION_PERCENT) {
+//        
+//                    ImageEvolver.switchRandomColor(child);
+//                    notEvolved = false;
+//        
+//                }
+//		    }
+//		}
 		
 		// reset
         notEvolved = true;

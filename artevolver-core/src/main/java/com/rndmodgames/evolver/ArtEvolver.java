@@ -73,7 +73,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	
 	// 
 	public static boolean HIGH_RESOLUTION_EXPORT = false;
-	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = true;
+	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = false;
 	public static boolean MEGA_HIGH_RESOLUTION_EXPORT = false;
 	public static boolean MASTER_RESOLUTION_EXPORT = false;
 	
@@ -186,7 +186,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	/**
 	 * Keep track of past n iterations result for better indicators
 	 */
-	private static final int HEALTH_ITERATIONS = 100;
+	private static final int HEALTH_ITERATIONS = 1000;
 	private final float [] GOOD_ITERATIONS  = new float [HEALTH_ITERATIONS];
 	
 	/**
@@ -203,15 +203,18 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64, 4239/2, 4239/2,};
 	
 	private int RANDOM_JUMP_MAX_DISTANCES [] = {
-	                                            4, 4, 4, 4, //  4
-	                                            2, 2, 2, 2, //  8
-	                                            2, 2, 2, 2, // 12
-	                                            2, 2, 2, 2, // 16 
+	                                            1, 1, 1, 1, //  4
+	                                            1, 1, 1, 1, //  8
+	                                            1, 1, 1, 1, // 12
+	                                            1, 1, 1, 1, // 16 
+                                                1, 1, 1, 1, //  4
+                                                1, 1, 1, 1, //  8
+                                                1, 1, 1, 1, // 12
+                                                1, 1, 1, 1, // 16 
 	                                            1, 1, 1, 1, // 20
 	                                            1, 1, 1, 1, // 24
 	                                            1, 1, 1, 1, // 28
 	                                            1, 1, 1, 1, // 32
-	                                            //
 	                                            1, 1, 1, 1, //
                                                 1, 1, 1, 1, //  
                                                 1, 1, 1, 1, // 
@@ -248,7 +251,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 
 	 * EVOLVE_ITERATIONS: 
 	 */
-	public static int EVOLVE_ITERATIONS    = 1000;
+	public static int EVOLVE_ITERATIONS    = 1;
 	private static int MAX_ITERATIONS      = 10000000;
 
 	private static String SEPARATOR = ";";
@@ -422,7 +425,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	case QUALITY_MODE_STREAM:
     	    
     	    THREADS = 16;
-            POPULATION = 2;
+            POPULATION = 4;
             
             triangleScaleHeight = 6f;
             triangleScaleWidth = 6f;
@@ -747,8 +750,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	/**
             	 * This stats only make sense for benchmarking and should keep consistent, for example, printed once each 1 second
             	 */
-            	if (currentFrame % HEALTH_ITERATIONS == 0) {
-//            	    if (currentFrame % 2 == 0) {
+//            	if (currentFrame % HEALTH_ITERATIONS == 0) {
+            	    if (currentFrame % 4 == 0) {
 
             	    lblScore.setText("S: " + df4.format(bestScore * 100f) + PERCENT_SIGN);
                     
@@ -835,7 +838,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //                                        + "," + bestScore
 //                                        + "," + ((float) maxJumpDistanceSum / (float) THREADS));
                     
-                    System.out.println(bestScore);
+//                    if (bestScore >= 0.5f) {
+//                        System.out.println(bestScore);
+//                    }
 //                    System.out.println(bestScore + "," + ((float) maxJumpDistanceSum / (float) THREADS));
                     
 //                    System.out.println("Evolver " + ((ImageEvolver)currentEvolver).getId() + ", iterations: " + ((ImageEvolver)currentEvolver).getTotalIterations() + ", bestScore: " + ((ImageEvolver)currentEvolver).getBestScore());

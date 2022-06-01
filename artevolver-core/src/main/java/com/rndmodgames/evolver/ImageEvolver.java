@@ -14,8 +14,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import java.util.SplittableRandom;
-import java.util.concurrent.Executors;
+import java.util.Random;
 import java.util.stream.Stream;
 
 /**
@@ -23,14 +22,17 @@ import java.util.stream.Stream;
  * 
  * This is the current/latest ImageEvolver used by ArtEvolver
  * 
- * TODO: ImageEvolver 2.0
- * 
  * @author Geomancer86
  */
 public class ImageEvolver extends AbstractEvolver {
 
+    /**
+     * Random Research
+     */
 //	public static final MersenneTwisterFast random = new MersenneTwisterFast();
-	public static final SplittableRandom random = new SplittableRandom();
+//	public static final SplittableRandom random = new SplittableRandom();
+	public static final Random random = new Random();
+	
 	public final boolean KILL_PARENTS = false;
 
 	// default is true

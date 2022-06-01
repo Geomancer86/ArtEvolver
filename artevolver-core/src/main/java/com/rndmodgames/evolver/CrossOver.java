@@ -1,15 +1,10 @@
 package com.rndmodgames.evolver;
 
-import java.util.Random;
-
-
 public class CrossOver {
 	
     // keep track of the evolver to update parameters live
     ImageEvolver evolverInstance;
-    
-	public static final Random random = new Random();
-	
+
 	// self mutations
 	public static       float MAX_RANDOM_MUTATION_PERCENT  =  1f; // default is 1f
 	public static       float RANDOM_MUTATION_PERCENT_ADD  =  1f / 10000f; // default is 1 each 10000
@@ -22,22 +17,22 @@ public class CrossOver {
      * 
      * MAIN
      */
-    public static float GRID_MUTATION_CHANCES = 32; // default is 1
+    public static float GRID_MUTATION_CHANCES = 32; // default is 32
     public static float GRID_MUTATION_PERCENT = 1f; // default is 1
-    public static float GRID_MUTATION_DECAY  =  1f; // default is 1 / 10
+    public static float GRID_MUTATION_DECAY  =  0.8f; // default is 1
 	
     /**
      * Fully Random Crossover
      */
     public static int RANDOM_MUTATION_CHANCES =  1000; // default is 1000
-    public static float RANDOM_MUTATION_PERCENT = 1f / 100f; // default is 1 each 10000
-    public static float RANDOM_MUTATION_CHANCES_SUBSTRACT =  1f / 100f; // default is 10
+    public static float RANDOM_MUTATION_PERCENT = 1f / 100f; // default is 1 each 100
+    public static float RANDOM_MUTATION_CHANCES_SUBSTRACT =  1f / 100f; // default is 1 each 100
     
 	/**
 	 * Random Close Crossover
 	 */
 	public static int RANDOM_CLOSE_MUTATION_CHANCES =  1; // default is 1 each 1000
-	public static float RANDOM_CLOSE_MUTATION_PERCENT = 1f / 10000; // default is 1f
+	public static float RANDOM_CLOSE_MUTATION_PERCENT = 1f / 10000; // default is 1 each 10000
 
 	/**
 	 * Random Grid Crossover
@@ -228,7 +223,7 @@ public class CrossOver {
 		TriangleList<Triangle> child = new TriangleList<Triangle>();
 
 		// base parent chance 50/50
-		boolean isParentA = random.nextBoolean();
+		boolean isParentA = ImageEvolver.random.nextBoolean();
 		
 		if (isParentA){
 			for (Triangle triangle : parentA){
@@ -247,7 +242,7 @@ public class CrossOver {
 		 */
         for (int a = 0; a < RANDOM_CLOSE_MUTATION_CHANCES; a++) {
 
-            if (random.nextFloat() < RANDOM_CLOSE_MUTATION_PERCENT) {
+            if (ImageEvolver.random.nextFloat() < RANDOM_CLOSE_MUTATION_PERCENT) {
 
                 for (int b = 0; b < CLOSE_MUTATIONS_PER_CHILD; b++) {
                     ImageEvolver.switchCloseColor(child, this.randomJumpDistance);
@@ -261,7 +256,7 @@ public class CrossOver {
 	    for (int a = 0; a < RANDOM_MUTATION_CHANCES; a++) {
             
 	        //
-            if (random.nextFloat() < RANDOM_MUTATION_PERCENT) {
+            if (ImageEvolver.random.nextFloat() < RANDOM_MUTATION_PERCENT) {
     
                 ImageEvolver.switchRandomColor(child);
 
@@ -273,7 +268,7 @@ public class CrossOver {
 		 */
         for (int a = 0; a < GRID_MUTATION_CHANCES; a++) {
 
-            if (random.nextFloat() < GRID_MUTATION_PERCENT) {
+            if (ImageEvolver.random.nextFloat() < GRID_MUTATION_PERCENT) {
 
                 //
                 ImageEvolver.switchGridColor(child, evolverId, DEFAULT_GRID_SIZE);
@@ -285,7 +280,7 @@ public class CrossOver {
          */
         for (int a = 0; a < RANDOM_GRID_MUTATION_CHANCES; a++) {
 
-            if (random.nextFloat() < RANDOM_GRID_MUTATION_PERCENT) {
+            if (ImageEvolver.random.nextFloat() < RANDOM_GRID_MUTATION_PERCENT) {
 
                 //
                 ImageEvolver.switchGridColor(child, ImageEvolver.roll(TOTAL_GRIDS), DEFAULT_GRID_SIZE);

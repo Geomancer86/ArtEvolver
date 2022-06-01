@@ -29,7 +29,7 @@ public class CrossOver {
 	public static       int RANDOM_MUTATION_CHANCES =  1000; // default is 1 each 1000
 	public static       int RANDOM_MUTATION_CHANCES_SUBSTRACT =  5; // default is 10
 	
-	public static       int   TOTAL_GRIDS                   =  20; // default to 1
+	public static       int   TOTAL_GRIDS                   =  24; // NEEDS TO BE == THREADS
 	public static       int   DEFAULT_GRID_SIZE             = 256; // default is 4260
 	public static       int   MINIMUM_GRID_SIZE             =   2; // default is 4260
 	
@@ -288,17 +288,18 @@ public class CrossOver {
 		
 //		while(notEvolved) {
 		
-		    for (int a = 0; a < RANDOM_MUTATION_CHANCES; a++) {
-                
-		        //
-                if (random.nextFloat() < RANDOM_MUTATION_PERCENT) {
-        
-                    ImageEvolver.switchRandomColor(child);
-//                    notEvolved = false;
-        
-                }
-		    }
-//		}
+		/**
+		 * Fully Random Crossovers
+		 */
+	    for (int a = 0; a < RANDOM_MUTATION_CHANCES; a++) {
+            
+	        //
+            if (random.nextFloat() < RANDOM_MUTATION_PERCENT) {
+    
+                ImageEvolver.switchRandomColor(child);
+
+            }
+	    }
 		
 		/**
 		 * Grid Crossovers

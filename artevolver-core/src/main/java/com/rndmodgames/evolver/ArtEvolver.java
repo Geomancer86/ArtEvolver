@@ -424,11 +424,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
          */
     	case QUALITY_MODE_STREAM:
     	    
-    	    THREADS = 20;
-            POPULATION = 2;
+    	    THREADS = 24;
+            POPULATION = 4;
             
-            triangleScaleHeight = 1.5f;
-            triangleScaleWidth = 1.5f;
+            triangleScaleHeight = 6f;
+            triangleScaleWidth = 6f;
             
             // 4k
 //            RANDOM_JUMP_MAX_DISTANCES [0] = 8520 / 2;
@@ -750,8 +750,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	/**
             	 * This stats only make sense for benchmarking and should keep consistent, for example, printed once each 1 second
             	 */
-//            	if (currentFrame % HEALTH_ITERATIONS == 0) {
-            	    if (currentFrame % 4 == 0) {
+            	if (currentFrame % HEALTH_ITERATIONS == 0) {
+//            	    if (currentFrame % 4 == 0) {
 
             	    lblScore.setText("S: " + df4.format(bestScore * 100f) + PERCENT_SIGN);
                     
@@ -838,9 +838,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //                                        + "," + bestScore
 //                                        + "," + ((float) maxJumpDistanceSum / (float) THREADS));
                     
-//                    if (bestScore >= 0.5f) {
-//                        System.out.println(bestScore);
-//                    }
+                    if (bestScore >= 0.5f) {
+                        System.out.println(bestScore);
+                    }
 //                    System.out.println(bestScore + "," + ((float) maxJumpDistanceSum / (float) THREADS));
                     
 //                    System.out.println("Evolver " + ((ImageEvolver)currentEvolver).getId() + ", iterations: " + ((ImageEvolver)currentEvolver).getTotalIterations() + ", bestScore: " + ((ImageEvolver)currentEvolver).getBestScore());

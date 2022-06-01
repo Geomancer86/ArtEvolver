@@ -207,14 +207,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	                                            1, 1, 1, 1, //  8
 	                                            1, 1, 1, 1, // 12
 	                                            1, 1, 1, 1, // 16 
-                                                1, 1, 1, 1, //  4
-                                                1, 1, 1, 1, //  8
-                                                1, 1, 1, 1, // 12
-                                                1, 1, 1, 1, // 16 
-	                                            1, 1, 1, 1, // 20
-	                                            1, 1, 1, 1, // 24
-	                                            1, 1, 1, 1, // 28
-	                                            1, 1, 1, 1, // 32
+                                                1, 1, 1, 1, // 20
+                                                1, 1, 1, 1, // 24
+                                                1, 1, 1, 1, // 28
+                                                1, 1, 1, 1, // 32 
+	                                            1, 1, 1, 1, // 36
+	                                            1, 1, 1, 1, // 40
+	                                            1, 1, 1, 1, // 
+	                                            1, 1, 1, 1, // 
 	                                            1, 1, 1, 1, //
                                                 1, 1, 1, 1, //  
                                                 1, 1, 1, 1, // 
@@ -251,7 +251,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 
 	 * EVOLVE_ITERATIONS: 
 	 */
-	public static int EVOLVE_ITERATIONS    = 1;
+	public static int EVOLVE_ITERATIONS    = 100;
 	private static int MAX_ITERATIONS      = 10000000;
 
 	private static String SEPARATOR = ";";
@@ -424,11 +424,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
          */
     	case QUALITY_MODE_STREAM:
     	    
-    	    THREADS = 16;
-            POPULATION = 4;
+    	    THREADS = 20;
+            POPULATION = 2;
             
-            triangleScaleHeight = 6f;
-            triangleScaleWidth = 6f;
+            triangleScaleHeight = 1.5f;
+            triangleScaleWidth = 1.5f;
             
             // 4k
 //            RANDOM_JUMP_MAX_DISTANCES [0] = 8520 / 2;

@@ -463,6 +463,15 @@ public class ImageEvolver extends AbstractEvolver {
 		int a = roll(gridSize) + (gridSize * id);
 		int b = roll(gridSize) + (gridSize * id);
 		
+//		System.out.println("gridSize: " + gridSize + ", a: " + a + ", b:" + b);
+		
+		if (a >= triangles.size() || b >= triangles.size()) {
+		    System.out.println("grid outside population check parameters");
+		    System.out.println("gridSize: " + gridSize + ", a: " + a + ", b:" + b + ", triangles: " + triangles.size());
+		    // ignore for now
+		    return;
+		}
+		
 		while (b == a) {
 			a = roll(gridSize) + (gridSize * id);
 		}
@@ -1136,7 +1145,7 @@ public class ImageEvolver extends AbstractEvolver {
 			totalIterations++;
 
 			// tournament enabled defaults to false
-			boolean tournamentEnabled = false;
+			boolean tournamentEnabled = true;
 			
 			// cross over halving default to false
 			boolean crossoverHalvingEnabled = false;
@@ -1152,12 +1161,14 @@ public class ImageEvolver extends AbstractEvolver {
 			
 			if (tournamentEnabled && totalIterations % tournamentRoundSize == 0) {
 
+			    CrossOver.halveGridSize();
+			    
 	             //
-                if (crossoverHalvingEnabled) {
-                    
-                    crossOver.halveParameters();
-                    this.randomJumpDistance = crossOver.getRandomJumpDistance();
-                }
+//                if (crossoverHalvingEnabled) {
+//                    
+//                    crossOver.halveParameters();
+//                    this.randomJumpDistance = crossOver.getRandomJumpDistance();
+//                }
 			    
 //	              long now = System.currentTimeMillis();
 //////

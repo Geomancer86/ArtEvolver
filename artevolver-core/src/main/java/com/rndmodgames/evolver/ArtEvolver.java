@@ -203,11 +203,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64, 4239/2, 4239/2,};
 	
 	private int RANDOM_JUMP_MAX_DISTANCES [] = {
-	                                            1, 1, 1, 1, //  4
-	                                            1, 1, 1, 1, //  8
-	                                            1, 1, 1, 1, // 12
-	                                            1, 1, 1, 1, // 16 
-                                                1, 1, 1, 1, // 20
+	                                            8, 8, 8, 8, //  4
+	                                            16, 16, 16, 16, //  8
+	                                            12, 12, 12, 12, // 12
+	                                            4, 4, 4, 4, // 16 
+                                                32, 32, 32, 32, // 20
                                                 1, 1, 1, 1, // 24
                                                 1, 1, 1, 1, // 28
                                                 1, 1, 1, 1, // 32 
@@ -251,7 +251,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 
 	 * EVOLVE_ITERATIONS: 
 	 */
-	public static int EVOLVE_ITERATIONS    = 100;
+	public static int EVOLVE_ITERATIONS    = 1;
 	private static int MAX_ITERATIONS      = 10000000;
 
 	private static String SEPARATOR = ";";
@@ -425,7 +425,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	case QUALITY_MODE_STREAM:
     	    
     	    THREADS = 24;
-            POPULATION = 4;
+            POPULATION = 2;
             
             triangleScaleHeight = 6f;
             triangleScaleWidth = 6f;

@@ -1154,7 +1154,7 @@ public class ImageEvolver extends AbstractEvolver {
 //			float factor = 0.01f;
 			
 			// float tournament round size default is 1000
-			int tournamentRoundSize = 100;
+			int tournamentRoundSize = 50;
 			
 			// close mutations per child default to false
 			boolean closeMutationsTournamentEnabled = true;

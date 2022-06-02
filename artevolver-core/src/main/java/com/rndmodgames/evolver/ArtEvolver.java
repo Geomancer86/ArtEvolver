@@ -127,9 +127,18 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 *         - 4:3
 	 *         - 1:1
 	 *         - 9:16
+	 *        
+	 * 1ND PALETTE SIZE IS 80x53 ALERT!
+	 * 
+	 * 2ND PALETTE SIZE IS 1535 colors = 6140 total colors
+	 *     - 16:9 FORMAT : 106 x 57
+	 *     -  1:1 FORMAT :  78 x 77
+	 *     
+	 * TRILUX 12 COLORS:
+	 *     - 26x16 squares = 416 squares = 1664 triangles
 	 */
-	int widthTriangles  = 80; // 71
-	int heightTriangles = 53; // 60
+	int widthTriangles  = 26; // 71
+	int heightTriangles = 16; // 60
 
 	/**
 	 * PARAMETERS:
@@ -177,7 +186,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
 	private int TOTAL_PALLETES             	= 4;
 	
-	private int GUI_FPS = 30; // twitch fps are set to 30
+	private int GUI_FPS = 60; // twitch fps are set to 30
 	private int FPS = 120;
 	private int EVOLVER_UPDATE_MS = 1000 / FPS;
 //	private int EVOLVER_UPDATE_MS = 0;
@@ -203,11 +212,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64, 4239/2, 4239/2,};
 	
 	private int RANDOM_JUMP_MAX_DISTANCES [] = {
-	                                            8, 8, 8, 8, //  4
-	                                            16, 16, 16, 16, //  8
-	                                            12, 12, 12, 12, // 12
-	                                            4, 4, 4, 4, // 16 
-                                                32, 32, 32, 32, // 20
+	                                            2, 2, 2, 2, //  4
+	                                            2, 2, 2, 2, //  8
+	                                            2, 2, 8, 8, // 12
+	                                            8, 8, 8, 8, // 16 
+                                                8, 8, 8, 8, // 20
                                                 1, 1, 1, 1, // 24
                                                 1, 1, 1, 1, // 28
                                                 1, 1, 1, 1, // 32 
@@ -427,8 +436,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	    THREADS = 24;
             POPULATION = 2;
             
-            triangleScaleHeight = 6f;
-            triangleScaleWidth = 6f;
+            triangleScaleHeight = 4f;
+            triangleScaleWidth = 4f;
             
             // 4k
 //            RANDOM_JUMP_MAX_DISTANCES [0] = 8520 / 2;

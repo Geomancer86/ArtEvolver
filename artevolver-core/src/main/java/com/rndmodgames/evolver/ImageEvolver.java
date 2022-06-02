@@ -485,35 +485,6 @@ public class ImageEvolver extends AbstractEvolver {
 		origin.setColor(dest.getColor());
 		dest.setColor(aux);
 	}
-	
-	// TODO implement randomization
-	public static void switchRandomMultiColor(List<Triangle> triangles, int maxTriangles) {
-
-		int origin = roll(triangles.size());
-		int dest = roll(triangles.size());
-
-		if (origin >= triangles.size() - 1) {
-			origin = triangles.size() - 2;
-		}
-
-		if (dest >= triangles.size() - 1) {
-			dest = triangles.size() - 2;
-		}
-
-		Triangle triangle1 = triangles.get(origin);
-		Triangle triangle2 = triangles.get(origin + 1);
-
-		Triangle triangle3 = triangles.get(dest);
-		Triangle triangle4 = triangles.get(dest + 1);
-
-		Color aux = triangle1.getColor();
-		triangle1.setColor(triangle3.getColor());
-		triangle3.setColor(aux);
-
-		Color aux2 = triangle2.getColor();
-		triangle2.setColor(triangle4.getColor());
-		triangle4.setColor(aux2);
-	}
 
 	public static void switchCloseColor(TriangleList<Triangle> triangles, int randomJumpDistance) {
 		

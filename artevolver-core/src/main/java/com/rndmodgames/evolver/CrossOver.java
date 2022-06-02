@@ -79,7 +79,7 @@ public class CrossOver {
 		 * TODO: this needs to be the number of triangles or colors
 		 */
 		if (dynamicGridSize) {
-		    DEFAULT_GRID_SIZE = (78*77) / TOTAL_GRIDS;
+		    DEFAULT_GRID_SIZE = (52*33) / TOTAL_GRIDS;
 		}
 	}
 	

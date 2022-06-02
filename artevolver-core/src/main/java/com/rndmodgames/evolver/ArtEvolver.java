@@ -136,9 +136,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 *     
 	 * TRILUX 12 COLORS:
 	 *     - 26x16 squares = 416 squares = 1664 triangles
+	 *     - 52x33         = 1716 triangle
 	 */
-	int widthTriangles  = 26; // 71
-	int heightTriangles = 16; // 60
+	int widthTriangles  = 52; // 71
+	int heightTriangles = 33; // 60
 
 	/**
 	 * PARAMETERS:

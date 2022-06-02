@@ -17,6 +17,14 @@ public class PalleteColor {
 		this.name = name;
 		this.color = new Color(r, g, b);
 	}
+	
+//	public PalleteColor(Palette pallete, Long id, String name, int r, int g, int b, int alpha){
+//
+//        this.pallete = pallete;
+//        this.id = id;
+//        this.name = name;
+//        this.color = new Color(r, g, b, alpha);
+//    }
 
 	public Color getColor() {
 		return color;

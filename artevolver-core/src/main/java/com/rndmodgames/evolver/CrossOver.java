@@ -79,7 +79,9 @@ public class CrossOver {
 		 * TODO: this needs to be the number of triangles or colors
 		 */
 		if (dynamicGridSize) {
-		    DEFAULT_GRID_SIZE = (52*33) / TOTAL_GRIDS;
+//		    DEFAULT_GRID_SIZE = (ArtEvolver.heightTriangles * ArtEvolver.widthTriangles) / TOTAL_GRIDS;
+//		    DEFAULT_GRID_SIZE = 6048 / TOTAL_GRIDS;
+		    DEFAULT_GRID_SIZE = 4240 / TOTAL_GRIDS;
 		}
 	}
 	
@@ -88,7 +90,7 @@ public class CrossOver {
 	    setRandomJumpDistance(getRandomJumpDistance() / 2);
 
 		if (getRandomJumpDistance() <= 0) {
-			setRandomJumpDistance(1);
+			setRandomJumpDistance(2);
 		}
 	}
 	

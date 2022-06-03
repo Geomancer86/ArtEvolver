@@ -1127,7 +1127,7 @@ public class ImageEvolver extends AbstractEvolver {
 //			float factor = 0.01f;
 			
 			// float tournament round size default is 1000
-			int tournamentRoundSize = 25;
+			int tournamentRoundSize = 35;
 			
 			// close mutations per child default to false
 			boolean closeMutationsTournamentEnabled = true;
@@ -1135,6 +1135,7 @@ public class ImageEvolver extends AbstractEvolver {
 			if (tournamentEnabled && totalIterations % tournamentRoundSize == 0) {
 
 			    CrossOver.halveGridSize();
+			    crossOver.halveParameters();
 			    
 	             //
 //                if (crossoverHalvingEnabled) {

@@ -133,13 +133,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 2ND PALETTE SIZE IS 1535 colors = 6140 total colors
 	 *     - 16:9 FORMAT : 106 x 57
 	 *     -  1:1 FORMAT :  78 x 77
+	 *     - 1.50 RATIO  :  96 x 63 = 6006
 	 *     
 	 * TRILUX 12 COLORS:
 	 *     - 26x16 squares = 416 squares = 1664 triangles
 	 *     - 52x33         = 1716 triangle
 	 */
-	int widthTriangles  = 52; // 71
-	int heightTriangles = 33; // 60
+	public static int widthTriangles  = 80; // 71
+	public static int heightTriangles = 53; // 60
 
 	/**
 	 * PARAMETERS:
@@ -188,7 +189,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private int TOTAL_PALLETES             	= 4;
 	
 	private int GUI_FPS = 60; // twitch fps are set to 30
-	private int FPS = 120;
+	private int FPS = 60;
 	private int EVOLVER_UPDATE_MS = 1000 / FPS;
 //	private int EVOLVER_UPDATE_MS = 0;
 	private int GUI_UPDATE_MS = 1000 / GUI_FPS;
@@ -196,7 +197,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	/**
 	 * Keep track of past n iterations result for better indicators
 	 */
-	private static final int HEALTH_ITERATIONS = 1000;
+	private static final int HEALTH_ITERATIONS = 100;
 	private final float [] GOOD_ITERATIONS  = new float [HEALTH_ITERATIONS];
 	
 	/**
@@ -213,12 +214,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64, 4239/2, 4239/2,};
 	
 	private int RANDOM_JUMP_MAX_DISTANCES [] = {
-	                                            2, 2, 2, 2, //  4
-	                                            2, 2, 2, 2, //  8
-	                                            2, 2, 8, 8, // 12
-	                                            8, 8, 8, 8, // 16 
-                                                8, 8, 8, 8, // 20
-                                                1, 1, 1, 1, // 24
+	                                            3000, 3000, 3000, 3000, //  4
+	                                            3000, 3000, 3000, 3000, //  8
+	                                            3000, 3000, 3000, 3000, // 12
+	                                            3000, 3000, 3000, 3000, // 16 
+	                                            3000, 3000, 3000, 3000, // 20
+	                                            3000, 3000, 3000, 3000, // 24
                                                 1, 1, 1, 1, // 28
                                                 1, 1, 1, 1, // 32 
 	                                            1, 1, 1, 1, // 36

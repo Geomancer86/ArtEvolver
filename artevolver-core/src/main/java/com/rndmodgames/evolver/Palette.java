@@ -28,8 +28,8 @@ public class Palette {
 //		URL url = getClass().getResource("../../../sherwin.txt").toURI().toURL();  // SHERWIN
 //		URL url = getClass().getResource("../../../palette2.txt").toURI().toURL(); // ORIGINAL GBC GREEN 4 SHADES 25% EACH
 //		URL url = getClass().getResource("../../../palette3.txt").toURI().toURL(); // BLACK AND WHITE 50% EACH
-//		URL url = getClass().getResource("../../../palette4.txt").toURI().toURL(); // SHERWIN 1500+ colors
-		URL url = getClass().getResource("../../../trilux.txt").toURI().toURL(); // 12 Pen Colors
+		URL url = getClass().getResource("../../../palette4.txt").toURI().toURL(); // SHERWIN 1500+ colors
+//		URL url = getClass().getResource("../../../trilux.txt").toURI().toURL(); // 12 Pen Colors
 
 		File file = new File(url.getPath().replace("%20"," "));
 		

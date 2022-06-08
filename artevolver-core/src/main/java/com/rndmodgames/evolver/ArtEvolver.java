@@ -132,15 +132,17 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 
 	 * 2ND PALETTE SIZE IS 1535 colors = 6140 total colors
 	 *     - 16:9 FORMAT : 106 x 57
-	 *     -  1:1 FORMAT :  78 x 77
-	 *     - 1.50 RATIO  :  96 x 63 = 6006
+	 *     -  1:1 FORMAT :  78 x 77 = 6006
+	 *     - 1.50 RATIO  :  96 x 63 = 6048
+	 *     
+	 *     3x palettes: total colors = 4605
 	 *     
 	 * TRILUX 12 COLORS:
 	 *     - 26x16 squares = 416 squares = 1664 triangles
 	 *     - 52x33         = 1716 triangle
 	 */
-	public static int widthTriangles  = 80; // 71
-	public static int heightTriangles = 53; // 60
+	public static int widthTriangles  = 78; // 71
+	public static int heightTriangles = 77; // 60
 
 	/**
 	 * PARAMETERS:
@@ -188,8 +190,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
 	private int TOTAL_PALLETES             	= 4;
 	
-	private int GUI_FPS = 60; // twitch fps are set to 30
-	private int FPS = 60;
+	private int GUI_FPS = 30; // twitch fps are set to 30
+	private int FPS = 480;
 	private int EVOLVER_UPDATE_MS = 1000 / FPS;
 //	private int EVOLVER_UPDATE_MS = 0;
 	private int GUI_UPDATE_MS = 1000 / GUI_FPS;
@@ -197,7 +199,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	/**
 	 * Keep track of past n iterations result for better indicators
 	 */
-	private static final int HEALTH_ITERATIONS = 100;
+	private static final int HEALTH_ITERATIONS = 5000;
 	private final float [] GOOD_ITERATIONS  = new float [HEALTH_ITERATIONS];
 	
 	/**
@@ -214,12 +216,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64, 4239/2, 4239/2,};
 	
 	private int RANDOM_JUMP_MAX_DISTANCES [] = {
-	                                            3000, 3000, 3000, 3000, //  4
-	                                            3000, 3000, 3000, 3000, //  8
-	                                            3000, 3000, 3000, 3000, // 12
-	                                            3000, 3000, 3000, 3000, // 16 
-	                                            3000, 3000, 3000, 3000, // 20
-	                                            3000, 3000, 3000, 3000, // 24
+	        6006, 6006, 6006, 6006, //  4
+	        6006, 6006, 6006, 6006, //  8
+	        6006, 6006, 6006, 6006, // 12
+	        6006, 6006, 6006, 6006, // 16 
+	        6006, 6006, 6006, 6006, // 20
+	        6006, 6006, 6006, 6006, // 24
                                                 1, 1, 1, 1, // 28
                                                 1, 1, 1, 1, // 32 
 	                                            1, 1, 1, 1, // 36
@@ -436,10 +438,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	case QUALITY_MODE_STREAM:
     	    
     	    THREADS = 24;
-            POPULATION = 2;
+            POPULATION = 3;
             
-            triangleScaleHeight = 4f;
-            triangleScaleWidth = 4f;
+            triangleScaleHeight = 5f;
+            triangleScaleWidth = 5f;
             
             // 4k
 //            RANDOM_JUMP_MAX_DISTANCES [0] = 8520 / 2;
@@ -878,28 +880,28 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	/**
             	 * Close and Export for Quick and Quick Extended Modes
             	 */
-            	if (CURRENT_MODE != QUALITY_MODE 
-            	        && CURRENT_MODE != QUALITY_MODE_FULL_THREADS) {
-            	    
-            	    if (totalIterations >= MAX_ITERATIONS) {
-                        
-            	        if (!offlineExport) {
-            	        
-                            //
-            	            renderBestImage();
-
-                            /**
-                             * Only call System.exit if required
-                             * 
-                             * TODO: app keeps running on standalone mode (with window invisible and disposed). FIX
-                             */
-                            setVisible(false);
-                            dispose();
-                            
-                            offlineExport = true;
-            	        }
-                    }
-            	}
+//            	if (CURRENT_MODE != QUALITY_MODE 
+//            	        && CURRENT_MODE != QUALITY_MODE_FULL_THREADS) {
+//            	    
+//            	    if (totalIterations >= MAX_ITERATIONS) {
+//                        
+//            	        if (!offlineExport) {
+//            	        
+//                            //
+//            	            renderBestImage();
+//
+//                            /**
+//                             * Only call System.exit if required
+//                             * 
+//                             * TODO: app keeps running on standalone mode (with window invisible and disposed). FIX
+//                             */
+//                            setVisible(false);
+//                            dispose();
+//                            
+//                            offlineExport = true;
+//            	        }
+//                    }
+//            	}
             }
         });
         
@@ -1065,8 +1067,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
       		setSize((int) (325 * triangleScaleWidth), (int) (200 * triangleScaleHeight));
       	}
 
-      	//
-		chooser = new JFileChooser(new File(System.getProperty("user.dir")));
+      	/**
+      	 * Set Starting folder to Source Folder instead of Classpath
+      	 */
+//		chooser = new JFileChooser(new File(System.getProperty("user.dir")));
+		chooser = new JFileChooser(new File("C:\\Media\\Art Evolver Stream"));
 		chooser.setAcceptAllFileFilterUsed(false);
 		
 		//

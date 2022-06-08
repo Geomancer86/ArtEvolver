@@ -81,16 +81,18 @@ public class CrossOver {
 		if (dynamicGridSize) {
 //		    DEFAULT_GRID_SIZE = (ArtEvolver.heightTriangles * ArtEvolver.widthTriangles) / TOTAL_GRIDS;
 //		    DEFAULT_GRID_SIZE = 6048 / TOTAL_GRIDS;
-		    DEFAULT_GRID_SIZE = 4240 / TOTAL_GRIDS;
+//		    DEFAULT_GRID_SIZE = 23868 / TOTAL_GRIDS;
+		    DEFAULT_GRID_SIZE = 6006 / TOTAL_GRIDS;
+//		    DEFAULT_GRID_SIZE = (106*57) / TOTAL_GRIDS;
 		}
 	}
 	
 	public void halveParameters() {
 	    
-	    setRandomJumpDistance(getRandomJumpDistance() / 2);
+	    setRandomJumpDistance((int) (getRandomJumpDistance() / 2));
 
-		if (getRandomJumpDistance() <= 0) {
-			setRandomJumpDistance(2);
+		if (getRandomJumpDistance() <= 1) {
+			setRandomJumpDistance(1);
 		}
 	}
 	

@@ -1127,7 +1127,7 @@ public class ImageEvolver extends AbstractEvolver {
 //			float factor = 0.01f;
 			
 			// float tournament round size default is 1000
-			int tournamentRoundSize = 35;
+			int tournamentRoundSize = 250;
 			
 			// close mutations per child default to false
 			boolean closeMutationsTournamentEnabled = true;
@@ -1204,6 +1204,12 @@ public class ImageEvolver extends AbstractEvolver {
 	}
 	
 	public TriangleList<Triangle> getBestPop(){
+	    
+	    //
+	    if (this.pop.size() == 1) {
+	        return this.pop.get(0);
+	    }
+	    
 		return this.pop.get(this.pop.size() - 1);
 	}
 	

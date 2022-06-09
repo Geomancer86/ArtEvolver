@@ -191,7 +191,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private int TOTAL_PALLETES             	= 4;
 	
 	private int GUI_FPS = 60; // twitch fps are set to 30
-	private int FPS = 720;
+	private int FPS = 640;
 	private int EVOLVER_UPDATE_MS = 1000 / FPS;
 //	private int EVOLVER_UPDATE_MS = 0;
 	private int GUI_UPDATE_MS = 1000 / GUI_FPS;
@@ -199,7 +199,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	/**
 	 * Keep track of past n iterations result for better indicators
 	 */
-	private static final int HEALTH_ITERATIONS = 5000;
+	private static final int HEALTH_ITERATIONS = 2000;
 	private final float [] GOOD_ITERATIONS  = new float [HEALTH_ITERATIONS];
 	
 	/**
@@ -438,7 +438,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	case QUALITY_MODE_STREAM:
     	    
     	    THREADS = 24;
-            POPULATION = 3;
+            POPULATION = 2;
             
             triangleScaleHeight = 5f;
             triangleScaleWidth = 5f;
@@ -710,6 +710,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 							
 							try {
 							    bestPop = ((ImageEvolver)currentEvolver).getBestPop();
+							} catch (IndexOutOfBoundsException eb) {
+							    // ignore
 							} finally {
 							    // we might have an issue hidden here TODO FIXME array index out of bounds exceptions
 							}

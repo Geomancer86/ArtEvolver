@@ -59,7 +59,7 @@ public class ArtEvolverTools {
         evolver.setId(1L);
         
         // Set source file or default
-        File imageFile = new File("./" + (imageName != null ? imageName : "000_zeldathumb-1920-789452.jpg"));
+        File imageFile = new File("./src/test/resources/" + (imageName != null ? imageName : "000_zeldathumb-1920-789452.jpg"));
               
         BufferedImage originalImage = null;
         

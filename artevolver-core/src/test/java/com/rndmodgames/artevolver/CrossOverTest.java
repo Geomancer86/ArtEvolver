@@ -79,7 +79,7 @@ class CrossOverTest {
         evolver.setId(1L);
         
         // Set source file
-        File imageFile = new File("./000_zeldathumb-1920-789452.jpg");
+        File imageFile = new File("./src/test/resources/000_zeldathumb-1920-789452.jpg");
               
         BufferedImage originalImage = ImageIO.read(imageFile);
 

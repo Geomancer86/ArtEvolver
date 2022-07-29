@@ -78,14 +78,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static boolean MASTER_RESOLUTION_EXPORT = false;
 	
 	// default to false
-	public static boolean EXPORT_VIDEO = false;
+	public static boolean EXPORT_VIDEO = true;
 	public static int EXPORT_VIDEO_FRAMES_FPS = 1;
 	public static boolean VIDEO_FULL_HD_RESOLUTION_EXPORT = false;
-    public static boolean VIDEO_4K_RESOLUTION_EXPORT = false;
+    public static boolean VIDEO_4K_RESOLUTION_EXPORT = true;
     
     // default to false
     public static boolean VIDEO_REGULAR_QUALITY = false;
-    public static boolean VIDEO_GOOD_QUALITY = false;
+    public static boolean VIDEO_GOOD_QUALITY = true;
     
     public static boolean isRendering = false;
 	
@@ -131,19 +131,39 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 1ND PALETTE SIZE IS 80x53 ALERT!
 	 * 
 	 * 2ND PALETTE SIZE IS 1535 colors = 6140 total colors
-	 *     - 16:9 FORMAT : 106 x 57
+	 *     - 16:9 FORMAT : 100 x 57
 	 *     -  1:1 FORMAT :  78 x 77 = 6006
 	 *     - 1.50 RATIO  :  96 x 63 = 6048
 	 *     
-	 *     3x palettes: total colors = 4605
+	 *      1x palettes: total colors =  1535 =  38 x  39 =  1482 triangles = triangle size = 12.0f
+	 *      2x palettes: total colors =  3070 =  54 x  55 =  2970 triangles = triangle size =  9.0f 
+	 *      3x palettes: total colors =  4605 =  66 x  67 =  4422 triangles = triangle size =  7.0f
+	 *      4x palettes: total colors =  6140 =  76 x  77 =  5852 triangles = triangle size =  6.0f
+	 *      5x palettes: total colors =  7675 =  86 x  87 =  7482 triangles = triangle size =  5.0f
+	 *      6x palettes: total colors =  9210 =  94 x  95 =  8930 triangles = triangle size =  4.5f
+	 *      7x
+	 *      8x palettes: total colors = 12280 = 110 x 111 = 12210 triangles = triangle size =  4.0f
+	 *     16x palettes: total colors = 24560 = 156 x 157 = 24492 triangles = triangle size =  3.0f
 	 *     
 	 * TRILUX 12 COLORS:
 	 *     - 26x16 squares = 416 squares = 1664 triangles
 	 *     - 52x33         = 1716 triangle
 	 */
-	public static int widthTriangles  = 78; // 71
-	public static int heightTriangles = 77; // 60
+	public static int widthTriangles  = 100; // 71
+	public static int heightTriangles = 57; // 60
+	public static int TOTAL_TRIANGLES = widthTriangles * heightTriangles;
 
+	/**
+     * TOTAL_PALLETES
+     * 
+     *    - This is the number of times each triangle will be subdivided.
+     *    - One of the most efficient ways to use each Palette Rectangle is TOTAL_PALLETES = 4
+     *      - This will generate 4 triangles for each color.
+     *      - Current code uses equilateral triangles resorting in using squared palletes, when the physical ones 
+     *          are rectangular, we should take real world measures into consideration if wanting >efficiency over >symetrism
+     */
+    private int TOTAL_PALLETES              = 4;
+	
 	/**
 	 * PARAMETERS:
 	 * 
@@ -180,18 +200,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private float FRESH_HEALTH_JUMP_PERCENT = 1f;
 	
 	/**
-	 * TOTAL_PALLETES
-	 * 
-     *    - This is the number of times each triangle will be subdivided.
-     *    - One of the most efficient ways to use each Palette Rectangle is TOTAL_PALLETES = 4
-     *      - This will generate 4 triangles for each color.
-     *      - Current code uses equilateral triangles resorting in using squared palletes, when the physical ones 
-     *          are rectangular, we should take real world measures into consideration if wanting >efficiency over >symetrism
+	 * RENDER GUI / EVOLUTION SPEED
 	 */
-	private int TOTAL_PALLETES             	= 4;
-	
-	private int GUI_FPS = 60; // twitch fps are set to 30
-	private int FPS = 640;
+	private int GUI_FPS = 20; // twitch fps are set to 30
+	private int FPS = 40; // 640 or around is the fastest setting
 	private int EVOLVER_UPDATE_MS = 1000 / FPS;
 //	private int EVOLVER_UPDATE_MS = 0;
 	private int GUI_UPDATE_MS = 1000 / GUI_FPS;
@@ -199,7 +211,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	/**
 	 * Keep track of past n iterations result for better indicators
 	 */
-	private static final int HEALTH_ITERATIONS = 2000;
+	private static final int HEALTH_ITERATIONS = 1000;
 	private final float [] GOOD_ITERATIONS  = new float [HEALTH_ITERATIONS];
 	
 	/**
@@ -216,12 +228,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64, 4239/2, 4239/2,};
 	
 	private int RANDOM_JUMP_MAX_DISTANCES [] = {
-	        6006, 6006, 6006, 6006, //  4
-	        6006, 6006, 6006, 6006, //  8
-	        6006, 6006, 6006, 6006, // 12
-	        6006, 6006, 6006, 6006, // 16 
-	        6006, 6006, 6006, 6006, // 20
-	        6006, 6006, 6006, 6006, // 24
+	        TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, //  4
+	        TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, //  8
+	        TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, // 12
+	        TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, // 16 
+	        TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, // 20
+	        TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, // 24
                                                 1, 1, 1, 1, // 28
                                                 1, 1, 1, 1, // 32 
 	                                            1, 1, 1, 1, // 36
@@ -264,7 +276,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 
 	 * EVOLVE_ITERATIONS: 
 	 */
-	public static int EVOLVE_ITERATIONS    = 1;
+	public static int EVOLVE_ITERATIONS    = 2;
 	private static int MAX_ITERATIONS      = 10000000;
 
 	private static String SEPARATOR = ";";
@@ -437,11 +449,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
          */
     	case QUALITY_MODE_STREAM:
     	    
-    	    THREADS = 24;
-            POPULATION = 2;
+    	    THREADS = 8;
+            POPULATION = 3;
             
-            triangleScaleHeight = 5f;
-            triangleScaleWidth = 5f;
+            triangleScaleHeight = 6f;
+            triangleScaleWidth = 6f;
             
             // 4k
 //            RANDOM_JUMP_MAX_DISTANCES [0] = 8520 / 2;

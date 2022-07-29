@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 
 import javax.imageio.ImageIO;
-import javax.swing.JOptionPane;
 
 import org.junit.jupiter.api.Test;
 

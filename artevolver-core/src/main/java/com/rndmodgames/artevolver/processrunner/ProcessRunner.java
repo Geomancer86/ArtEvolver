@@ -20,7 +20,7 @@ public class ProcessRunner {
      */
     public ProcessRunner() {
         
-        ArtEvolverTools.getImageEvolver(0, 0, 0, 0, null, false);
+        ArtEvolverTools.getDefaultImageEvolver(0, 0, 0, 0, null, false);
         
         //
         start();

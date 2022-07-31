@@ -50,7 +50,7 @@ public class ArtEvolverManager {
         this.timeout = timeout;
         
         //
-//        System.out.println("PROCESSING IN " + ArtEvolver.MODES[ArtEvolver.CURRENT_MODE]);
+        System.out.println("PROCESSING IN " + ArtEvolver.MODES[ArtEvolver.CURRENT_MODE]);
     }
     
     public void readAllFiles() throws URISyntaxException {
@@ -159,14 +159,14 @@ public class ArtEvolverManager {
 //        String sourceFolder = "D:\\Media\\Exported - Instagram";
 //        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources2\\own";
 //        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources2\\batch 12";
-        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources\\vintage";
+        String sourceFolder = "F:\\Media\\ArtEvolver2021\\other";
         
         /**
          * Static Configuration
          */
 //        ArtEvolver.CURRENT_MODE = ArtEvolver.QUICK_MODE;
-        ArtEvolver.CURRENT_MODE = ArtEvolver.FASTEST_BATCH_MODE;
-        ArtEvolver.EXPORT_ENABLED = false;
+        ArtEvolver.CURRENT_MODE = ArtEvolver.QUALITY_MODE;
+        ArtEvolver.EXPORT_ENABLED = true;
         
         ArtEvolverManager manager = new ArtEvolverManager(sourceFolder, 1, 100);
         

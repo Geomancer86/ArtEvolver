@@ -17,7 +17,12 @@ import javax.imageio.ImageIO;
  */
 public class ArtEvolverTools {
 
-    public static ImageEvolver getImageEvolver(int palettes,
+    public static ImageEvolver getDefaultEvolver(String imageName) {
+        
+        return getDefaultImageEvolver(1, 2, 2, 2, imageName, false);
+    }
+    
+    public static ImageEvolver getDefaultImageEvolver(int palettes,
                                                int population,
                                                int randomJumpMaxDistance,
                                                int crossoverMax,
@@ -37,9 +42,9 @@ public class ArtEvolverTools {
         }
 
         // FAST SPEED
-        float triangleScaleHeight = 1f;
-        float width = 1f;
-        float height = 1f;
+        float triangleScaleHeight = 3f;
+        float width = 6f;
+        float height = 6f;
         
         // REGULAR MODE
         int widthTriangles = 80;

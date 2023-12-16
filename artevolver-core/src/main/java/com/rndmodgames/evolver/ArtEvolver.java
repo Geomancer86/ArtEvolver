@@ -35,6 +35,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import com.rndmodgames.evolver.exporter.PaintByColorsExporter;
 import com.rndmodgames.evolver.render.Renderer;
 
 public class ArtEvolver extends JFrame implements ActionListener, ChangeListener {
@@ -67,8 +68,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	// default to false
 	public static boolean TOURNAMENT_MODE_PRINT = false;
 	
-	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
-//	public static int CURRENT_MODE = QUALITY_MODE;
+//	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
+	public static int CURRENT_MODE = QUALITY_MODE;
 //	public static int CURRENT_MODE = FASTEST_MODE;
 	
 	// 
@@ -78,10 +79,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static boolean MASTER_RESOLUTION_EXPORT = false;
 	
 	// default to false
-	public static boolean EXPORT_VIDEO = true;
+	public static boolean EXPORT_VIDEO = false;
 	public static int EXPORT_VIDEO_FRAMES_FPS = 1;
 	public static boolean VIDEO_FULL_HD_RESOLUTION_EXPORT = false;
-    public static boolean VIDEO_4K_RESOLUTION_EXPORT = true;
+    public static boolean VIDEO_4K_RESOLUTION_EXPORT = false;
     
     // default to false
     public static boolean VIDEO_REGULAR_QUALITY = false;
@@ -114,11 +115,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * width = 3 * scale
 	 * triangles = 80x53
 	 */
-	float triangleScaleHeight = 3.0f; // 0.25f, 0.5f, 0.66f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f 
-	float triangleScaleWidth = 3.0f;
+	float triangleScaleHeight = 1.0f; // 0.25f, 0.5f, 0.66f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f 
+	float triangleScaleWidth = 1.0f;
 
-	float width = 3.0f * triangleScaleWidth;
-	float height = 3.0f * triangleScaleHeight;
+	float width = 2.5f * triangleScaleWidth;
+	float height = 2.5f * triangleScaleHeight;
 	
 	/**
 	 * TODO:
@@ -135,6 +136,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 *     -  1:1 FORMAT :  78 x 77 = 6006
 	 *     - 1.50 RATIO  :  96 x 63 = 6048
 	 *     
+	 * SQUARE FORMATS
 	 *      1x palettes: total colors =  1535 =  38 x  39 =  1482 triangles = triangle size = 12.0f
 	 *      2x palettes: total colors =  3070 =  54 x  55 =  2970 triangles = triangle size =  9.0f 
 	 *      3x palettes: total colors =  4605 =  66 x  67 =  4422 triangles = triangle size =  7.0f
@@ -145,12 +147,16 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 *      8x palettes: total colors = 12280 = 110 x 111 = 12210 triangles = triangle size =  4.0f
 	 *     16x palettes: total colors = 24560 = 156 x 157 = 24492 triangles = triangle size =  3.0f
 	 *     
+	 * RECTANGLE FORMATS:
+	 *     2x palettes: total colors =  3070 =  66 x 45 = 2970 triangles = triangle size =  9.0f 
+	 *     4x palettes: total colors =  6140 =  96 x 63 = 6048 triangles = triangle size =  6.0f
+	 * 
 	 * TRILUX 12 COLORS:
 	 *     - 26x16 squares = 416 squares = 1664 triangles
 	 *     - 52x33         = 1716 triangle
 	 */
-	public static int widthTriangles  = 100; // 71
-	public static int heightTriangles = 57; // 60
+	public static int widthTriangles  = 80; // 71
+	public static int heightTriangles = 53; // 60
 	public static int TOTAL_TRIANGLES = widthTriangles * heightTriangles;
 
 	/**
@@ -169,7 +175,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 
 	 * TODO: fix random removal of drawings from population list
 	 */
-	private int THREADS                 	= 8; // 1-x (32-48 peak)
+	private int THREADS                 	= 32; // 1-x (32-48 peak)
 	private int POPULATION 					= 8; // GeneticEvolver: 2-4096 (multiply by thread count to get the final population number)
 	private int CROSSOVER_MAX 				= 2;
 	
@@ -202,8 +208,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	/**
 	 * RENDER GUI / EVOLUTION SPEED
 	 */
-	private int GUI_FPS = 20; // twitch fps are set to 30
-	private int FPS = 40; // 640 or around is the fastest setting
+	private int GUI_FPS = 60; // twitch fps are set to 30
+	private int FPS = 640; // 640 or around is the fastest setting
 	private int EVOLVER_UPDATE_MS = 1000 / FPS;
 //	private int EVOLVER_UPDATE_MS = 0;
 	private int GUI_UPDATE_MS = 1000 / GUI_FPS;
@@ -211,7 +217,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	/**
 	 * Keep track of past n iterations result for better indicators
 	 */
-	private static final int HEALTH_ITERATIONS = 1000;
+	private static final int HEALTH_ITERATIONS = 10;
 	private final float [] GOOD_ITERATIONS  = new float [HEALTH_ITERATIONS];
 	
 	/**
@@ -285,6 +291,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private String imageSourceName = null;
 	private String imageCategory = null;
 	private int exportedImages = 0;
+	
+	private boolean exportPaintByColors = true;
 
 	private List <ImageEvolver> evolvers = new ArrayList<>();
 
@@ -449,11 +457,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
          */
     	case QUALITY_MODE_STREAM:
     	    
-    	    THREADS = 8;
+    	    THREADS = 12;
             POPULATION = 3;
             
-            triangleScaleHeight = 6f;
-            triangleScaleWidth = 6f;
+            triangleScaleHeight = 3f;
+            triangleScaleWidth = 3f;
             
             // 4k
 //            RANDOM_JUMP_MAX_DISTANCES [0] = 8520 / 2;
@@ -566,8 +574,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             
     	case QUALITY_MODE:
 
-    	    THREADS = 32;
+    	    THREADS = 24;
     	    POPULATION = 2;
+    	    
+//            triangleScaleHeight = 6f;
+//            triangleScaleWidth = 6f;
             triangleScaleHeight = 3f;
             triangleScaleWidth = 3f;
             
@@ -576,8 +587,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                 triangleScaleWidth = 2f;
             }
             
-            width = 3.0f * triangleScaleWidth;
-            height = 3.0f * triangleScaleHeight;
+            width = 2f * triangleScaleWidth;
+            height = 2f * triangleScaleHeight;
               
             break;
             
@@ -857,9 +868,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                     // TOURNAMENT PRINT
                     if (TOURNAMENT_MODE_PRINT) {
                         for (AbstractEvolver currentEvolver : evolvers) {
-                            System.out.print(((ImageEvolver) currentEvolver).getBestScore() + ",");
+//                            System.out.print(((ImageEvolver) currentEvolver).getBestScore() + ",");
                         }
-                        System.out.println();
+//                        System.out.println();
                     }
                     
                     // total_iterations, good_iterations, health, best_score, max_jump_average
@@ -870,7 +881,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 //                                        + "," + ((float) maxJumpDistanceSum / (float) THREADS));
                     
                     if (bestScore >= 0.5f) {
-                        System.out.println(bestScore);
+//                        System.out.println(bestScore);
                     }
 //                    System.out.println(bestScore + "," + ((float) maxJumpDistanceSum / (float) THREADS));
                     
@@ -1278,7 +1289,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
      * 
      */
     // TODO MOVE UP WITH OTHER RENDERING PARAMETERS
-    int RENDERING_SCALE = 1; // default 1
+    int RENDERING_SCALE = 5; // default 1
     
     public void renderBestImage() {
         
@@ -1364,6 +1375,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		        
 		        // 
 		        exportedImages++;
+		    }
+		    
+		    if (exportPaintByColors) {
+		        
+		        PaintByColorsExporter.paintByColors(bestPop);
 		    }
 		}
 	}

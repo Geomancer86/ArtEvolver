@@ -141,7 +141,7 @@ public class ImageEvolver extends AbstractEvolver {
 										Integer.parseInt(splitted[8]),
 										Integer.parseInt(splitted[9]));
 				
-				Triangle triangle = new Triangle(xPoly, yPoly, 3, null, color);
+				Triangle triangle = new Triangle(xPoly, yPoly, 3, null, color, null); // TODO: implement get color name by colorId
 				triangles.add(triangle);
 			});
 			
@@ -259,11 +259,11 @@ public class ImageEvolver extends AbstractEvolver {
 						Color color = null;
 						
 						if (pallete.getColor(count) != null) {
-							colorId = pallete.getColor(count).id;
-							color = pallete.getColor(count).color;
+							colorId = pallete.getColor(count).getId();
+							color = pallete.getColor(count).getColor();
 						}
 
-						Triangle triangle = new Triangle(xPoly, yPoly, 3, colorId, color);
+						Triangle triangle = new Triangle(xPoly, yPoly, 3, colorId, color, pallete.getColor(count));
 						triangles.add(triangle);
 
 						count++;
@@ -335,6 +335,9 @@ public class ImageEvolver extends AbstractEvolver {
 				TriangleList<Triangle> triangles = new TriangleList<Triangle>();
 				int count = 0;
 
+				/**
+				 * 
+				 */
 				for (int a = 0; a < triangleWidth; a++) {
 					for (int b = 0; b < triangleHeight; b++) {
 						int xPoly[] = new int[3];
@@ -364,11 +367,12 @@ public class ImageEvolver extends AbstractEvolver {
 						yPoly[2] -= (height * scale) * (b / 2);
 
 						Color color = null;
+						
 						if (pallete.getColor(count) != null) {
-							color = pallete.getColor(count).color;
+							color = pallete.getColor(count).getColor();
 						}
 
-						Triangle triangle = new Triangle(xPoly, yPoly, 3, color);
+						Triangle triangle = new Triangle(xPoly, yPoly, 3, color, pallete.getColor(count));
 						triangles.add(triangle);
 
 						count++;
@@ -433,9 +437,16 @@ public class ImageEvolver extends AbstractEvolver {
 		Triangle origin = triangles.get(a);
 		Triangle dest = triangles.get(b);
 
+		// switch colors
 		Color aux = origin.getColor();
 		origin.setColor(dest.getColor());
 		dest.setColor(aux);
+		
+		
+		// switch palette colors
+		PalleteColor aux2 = origin.getPalleteColor();
+		origin.setPalleteColor(dest.getPalleteColor());
+		dest.setPalleteColor(aux2);
 	}
 
 	/**
@@ -446,9 +457,15 @@ public class ImageEvolver extends AbstractEvolver {
 		Triangle origin = triangles.get(roll(triangles.size()));
 		Triangle dest = triangles.get(roll(triangles.size()));
 
+		// switch colors
 		Color aux = origin.getColor();
 		origin.setColor(dest.getColor());
 		dest.setColor(aux);
+		
+		// switch palette colors
+        PalleteColor aux2 = origin.getPalleteColor();
+        origin.setPalleteColor(dest.getPalleteColor());
+        dest.setPalleteColor(aux2);
 	}
 
 	/**
@@ -474,16 +491,22 @@ public class ImageEvolver extends AbstractEvolver {
 		    return;
 		}
 		
-		while (b == a) {
+		while (b == a || a >= triangles.size()) {
 			a = roll(gridSize) + (gridSize * id);
 		}
 		
 		Triangle origin = triangles.get(a);
 		Triangle dest = triangles.get(b);
 
+		// switch colors
 		Color aux = origin.getColor();
 		origin.setColor(dest.getColor());
 		dest.setColor(aux);
+		
+		// switch palette colors
+        PalleteColor aux2 = origin.getPalleteColor();
+        origin.setPalleteColor(dest.getPalleteColor());
+        dest.setPalleteColor(aux2);
 	}
 
 	public static void switchCloseColor(TriangleList<Triangle> triangles, int randomJumpDistance) {
@@ -510,9 +533,15 @@ public class ImageEvolver extends AbstractEvolver {
 		Triangle origin = triangles.get(pos);
 		Triangle dest = triangles.get(des);
 
+		// switch colors
 		Color aux = origin.getColor();
 		origin.setColor(dest.getColor());
 		dest.setColor(aux);
+		
+		// switch palette colors
+        PalleteColor aux2 = origin.getPalleteColor();
+        origin.setPalleteColor(dest.getPalleteColor());
+        dest.setPalleteColor(aux2);
 	}
 
 	public static int roll(int n) {

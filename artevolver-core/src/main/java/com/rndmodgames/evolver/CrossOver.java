@@ -40,7 +40,7 @@ public class CrossOver {
 	public static int RANDOM_GRID_MUTATION_CHANCES = 10; // default is 1
     public static float RANDOM_GRID_MUTATION_PERCENT = 1f / 10000; // default is 1
 	
-	public static       int   TOTAL_GRIDS                   =  8; // NEEDS TO BE == THREADS
+	public static       int   TOTAL_GRIDS                   =  24; // NEEDS TO BE == THREADS
 	public static       int   DEFAULT_GRID_SIZE             = 256; // default is 4260
 	public static       int   MINIMUM_GRID_SIZE             =   2; // default is 4260
 	
@@ -89,11 +89,16 @@ public class CrossOver {
 //		    DEFAULT_GRID_SIZE = (38*39) / TOTAL_GRIDS; // 1 palette
 //		    DEFAULT_GRID_SIZE = (54*55) / TOTAL_GRIDS; // 2 palettes
 //		    DEFAULT_GRID_SIZE = (66*67) / TOTAL_GRIDS; // 3 palettes
-		    DEFAULT_GRID_SIZE = (76*77) / TOTAL_GRIDS; // 4 palettes
+//		    DEFAULT_GRID_SIZE = (76*77) / TOTAL_GRIDS; // 4 palettes
 //		    DEFAULT_GRID_SIZE = (86*87) / TOTAL_GRIDS; // 5 palettes
 //		    DEFAULT_GRID_SIZE = (94*95) / TOTAL_GRIDS; // 6 palettes
 //		    DEFAULT_GRID_SIZE = (110*111) / TOTAL_GRIDS; // 8 palettes
 //		    DEFAULT_GRID_SIZE = (156*157) / TOTAL_GRIDS; // 16 palettes
+		    
+		    // RECTANGULAR
+		    DEFAULT_GRID_SIZE = (80*53) / TOTAL_GRIDS; // 1 palettes
+//		    DEFAULT_GRID_SIZE = (66*45) / TOTAL_GRIDS; // 2 palettes
+//		    DEFAULT_GRID_SIZE = (96*63) / TOTAL_GRIDS; // 4 palettes
 		}
 	}
 	
@@ -221,7 +226,7 @@ public class CrossOver {
 				System.exit(0);
 			}
 			
-			Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor());
+			Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor(), triangle.getPalleteColor());
 			child.add(copy);
 			
 		}
@@ -244,12 +249,12 @@ public class CrossOver {
 		
 		if (isParentA){
 			for (Triangle triangle : parentA){
-				Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor());
+				Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor(), triangle.getPalleteColor());
 				child.add(copy);
 			}
 		}else{
 			for (Triangle triangle : parentB){
-				Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor());
+				Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor(), triangle.getPalleteColor());
 				child.add(copy);
 			}
 		}
@@ -311,7 +316,7 @@ public class CrossOver {
 		TriangleList<Triangle> child = new TriangleList<Triangle>();
 		
 		for (Triangle triangle : parent){
-			Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor());
+			Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor(), triangle.getPalleteColor());
 			child.add(copy);
 		}
 		

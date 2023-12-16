@@ -25,10 +25,10 @@ public class Palette {
 		this.name = name;
 		this.totalPalletes = repetitions;
 		
-//		URL url = getClass().getResource("../../../sherwin.txt").toURI().toURL();  // SHERWIN
+		URL url = getClass().getResource("../../../sherwin.txt").toURI().toURL();  // SHERWIN
 //		URL url = getClass().getResource("../../../palette2.txt").toURI().toURL(); // ORIGINAL GBC GREEN 4 SHADES 25% EACH
 //		URL url = getClass().getResource("../../../palette3.txt").toURI().toURL(); // BLACK AND WHITE 50% EACH
-		URL url = getClass().getResource("../../../palette4.txt").toURI().toURL(); // SHERWIN 1500+ colors
+//		URL url = getClass().getResource("../../../palette4.txt").toURI().toURL(); // SHERWIN 1500+ colors
 //		URL url = getClass().getResource("../../../trilux.txt").toURI().toURL(); // 12 Pen Colors
 
 		File file = new File(url.getPath().replace("%20"," "));
@@ -42,13 +42,14 @@ public class Palette {
 					PalleteColor color = null;
 					String [] splitted = line.split(" ");
 	
-					currentId++;
+					// disabled current id as count, using the palette file id
+//					currentId++;
 					
 					if (splitted.length == 5){
 						
 						color = new PalleteColor(this,
-												 //Long.valueOf(splitted[0]),
-												 currentId,
+												 Long.valueOf(splitted[0]),
+//												 currentId,
 												 splitted[1],
 												 Integer.valueOf(splitted[2]).intValue(),
 												 Integer.valueOf(splitted[3]).intValue(),
@@ -56,18 +57,18 @@ public class Palette {
 					}else{
 						if (splitted.length == 6){
 							color = new PalleteColor(this,
-									 // Long.valueOf(splitted[0]),
-									 currentId,
-									 splitted[1] + " " + splitted[2],
+									  Long.valueOf(splitted[0]),
+//									 currentId,
+									 splitted[1] + "\n" + splitted[2],
 									 Integer.valueOf(splitted[3]).intValue(),
 									 Integer.valueOf(splitted[4]).intValue(),
 									 Integer.valueOf(splitted[5]).intValue());
 						}else{
 							if (splitted.length == 7){
 								color = new PalleteColor(this,
-										 // Long.valueOf(splitted[0]),
-										 currentId,
-										 splitted[1] + " " + splitted[2] + " " + splitted[3],
+										  Long.valueOf(splitted[0]),
+//										 currentId,
+										 splitted[1] + " " + splitted[2] + "\n" + splitted[3],
 										 Integer.valueOf(splitted[4]).intValue(),
 										 Integer.valueOf(splitted[5]).intValue(),
 										 Integer.valueOf(splitted[6]).intValue());

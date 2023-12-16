@@ -44,7 +44,6 @@
 		</repository>
 	</repositories>
 
-<<<<<<< HEAD
     <build>
 		<sourceDirectory>\${basedir}/src/main/java</sourceDirectory>
 		<resources>
@@ -94,8 +93,6 @@
 		</plugins>
 	</build>
 
-=======
->>>>>>> solid_release_candidate
     <dependencies>
     	<!-- JUnit -->
 		<dependency>

@@ -10,24 +10,32 @@ public class Triangle extends Polygon{
 	
 	private Long colorId;
 	private Color color;
+	private PalleteColor palleteColor;
 	
 	private int [] xPoly;
 	private int [] yPoly;
 	private int lenght;
 	
-	public Triangle(int [] xPoly, int [] yPoly, int lenght, Color color){
+	public Triangle(int [] xPoly, int [] yPoly, int lenght, Color color, PalleteColor palleteColor){
+	    
 		super(xPoly, yPoly, lenght);
+		
 		this.color = color;
+		this.palleteColor = palleteColor;
+		
 		this.xPoly = xPoly;
 		this.yPoly = yPoly;
 		this.lenght = lenght;
 	}
 
-	public Triangle(int[] xPoly, int[] yPoly, int lenght, Long colorId, Color color) {
+	public Triangle(int[] xPoly, int[] yPoly, int lenght, Long colorId, Color color, PalleteColor palleteColor) {
+	    
 		super(xPoly, yPoly, lenght);
 		
 		this.colorId = colorId;
 		this.color = color;
+		this.palleteColor = palleteColor;
+		
 		this.xPoly = xPoly;
 		this.yPoly = yPoly;
 		this.lenght = lenght;
@@ -94,4 +102,12 @@ public class Triangle extends Polygon{
 	public String toString() {
 		return Arrays.toString(xPoly) + "," + Arrays.toString(yPoly) + ",[" + color.getRed() + ", " + color.getGreen() + ", " + color.getBlue() + "]";
 	}
+
+    public PalleteColor getPalleteColor() {
+        return palleteColor;
+    }
+
+    public void setPalleteColor(PalleteColor palleteColor) {
+        this.palleteColor = palleteColor;
+    }
 }

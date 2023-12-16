@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -12,49 +13,87 @@ import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.imageio.ImageIO;
+import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import com.rndmodgames.evolver.exporter.PaintByColorsExporter;
 import com.rndmodgames.evolver.render.Renderer;
 
 public class ArtEvolver extends JFrame implements ActionListener, ChangeListener {
 
 	private static final long serialVersionUID = 6291204469421642923L;
 	
-	private JFrame mainFrame;
+	public JFrame mainFrame;
 	private JPanel imagePanel;
 	private Palette pallete;
+	
+	//
+	DecimalFormat df = new DecimalFormat();
+	DecimalFormat df4 = new DecimalFormat();
+	private static final String PERCENT_SIGN = "%";
 	
 	/**
 	 * MODES
 	 */
-	public static final int QUICK_MODE                =  0;
-	public static final int QUICK_EXTENDED_MODE       =  1;
-	public static final int QUICK_EXTENDED_24_THREADS =  2;
-	public static final int FASTEST_MODE              = 10;
-	public static final int FASTEST_BATCH_MODE        = 11;
-	public static final int QUALITY_SMALL_MODE        = 20;
-	public static final int BEST_SMALL_MODE           = 30;
-	public static final int QUALITY_MODE              = 90;
-	public static final int QUALITY_MODE_FULL_THREADS = 91;
+	public static final int QUICK_MODE                =   0;
+	public static final int QUICK_EXTENDED_MODE       =   1;
+	public static final int QUICK_EXTENDED_24_THREADS =   2;
+	public static final int FASTEST_MODE              =  10;
+	public static final int FASTEST_BATCH_MODE        =  11;
+	public static final int QUALITY_SMALL_MODE        =  20;
+	public static final int BEST_SMALL_MODE           =  30;
+	public static final int QUALITY_MODE              =  90;
+	public static final int QUALITY_MODE_FULL_THREADS =  91;
+	public static final int QUALITY_MODE_STREAM       = 191;
 	
-	public static int CURRENT_MODE = QUALITY_MODE_FULL_THREADS;
+	// default to false
+	public static boolean TOURNAMENT_MODE_PRINT = false;
 	
-	public static final String [] MODES = new String [100];
+//	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
+	public static int CURRENT_MODE = QUALITY_MODE;
+//	public static int CURRENT_MODE = FASTEST_MODE;
+	
+	// 
+	public static boolean HIGH_RESOLUTION_EXPORT = false;
+	public static boolean ULTRA_HIGH_RESOLUTION_EXPORT = false;
+	public static boolean MEGA_HIGH_RESOLUTION_EXPORT = false;
+	public static boolean MASTER_RESOLUTION_EXPORT = false;
+	
+	// default to false
+	public static boolean EXPORT_VIDEO = false;
+	public static int EXPORT_VIDEO_FRAMES_FPS = 1;
+	public static boolean VIDEO_FULL_HD_RESOLUTION_EXPORT = false;
+    public static boolean VIDEO_4K_RESOLUTION_EXPORT = false;
+    
+    // default to false
+    public static boolean VIDEO_REGULAR_QUALITY = false;
+    public static boolean VIDEO_GOOD_QUALITY = true;
+    
+    public static boolean isRendering = false;
+	
+	//
+	public static boolean HIGH_RESOLUTION_PATREON_BANNER = false;
+	
+	public static final String [] MODES = new String [200];
 	
 	static {
 	    MODES[0] = "QUICK_MODE";
@@ -66,6 +105,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    MODES[30] = "BEST_SMALL_MODE";
 	    MODES[90] = "QUALITY_MODE";
 	    MODES[91] = "QUALITY_MODE_FULL_THREADS";
+	    MODES[191] = "QUALITY_MODE_STREAM";
 	}
 	
 	/**
@@ -75,47 +115,163 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * width = 3 * scale
 	 * triangles = 80x53
 	 */
-	float triangleScaleHeight = 3.0f; // 0.25f, 0.5f, 0.66f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f 
-	float triangleScaleWidth = 3.0f;
+	float triangleScaleHeight = 1.0f; // 0.25f, 0.5f, 0.66f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f 
+	float triangleScaleWidth = 1.0f;
 
-	float width = 3.0f * triangleScaleWidth;
-	float height = 3.0f * triangleScaleHeight;
+	float width = 2.5f * triangleScaleWidth;
+	float height = 2.5f * triangleScaleHeight;
 	
-	int widthTriangles  = 80; // 71
-	int heightTriangles = 53; // 60
-
 	/**
-	 * PARAMETERS:
+	 * TODO:
+	 *     - parametrize and configure for different aspect ratios:
+	 *         - 16:9 [80x50]
+	 *         - 4:3
+	 *         - 1:1
+	 *         - 9:16
+	 *        
+	 * 1ND PALETTE SIZE IS 80x53 ALERT!
 	 * 
-	 * TODO: fix random removal of drawings from population list
+	 * 2ND PALETTE SIZE IS 1535 colors = 6140 total colors
+	 *     - 16:9 FORMAT : 100 x 57
+	 *     -  1:1 FORMAT :  78 x 77 = 6006
+	 *     - 1.50 RATIO  :  96 x 63 = 6048
+	 *     
+	 * SQUARE FORMATS
+	 *      1x palettes: total colors =  1535 =  38 x  39 =  1482 triangles = triangle size = 12.0f
+	 *      2x palettes: total colors =  3070 =  54 x  55 =  2970 triangles = triangle size =  9.0f 
+	 *      3x palettes: total colors =  4605 =  66 x  67 =  4422 triangles = triangle size =  7.0f
+	 *      4x palettes: total colors =  6140 =  76 x  77 =  5852 triangles = triangle size =  6.0f
+	 *      5x palettes: total colors =  7675 =  86 x  87 =  7482 triangles = triangle size =  5.0f
+	 *      6x palettes: total colors =  9210 =  94 x  95 =  8930 triangles = triangle size =  4.5f
+	 *      7x
+	 *      8x palettes: total colors = 12280 = 110 x 111 = 12210 triangles = triangle size =  4.0f
+	 *     16x palettes: total colors = 24560 = 156 x 157 = 24492 triangles = triangle size =  3.0f
+	 *     
+	 * RECTANGLE FORMATS:
+	 *     2x palettes: total colors =  3070 =  66 x 45 = 2970 triangles = triangle size =  9.0f 
+	 *     4x palettes: total colors =  6140 =  96 x 63 = 6048 triangles = triangle size =  6.0f
+	 * 
+	 * TRILUX 12 COLORS:
+	 *     - 26x16 squares = 416 squares = 1664 triangles
+	 *     - 52x33         = 1716 triangle
 	 */
-	private int THREADS                 	= 8; // 1-x (32-48 peak)
-	private int POPULATION 					= 8; // GeneticEvolver: 2-4096 (multiply by thread count to get the final population number)
-	private int RANDOM_JUMP_MAX_DISTANCE	= 2; // 1-x MAX: 4239/2
-	private int CROSSOVER_MAX 				= 2;
-	
-	private boolean FITNESS_BASED_PARENT_SELECTION = false;
-	
+	public static int widthTriangles  = 80; // 71
+	public static int heightTriangles = 53; // 60
+	public static int TOTAL_TRIANGLES = widthTriangles * heightTriangles;
+
 	/**
-	 * TOTAL_PALLETES
-	 * 
+     * TOTAL_PALLETES
+     * 
      *    - This is the number of times each triangle will be subdivided.
      *    - One of the most efficient ways to use each Palette Rectangle is TOTAL_PALLETES = 4
      *      - This will generate 4 triangles for each color.
      *      - Current code uses equilateral triangles resorting in using squared palletes, when the physical ones 
      *          are rectangular, we should take real world measures into consideration if wanting >efficiency over >symetrism
-	 */
-	private int TOTAL_PALLETES             	= 4;
+     */
+    private int TOTAL_PALLETES              = 4;
 	
-	private int GUI_FPS = 60;
-	private int FPS = 120;
+	/**
+	 * PARAMETERS:
+	 * 
+	 * TODO: fix random removal of drawings from population list
+	 */
+	private int THREADS                 	= 32; // 1-x (32-48 peak)
+	private int POPULATION 					= 8; // GeneticEvolver: 2-4096 (multiply by thread count to get the final population number)
+	private int CROSSOVER_MAX 				= 2;
+	
+	/**
+	 * DYNAMIC HEALTH PARAMETERS
+	 */
+	
+	// halve parameters on low health default to false
+	private boolean HALVE_PARAMETERS_ON_LOW_HEALTH = false;
+	
+	// will halve parameters if health reaches zero (default is 15)
+	private float LOW_HEALTH_HALVE_PARAMETERS_TRESHOLD = 80f; // 7 = good, 4=test
+	
+	// evolution jumps default to false
+	private boolean EVOLUTION_JUMPS_ENABLED = false;
+	
+	// evolve each 1000 steps default
+	private int EVOLVE_HEALTH_CHECKS_ADD_MAX_JUMP_DISTANCE = 2;
+	
+	// add 1 to max jump distance default
+	private int EVOLVE_JUMPS_ADD = 10;
+	
+	// default to false
+	private float lastCheckHealth = -1f;
+	private boolean JUMPS_DEPEND_ON_FRESH_HEALTH = false;
+	
+	// default to 1 (100%)
+	private float FRESH_HEALTH_JUMP_PERCENT = 1f;
+	
+	/**
+	 * RENDER GUI / EVOLUTION SPEED
+	 */
+	private int GUI_FPS = 60; // twitch fps are set to 30
+	private int FPS = 640; // 640 or around is the fastest setting
 	private int EVOLVER_UPDATE_MS = 1000 / FPS;
+//	private int EVOLVER_UPDATE_MS = 0;
 	private int GUI_UPDATE_MS = 1000 / GUI_FPS;
 	
-	private int RANDOM_JUMP_MAX_DISTANCES [] = {4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2,
-												4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2,
-												4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2,
-												4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2, 4239/2};
+	/**
+	 * Keep track of past n iterations result for better indicators
+	 */
+	private static final int HEALTH_ITERATIONS = 10;
+	private final float [] GOOD_ITERATIONS  = new float [HEALTH_ITERATIONS];
+	
+	/**
+	 * TODO: document and benchmark
+	 * 
+	 *     - each thread will have the random max jump distance set to the index of this array
+	 *     - TODO: find the optimum values for optimum drawing generation (fastest speed)
+	 *     
+	 *     4239/2
+	 */
+//	private int RANDOM_JUMP_MAX_DISTANCES [] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+//	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64,  4239/2,  4239/2, 
+//	                                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+//	                                            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 64, 64, 4239/2, 4239/2,};
+	
+	private int RANDOM_JUMP_MAX_DISTANCES [] = {
+	        TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, //  4
+	        TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, //  8
+	        TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, // 12
+	        TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, // 16 
+	        TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, // 20
+	        TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, TOTAL_TRIANGLES, // 24
+                                                1, 1, 1, 1, // 28
+                                                1, 1, 1, 1, // 32 
+	                                            1, 1, 1, 1, // 36
+	                                            1, 1, 1, 1, // 40
+	                                            1, 1, 1, 1, // 
+	                                            1, 1, 1, 1, // 
+	                                            1, 1, 1, 1, //
+                                                1, 1, 1, 1, //  
+                                                1, 1, 1, 1, // 
+                                                1, 1, 1, 1, //  
+                                                1, 1, 1, 1, // 
+                                                1, 1, 1, 1, // 
+                                                1, 1, 1, 1, // 
+                                                1, 1, 1, 1, // 64
+                                                2048, 2048, 2048, 2048, //  4
+                                                2048, 2048, 2048, 2048, //  8
+                                                2048, 2048, 2048, 2048, // 12
+                                                2048, 2048, 2048, 2048, // 16 
+                                                1, 1, 1, 1, // 20
+                                                1, 1, 1, 1, // 24
+                                                1, 1, 1, 1, // 28
+                                                1, 1, 1, 1, // 32
+                                                //
+                                                2048, 2048, 2048, 2048, //
+                                                2048, 2048, 2048, 2048, //  
+                                                2048, 2048, 2048, 2048, // 
+                                                2048, 2048, 2048, 2048, //  
+                                                1, 1, 1, 1, // 
+                                                1, 1, 1, 1, // 
+                                                1, 1, 1, 1, // 
+                                                1, 1, 1, 1, // 128
+	                                            };
 	
 	private int CROSSOVERS_MAX [] = {1, 2, 4, 8, 16, 32, 64, 128, 256}; 
 	
@@ -126,7 +282,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 
 	 * EVOLVE_ITERATIONS: 
 	 */
-	public static int EVOLVE_ITERATIONS    = 100;
+	public static int EVOLVE_ITERATIONS    = 2;
 	private static int MAX_ITERATIONS      = 10000000;
 
 	private static String SEPARATOR = ";";
@@ -135,6 +291,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private String imageSourceName = null;
 	private String imageCategory = null;
 	private int exportedImages = 0;
+	
+	private boolean exportPaintByColors = true;
 
 	private List <ImageEvolver> evolvers = new ArrayList<>();
 
@@ -146,6 +304,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private JLabel lblScore;
 	private JLabel lblAverageScore;
 	private JLabel lblPopulation;
+	private JLabel labelSequential;
 	private JLabel lblIterations;
 	private JLabel lblIterationsPerSecond;
 	private JLabel lblGoodIterationsPerSecond;
@@ -162,12 +321,23 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	long currentFrame = 1L;
 	long totalIterations = 0L;
 	long goodIterations = 0L;
+	long prevGoodIterations = 0L;
 	double bestScore = Double.MIN_VALUE;
 	double currentScore = Double.MIN_VALUE;
 	double averagePopulationScore = 0d;
+	long maxJumpDistanceSum = 0l;
+	double averageMaxJumpDistance = 0d;
 	boolean isDirty = false;
 	boolean isRunning = false;
 	boolean showSource = false;
+	boolean sequential = false;
+	
+	/**
+	 * Benchmark Options
+	 *     TODO: If Score reach this threshold and benchmarking is enabled, processing will export and finish
+	 */
+	
+	
 	
 	/**
 	 * TODO: document
@@ -207,15 +377,68 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * 		- Quick way to chunk full pixel chunks
 	 * 
 	 * @throws IOException
+	 * @throws URISyntaxException 
 	 */
-    public ArtEvolver() throws IOException {
+    public ArtEvolver() throws IOException, URISyntaxException {
         
         super("ArtEvolver 2021 v2.05");
 
+        //
+        df.setMaximumFractionDigits(2);
+        df.setMinimumFractionDigits(2);
+        df4.setMaximumFractionDigits(6);
+        df4.setMinimumFractionDigits(6);
+        
+        // add extra palettes if HIGH RES is enabled
+        if (HIGH_RESOLUTION_EXPORT) {
+            
+            // 8 palettes = 8520 triangles
+            TOTAL_PALLETES = 8;
+            widthTriangles = 116; // 116
+            heightTriangles = 73; // 73
+        }
+        
+        // add extra palettes if ULTRA_HIGH_RESOLUTION_EXPORT is enabled
+        if (ULTRA_HIGH_RESOLUTION_EXPORT) {
+            
+            // 16 palettes = 17040 triangles
+            // total pixels is 17010
+            TOTAL_PALLETES = 16;
+            widthTriangles = 162; // 162
+            heightTriangles = 105; // 105
+        }
+        
+        // add extra palettes if MEGA_HIGH_RESOLUTION_PATREON_BANNER is enabled
+        if (MEGA_HIGH_RESOLUTION_EXPORT) {
+            
+            // 32 palettes = 34080 colors in 32 repetitions
+            // total pixels is 33972
+            TOTAL_PALLETES = 32;
+            widthTriangles = 228; // 228
+            heightTriangles = 149; // 149
+        }
+        
+        // add extra palettes if MASTER_RESOLUTION_EXPORT is enabled
+        if (MASTER_RESOLUTION_EXPORT) {
+            
+            // 64 palettes = 68160 colors in 64 repetitions
+            // total pixels is 68160
+            TOTAL_PALLETES = 64;
+            widthTriangles = 320; // 320
+            heightTriangles = 213; // 213
+        }
+                
+        // Patreon Banner is 1600x400
+        if (HIGH_RESOLUTION_PATREON_BANNER) {
+            TOTAL_PALLETES = 8;
+            widthTriangles = 178; // 116
+            heightTriangles = 45; // 73
+        }
+        
     	switch (CURRENT_MODE) {
     	
     	case QUALITY_MODE_FULL_THREADS:
-            THREADS = 32;
+            THREADS = 24; // 24, 32, 48, 64
             POPULATION = 5;
             triangleScaleHeight = 3f;
             triangleScaleWidth = 3f;
@@ -223,13 +446,150 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             height = 3.0f * triangleScaleHeight;
             break;
     	
-    	case QUALITY_MODE:
-    	    THREADS = 8;
-    	    POPULATION = 8;
+        /**
+         *  Multipliers and Resolution:
+         *  
+         *      - 3x =  720 x  468
+         *      - 4x =  960 x  624
+         *      - 5x = 1200 x  780
+         *      - 6x = 1440 x  936
+         *      - 7x = 1680 x 1092 [HD]
+         */
+    	case QUALITY_MODE_STREAM:
+    	    
+    	    THREADS = 12;
+            POPULATION = 3;
+            
             triangleScaleHeight = 3f;
             triangleScaleWidth = 3f;
+            
+            // 4k
+//            RANDOM_JUMP_MAX_DISTANCES [0] = 8520 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [1] = 8520 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [2] = 8520 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [3] = 8520 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [0] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [1] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [2] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [3] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [4] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [5] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [6] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [7] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [8] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [9] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [10] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [11] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [12] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [13] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [14] = 17040 / 2;
+//            RANDOM_JUMP_MAX_DISTANCES [15] = 17040 / 2;
+            
+            if (ULTRA_HIGH_RESOLUTION_EXPORT) {
+                
+                triangleScaleHeight = 4f;
+                triangleScaleWidth = 4f;
+                
+                // 17k
+//                RANDOM_JUMP_MAX_DISTANCES [0] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [1] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [2] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [3] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [4] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [5] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [6] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [7] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [8] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [9] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [10] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [11] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [12] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [13] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [14] = 17040 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [15] = 17040 / 2;
+            }
+            
+            if (MEGA_HIGH_RESOLUTION_EXPORT) {
+                
+                triangleScaleHeight = 3f;
+                triangleScaleWidth = 3f;
+                
+                // 34k
+                RANDOM_JUMP_MAX_DISTANCES [0] = 34080 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [1] = 34080 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [2] = 34080 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [3] = 34080 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [4] = 34080 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [5] = 34080 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [6] = 34080 / 2;
+                RANDOM_JUMP_MAX_DISTANCES [7] = 34080 / 2;
+            }
+            
+            if (MASTER_RESOLUTION_EXPORT) {
+                
+                triangleScaleHeight = 2f;
+                triangleScaleWidth = 2f;
+                
+                // TODO WIP
+//                RANDOM_JUMP_MAX_DISTANCES [0] = 34080 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [1] = 34080 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [2] = 34080 / 2;
+//                RANDOM_JUMP_MAX_DISTANCES [3] = 34080 / 2;
+            }
+            
+            // 3840 x 2160 target resolution
+            if (VIDEO_4K_RESOLUTION_EXPORT) {
+                
+                // 4 k triangles (default) BAD_QUALITY
+                triangleScaleWidth = 1f;
+                triangleScaleWidth = 1f;
+                RENDERING_SCALE = 16;
+                
+                if (VIDEO_REGULAR_QUALITY) {
+                    
+                    triangleScaleWidth = 2f;
+                    triangleScaleWidth = 2f;
+                    RENDERING_SCALE = 8;
+                }
+                
+                if (VIDEO_GOOD_QUALITY) {
+                    
+                    triangleScaleWidth = 4f;
+                    triangleScaleWidth = 4f;
+                    RENDERING_SCALE = 4;
+                }
+            }
+            
+            // 1920 x 1248
+            if (VIDEO_FULL_HD_RESOLUTION_EXPORT) {
+
+                // 4 k triangles (default)
+                RENDERING_SCALE = 1;
+            }
+            
             width = 3.0f * triangleScaleWidth;
-            height = 3.0f * triangleScaleHeight;
+            height = 3.0f * triangleScaleWidth;
+            
+            break;
+            
+    	case QUALITY_MODE:
+
+    	    THREADS = 24;
+    	    POPULATION = 2;
+    	    
+//            triangleScaleHeight = 6f;
+//            triangleScaleWidth = 6f;
+            triangleScaleHeight = 3f;
+            triangleScaleWidth = 3f;
+            
+            if (MASTER_RESOLUTION_EXPORT) {
+                triangleScaleHeight = 2f;
+                triangleScaleWidth = 2f;
+            }
+            
+            width = 2f * triangleScaleWidth;
+            height = 2f * triangleScaleHeight;
+              
             break;
             
     	case BEST_SMALL_MODE:
@@ -269,17 +629,22 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             break;
             
     	case FASTEST_MODE:
-            THREADS = 32;
-            MAX_ITERATIONS = 2500;
-            triangleScaleHeight = 0.5f;
-            triangleScaleWidth = 0.5f;
+    	    
+    	    POPULATION = 2;
+            THREADS = 17; // default to 17
+            
+//            MAX_ITERATIONS = 2500;
+//            triangleScaleHeight = 0.5f;
+//            triangleScaleWidth = 0.5f;
+            triangleScaleHeight = 1f;
+            triangleScaleWidth = 1f;
             width = 3.0f * triangleScaleWidth;
             height = 3.0f * triangleScaleHeight;
             break;
             
     	case FASTEST_BATCH_MODE:
-    	    THREADS = 2;
-            MAX_ITERATIONS = 2500;
+    	    THREADS = 1;
+            MAX_ITERATIONS = 5000;
             triangleScaleHeight = 0.5f;
             triangleScaleWidth = 0.5f;
             width = 3.0f * triangleScaleWidth;
@@ -288,7 +653,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             
     	case QUICK_MODE:
     	default:
-    	    THREADS = 16;
+    	    THREADS = 1;
     	    MAX_ITERATIONS = 25000;
     	    triangleScaleHeight = 0.5f;
     	    triangleScaleWidth = 0.5f;
@@ -327,6 +692,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         // init timer
+//        processTimer = new Timer(0, new ActionListener() { 
         processTimer = new Timer(EVOLVER_UPDATE_MS, new ActionListener() { 
 
             @Override
@@ -335,6 +701,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				// reset as needed
 				totalIterations = 0;
 				goodIterations = 0;
+				maxJumpDistanceSum = 0;
 
 				// ignore
 				if (imagePanel == null || imagePanel.getGraphics() == null) {
@@ -344,9 +711,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				
 				for (AbstractEvolver currentEvolver : evolvers) {
 					
+				    // update sequential
+				    ((ImageEvolver)currentEvolver).setSecuential(sequential);
+				    
 					totalIterations += ((ImageEvolver)currentEvolver).getTotalIterations();
 					goodIterations += ((ImageEvolver)currentEvolver).getGoodIterations();
 					
+					// average max jump distance
+//					((ImageEvolver)currentEvolver).m
+					maxJumpDistanceSum += ((ImageEvolver)currentEvolver).getRandomJumpDistance();
 
 					if (((ImageEvolver)currentEvolver).isDirty()) {
 
@@ -358,8 +731,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 							bestScore = ((ImageEvolver)currentEvolver).getBestScore();
 							bestImage = ((ImageEvolver)currentEvolver).getBestImage();
 							
-							bestPop = ((ImageEvolver)currentEvolver).getBestPop();
-							
+							try {
+							    bestPop = ((ImageEvolver)currentEvolver).getBestPop();
+							} catch (IndexOutOfBoundsException eb) {
+							    // ignore
+							} finally {
+							    // we might have an issue hidden here TODO FIXME array index out of bounds exceptions
+							}
+														
 							isDirty = true;
         				}
 						
@@ -402,51 +781,164 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             		population += ((ImageEvolver)currentEvolver).getPopulation().size();
             	}
             	
-            	lblScore.setText("S     : " + bestScore);
-//            	lblAverageScore.setText("S(AVG): " + evolver.getAverageScore());
-            	lblPopulation.setText("Pop: " + population);
-            	lblIterations.setText("I: " + goodIterations + "/" + totalIterations);
+            	/**
+            	 * Keep track of the last n iterations and good iteration count
+            	 */
+//            	float healthScore = ((float) goodIterations / (float) totalIterations) * 100f;
+            	
+            	// keep track of only the NEW GOOD ITERATIONS
+                GOOD_ITERATIONS[(int) (currentFrame % HEALTH_ITERATIONS)] = (float) (goodIterations - prevGoodIterations) * 100;
 
             	/**
             	 * This stats only make sense for benchmarking and should keep consistent, for example, printed once each 1 second
             	 */
-            	if (currentFrame++ % FPS == 0) {
-//           		System.out.println(steps++ + "," + totalIterations + "," + goodIterations + ","  + ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
-//            		System.out.println(ImageEvolver.DEFAULT_DECIMAL_FORMAT.format(bestScore));
+            	if (currentFrame % HEALTH_ITERATIONS == 0) {
+//            	    if (currentFrame % 4 == 0) {
+
+            	    lblScore.setText("S: " + df4.format(bestScore * 100f) + PERCENT_SIGN);
+                    
+            	    // avoid divisions by zero just in case
+                    if (goodIterations > 0 && totalIterations > HEALTH_ITERATIONS) {
+
+                        // health is the average of the last HEALTH_ITERATIONS count
+                        lblAverageScore.setText("H: " + df.format(streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS)) + PERCENT_SIGN);
+                    }
+                    
+                    // 
+                    lblPopulation.setText("Pop: " + population);
+                    lblIterations.setText("I: " + goodIterations + "/" + totalIterations);
+                    
+                    /**
+                     * DYNAMIC HEALTH CHECK
+                     */
+                    if (HALVE_PARAMETERS_ON_LOW_HEALTH) {
+                        
+                        if ((streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS)) <= LOW_HEALTH_HALVE_PARAMETERS_TRESHOLD ) {
+
+                            for (AbstractEvolver currentEvolver : evolvers) {
+                                
+//                                ((ImageEvolver) currentEvolver).halveGeneralParameters();
+                                ((ImageEvolver) currentEvolver).raiseMaxJumpDistance(EVOLVE_JUMPS_ADD);
+                            }
+                        }
+                        
+                        
+                    }
+                    
+                    // healthy evolve, add max jumps if count reaches treshold
+                    if (EVOLUTION_JUMPS_ENABLED) {
+
+                        if (currentFrame % (EVOLVE_HEALTH_CHECKS_ADD_MAX_JUMP_DISTANCE * HEALTH_ITERATIONS) == 0) {
+
+                            for (AbstractEvolver currentEvolver : evolvers) {
+
+                                ((ImageEvolver) currentEvolver).raiseMaxJumpDistance(-EVOLVE_JUMPS_ADD);
+                                
+                                if (((ImageEvolver) currentEvolver).getRandomJumpDistance() < 0) {
+                                    
+                                    ((ImageEvolver) currentEvolver).setRandomJumpDistance(1);
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 
+                    if (JUMPS_DEPEND_ON_FRESH_HEALTH) {
+                        
+                        float healthDifference = lastCheckHealth - streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS);
+                        
+//                        System.out.println("lastCheckHealth: " + lastCheckHealth + ", " + healthDifference);
+                        
+                        for (AbstractEvolver currentEvolver : evolvers) {
+                         
+                            // TODO implement percent based chance with FRESH_HEALTH_JUMP_PERCENT
+                            ((ImageEvolver) currentEvolver).raiseMaxJumpDistance((int) healthDifference);
+                            
+                            // NORMALIZE JUMPS
+                            if (((ImageEvolver) currentEvolver).getRandomJumpDistance() < 0) {
+                                
+                                ((ImageEvolver) currentEvolver).setRandomJumpDistance(1);
+                            }
+                        }
+                        
+                        // need to record this health check for next comparison
+                        lastCheckHealth = streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS);
+                    }
+
+                    // TOURNAMENT PRINT
+                    if (TOURNAMENT_MODE_PRINT) {
+                        for (AbstractEvolver currentEvolver : evolvers) {
+//                            System.out.print(((ImageEvolver) currentEvolver).getBestScore() + ",");
+                        }
+//                        System.out.println();
+                    }
+                    
+                    // total_iterations, good_iterations, health, best_score, max_jump_average
+//                    System.out.println(totalIterations 
+//                                        + "," + goodIterations
+//                                        + "," + streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS)
+//                                        + "," + bestScore
+//                                        + "," + ((float) maxJumpDistanceSum / (float) THREADS));
+                    
+                    if (bestScore >= 0.5f) {
+//                        System.out.println(bestScore);
+                    }
+//                    System.out.println(bestScore + "," + ((float) maxJumpDistanceSum / (float) THREADS));
+                    
+//                    System.out.println("Evolver " + ((ImageEvolver)currentEvolver).getId() + ", iterations: " + ((ImageEvolver)currentEvolver).getTotalIterations() + ", bestScore: " + ((ImageEvolver)currentEvolver).getBestScore());
             	}
+            	
+            	/**
+            	 * EXPORT n FRAMES per second
+            	 */
+            	if (EXPORT_VIDEO && currentFrame % (FPS / EXPORT_VIDEO_FRAMES_FPS) == 0) {
+            	    
+            	    if (isRendering) {
+            	        
+            	    } else {
+            	        isRendering = true;
+            	        
+                        renderBestImage();
+                        exportedImages++;
+            	    }
+            	}
+            	
+            	currentFrame++;
+            	prevGoodIterations = goodIterations;
             	
             	/**
             	 * Close and Export for Quick and Quick Extended Modes
             	 */
-            	if (CURRENT_MODE != QUALITY_MODE 
-            	        && CURRENT_MODE != QUALITY_MODE_FULL_THREADS) {
-            	    
-            	    if (totalIterations >= MAX_ITERATIONS) {
-                        
-            	        if (!offlineExport) {
-            	        
-                            //
-            	            renderBestImage();
-
-                            /**
-                             * Only call System.exit if required
-                             * 
-                             * TODO: app keeps running on standalone mode (with window invisible and disposed). FIX
-                             */
-                            setVisible(false);
-                            dispose();
-                            
-                            offlineExport = true;
-            	        }
-                    }
-            	}
+//            	if (CURRENT_MODE != QUALITY_MODE 
+//            	        && CURRENT_MODE != QUALITY_MODE_FULL_THREADS) {
+//            	    
+//            	    if (totalIterations >= MAX_ITERATIONS) {
+//                        
+//            	        if (!offlineExport) {
+//            	        
+//                            //
+//            	            renderBestImage();
+//
+//                            /**
+//                             * Only call System.exit if required
+//                             * 
+//                             * TODO: app keeps running on standalone mode (with window invisible and disposed). FIX
+//                             */
+//                            setVisible(false);
+//                            dispose();
+//                            
+//                            offlineExport = true;
+//            	        }
+//                    }
+//            	}
             }
         });
         
         Container container = getContentPane();
         Container menuContainer = new JPanel();
+        
         menuContainer.setLayout(new BoxLayout(menuContainer, BoxLayout.Y_AXIS));
-        menuContainer.setPreferredSize(new Dimension(160, 480));
+        ((JComponent) menuContainer).setBorder(BorderFactory.createEmptyBorder(32, 0, 0, 0));
 
 		imagePanel = new JPanel() {
 
@@ -465,18 +957,28 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    JButton loadButton = new JButton("Load");
 	    loadButton.setAlignmentX(Component.CENTER_ALIGNMENT);
 	    loadButton.addActionListener(this);
+	    loadButton.setMinimumSize(new Dimension(160, 24));
+	    loadButton.setPreferredSize(new Dimension(160, 24));
+	    loadButton.setMaximumSize(new Dimension(160, 24));
 	    
 	    menuContainer.add(loadButton);
 	    
 	    JButton startButton = new JButton("Start");
 	    startButton.setAlignmentX(Component.CENTER_ALIGNMENT);
       	startButton.addActionListener(this);
+      	startButton.setMinimumSize(new Dimension(160, 24));
+      	startButton.setPreferredSize(new Dimension(160, 24));
+      	startButton.setMaximumSize(new Dimension(160, 24));
       	
       	menuContainer.add(startButton);
       	
         JButton stopButton = new JButton("Stop");
         stopButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         stopButton.addActionListener(this);
+        stopButton.setMinimumSize(new Dimension(160, 24));
+        stopButton.setPreferredSize(new Dimension(160, 24));
+        stopButton.setMaximumSize(new Dimension(160, 24));
+        
         menuContainer.add(stopButton);
         
         JButton enableSecuentialButton = new JButton("Secuential");
@@ -487,48 +989,70 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         JButton source = new JButton("Source");
         source.setAlignmentX(Component.CENTER_ALIGNMENT);
         source.addActionListener(this);
+        source.setMinimumSize(new Dimension(160, 24));
+        source.setPreferredSize(new Dimension(160, 24));
+        source.setMaximumSize(new Dimension(160, 24));
+        
         menuContainer.add(source);
         
         JButton export = new JButton("Export");
         export.setAlignmentX(Component.CENTER_ALIGNMENT);
         export.addActionListener(this);
+        export.setMinimumSize(new Dimension(160, 24));
+        export.setPreferredSize(new Dimension(160, 24));
+        export.setMaximumSize(new Dimension(160, 24));
+
         menuContainer.add(export);
         
+        /**
+         * HALVE PARAMETERS
+         * DOUBLE PARAMETERS
+         * TOGGLE SECUENTIAL
+         */
+        JButton sequential = new JButton("Sequential");
+        sequential.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sequential.addActionListener(this);
+        sequential.setMinimumSize(new Dimension(160, 24));
+        sequential.setPreferredSize(new Dimension(160, 24));
+        sequential.setMaximumSize(new Dimension(160, 24));
+        
+        menuContainer.add(sequential);
+                
         Container labelContainer = new JPanel();
         
         menuContainer.add(export);
         
         //
 		lblScore = new JLabel("S: 0.0");
-		lblScore.setMinimumSize(new Dimension(160, 24));
-		lblScore.setPreferredSize(new Dimension(160, 24));
-		lblScore.setMaximumSize(new Dimension(160, 24));
-		
-		labelContainer.add(lblScore);
-		
-//		lblAverageScore = new JLabel("S(AVG): 0.0");
-//		lblAverageScore.setMinimumSize(new Dimension(160, 24));
-//		lblAverageScore.setPreferredSize(new Dimension(160, 24));
-//		lblAverageScore.setMaximumSize(new Dimension(160, 24));
-//		
-//		labelContainer.add(lblAverageScore);
+		lblScore.setHorizontalAlignment(SwingConstants.CENTER);
+		lblScore.setMinimumSize(new Dimension(220, 44));
+		lblScore.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 20));
+		lblScore.setPreferredSize(new Dimension(220, 44));
+		lblScore.setMaximumSize(new Dimension(220, 44));
 
 		//
 		lblPopulation = new JLabel("Pop: 0");
-		lblPopulation.setMinimumSize(new Dimension(160, 24));
-		lblPopulation.setPreferredSize(new Dimension(160, 24));
-		lblPopulation.setMaximumSize(new Dimension(160, 24));
-		
-		labelContainer.add(lblPopulation);
+		lblPopulation.setHorizontalAlignment(SwingConstants.CENTER);
+		lblPopulation.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 30));
+		lblPopulation.setMinimumSize(new Dimension(220, 44));
+		lblPopulation.setPreferredSize(new Dimension(220, 44));
+		lblPopulation.setMaximumSize(new Dimension(220, 44));
 
 		//
 		lblIterations = new JLabel("I: 0/0");
-		lblIterations.setMinimumSize(new Dimension(160, 24));
-		lblIterations.setPreferredSize(new Dimension(160, 24));
-		lblIterations.setMaximumSize(new Dimension(160, 24));
+		lblIterations.setHorizontalAlignment(SwingConstants.CENTER);
+		lblIterations.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 20));
+		lblIterations.setMinimumSize(new Dimension(220, 44));
+		lblIterations.setPreferredSize(new Dimension(220, 44));
+		lblIterations.setMaximumSize(new Dimension(220, 44));
 
-		labelContainer.add(lblIterations);
-
+		labelSequential = new JLabel("Sequential: OFF");
+		labelSequential.setHorizontalAlignment(SwingConstants.CENTER);
+		labelSequential.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 20));
+		labelSequential.setMinimumSize(new Dimension(220, 44));
+		labelSequential.setPreferredSize(new Dimension(220, 44));
+		labelSequential.setMaximumSize(new Dimension(220, 44));
+		
 		//
 //		lblIterationsPerSecond = new JLabel("I/second: 0.0");
 //		lblIterationsPerSecond.setMinimumSize(new Dimension(160, 24));
@@ -538,10 +1062,27 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		labelContainer.add(lblPopulation);
         labelContainer.add(lblScore);
 		labelContainer.add(lblIterations);
-//		labelContainer.add(lblIterationsPerSecond);
+		labelContainer.add(labelSequential);
+		
+        lblAverageScore = new JLabel("H: 100.00%");
+        
+        lblAverageScore.setHorizontalAlignment(SwingConstants.CENTER);
+        
+        lblAverageScore.setMinimumSize(new Dimension(220, 44));
+        lblAverageScore.setPreferredSize(new Dimension(220, 44));
+        lblAverageScore.setMaximumSize(new Dimension(220, 44));
+        lblAverageScore.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 30));
+        
+        labelContainer.add(lblAverageScore);
 		
 		menuContainer.add(labelContainer);
-      	
+		
+		// padding
+		menuContainer.setPreferredSize(new Dimension(280, 900));
+		menuContainer.setSize(new Dimension(280, 900));
+		menuContainer.setMaximumSize(new Dimension(280, 900));
+
+		//
       	container.add(menuContainer, BorderLayout.LINE_END);
       	container.add(imagePanel, BorderLayout.CENTER);
 	    
@@ -552,11 +1093,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
       		
       	} else {
       	    
-      		setSize((int) (320 * triangleScaleWidth), (int) (200 * triangleScaleHeight));
+      		setSize((int) (325 * triangleScaleWidth), (int) (200 * triangleScaleHeight));
       	}
 
-      	//
-		chooser = new JFileChooser(new File(System.getProperty("user.dir")));
+      	/**
+      	 * Set Starting folder to Source Folder instead of Classpath
+      	 */
+//		chooser = new JFileChooser(new File(System.getProperty("user.dir")));
+		chooser = new JFileChooser(new File("C:\\Media\\Art Evolver Stream"));
 		chooser.setAcceptAllFileFilterUsed(false);
 		
 		//
@@ -573,7 +1117,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 					new ArtEvolver();
 				} catch (IOException e) {
 					e.printStackTrace();
-				}
+				} catch (URISyntaxException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
             }
         });
     }
@@ -604,6 +1151,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         setSourceImage();
     }
 
+    /**
+     * Default Load Image method, this is called during normal execution of the App
+     * 
+     * @throws IOException
+     */
     public void loadImage() throws IOException {
 
     	this.chooser.resetChoosableFileFilters();
@@ -644,7 +1196,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         int newHeight = (int) (((height * heightTriangles))  - height); // substract last serrated row
 
         // initialize currentImage and resizedOriginal
-        if (resizedOriginal == null){
+        if (getResizedOriginal() == null){
             
             BufferedImage resizedOriginal = new BufferedImage(newWidth, newHeight, IMAGE_TYPE);
             
@@ -667,7 +1219,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                 ((ImageEvolver)currentEvolver).initializeIsosceles();
             }
 
-            this.resizedOriginal = resizedOriginal;
+            this.setResizedOriginal(resizedOriginal);
         }
     }
 
@@ -725,7 +1277,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     public void showSource() {
         // Draw Original Image for Comparison TODO: move to different button
         // draw bestImage to panel
-        imagePanel.getGraphics().drawImage(resizedOriginal,
+        imagePanel.getGraphics().drawImage(getResizedOriginal(),
                                            32, // TODO: make both offsets dynamic to center in JPanel
                                            32,
                                            null);
@@ -736,20 +1288,25 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     /**
      * 
      */
+    // TODO MOVE UP WITH OTHER RENDERING PARAMETERS
+    int RENDERING_SCALE = 5; // default 1
+    
     public void renderBestImage() {
         
         String [] splitted = imageSourceName.split("\\.");
         
 //        String [] splittedPath = path.split("\\");
+//        long elapsed = System.currentTimeMillis() - start;
         
-        System.out.println(imageSourceName + SEPARATOR
-//                + THREADS + SEPARATOR
-//                + (THREADS * POPULATION) + SEPARATOR
+//        System.out.println(imageSourceName + SEPARATOR
+////                + THREADS + SEPARATOR
+////                + (THREADS * POPULATION) + SEPARATOR
+//                + (float) elapsed / 1000f + SEPARATOR
 //                + totalIterations + SEPARATOR
 //                + goodIterations + SEPARATOR
-                + ((float) goodIterations / (float) totalIterations) + SEPARATOR
-                + bestScore + SEPARATOR
-                + imageCategory);
+//                + ((float) goodIterations / (float) totalIterations) + SEPARATOR
+//                + bestScore + SEPARATOR
+//                + imageCategory);
 
         if (EXPORT_ENABLED) {
             Renderer.renderToPNG(bestPop,
@@ -759,8 +1316,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                     (int) (width * widthTriangles),
                     (int) (height * (heightTriangles - 1)), // do not render last row
                     IMAGE_TYPE,
-                    1);
+                    RENDERING_SCALE);
         }
+        
+        ArtEvolver.isRendering = false;
     }
     
 	@Override
@@ -780,7 +1339,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 			} catch (IOException e) {
 			    
 			    // ignore close button
-//				e.printStackTrace();
+				e.printStackTrace();
 			}
 		}
 		
@@ -792,8 +1351,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 			stop();
 		}
 		
-		if (event.getActionCommand().equals("Secuential")) {
-//			evolver.switchSecuential();
+		if (event.getActionCommand().equals("Sequential")) {
+		    
+		    sequential = !sequential;
+		    
+		    labelSequential.setText("Sequential: " + (sequential ? "ON" : "OFF"));
 		}
 		
         if (event.getActionCommand().equals("Source")) {
@@ -814,6 +1376,38 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		        // 
 		        exportedImages++;
 		    }
+		    
+		    if (exportPaintByColors) {
+		        
+		        PaintByColorsExporter.paintByColors(bestPop);
+		    }
 		}
 	}
+	
+	// Returns the new average after including x
+    static float getAvg(float prevAvg, float x, int n) {
+        
+        return (prevAvg * n + x) / (n + 1);
+    }
+	
+    public BufferedImage getResizedOriginal() {
+        return resizedOriginal;
+    }
+
+    public void setResizedOriginal(BufferedImage resizedOriginal) {
+        this.resizedOriginal = resizedOriginal;
+    }
+
+    // Returns the average of a stream of numbers
+    static float streamAvg(float [] array, int n) {
+        
+        float avg = 0;
+        
+        for (int i = 0; i < n; i++) {
+            
+            avg = getAvg(avg, array[i], i);
+        }
+        
+        return avg;
+    }
 }

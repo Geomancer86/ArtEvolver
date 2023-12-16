@@ -1,5 +1,7 @@
 package com.rndmodgames.evolver.render;
 
+import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -36,6 +38,10 @@ public class Renderer {
 		Graphics g = export.getGraphics();
 		Graphics2D g2d = (Graphics2D) g;
 		
+		String fontString = "MS Gothic";
+		Font font = new Font(fontString, Font.PLAIN, 3);
+		g2d.setFont(font);
+		
 		g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
 				   		     RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 		
@@ -54,6 +60,34 @@ public class Renderer {
 			g2d.setColor(triangle.getColor());
 			g2d.drawPolygon(triangle);
 			g2d.fillPolygon(triangle);
+			
+
+		}
+		
+        // Color Label
+        g2d.setColor(Color.BLACK);
+		
+        // label offset for better centering
+        int xOffset = -4;
+        int yOffset = -2;
+        
+		// render text on a second pass
+		for (Triangle triangle : drawing) {
+		    
+	        // Ignore triangles without coordinates (non in the image) 
+	        if ((int) triangle.getBounds().getCenterX() != 0 &&
+	                (int) triangle.getBounds().getCenterY() != 0) {
+	    
+		        Renderer.drawString(g2d,
+		                            triangle.getPalleteColor().getName(),
+            		                (int) triangle.getBounds().getCenterX() + xOffset,
+            		                (int) triangle.getBounds().getCenterY() + yOffset);
+	        }
+//		        g.drawString(line, (int) triangle.getBounds().getCenterX() + xOffset, y += g.getFontMetrics().getHeight());
+		    
+//            g2d.drawString(triangle.getPalleteColor().getName(),
+//                           (int) triangle.getBounds().getCenterX() + xOffset,
+//                           (int) triangle.getBounds().getCenterY() + yOffset);
 		}
 		
 		try {
@@ -62,7 +96,7 @@ public class Renderer {
 //		    System.out.println("height: " + height);
 //		    
 //		    //
-//		    System.out.println("target: " + folder + sourceName + "_" + order + ".png");
+		    System.out.println("target: " + folder + sourceName + "_" + order + ".png");
 		    
 		    // 
             ImageIO.write(export, "png", new File(folder + sourceName + "_" + order + ".png"));
@@ -75,5 +109,13 @@ public class Renderer {
 		//
 		g2d.dispose();
 		g.dispose();
+	}
+	
+	static void drawString(Graphics g, String text, int x, int y) {
+	    
+	    for (String line : text.split("\n")) {
+	        //
+	        g.drawString(line, x, y += g.getFontMetrics().getHeight());
+	    }
 	}
 }

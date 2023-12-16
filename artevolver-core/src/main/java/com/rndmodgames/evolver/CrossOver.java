@@ -1,22 +1,48 @@
 package com.rndmodgames.evolver;
 
-import java.awt.Color;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-
-
 public class CrossOver {
 	
-	public static final Random random = new Random();
-	
+    // keep track of the evolver to update parameters live
+    ImageEvolver evolverInstance;
+
 	// self mutations
-	public static final float GRID_MUTATION_PERCENT         = -0.3f;
-	public static final float RANDOM_CLOSE_MUTATION_PERCENT = 0.3f;
-	public static final float RANDOM_MUTATION_PERCENT 		= 0.3f;
-	public static final float RANDOM_MULTI_MUTATION 		= 0.3f;
-	public static final int   RANDOM_MULTI_MUTATION_MAX     = 2;
-	public static int         CLOSE_MUTATIONS_PER_CHILD     = 8;
+	public static       float MAX_RANDOM_MUTATION_PERCENT  =  1f; // default is 1f
+	public static       float RANDOM_MUTATION_PERCENT_ADD  =  1f / 10000f; // default is 1 each 10000
+	public static final float RANDOM_MULTI_MUTATION 		= 1f; // default is 1f
+	public static final int   RANDOM_MULTI_MUTATION_MAX     = 0; // default is 0
+	public static final int   CLOSE_MUTATIONS_PER_CHILD     = 0; // default is 0
+	
+	/**
+     * Grid Crossover
+     * 
+     * MAIN
+     */
+    public static float GRID_MUTATION_CHANCES = 32; // default is 32
+    public static float GRID_MUTATION_PERCENT = 1f; // default is 1
+    public static float GRID_MUTATION_DECAY  =  1f / 10; // default is 1
+	
+    /**
+     * Fully Random Crossover
+     */
+    public static int RANDOM_MUTATION_CHANCES =  1000; // default is 1000
+    public static float RANDOM_MUTATION_PERCENT = 1f / 1000f; // default is 1 each 100
+    public static float RANDOM_MUTATION_CHANCES_SUBSTRACT =  1f / 100f; // default is 1 each 100
+    
+	/**
+	 * Random Close Crossover
+	 */
+	public static int RANDOM_CLOSE_MUTATION_CHANCES =  20; // default is 1 each 1000
+	public static float RANDOM_CLOSE_MUTATION_PERCENT = 1f / 10000; // default is 1 each 10000
+
+	/**
+	 * Random Grid Crossover
+	 */
+	public static int RANDOM_GRID_MUTATION_CHANCES = 10; // default is 1
+    public static float RANDOM_GRID_MUTATION_PERCENT = 1f / 10000; // default is 1
+	
+	public static       int   TOTAL_GRIDS                   =  24; // NEEDS TO BE == THREADS
+	public static       int   DEFAULT_GRID_SIZE             = 256; // default is 4260
+	public static       int   MINIMUM_GRID_SIZE             =   2; // default is 4260
 	
 	// crossover mutations
 	public static final float RANDOM_CROSSOVER_PERCENT 				  = -0.01f;
@@ -32,26 +58,67 @@ public class CrossOver {
 	private int randomJumpDistance;
 	private int crossoverMax;
 	
-	public CrossOver(int randomJumpDistance, int crossoverMax){
+	/**
+	 * Main constructor
+	 * 
+	 * @param randomJumpDistance
+	 * @param crossoverMax
+	 */
+	public CrossOver(int randomJumpDistance, int crossoverMax, ImageEvolver evolverInstance){
+	    
 		this.setRandomJumpDistance(randomJumpDistance);
 		this.crossoverMax = crossoverMax;
+		
+		// keep track
+		this.evolverInstance = evolverInstance;
+		
+		// set grid size dynamically defaults to false
+		boolean dynamicGridSize = true;
+		
+		/**
+		 * TODO: this needs to be the number of triangles or colors
+		 */
+		if (dynamicGridSize) {
+//		    DEFAULT_GRID_SIZE = (ArtEvolver.heightTriangles * ArtEvolver.widthTriangles) / TOTAL_GRIDS;
+//		    DEFAULT_GRID_SIZE = 6048 / TOTAL_GRIDS;
+//		    DEFAULT_GRID_SIZE = 23868 / TOTAL_GRIDS;
+//		    DEFAULT_GRID_SIZE = 6006 / TOTAL_GRIDS;
+//		    DEFAULT_GRID_SIZE = 6048 / TOTAL_GRIDS;
+//		    DEFAULT_GRID_SIZE = (102*57) / TOTAL_GRIDS;
+		    
+//		    DEFAULT_GRID_SIZE = (38*39) / TOTAL_GRIDS; // 1 palette
+//		    DEFAULT_GRID_SIZE = (54*55) / TOTAL_GRIDS; // 2 palettes
+//		    DEFAULT_GRID_SIZE = (66*67) / TOTAL_GRIDS; // 3 palettes
+//		    DEFAULT_GRID_SIZE = (76*77) / TOTAL_GRIDS; // 4 palettes
+//		    DEFAULT_GRID_SIZE = (86*87) / TOTAL_GRIDS; // 5 palettes
+//		    DEFAULT_GRID_SIZE = (94*95) / TOTAL_GRIDS; // 6 palettes
+//		    DEFAULT_GRID_SIZE = (110*111) / TOTAL_GRIDS; // 8 palettes
+//		    DEFAULT_GRID_SIZE = (156*157) / TOTAL_GRIDS; // 16 palettes
+		    
+		    // RECTANGULAR
+		    DEFAULT_GRID_SIZE = (80*53) / TOTAL_GRIDS; // 1 palettes
+//		    DEFAULT_GRID_SIZE = (66*45) / TOTAL_GRIDS; // 2 palettes
+//		    DEFAULT_GRID_SIZE = (96*63) / TOTAL_GRIDS; // 4 palettes
+		}
 	}
 	
 	public void halveParameters() {
-		setRandomJumpDistance(getRandomJumpDistance() - 1);
-//		crossoverMax -= -2;
-		
-		if (getRandomJumpDistance() <= 0) {
+	    
+	    setRandomJumpDistance((int) (getRandomJumpDistance() / 2));
+
+		if (getRandomJumpDistance() <= 1) {
 			setRandomJumpDistance(1);
 		}
 	}
 	
-	public void incrementParameters() {
-		if (getRandomJumpDistance() > 128) {
-			return;
-		}
-		
-		setRandomJumpDistance(getRandomJumpDistance() + 1);
+	/**
+	 * TODO: validate max distance before raising number
+	 * 
+	 * @param distance
+	 */
+	public void incrementParameters(int distance) {
+
+		setRandomJumpDistance(getRandomJumpDistance() + distance);
 	}
 	
 	private TriangleList<Triangle> unusedColors = new TriangleList<>();
@@ -159,7 +226,7 @@ public class CrossOver {
 				System.exit(0);
 			}
 			
-			Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor());
+			Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor(), triangle.getPalleteColor());
 			child.add(copy);
 			
 		}
@@ -178,48 +245,70 @@ public class CrossOver {
 		TriangleList<Triangle> child = new TriangleList<Triangle>();
 
 		// base parent chance 50/50
-		Boolean isParentA = random.nextBoolean();
+		boolean isParentA = ImageEvolver.random.nextBoolean();
 		
 		if (isParentA){
 			for (Triangle triangle : parentA){
-				Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor());
+				Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor(), triangle.getPalleteColor());
 				child.add(copy);
 			}
 		}else{
 			for (Triangle triangle : parentB){
-				Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor());
+				Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor(), triangle.getPalleteColor());
 				child.add(copy);
 			}
 		}
 
-		boolean notEvolved = true;
+		/**
+		 * Random Close Crossover
+		 */
+        for (int a = 0; a < RANDOM_CLOSE_MUTATION_CHANCES; a++) {
+
+            if (ImageEvolver.random.nextFloat() < RANDOM_CLOSE_MUTATION_PERCENT) {
+
+                for (int b = 0; b < CLOSE_MUTATIONS_PER_CHILD; b++) {
+                    ImageEvolver.switchCloseColor(child, this.randomJumpDistance);
+                }
+            }
+        }
+
+		/**
+		 * Fully Random Crossovers
+		 */
+	    for (int a = 0; a < RANDOM_MUTATION_CHANCES; a++) {
+            
+	        //
+            if (ImageEvolver.random.nextFloat() < RANDOM_MUTATION_PERCENT) {
+    
+                ImageEvolver.switchRandomColor(child);
+
+            }
+	    }
 		
-		while(notEvolved) {
-			
-			if (random.nextFloat() < GRID_MUTATION_PERCENT){
-				ImageEvolver.switchGridColor(child, evolverId);
-				notEvolved = false;
-			}
-			
-			if (random.nextFloat() < RANDOM_CLOSE_MUTATION_PERCENT){
-				for (int a = 0; a < CLOSE_MUTATIONS_PER_CHILD; a++) {
-					ImageEvolver.switchCloseColor(child, this.randomJumpDistance);
-				}
-				
-				notEvolved = false;
-			}
-			
-			if (random.nextFloat() < RANDOM_MUTATION_PERCENT){
-				ImageEvolver.switchRandomColor(child);
-				notEvolved = false;
-			}
-		
-			if (random.nextFloat() < RANDOM_MULTI_MUTATION){
-				ImageEvolver.switchRandomMultiColor(child, RANDOM_MULTI_MUTATION_MAX);
-				notEvolved = false;
-			}
-		}
-		
+		/**
+		 * Grid Crossovers
+		 */
+        for (int a = 0; a < GRID_MUTATION_CHANCES; a++) {
+
+            if (ImageEvolver.random.nextFloat() < GRID_MUTATION_PERCENT) {
+
+                //
+                ImageEvolver.switchGridColor(child, evolverId, DEFAULT_GRID_SIZE);
+            }
+        }
+        
+        /**
+         * Random Grid Crossovers
+         */
+        for (int a = 0; a < RANDOM_GRID_MUTATION_CHANCES; a++) {
+
+            if (ImageEvolver.random.nextFloat() < RANDOM_GRID_MUTATION_PERCENT) {
+
+                //
+                ImageEvolver.switchGridColor(child, ImageEvolver.roll(TOTAL_GRIDS), DEFAULT_GRID_SIZE);
+            }
+        }
+
 		return child;
 	}
 
@@ -227,7 +316,7 @@ public class CrossOver {
 		TriangleList<Triangle> child = new TriangleList<Triangle>();
 		
 		for (Triangle triangle : parent){
-			Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor());
+			Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor(), triangle.getPalleteColor());
 			child.add(copy);
 		}
 		
@@ -243,4 +332,24 @@ public class CrossOver {
 	public void setRandomJumpDistance(int randomJumpDistance) {
 		this.randomJumpDistance = randomJumpDistance;
 	}
+
+	/**
+	 * 
+	 */
+    public static void halveGridSize() {
+
+        RANDOM_MUTATION_CHANCES -= RANDOM_MUTATION_CHANCES_SUBSTRACT;
+        
+        GRID_MUTATION_CHANCES -= GRID_MUTATION_DECAY;
+        
+        if (GRID_MUTATION_CHANCES < 1) {
+            
+            GRID_MUTATION_CHANCES = 1;
+        }
+        
+        if (RANDOM_MUTATION_CHANCES <= 10) {
+            
+            RANDOM_MUTATION_CHANCES = 10;
+        }
+    }
 }

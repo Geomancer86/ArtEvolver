@@ -14,8 +14,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import java.util.SplittableRandom;
-import java.util.concurrent.Executors;
+import java.util.Random;
 import java.util.stream.Stream;
 
 /**
@@ -23,16 +22,22 @@ import java.util.stream.Stream;
  * 
  * This is the current/latest ImageEvolver used by ArtEvolver
  * 
- * TODO: ImageEvolver 2.0
- * 
  * @author Geomancer86
  */
 public class ImageEvolver extends AbstractEvolver {
 
+    /**
+     * Random Research
+     */
 //	public static final MersenneTwisterFast random = new MersenneTwisterFast();
-	public static final SplittableRandom random = new SplittableRandom();
+//	public static final SplittableRandom random = new SplittableRandom();
+	public static final Random random = new Random();
+	
 	public final boolean KILL_PARENTS = false;
 
+	// default is true
+	public static boolean SHUFFLE_PALETTE = false;
+	
 	public final static DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("##.###################");
 	
 	private Long id = null;
@@ -73,13 +78,14 @@ public class ImageEvolver extends AbstractEvolver {
 		this.pallete = pallete;
 		this.height = height;
 		this.width = width;
-		this.randomJumpDistance = randomJumpDistance;
+		this.setRandomJumpDistance(randomJumpDistance);
 		this.crossoverMax = crossoverMax;
 
 		this.triangleHeight = triangleHeight;
 		this.triangleWidth = triangleWidth;
 
-		initCrossOver();
+		// keep track of instance
+		initCrossOver(this);
 	}
 	
 	public void setId(Long id) {
@@ -90,8 +96,12 @@ public class ImageEvolver extends AbstractEvolver {
 		return this.id;
 	}
 
-	public void initCrossOver() {
-		crossOver = new CrossOver(randomJumpDistance, crossoverMax);
+	/**
+	 * @param evolverInstance
+	 */
+	public void initCrossOver(ImageEvolver evolverInstance) {
+	    
+		crossOver = new CrossOver(getRandomJumpDistance(), crossoverMax, evolverInstance);
 	}
 
 	/**
@@ -131,7 +141,7 @@ public class ImageEvolver extends AbstractEvolver {
 										Integer.parseInt(splitted[8]),
 										Integer.parseInt(splitted[9]));
 				
-				Triangle triangle = new Triangle(xPoly, yPoly, 3, null, color);
+				Triangle triangle = new Triangle(xPoly, yPoly, 3, null, color, null); // TODO: implement get color name by colorId
 				triangles.add(triangle);
 			});
 			
@@ -249,11 +259,11 @@ public class ImageEvolver extends AbstractEvolver {
 						Color color = null;
 						
 						if (pallete.getColor(count) != null) {
-							colorId = pallete.getColor(count).id;
-							color = pallete.getColor(count).color;
+							colorId = pallete.getColor(count).getId();
+							color = pallete.getColor(count).getColor();
 						}
 
-						Triangle triangle = new Triangle(xPoly, yPoly, 3, colorId, color);
+						Triangle triangle = new Triangle(xPoly, yPoly, 3, colorId, color, pallete.getColor(count));
 						triangles.add(triangle);
 
 						count++;
@@ -261,8 +271,10 @@ public class ImageEvolver extends AbstractEvolver {
 				}
 
 				// randomize
-				for (int k = 0; k < triangles.size() * randomMult; k++){
-					switchColor(triangles, roll(triangles.size()), roll(triangles.size()));
+				if (SHUFFLE_PALETTE) {
+				    for (int k = 0; k < triangles.size() * randomMult; k++){
+				        switchColor(triangles, roll(triangles.size()), roll(triangles.size()));
+				    }
 				}
 
 				pop.add(triangles);
@@ -323,6 +335,9 @@ public class ImageEvolver extends AbstractEvolver {
 				TriangleList<Triangle> triangles = new TriangleList<Triangle>();
 				int count = 0;
 
+				/**
+				 * 
+				 */
 				for (int a = 0; a < triangleWidth; a++) {
 					for (int b = 0; b < triangleHeight; b++) {
 						int xPoly[] = new int[3];
@@ -352,11 +367,12 @@ public class ImageEvolver extends AbstractEvolver {
 						yPoly[2] -= (height * scale) * (b / 2);
 
 						Color color = null;
+						
 						if (pallete.getColor(count) != null) {
-							color = pallete.getColor(count).color;
+							color = pallete.getColor(count).getColor();
 						}
 
-						Triangle triangle = new Triangle(xPoly, yPoly, 3, color);
+						Triangle triangle = new Triangle(xPoly, yPoly, 3, color, pallete.getColor(count));
 						triangles.add(triangle);
 
 						count++;
@@ -421,9 +437,16 @@ public class ImageEvolver extends AbstractEvolver {
 		Triangle origin = triangles.get(a);
 		Triangle dest = triangles.get(b);
 
+		// switch colors
 		Color aux = origin.getColor();
 		origin.setColor(dest.getColor());
 		dest.setColor(aux);
+		
+		
+		// switch palette colors
+		PalleteColor aux2 = origin.getPalleteColor();
+		origin.setPalleteColor(dest.getPalleteColor());
+		dest.setPalleteColor(aux2);
 	}
 
 	/**
@@ -434,9 +457,15 @@ public class ImageEvolver extends AbstractEvolver {
 		Triangle origin = triangles.get(roll(triangles.size()));
 		Triangle dest = triangles.get(roll(triangles.size()));
 
+		// switch colors
 		Color aux = origin.getColor();
 		origin.setColor(dest.getColor());
 		dest.setColor(aux);
+		
+		// switch palette colors
+        PalleteColor aux2 = origin.getPalleteColor();
+        origin.setPalleteColor(dest.getPalleteColor());
+        dest.setPalleteColor(aux2);
 	}
 
 	/**
@@ -447,51 +476,37 @@ public class ImageEvolver extends AbstractEvolver {
 	 * @param x
 	 * @param y
 	 */
-	public static void switchGridColor(List<Triangle> triangles, int id) {
+	public static void switchGridColor(List<Triangle> triangles, int id, int gridSize) {
 
 		// calculate x,y limits for each grid (per ID)
-		int a = roll(128) + (128 * id);
-		int b = roll(128) + (128 * id);
+		int a = roll(gridSize) + (gridSize * id);
+		int b = roll(gridSize) + (gridSize * id);
 		
-		while (b == a) {
-			a = roll(128) + (128 * id);
+//		System.out.println("gridSize: " + gridSize + ", a: " + a + ", b:" + b);
+		
+		if (a >= triangles.size() || b >= triangles.size()) {
+		    System.out.println("grid outside population check parameters");
+		    System.out.println("gridSize: " + gridSize + ", a: " + a + ", b:" + b + ", triangles: " + triangles.size());
+		    // ignore for now
+		    return;
+		}
+		
+		while (b == a || a >= triangles.size()) {
+			a = roll(gridSize) + (gridSize * id);
 		}
 		
 		Triangle origin = triangles.get(a);
 		Triangle dest = triangles.get(b);
 
+		// switch colors
 		Color aux = origin.getColor();
 		origin.setColor(dest.getColor());
 		dest.setColor(aux);
-	}
-	
-	// TODO implement randomization
-	public static void switchRandomMultiColor(List<Triangle> triangles, int maxTriangles) {
-
-		int origin = roll(triangles.size());
-		int dest = roll(triangles.size());
-
-		if (origin >= triangles.size() - 1) {
-			origin = triangles.size() - 2;
-		}
-
-		if (dest >= triangles.size() - 1) {
-			dest = triangles.size() - 2;
-		}
-
-		Triangle triangle1 = triangles.get(origin);
-		Triangle triangle2 = triangles.get(origin + 1);
-
-		Triangle triangle3 = triangles.get(dest);
-		Triangle triangle4 = triangles.get(dest + 1);
-
-		Color aux = triangle1.getColor();
-		triangle1.setColor(triangle3.getColor());
-		triangle3.setColor(aux);
-
-		Color aux2 = triangle2.getColor();
-		triangle2.setColor(triangle4.getColor());
-		triangle4.setColor(aux2);
+		
+		// switch palette colors
+        PalleteColor aux2 = origin.getPalleteColor();
+        origin.setPalleteColor(dest.getPalleteColor());
+        dest.setPalleteColor(aux2);
 	}
 
 	public static void switchCloseColor(TriangleList<Triangle> triangles, int randomJumpDistance) {
@@ -518,9 +533,15 @@ public class ImageEvolver extends AbstractEvolver {
 		Triangle origin = triangles.get(pos);
 		Triangle dest = triangles.get(des);
 
+		// switch colors
 		Color aux = origin.getColor();
 		origin.setColor(dest.getColor());
 		dest.setColor(aux);
+		
+		// switch palette colors
+        PalleteColor aux2 = origin.getPalleteColor();
+        origin.setPalleteColor(dest.getPalleteColor());
+        dest.setPalleteColor(aux2);
 	}
 
 	public static int roll(int n) {
@@ -824,7 +845,7 @@ public class ImageEvolver extends AbstractEvolver {
 				
 			} else {
 				
-//				 parent is always 0, order by score so 0 is always the best
+//				parent is always 0, order by score so 0 is always the best
 			    
 			    /**
 			     * FITNESS BASED PARENT SELECTION
@@ -832,51 +853,111 @@ public class ImageEvolver extends AbstractEvolver {
 			     * - population should be ordered
 			     * - position 0 is best fitness
 			     */
-			    Collections.sort(pop, new TrianglesComparator());
+			    
+			    // default is true
+			    boolean sortPopulation = true;
+			    
+			    if (sortPopulation) {
+			        Collections.sort(pop, new TrianglesComparator());
+			    }
 			    
 			    boolean isSelectedParentA = false;
 			    int selectedId = 0;
 			    
-			    float fitnessRoll = (float) random.nextDouble();
+			    // fitness based is default true
+			    boolean fitnessBasedEnabled = true;
 			    
-			    while(!isSelectedParentA) {
-			        
-			        /**
-			         * Higher fitness have higher chances to be picked
-			         */
-			        if (fitnessRoll >= pop.get(selectedId).getScore()) {
-			            
-			            parentA = pop.get(selectedId);
-			            isSelectedParentA = true;
-			            
-			        } else {
-			            
-			            selectedId++;
-			            fitnessRoll = (float) random.nextDouble();
-			        }
-			    }
+			    // default is false
+			    boolean fitnessPickLowerScore = false;
 			    
-			    boolean isSelectedParentB = false;
-			    int selectedBId = 0;
+			    // START OF FITNESS BASED
+			    if (fitnessBasedEnabled) {
 			    
-			    fitnessRoll = (float) random.nextDouble();
-			    
-			    while(!isSelectedParentB) {
-                    
-                    /**
-                     * Higher fitness have higher chances to be picked
-                     */
-                    if (fitnessRoll >= pop.get(selectedId).getScore() && selectedBId != selectedId) {
+    			    float fitnessRoll = (float) random.nextDouble();
+    			    
+    			    while(!isSelectedParentA) {
+    			        
+    			        /**
+    			         * Higher fitness have higher chances to be picked
+    			         */
+    			        if (fitnessPickLowerScore) {
+    			            
+    			            if (fitnessRoll <= pop.get(selectedId).getScore()) {
+    	                        
+    	                        parentA = pop.get(selectedId);
+    	                        isSelectedParentA = true;
+    	                        
+    	                    } else {
+    	                        
+    	                        selectedId++;
+    	                        fitnessRoll = (float) random.nextDouble();
+    	                    }
+    			            
+    			        } else {
+    			            
+    			            if (fitnessRoll >= pop.get(selectedId).getScore()) {
+    	                        
+    	                        parentA = pop.get(selectedId);
+    	                        isSelectedParentA = true;
+    	                        
+    	                    } else {
+    	                        
+    	                        selectedId++;
+    	                        fitnessRoll = (float) random.nextDouble();
+    	                    }
+    			        }
+    			    }
+    			    
+    			    boolean isSelectedParentB = false;
+    			    int selectedBId = 0;
+    			    
+    			    fitnessRoll = (float) random.nextDouble();
+    			    
+    			    while(!isSelectedParentB) {
                         
-                        parentB = pop.get(selectedBId);
-                        isSelectedParentB = true;
-                        
-                    } else {
-                        
-                        selectedBId++;
-                        fitnessRoll = (float) random.nextDouble();
+    			        if (fitnessPickLowerScore) {
+    			            
+    			            /**
+    	                     * Higher fitness have higher chances to be picked
+    	                     */
+    	                    if (fitnessRoll <= pop.get(selectedId).getScore() && selectedBId != selectedId) {
+    	                        
+    	                        parentB = pop.get(selectedBId);
+    	                        isSelectedParentB = true;
+    	                        
+    	                    } else {
+    	                        
+    	                        selectedBId++;
+    	                        fitnessRoll = (float) random.nextDouble();
+    	                    }
+    			            
+    			        } else {
+    			            
+    			            /**
+    	                     * Higher fitness have higher chances to be picked
+    	                     */
+    	                    if (fitnessRoll >= pop.get(selectedId).getScore() && selectedBId != selectedId) {
+    	                        
+    	                        parentB = pop.get(selectedBId);
+    	                        isSelectedParentB = true;
+    	                        
+    	                    } else {
+    	                        
+    	                        selectedBId++;
+    	                        fitnessRoll = (float) random.nextDouble();
+    	                    }
+    			        }
                     }
-                }
+			    
+    			 // END OF FITNESS BASED
+    			    
+			    } else {
+			        
+			        // pick both best parents
+			        parentA = pop.get(0);
+			        parentB = pop.get(1);
+			    }
+
 			}
 
 			if (!secuential) {
@@ -990,6 +1071,11 @@ public class ImageEvolver extends AbstractEvolver {
 				isDirty = true;
 			}
 
+			// this is ok default to false, when a better image is found the better parent (position zero) is replaced
+			// NOTE: keep both set to false for optimal results
+			boolean killWorst = false;
+			boolean insertBetterChildFirst = false;
+			
 			// BETTER IMAGE
 			if (scoreC > bestScore) {
 				bestScore = scoreC;
@@ -997,9 +1083,25 @@ public class ImageEvolver extends AbstractEvolver {
 				goodIterations++;
 				
 				// NOTE: worst cases will be taken care by the Tournament Optimizations
-				pop.remove(0);
-//				pop.remove(parentA);
-				pop.add(childA);
+				if (killWorst) {
+				    
+				    // remove last, should be ordered
+				    pop.remove(pop.size()-1);
+				} else {
+				
+				    // by default we kill the best parent?
+				    pop.remove(0);
+				}
+
+				if (insertBetterChildFirst) {
+				    
+				    pop.add(0, childA);
+				    
+				} else {
+				    
+				    // default
+				    pop.add(childA);
+				}
 
 				isDirty = true;
 				
@@ -1019,20 +1121,60 @@ public class ImageEvolver extends AbstractEvolver {
 				// IF CHILDREN IS BETTER THAN PARENT, KEEP IT AND KILL THE PARENT
 				
 				goodIterations++;
-				pop.remove(parentA);
-				pop.add(childA);
+				
+				if (killWorst) {
+				    
+				    // remove last, should be ordered
+                    pop.remove(pop.size()-1);
+				    
+				} else {
+				    
+				    // by default we kill the best parent?
+				    pop.remove(parentA);
+				}
+				
+				if (insertBetterChildFirst) {
+                    
+                    pop.add(0, childA);
+                    
+                } else {
+                    
+                    // default
+                    pop.add(childA);
+                }
 			}
 
 			totalIterations++;
 
-			boolean tournamentEnabled = false;
+			// tournament enabled defaults to false
+			boolean tournamentEnabled = true;
 			
-			if (tournamentEnabled) {
-			    
-			    if (totalIterations % 1000 == 0){
+			// cross over halving default to false
+			boolean crossoverHalvingEnabled = false;
+			
+			// factor default 0.01f
+//			float factor = 0.01f;
+			
+			// float tournament round size default is 1000
+			int tournamentRoundSize = 80;
+			
+			// close mutations per child default to false
+			boolean closeMutationsTournamentEnabled = true;
+			
+			if (tournamentEnabled && totalIterations % tournamentRoundSize == 0) {
 
+			    CrossOver.halveGridSize();
+			    crossOver.halveParameters();
+			    
+	             //
+//                if (crossoverHalvingEnabled) {
+//                    
+//                    crossOver.halveParameters();
+//                    this.randomJumpDistance = crossOver.getRandomJumpDistance();
+//                }
+			    
 //	              long now = System.currentTimeMillis();
-	//
+//////
 //	              System.out.println("id: " + id + " - i: " + totalIterations
 //	                               + " - good: " + goodIterations
 //	                               + " - p: " + pop.size()
@@ -1042,42 +1184,41 @@ public class ImageEvolver extends AbstractEvolver {
 //	                               + " - total time: " + DEFAULT_DECIMAL_FORMAT.format(((float) (now - start)) / 1000f) + " seconds");
 
 //	              System.out.println(DEFAULT_DECIMAL_FORMAT.format(bestScore));
-	                
-	                crossOver.halveParameters();
-	                
-	                /**
-	                 * v.1.0.0 optimizations
-	                 *  - CLOSE_MUTATIONS_PER_CHILD * pop
-	                 */
-	                
-	                float factor = 1.0f;
-	                
-	                if (totalIterations == 2500 * pop.size() * factor) {
-	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
-	                }
-	                
-	                if (totalIterations == 15000 * pop.size() * factor) {
-	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
-	                }
-	                
-	                if (totalIterations == 35000 * pop.size() * factor) {
-	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
-	                }
-	                
-	                if (totalIterations == 75000 * pop.size() * factor) {
-	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
-	                }
-	                
-	                if (totalIterations % 75000 * 2 == 0) {
-	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
-	                }
-	                
-	                if (CrossOver.CLOSE_MUTATIONS_PER_CHILD < 1) {
-	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = 1;
-	                }
-	            }
+                
 
-			}
+                
+                /**
+                 * v.1.0.0 optimizations
+                 *  - CLOSE_MUTATIONS_PER_CHILD * pop
+                 */
+                
+//                if (closeMutationsTournamentEnabled) {
+                
+//	                if (totalIterations == 2500 * pop.size() * factor) {
+//	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+//	                }
+//	                
+//	                if (totalIterations == 15000 * pop.size() * factor) {
+//	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+//	                }
+//	                
+//	                if (totalIterations == 35000 * pop.size() * factor) {
+//	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+//	                }
+//	                
+//	                if (totalIterations == 75000 * pop.size() * factor) {
+//	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+//	                }
+//	                
+//	                if (totalIterations % 75000 * 2 == 0) {
+//	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = CrossOver.CLOSE_MUTATIONS_PER_CHILD / 2;
+//	                }
+//	                
+//	                if (CrossOver.CLOSE_MUTATIONS_PER_CHILD < 1) {
+//	                    CrossOver.CLOSE_MUTATIONS_PER_CHILD = 1;
+//	                }
+//                }
+            }
 		}
 //	}
 //		long evolveNow = System.currentTimeMillis();
@@ -1092,6 +1233,12 @@ public class ImageEvolver extends AbstractEvolver {
 	}
 	
 	public TriangleList<Triangle> getBestPop(){
+	    
+	    //
+	    if (this.pop.size() == 1) {
+	        return this.pop.get(0);
+	    }
+	    
 		return this.pop.get(this.pop.size() - 1);
 	}
 	
@@ -1122,4 +1269,39 @@ public class ImageEvolver extends AbstractEvolver {
 			}
 		}
 	}
+
+	public void raiseMaxJumpDistance(int eVOLVE_JUMPS_ADD) {
+	    
+	    if (this.randomJumpDistance >= 1) {
+	        
+	        crossOver.incrementParameters(eVOLVE_JUMPS_ADD);
+	        this.randomJumpDistance = crossOver.getRandomJumpDistance();
+	        
+	    } else {
+	        
+	        crossOver.setRandomJumpDistance(1);
+	        this.randomJumpDistance = 1;
+	    }
+	}
+	
+	public void halveGeneralParameters() {
+	    crossOver.halveParameters();
+        this.randomJumpDistance = crossOver.getRandomJumpDistance();
+	}
+	
+    public int getRandomJumpDistance() {
+        return randomJumpDistance;
+    }
+
+    public void setRandomJumpDistance(int randomJumpDistance) {
+        this.randomJumpDistance = randomJumpDistance;
+    }
+
+    public boolean isSecuential() {
+        return secuential;
+    }
+
+    public void setSecuential(boolean secuential) {
+        this.secuential = secuential;
+    }
 }

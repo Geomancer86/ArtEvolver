@@ -31,10 +31,10 @@
     
     <properties>
     	<!-- junit -->
-   		<junit.version>4.12</junit.version>
+   		<junit.version>5.8.1</junit.version>
    		
    		<!-- JaCoCo -->
-   		<jacoco.version>0.7.9</jacoco.version>
+   		<jacoco.version>0.8.8</jacoco.version>
     </properties>
 
 	<repositories>
@@ -42,12 +42,9 @@
 			<id>central</id>
 			<url>https://repo1.maven.org/maven2</url>
 		</repository>
-		<repository>
-            <id>spookygames</id>
-            <url>https://dl.bintray.com/spookygames/oss</url>
-        </repository>
 	</repositories>
 
+<<<<<<< HEAD
     <build>
 		<sourceDirectory>\${basedir}/src/main/java</sourceDirectory>
 		<resources>
@@ -97,12 +94,16 @@
 		</plugins>
 	</build>
 
+=======
+>>>>>>> solid_release_candidate
     <dependencies>
     	<!-- JUnit -->
 		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>${junit.version}</version>
-		</dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        
     </dependencies>
 </project>

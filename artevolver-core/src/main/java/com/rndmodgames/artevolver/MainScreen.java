@@ -1,6 +1,7 @@
 package com.rndmodgames.artevolver;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -107,7 +108,7 @@ public class MainScreen implements Screen {
     Pixmap sourceImage = null;
     
     //
-    public MainScreen(Game game) {
+    public MainScreen(Game game) throws URISyntaxException {
         
         this.game = game;
         
@@ -280,7 +281,12 @@ public class MainScreen implements Screen {
                 System.out.println("PALETTES: " + PALETTES);
                 
                 // Update Palettes
-                loadPalettes();
+                try {
+                    loadPalettes();
+                } catch (URISyntaxException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
             }
         });
         
@@ -536,8 +542,9 @@ public class MainScreen implements Screen {
     
     /**
      * Loads/Reloads the Palettes
+     * @throws URISyntaxException 
      */
-    public void loadPalettes() {
+    public void loadPalettes() throws URISyntaxException {
         
         //
         try {

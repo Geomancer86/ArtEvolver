@@ -1,6 +1,7 @@
 package com.rndmodgames.artevolver.manager;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -52,7 +53,7 @@ public class ArtEvolverManager {
 //        System.out.println("PROCESSING IN " + ArtEvolver.MODES[ArtEvolver.CURRENT_MODE]);
     }
     
-    public void readAllFiles() {
+    public void readAllFiles() throws URISyntaxException {
 
         try (Stream<Path> walk = Files.walk(Paths.get(sourceFolder))) {
 
@@ -125,9 +126,10 @@ public class ArtEvolverManager {
     }
     
     /**
+     * @throws URISyntaxException 
      * 
      */
-    public void processArtEvolver(String image) {
+    public void processArtEvolver(String image) throws URISyntaxException {
         
         try {
             
@@ -149,13 +151,15 @@ public class ArtEvolverManager {
     /**
      * 
      * @param args
+     * @throws URISyntaxException 
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws URISyntaxException {
 
 //        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources";
 //        String sourceFolder = "D:\\Media\\Exported - Instagram";
 //        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources2\\own";
-        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources2\\batch 12";
+//        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources2\\batch 12";
+        String sourceFolder = "C:\\Media\\ArtEvolver2021\\sources\\vintage";
         
         /**
          * Static Configuration

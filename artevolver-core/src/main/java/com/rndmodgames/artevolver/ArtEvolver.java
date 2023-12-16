@@ -1,5 +1,7 @@
 package com.rndmodgames.artevolver;
 
+import java.net.URISyntaxException;
+
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Preferences;
@@ -46,7 +48,12 @@ public class ArtEvolver extends Game {
         VisUI.load(Gdx.files.internal("skin/tixel.json"));
         
         // Load Main Screen
-        this.setScreen(new MainScreen(instance));
+        try {
+            this.setScreen(new MainScreen(instance));
+        } catch (URISyntaxException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
     }
 	
     /**

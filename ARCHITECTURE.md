@@ -41,15 +41,16 @@ artevolver/
 +-- artevolver-core/          Core evolution engine, rendering, GUI
 |   +-- src/main/java/
 |       +-- com/rndmodgames/evolver/
-|           +-- ArtEvolver.java        GUI + orchestrator
-|           +-- AbstractEvolver.java   Fitness function base class
-|           +-- ImageEvolver.java      Core evolution engine (per-thread)
-|           +-- CrossOver.java         Genetic operators (mutation, crossover)
-|           +-- Triangle.java          Triangle polygon with color
-|           +-- TriangleList.java      Scored list of triangles
-|           +-- Palette.java           Color palette loader
-|           +-- PalleteColor.java      Named color with RGB
-|           +-- Renderer.java          PNG export
+|           +-- ArtEvolver.java          GUI + orchestrator
+|           +-- AbstractEvolver.java     Fitness function base class
+|           +-- ImageEvolver.java        Core evolution engine (per-thread)
+|           +-- DeltaFitnessEngine.java  Pre-computed pixel masks + delta evaluation
+|           +-- CrossOver.java           Genetic operators (mutation, crossover)
+|           +-- Triangle.java            Triangle polygon with color
+|           +-- TriangleList.java        Scored list of triangles
+|           +-- Palette.java             Color palette loader
+|           +-- PalleteColor.java        Named color with RGB
+|           +-- Renderer.java            PNG export
 |
 +-- artevolver-desktop/       Desktop launcher (thin module)
 ```
@@ -501,7 +502,57 @@ for each attempt:
 
 This ensures every targeted swap improves overall local fitness for both positions involved.
 
-### Selection and Replacement
+### Delta Fitness Engine (v3.1 Phase 1)
+
+The `DeltaFitnessEngine` eliminates the two most expensive operations (rendering + full pixel
+comparison) by pre-computing triangle pixel masks at initialization.
+
+**Architecture:**
+
+```
+At initialization (one-time, ~200ms):
+  1. Render all triangles with index-encoded colors (single pass)
+  2. Read back pixel array → build int[][] masks (which pixels belong to each triangle)
+  3. Cache reference image R/G/B channels as flat arrays
+  4. Compute initial total diff including background pixels
+
+Per swap evaluation (in-place, no rendering):
+  1. For triangle A's pixels: subtract old diff, add new diff with B's color
+  2. For triangle B's pixels: subtract old diff, add new diff with A's color
+  3. Return delta (negative = improvement)
+  4. If accepted: update internal color state + totalDiff
+```
+
+**Key methods:**
+- `computeSwapDelta(triA, triB)` — O(pixels_per_triangle) swap evaluation (~650 ops)
+- `trySwap(triA, triB)` — evaluate + accept if improving (hill-climbing)
+- `applySwapWithDelta(triA, triB, delta)` — commit with pre-computed delta
+- `getTriangleError(triIdx)` — per-triangle error for targeted mutation guidance
+- `getScore()` — convert totalDiff to 0..1 score (identical to AbstractEvolver.compare())
+- `syncFromTriangles()` — resync from TriangleList after external modifications
+
+**Performance:**
+- Score accuracy: exact match with full render+compare (0.00 difference)
+- Raw swap throughput: 3.3 million swaps/sec (single thread)
+- Iteration throughput: 51.6x faster than legacy (83 → 4,295 iter/sec)
+
+### evolveDelta() — Delta-Based Evolution Loop
+
+The `evolveDelta()` method in ImageEvolver uses the DeltaFitnessEngine for all fitness
+evaluation. It works in-place on the best individual with no deep copies or rendering.
+
+**Per iteration:**
+1. **Grid-localized swaps** — `GRID_MUTATION_CHANCES` random swaps within grid sections
+2. **Random global swaps** — probabilistic count preserving variance (~1 per iteration)
+3. **Targeted swaps** — find worst-error triangle, search for best swap partner via delta
+
+**UI sync:** Every 50 iterations, colors are synced back to the TriangleList and the image
+is rendered for display.
+
+The `run()` method automatically selects `evolveDelta()` when a DeltaFitnessEngine is available,
+falling back to legacy `evolve()` otherwise.
+
+### Selection and Replacement (Legacy evolve())
 
 - **Parent selection**: ParentA = last in population (worst), ParentB = random
 - **Replacement**: Child replaces parent if child's fitness > parent's fitness

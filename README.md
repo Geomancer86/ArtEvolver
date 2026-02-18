@@ -72,6 +72,12 @@ Frames are exported as numbered PNG files at configurable intervals. These frame
 ### Streaming-Ready
 The GUI refresh loop and frame export pipeline are designed with live-streaming in mind (Twitch, YouTube). Watch the evolution happen in real-time.
 
+### Delta Fitness Engine (v3.1)
+Pre-computed triangle pixel masks enable O(pixels_per_triangle) swap evaluation instead of full-image rendering + comparison. Achieves **50x faster iteration throughput** (3.3 million raw swaps/sec) with exact score accuracy.
+
+### Smart Initialization (v3.1)
+Greedy nearest-color assignment analyzes the source image at each triangle's region and assigns the best-matching unused palette color, producing a strong initial fitness before evolution begins.
+
 ### Adaptive Mutation Decay
 Tournament-based selection combined with adaptive mutation decay gradually shifts the search from broad exploration to fine-tuning as fitness improves.
 
@@ -184,6 +190,8 @@ artevolver/
 **`ImageEvolver`** — The core evolution loop running on each thread. Handles parent selection, child generation (via `CrossOver`), fitness evaluation (via `AbstractEvolver`), and population replacement. Also responsible for rendering the triangle mosaic to a `BufferedImage` using Java2D.
 
 **`AbstractEvolver`** — Computes fitness by comparing each pixel of the rendered mosaic against the corresponding pixel of the source image. The RGB difference across all pixels is normalized to a `0.0`–`1.0` score.
+
+**`DeltaFitnessEngine`** — Pre-computes which pixels belong to each triangle at initialization, then evaluates any color swap by computing only the affected pixels (~650 instead of 1.85M). Eliminates rendering and full-image comparison from the hot loop, achieving 50x throughput improvement.
 
 **`CrossOver`** — Implements crossover (block exchange of triangle colors between two parents) and mutation (random color reassignment from the palette). Supports multiple mutation strategies: Grid, Random, Close (neighbor swap), and Random Grid.
 

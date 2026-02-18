@@ -1577,8 +1577,8 @@ public class ImageEvolver extends AbstractEvolver {
 
 			totalIterations++;
 
-			// Sync colors back to TriangleList every N iterations for UI display
-			if (totalIterations % 50 == 0) {
+			// Sync colors back to TriangleList for UI display
+			if (totalIterations % 10 == 0) {
 				syncDeltaToTriangles(best);
 				double newScore = deltaEngine.getScore();
 				best.setScore(newScore);

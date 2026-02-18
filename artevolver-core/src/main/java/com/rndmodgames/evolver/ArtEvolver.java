@@ -755,16 +755,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				    showSource();
 				    
 				} else {
-				    if (currentFrame % GUI_UPDATE_MS == 0 && isDirty) {
-	                    
-	                    imagePanel.getGraphics().drawImage(bestImage,
-	                                                       32, // TODO: make both offsets dynamic to center in JPanel
-	                                                       32,
-	                                                       null);
-	                    
-	                    imagePanel.getGraphics().dispose();
-	                    
+				    int guiFrameSkip = Math.max(1, FPS / GUI_FPS);
+				    if (currentFrame % guiFrameSkip == 0 && isDirty) {
 	                    isDirty = false;
+	                    imagePanel.repaint();
 	                }
 				}
 				
@@ -875,21 +869,22 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                                 bestScore, THREADS, POPULATION, TOTAL_TRIANGLES,
                                 MODES[CURRENT_MODE] != null ? MODES[CURRENT_MODE] : "CUSTOM");
                     }
-                    
-                    /**
-                     * Console progress log every LOG_INTERVAL_MS
-                     */
-                    long nowMs = System.currentTimeMillis();
-                    if (nowMs - lastLogTimeMs >= LOG_INTERVAL_MS) {
-                        lastLogTimeMs = nowMs;
-                        System.out.println("[ArtEvolver] Score: " + df4.format(bestScore * 100f) + "%"
-                                + " | Health: " + df.format(health) + "%"
-                                + " | Iter: " + goodIterations + "/" + totalIterations
-                                + " | Pop: " + population
-                                + " | Threads: " + THREADS);
-                    }
-                    
-//                    System.out.println("Evolver " + ((ImageEvolver)currentEvolver).getId() + ", iterations: " + ((ImageEvolver)currentEvolver).getTotalIterations() + ", bestScore: " + ((ImageEvolver)currentEvolver).getBestScore());
+            	}
+
+            	/**
+            	 * Console progress log every LOG_INTERVAL_MS (independent of health check)
+            	 */
+            	{
+            	    long nowMs = System.currentTimeMillis();
+            	    if (nowMs - lastLogTimeMs >= LOG_INTERVAL_MS) {
+            	        lastLogTimeMs = nowMs;
+            	        float health = streamAvg(GOOD_ITERATIONS, Math.min((int) currentFrame, HEALTH_ITERATIONS));
+            	        System.out.println("[ArtEvolver] Score: " + df4.format(bestScore * 100f) + "%"
+            	                + " | Health: " + df.format(health) + "%"
+            	                + " | Iter: " + goodIterations + "/" + totalIterations
+            	                + " | Pop: " + population
+            	                + " | Threads: " + THREADS);
+            	    }
             	}
             	
             	/**
@@ -950,9 +945,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
             @Override
 	        protected void paintComponent(Graphics g) {
-
-                //
 	            super.paintComponent(g);
+	            if (bestImage != null) {
+	                g.drawImage(bestImage, 32, 32, null);
+	            }
 	        }
 	    };
 	    

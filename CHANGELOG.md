@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [3.1.0] - 2026-02-18 (develop branch)
+### Fixed — UI Responsiveness
+- **Image repaint rate**: was 0.8 FPS due to bug using `GUI_UPDATE_MS` (50ms value) as frame-count
+  modulus instead of `FPS/GUI_FPS` (=2). Now repaints at intended 20 FPS.
+- **Swing painting**: replaced `getGraphics().drawImage()` anti-pattern with proper `paintComponent()`
+  override + `repaint()`. Image no longer vanishes on window resize/minimize.
+- **Console logging**: moved outside `HEALTH_ITERATIONS` block so it fires every 5 seconds
+  (was nested inside a block that only ran every 25 seconds).
+- **Delta sync interval**: reduced from every 50 to every 10 iterations for fresher display updates.
+
+### Added — LAP Solver Analysis (GA_OPTIMIZATION_DESIGN.md)
+- Identified that the color assignment problem is exactly the **Linear Assignment Problem**
+- Jonker-Volgenant algorithm can solve it **optimally** in O(N^3): ~1 second for 1-palette,
+  ~10-20 seconds for 4-palette — vs hours of GA approximation
+- Documented integration architecture, memory requirements, and implementation plan
+
 ### Added — Delta Fitness Engine (Phase 1 Optimization)
 - **DeltaFitnessEngine**: pre-computed triangle pixel masks with O(pixels_per_triangle) swap evaluation
   - Builds all masks in a single render pass using index-encoded colors (~200ms init)

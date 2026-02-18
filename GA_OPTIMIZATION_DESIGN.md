@@ -207,3 +207,131 @@ Conservative estimate accounting for memory access patterns and overhead: **10-5
 | Score gain per second | ~0.00004/sec | ~0.001/sec (25x) |
 | Time to 0.55 score | ~hours | ~minutes |
 | Memory per iteration | ~5700 Triangle allocs | ~0 (in-place) |
+
+---
+
+## 7. Key Insight: This Is a Linear Assignment Problem
+
+### 7.1 The Fundamental Realization
+
+ArtEvolver's problem — assign N colors to N triangles to minimize total pixel error,
+with each color used exactly once — is **exactly** the
+[Linear Assignment Problem (LAP)](https://en.wikipedia.org/wiki/Assignment_problem).
+
+The cost matrix is:
+
+```
+C[i][j] = total pixel error when triangle i has color j
+        = SUM over all pixels in triangle i of:
+            |refR[px] - colorR[j]| + |refG[px] - colorG[j]| + |refB[px] - colorB[j]|
+```
+
+The optimal solution is a permutation sigma that minimizes:
+```
+SUM over all i of C[i, sigma(i)]
+```
+
+The LAP has **known polynomial-time exact solvers** (O(N^3)), meaning we can find the
+**provably optimal** color assignment — not an approximation — in a predictable time.
+
+### 7.2 Algorithm: Jonker-Volgenant (LAPJV)
+
+The fastest practical solver for dense cost matrices is the Jonker-Volgenant algorithm
+(1987). It runs in O(N^3) with excellent constants due to an augmenting row reduction
+initialization that skips many augmentation steps.
+
+Published benchmarks (C++ with AVX2, 2.4 GHz Xeon):
+
+| Matrix Size | LAPJV Solve Time |
+|-------------|------------------|
+| 1024 | 0.027s |
+| 2048 | 0.140s |
+| 4096 | 0.745s |
+| 8192 | 3.053s |
+
+Java will be roughly 2-5x slower, but JIT compilation helps for loop-heavy code.
+
+### 7.3 Estimated End-to-End Runtimes
+
+| Phase | N=1482 (1-palette) | N=5700 (4-palette) |
+|-------|--------------------|--------------------|
+| Build cost matrix (8 threads) | 0.3-0.5s | 4-8s |
+| Solve LAP (LAPJV, Java) | 0.1-0.2s | 5-10s |
+| **Total for optimal solution** | **~0.5-1s** | **~10-20s** |
+
+Compare: the GA runs for **minutes to hours** and produces only an approximation.
+
+### 7.4 Memory Requirements
+
+| Scenario | N | Entries | Memory (int[]) |
+|----------|---|---------|----------------|
+| 1-palette | 1482 | 2.2M | 8.8 MB |
+| 4-palette | 5700 | 32.5M | 130 MB |
+
+Max cost per cell: ~325 pixels * 765 max Manhattan distance = ~248K. Fits in int.
+
+### 7.5 Integration Architecture
+
+```
+1. Build triangles with fixed geometry (existing code)
+2. Build DeltaFitnessEngine pixel masks (existing, ~200ms)
+3. Build N x N cost matrix using pixel masks + reference image
+4. Solve LAP via LAPJV → optimal permutation sigma
+5. Assign color[sigma[i]] to triangle[i]
+6. DONE — provably optimal, no iteration needed
+```
+
+The existing `smartAssignColors()` (greedy O(N^2)) would be replaced.
+The `evolveDelta()` / GA machinery becomes unnecessary for color assignment.
+
+### 7.6 Implementation Plan
+
+**Approach: Port LAPJV from C to Java (~200 lines, zero dependencies)**
+
+The original algorithm is described in:
+> R. Jonker and A. Volgenant, "A shortest augmenting path algorithm for dense and
+> sparse linear assignment problems," Computing, vol. 38, pp. 325-340, 1987.
+
+The C reference implementation is ~200 lines of array operations with no external
+dependencies. The port to Java is straightforward — the algorithm uses only flat arrays
+and integer arithmetic.
+
+**Alternative: Google OR-Tools** `LinearSumAssignment` — production-quality but requires
+a native JNI dependency (~50MB). Overkill for what is a 200-line algorithm.
+
+### 7.7 GA vs LAP: When Each Is Appropriate
+
+| Criterion | GA + Hill-climbing | LAP Solver |
+|-----------|-------------------|------------|
+| Solution quality | Heuristic (non-optimal) | **Provably optimal** |
+| Time to solution | Minutes to hours | **Seconds** |
+| Progressive display | Yes (evolves visually) | No (one-shot) |
+| Interactive/streaming | Good for entertainment | Poor (instant result) |
+| Very large N (>10K) | Feasible | Memory-intensive |
+
+**Recommendation**: Implement LAP as the primary solver for best quality, keep GA/delta
+as a "live evolution" display mode for streaming/entertainment.
+
+---
+
+## 8. UI Performance Analysis
+
+### 8.1 Bugs Found
+
+1. **Image repaint at 0.8 FPS instead of 20 FPS**: `currentFrame % GUI_UPDATE_MS`
+   used `GUI_UPDATE_MS = 50` (a millisecond value) as a frame-count modulus.
+   Every 50th tick at 25ms/tick = one repaint every 1,250ms.
+   **Fix**: Use `currentFrame % (FPS / GUI_FPS)` = every 2nd tick = 20 FPS.
+
+2. **`getGraphics()` anti-pattern**: Direct painting via `imagePanel.getGraphics()`
+   creates a transient context that gets invalidated on resize/minimize/overlap.
+   **Fix**: Draw in `paintComponent()` override, trigger via `repaint()`.
+
+3. **Console logging nested inside HEALTH_ITERATIONS block**: Fires at most every
+   25 seconds despite `LOG_INTERVAL_MS = 5000` suggesting every 5 seconds.
+   **Fix**: Move logging outside the health check block.
+
+4. **Delta sync every 50 iterations**: With 4,295 iter/sec, this means the display
+   image updates at most ~86 times/sec internally, but combined with the 0.8 FPS
+   repaint bug, the user sees changes ~0.8 times/sec.
+   **Fix**: Reduce to every 10 iterations.

@@ -1,128 +1,83 @@
 package com.rndmodgames.evolver;
 
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 
 /**
- * AbstractEvolver v1
- * 
- * TODO: optimize the compare function
- * 
- *  - 1) set height, width as a parameter to avoid recalculating every time as images will always be the same size during processing
- *  - 2) 
+ * AbstractEvolver v2 — Optimized bulk pixel comparison
  * 
  * @author Geomancer86
  */
 public abstract class AbstractEvolver implements Runnable {
 
-	public abstract void evolve(long start, int iterations);
-	
-	/**
-	 * Extracted to avoid recreation
-	 */
-	private int rgb1;
-	private int rgb2;
-	
-	private int [] px1 = new int [4];
-	private int [] px2 = new int [4];
-	
-	private int r1;
-	private int g1;
-	private int b1;
-	private int r2;
-	private int g2;
-	private int b2;
-	private int diff;
-	private double n;
-	private double p;
-	
-	private final double CONSTANT_SCORE_DIVIDER = 255d;
-	private final int CONSTANT_SCORE_MULTIPLIER = 3;
-	private final int CONSTANT_SCORE_ONE = 1;
+    public abstract void evolve(long start, int iterations);
 
-	public double compare(BufferedImage img1, BufferedImage img2) {
+    private static final double CONSTANT_SCORE_DIVIDER = 255d;
+    private static final int CONSTANT_SCORE_MULTIPLIER = 3;
 
-//		long compareThen = System.currentTimeMillis();
-		
-		int width1 = img1.getWidth(null);
-		int width2 = img2.getWidth(null);
-		int height1 = img1.getHeight(null);
-		int height2 = img2.getHeight(null);
+    private int[] pixelsBuf1;
+    private int[] pixelsBuf2;
 
-		if ((width1 != width2) || (height1 != height2)) {
-			System.err.println("Error: Images dimensions mismatch");
-			return 0;
-		}
-		
-		/**
-		 * TODO: parametrize & document
-		 */
-		boolean fitnessByColor = true;
-		diff = 0;
-		
-		if (fitnessByColor){
-			for (int y = 0; y < height1; y++) {
-				for (int x = 0; x < width1; x++) {
-					
-					/**
-					 * Working by RGB
-					 * 
-					 * TODO: parametrize
-					 */
-					rgb1 = img1.getRGB(x, y);
-					rgb2 = img2.getRGB(x, y);
+    // Pre-cached reference image pixels — extracted once, reused every iteration
+    private int[] referencePixels;
+    private int refWidth;
+    private int refHeight;
 
-					r1 = (rgb1 >> 16) & 0xff;
-					g1 = (rgb1 >> 8) & 0xff;
-					b1 = (rgb1) & 0xff;
-					
-					r2 = (rgb2 >> 16) & 0xff;
-					g2 = (rgb2 >> 8) & 0xff;
-					b2 = (rgb2) & 0xff;
-					
-					diff += Math.abs(r1 - r2);
-					diff += Math.abs(g1 - g2);
-					diff += Math.abs(b1 - b2);
-					
-					/**
-					 * Working by Raster
-					 * 
-					 * TODO: parametrize
-					 */
-//					px1 = img1.getRaster().getPixel(x, y, px1);
-//					px2 = img2.getRaster().getPixel(x, y, px2);
-//					
-//					diff += Math.abs(px1[0] - px2[0]);
-//					diff += Math.abs(px1[1] - px2[1]);
-//					diff += Math.abs(px1[2] - px2[2]);
-				}
-			}
-		}else{
-			for (int y = 0; y < height1; y++) {
-				for (int x = 0; x < width1; x++) {
-					rgb1 = img1.getRGB(x, y);
-					rgb2 = img2.getRGB(x, y);
-					
-					float r1 = ((rgb1 >> 16) & 0xff) * 1; 	// 0.299f
-					float g1 = ((rgb1 >> 8) & 0xff) * 0f;	// 0.587f
-					float b1 = ((rgb1) & 0xff) * 0f; 		// 0.114f
-					
-					float r2 = ((rgb2 >> 16) & 0xff) * 1f;
-					float g2 = ((rgb2 >> 8) & 0xff) * 0f;
-					float b2 = ((rgb2) & 0xff) * 0f;
-					
-					diff += Math.abs(r1 - r2);
-					diff += Math.abs(g1 - g2);
-					diff += Math.abs(b1 - b2);
-				}
-			}
-		}
+    public void cacheReferencePixels(BufferedImage ref) {
+        this.refWidth = ref.getWidth();
+        this.refHeight = ref.getHeight();
+        int totalPixels = refWidth * refHeight;
+        this.referencePixels = new int[totalPixels];
+        ref.getRGB(0, 0, refWidth, refHeight, this.referencePixels, 0, refWidth);
+    }
 
-		n = width1 * height1 * CONSTANT_SCORE_MULTIPLIER;
-		p = diff / n / CONSTANT_SCORE_DIVIDER;
-		
-//		long compareNow = System.currentTimeMillis();
-//		System.out.println("compare took " + (float)(compareNow - compareThen) / 1000f + " seconds");
-		
-		return CONSTANT_SCORE_ONE - p;
-	}
+    public double compare(BufferedImage img1, BufferedImage img2) {
+        int w = img1.getWidth();
+        int h = img1.getHeight();
+        int totalPixels = w * h;
+
+        int[] px1;
+        int[] px2;
+
+        // Use pre-cached reference pixels when dimensions match (hot path)
+        if (referencePixels != null && img2.getWidth() == refWidth && img2.getHeight() == refHeight) {
+            px2 = referencePixels;
+        } else {
+            if (pixelsBuf2 == null || pixelsBuf2.length < totalPixels) {
+                pixelsBuf2 = new int[totalPixels];
+            }
+            img2.getRGB(0, 0, w, h, pixelsBuf2, 0, w);
+            px2 = pixelsBuf2;
+        }
+
+        // Direct DataBuffer access for TYPE_INT_ARGB/RGB (zero-copy)
+        boolean directAccess = img1.getType() == BufferedImage.TYPE_INT_ARGB
+                || img1.getType() == BufferedImage.TYPE_INT_RGB;
+
+        if (directAccess) {
+            px1 = ((DataBufferInt) img1.getRaster().getDataBuffer()).getData();
+        } else {
+            if (pixelsBuf1 == null || pixelsBuf1.length < totalPixels) {
+                pixelsBuf1 = new int[totalPixels];
+            }
+            img1.getRGB(0, 0, w, h, pixelsBuf1, 0, w);
+            px1 = pixelsBuf1;
+        }
+
+        long diff = 0;
+        int rgb1, rgb2;
+
+        for (int i = 0; i < totalPixels; i++) {
+            rgb1 = px1[i];
+            rgb2 = px2[i];
+
+            diff += Math.abs(((rgb1 >> 16) & 0xff) - ((rgb2 >> 16) & 0xff));
+            diff += Math.abs(((rgb1 >>  8) & 0xff) - ((rgb2 >>  8) & 0xff));
+            diff += Math.abs(( rgb1        & 0xff) - ( rgb2        & 0xff));
+        }
+
+        double n = (double) totalPixels * CONSTANT_SCORE_MULTIPLIER;
+        double p = diff / n / CONSTANT_SCORE_DIVIDER;
+        return 1.0d - p;
+    }
 }

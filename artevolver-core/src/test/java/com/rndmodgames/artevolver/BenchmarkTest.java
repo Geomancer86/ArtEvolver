@@ -1,6 +1,7 @@
 package com.rndmodgames.artevolver;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -9,6 +10,10 @@ import java.net.URISyntaxException;
 
 import org.junit.jupiter.api.Test;
 
+import com.rndmodgames.evolver.ArtEvolverTools;
+import com.rndmodgames.evolver.ImageEvolver;
+import com.rndmodgames.evolver.Triangle;
+import com.rndmodgames.evolver.TriangleList;
 import com.rndmodgames.evolver.benchmark.BenchmarkLogger;
 import com.rndmodgames.evolver.benchmark.BenchmarkRunner;
 
@@ -164,5 +169,49 @@ class BenchmarkTest {
         }
 
         System.out.println("===============================\n");
+    }
+
+    /**
+     * Validates that the color permutation constraint is maintained through
+     * initialization and evolution: the exact same multiset of colors must
+     * be present before and after mutations (swap-only operators preserve this).
+     * Uses 38x39=1482 triangles with 1 palette (1535 colors > 1482 triangles).
+     */
+    @Test
+    void permutationIntegrity() throws IOException, URISyntaxException {
+
+        ImageEvolver evolver = ArtEvolverTools.getDefaultImageEvolver(
+            1, 2, 2, 2, "000_zeldathumb-1920-789452.jpg", false,
+            38, 39, 1f);
+
+        System.out.println("[PERMUTATION TEST] Population size: " + evolver.getPopulation().size());
+
+        int[][] referenceMultisets = new int[evolver.getPopulation().size()][];
+
+        for (int i = 0; i < evolver.getPopulation().size(); i++) {
+            TriangleList<Triangle> member = evolver.getPopulation().get(i);
+            System.out.println("  pop[" + i + "] triangles: " + member.size());
+
+            String structError = ImageEvolver.validatePermutation(member);
+            assertNull(structError, "Structural error pop[" + i + "] after init: " + structError);
+
+            referenceMultisets[i] = ImageEvolver.captureColorMultiset(member);
+        }
+
+        evolver.setRunning(true);
+        evolver.evolve(System.currentTimeMillis(), 1000);
+
+        for (int i = 0; i < evolver.getPopulation().size(); i++) {
+            TriangleList<Triangle> member = evolver.getPopulation().get(i);
+
+            String structError = ImageEvolver.validatePermutation(member);
+            assertNull(structError, "Structural error pop[" + i + "] after evolve: " + structError);
+
+            String multisetError = ImageEvolver.validateColorMultiset(member, referenceMultisets[i]);
+            assertNull(multisetError,
+                "Color multiset changed in pop[" + i + "] after 1000 iterations: " + multisetError);
+        }
+
+        System.out.println("[PASS] Color multiset integrity maintained through init + 1000 iterations");
     }
 }

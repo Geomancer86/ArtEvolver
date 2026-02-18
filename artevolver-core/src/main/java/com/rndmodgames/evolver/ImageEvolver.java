@@ -42,6 +42,8 @@ public class ImageEvolver extends AbstractEvolver {
 	public static boolean SHUFFLE_PALETTE = false;
 
 	public static boolean SMART_INITIALIZATION = true;
+
+	public static boolean VALIDATE_PERMUTATION = true;
 	
 	public final static DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("##.###################");
 	
@@ -274,6 +276,12 @@ public class ImageEvolver extends AbstractEvolver {
 		if (SMART_INITIALIZATION && resizedOriginal != null) {
 			for (TriangleList<Triangle> triangles : pop) {
 				smartAssignColors(triangles);
+			}
+		}
+
+		if (VALIDATE_PERMUTATION) {
+			for (int i = 0; i < pop.size(); i++) {
+				assertPermutation(pop.get(i), "initializeIsosceles pop[" + i + "]");
 			}
 		}
 
@@ -583,6 +591,12 @@ public class ImageEvolver extends AbstractEvolver {
 			}
 		}
 
+		if (VALIDATE_PERMUTATION) {
+			for (int i = 0; i < pop.size(); i++) {
+				assertPermutation(pop.get(i), "initialize pop[" + i + "]");
+			}
+		}
+
 		double scoreA = 0d;
 		for (TriangleList<Triangle> triangles : pop) {
 			BufferedImage rendered = renderTriangles(triangles);
@@ -693,6 +707,100 @@ public class ImageEvolver extends AbstractEvolver {
 
 	public static int roll(int n) {
 		return random().nextInt(n);
+	}
+
+	/**
+	 * Validates that a TriangleList satisfies basic structural integrity:
+	 *   1. No null triangles
+	 *   2. No null colors
+	 *   3. Color count matches triangle count (no missing assignments)
+	 *
+	 * Note: the palette may contain duplicate RGB values (different paint chips
+	 * with identical digital colors), so we cannot check RGB uniqueness.
+	 * The true constraint is that each physical palette chip is used exactly once,
+	 * which is maintained by the swap-only mutation operators.
+	 *
+	 * @return null if valid, or a description of the violation
+	 */
+	public static String validatePermutation(TriangleList<Triangle> triangles) {
+		int n = triangles.size();
+		if (n == 0) return "Empty triangle list";
+
+		int nullTriangles = 0;
+		int nullColors = 0;
+
+		for (int i = 0; i < n; i++) {
+			Triangle tri = triangles.get(i);
+			if (tri == null) { nullTriangles++; continue; }
+			if (tri.getColor() == null) { nullColors++; }
+		}
+
+		if (nullTriangles > 0) return nullTriangles + " null triangle(s)";
+		if (nullColors > 0) return nullColors + " null color(s) found";
+
+		return null; // structurally valid
+	}
+
+	/**
+	 * Deep validation: checks that the color multiset is preserved (same colors
+	 * before and after mutations). Call with a reference set from initialization.
+	 *
+	 * @param triangles the current triangle list
+	 * @param referenceColors the original Color array from initialization (sorted by RGB)
+	 * @return null if valid, or a description of the mismatch
+	 */
+	public static String validateColorMultiset(TriangleList<Triangle> triangles, int[] referenceRGBs) {
+		int n = triangles.size();
+		if (n != referenceRGBs.length) {
+			return "Size mismatch: " + n + " triangles vs " + referenceRGBs.length + " reference colors";
+		}
+
+		int[] currentRGBs = new int[n];
+		for (int i = 0; i < n; i++) {
+			Triangle tri = triangles.get(i);
+			if (tri == null || tri.getColor() == null) {
+				return "Null at index " + i;
+			}
+			currentRGBs[i] = tri.getColor().getRGB();
+		}
+
+		Arrays.sort(currentRGBs);
+
+		for (int i = 0; i < n; i++) {
+			if (currentRGBs[i] != referenceRGBs[i]) {
+				return String.format("Color multiset mismatch at sorted position %d: " +
+					"expected #%06X, got #%06X", i,
+					referenceRGBs[i] & 0xFFFFFF, currentRGBs[i] & 0xFFFFFF);
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Captures the sorted RGB multiset from a triangle list for use with validateColorMultiset.
+	 */
+	public static int[] captureColorMultiset(TriangleList<Triangle> triangles) {
+		int n = triangles.size();
+		int[] rgbs = new int[n];
+		for (int i = 0; i < n; i++) {
+			Triangle tri = triangles.get(i);
+			rgbs[i] = (tri != null && tri.getColor() != null) ? tri.getColor().getRGB() : 0;
+		}
+		Arrays.sort(rgbs);
+		return rgbs;
+	}
+
+	/**
+	 * Validates permutation and logs result. Returns true if valid.
+	 */
+	public static boolean assertPermutation(TriangleList<Triangle> triangles, String context) {
+		String error = validatePermutation(triangles);
+		if (error != null) {
+			System.err.println("[PERMUTATION VIOLATION] " + context + ": " + error);
+			return false;
+		}
+		return true;
 	}
 
 	public int getPopulationSize() {
@@ -1178,6 +1286,10 @@ public class ImageEvolver extends AbstractEvolver {
 				parentA.setScore(scoreA);
 			} else {
 				scoreA = parentA.getScore();
+			}
+
+			if (VALIDATE_PERMUTATION && totalIterations % 10000 == 0) {
+				assertPermutation(childA, "evolve child iter=" + totalIterations);
 			}
 
 			BufferedImage renderedChild = renderTriangles(childA);

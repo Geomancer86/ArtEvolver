@@ -441,7 +441,7 @@ public class ImageEvolver extends AbstractEvolver {
 			int worstDist = -1;
 
 			int startIdx = random().nextInt(n);
-			int checkCount = Math.min(256, n);
+			int checkCount = Math.min(n, 384);
 
 			for (int k = 0; k < checkCount; k++) {
 				int i = (startIdx + k) % n;
@@ -820,21 +820,26 @@ public class ImageEvolver extends AbstractEvolver {
 		return reusableChildImage;
 	}
 
+	private BufferedImage bestImageBuffer;
+	private Graphics bestImageGraphics;
+
 	private BufferedImage renderTrianglesToNewImage(TriangleList<Triangle> triangles) {
-		BufferedImage img = new BufferedImage(
-				resizedOriginal.getWidth(),
-				resizedOriginal.getHeight(),
-				ArtEvolver.IMAGE_TYPE);
-		Graphics gNew = img.getGraphics();
+		int w = resizedOriginal.getWidth();
+		int h = resizedOriginal.getHeight();
+		if (bestImageBuffer == null || bestImageBuffer.getWidth() != w || bestImageBuffer.getHeight() != h) {
+			if (bestImageGraphics != null) bestImageGraphics.dispose();
+			bestImageBuffer = new BufferedImage(w, h, ArtEvolver.IMAGE_TYPE);
+			bestImageGraphics = bestImageBuffer.getGraphics();
+		}
+		bestImageGraphics.clearRect(0, 0, w, h);
 		for (int i = 0, size = triangles.size(); i < size; i++) {
 			Triangle triangle = triangles.get(i);
 			if (triangle.getColor() != null) {
-				gNew.setColor(triangle.getColor());
-				gNew.fillPolygon(triangle);
+				bestImageGraphics.setColor(triangle.getColor());
+				bestImageGraphics.fillPolygon(triangle);
 			}
 		}
-		gNew.dispose();
-		return img;
+		return bestImageBuffer;
 	}
 
 	public void evolveGreedy(long start) {
@@ -1268,16 +1273,8 @@ public class ImageEvolver extends AbstractEvolver {
 
 			totalIterations++;
 
-			// tournament enabled defaults to false
 			boolean tournamentEnabled = true;
-			
-			// cross over halving default to false
 			boolean crossoverHalvingEnabled = false;
-			
-			// factor default 0.01f
-//			float factor = 0.01f;
-			
-			// float tournament round size default is 1000
 			int tournamentRoundSize = 80;
 			
 			// close mutations per child default to false

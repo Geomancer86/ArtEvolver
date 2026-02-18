@@ -195,22 +195,8 @@ public class CrossOver {
 	public TriangleList<Triangle> mutate(TriangleList<Triangle> parent){
 
 		TriangleList<Triangle> child = new TriangleList<Triangle>();
-		
-		for (Triangle triangle : parent){
-			
-			if (triangle == null) {
-				System.out.println("NULL TRIANGLE!");
-				System.exit(0);
-			}
-			
-			if (triangle.getColor() == null) {
-				System.out.println("NULL COLOR!");
-				System.exit(0);
-			}
-			
-			Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor());
-			child.add(copy);
-			
+		for (Triangle triangle : parent) {
+			child.add(new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor()));
 		}
 		
 		ImageEvolver.switchCloseColor(child, getRandomJumpDistance());
@@ -220,23 +206,22 @@ public class CrossOver {
 
 	/**
 	 * Creates a Child Drawing between two Parent Drawings using spatial block crossover.
-	 * Copies primary parent, then injects a spatial region from the secondary parent,
-	 * swapping colors to maintain the permutation constraint.
+	 * Copies primary parent's colors onto the shared geometry template, then injects a 
+	 * spatial region from the secondary parent, swapping colors to maintain the permutation.
 	 */
 	public TriangleList<Triangle> getChild(TriangleList<Triangle> parentA, TriangleList<Triangle> parentB, int evolverId) {
 		
-		TriangleList<Triangle> child = new TriangleList<Triangle>();
-
 		ThreadLocalRandom r = ThreadLocalRandom.current();
 		int n = parentA.size();
 
 		boolean isParentA = r.nextBoolean();
 		TriangleList<Triangle> primary = isParentA ? parentA : parentB;
 		TriangleList<Triangle> secondary = isParentA ? parentB : parentA;
-		
-		for (Triangle triangle : primary) {
-			Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor());
-			child.add(copy);
+
+		TriangleList<Triangle> child = new TriangleList<Triangle>();
+		for (int i = 0; i < n; i++) {
+			Triangle t = primary.get(i);
+			child.add(new Triangle(t.getxPoly(), t.getyPoly(), t.getLenght(), t.getColor()));
 		}
 
 		if (n > 4 && CROSSOVER_BLOCK_ENABLED) {
@@ -273,58 +258,59 @@ public class CrossOver {
 		}
 
 		/**
-		 * Random Close Crossover
+		 * Grid Crossovers: localized swaps within evolver's grid section
 		 */
-        for (int a = 0; a < RANDOM_CLOSE_MUTATION_CHANCES; a++) {
+        int gridCount = (int) GRID_MUTATION_CHANCES;
+        for (int a = 0; a < gridCount; a++) {
+            if (r.nextFloat() < GRID_MUTATION_PERCENT) {
+                ImageEvolver.switchGridColor(child, evolverId, DEFAULT_GRID_SIZE);
+            }
+        }
 
-            if (r.nextFloat() < RANDOM_CLOSE_MUTATION_PERCENT) {
+        /**
+         * Fully Random: use expected count with Poisson-like sampling for variance.
+         * Original looped 1000x checking 0.001 probability; this preserves the
+         * distribution (sometimes 0, sometimes 2-3) without wasting 999 iterations.
+         */
+        float expectedSwaps = RANDOM_MUTATION_CHANCES * RANDOM_MUTATION_PERCENT;
+        int randomSwapCount = 0;
+        if (expectedSwaps >= 1f) {
+            randomSwapCount = (int) expectedSwaps;
+        } else if (r.nextFloat() < expectedSwaps) {
+            randomSwapCount = 1;
+        }
+        for (int a = 0; a < randomSwapCount; a++) {
+            ImageEvolver.switchRandomColor(child);
+        }
 
-                for (int b = 0; b < CLOSE_MUTATIONS_PER_CHILD; b++) {
-                    ImageEvolver.switchCloseColor(child, this.randomJumpDistance);
+        /**
+         * Close mutations: only execute if probability is meaningful
+         */
+        if (CLOSE_MUTATIONS_PER_CHILD > 0 && RANDOM_CLOSE_MUTATION_PERCENT > 0.001f) {
+            for (int a = 0; a < RANDOM_CLOSE_MUTATION_CHANCES; a++) {
+                if (r.nextFloat() < RANDOM_CLOSE_MUTATION_PERCENT) {
+                    for (int b = 0; b < CLOSE_MUTATIONS_PER_CHILD; b++) {
+                        ImageEvolver.switchCloseColor(child, this.randomJumpDistance);
+                    }
                 }
             }
         }
 
-		/**
-		 * Fully Random Crossovers
-		 */
-	    for (int a = 0; a < RANDOM_MUTATION_CHANCES; a++) {
-            
-	        //
-            if (r.nextFloat() < RANDOM_MUTATION_PERCENT) {
-    
-                ImageEvolver.switchRandomColor(child);
-
-            }
-	    }
-		
-		/**
-		 * Grid Crossovers
-		 */
-        for (int a = 0; a < GRID_MUTATION_CHANCES; a++) {
-
-            if (r.nextFloat() < GRID_MUTATION_PERCENT) {
-
-                //
-                ImageEvolver.switchGridColor(child, evolverId, DEFAULT_GRID_SIZE);
-            }
-        }
-        
         /**
-         * Random Grid Crossovers
+         * Random Grid: only execute if probability is meaningful
          */
-        for (int a = 0; a < RANDOM_GRID_MUTATION_CHANCES; a++) {
-
-            if (r.nextFloat() < RANDOM_GRID_MUTATION_PERCENT) {
-
-                //
-                ImageEvolver.switchGridColor(child, ImageEvolver.roll(TOTAL_GRIDS), DEFAULT_GRID_SIZE);
+        if (RANDOM_GRID_MUTATION_PERCENT > 0.001f) {
+            for (int a = 0; a < RANDOM_GRID_MUTATION_CHANCES; a++) {
+                if (r.nextFloat() < RANDOM_GRID_MUTATION_PERCENT) {
+                    ImageEvolver.switchGridColor(child, ImageEvolver.roll(TOTAL_GRIDS), DEFAULT_GRID_SIZE);
+                }
             }
         }
 
         /**
-         * Targeted Swap (v3.1): guided mutation using source image analysis.
-         * Finds worst-matching triangles and swaps toward better colors.
+         * Targeted Swap (v3.1): guided repair pass AFTER random mutations.
+         * Random mutations add diversity; targeted swap then fixes the worst damage,
+         * so the child inherits both exploration AND guided refinement.
          */
         if (evolverInstance != null && evolverInstance.getResizedOriginal() != null) {
             ImageEvolver.targetedSwap(child, evolverInstance.getResizedOriginal(), TARGETED_SWAP_ATTEMPTS);
@@ -335,10 +321,8 @@ public class CrossOver {
 
 	public TriangleList<Triangle> getSecuentialChild(TriangleList<Triangle> parent, int startTriangle, int targetTriangle) {
 		TriangleList<Triangle> child = new TriangleList<Triangle>();
-		
-		for (Triangle triangle : parent){
-			Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor());
-			child.add(copy);
+		for (Triangle triangle : parent) {
+			child.add(new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor()));
 		}
 		
 		ImageEvolver.switchColor(child, startTriangle, targetTriangle);

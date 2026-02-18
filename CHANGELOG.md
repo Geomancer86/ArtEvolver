@@ -43,6 +43,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CrossOver.getChild() now performs real two-parent crossover instead of single-parent copy
 - Mutation rebalanced: targeted swaps (guided) complement grid/random swaps (blind)
 - BenchmarkRunner now properly resizes source image to match triangle grid (was using raw image)
+- **Mutation pipeline reordered**: random mutations (exploration) run first, then targeted swap (repair)
+  - Previously targeted swap ran first, but random mutations would undo its gains
+  - New order: crossover block -> grid swaps -> random swaps -> close mutations -> targeted swap (refinement)
+- **Dead mutation loops eliminated**: close mutations and random grid mutations now gated behind
+  meaningful probability thresholds (>0.001) instead of always looping with near-zero probability
+  - Random Close: was 20 loop iterations for 0.002 expected mutations -> now skipped when CLOSE_MUTATIONS_PER_CHILD=0
+  - Random Grid: was 10 loop iterations for 0.001 expected mutations -> now skipped when probability < 0.001
+- **Probabilistic random swap**: instead of always doing exactly 1 swap (or looping 1000x for ~1),
+  samples from proper distribution preserving variance (sometimes 0, sometimes 2+ swaps)
+- **Best image buffer reuse**: renderTrianglesToNewImage() now reuses a single BufferedImage
+  instead of allocating a new one every time a new best score is found (reduces GC pressure)
 
 ### Fixed
 - Maven resource filtering on palette .txt files causing MalformedInputException (palette files now excluded from filtering)

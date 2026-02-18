@@ -474,18 +474,25 @@ several mutation operators working in concert.
 
 ### Mutation Operators (in CrossOver.getChild)
 
-| Operator | Description | Per-child count |
-|----------|-------------|-----------------|
-| **Spatial Block Crossover** | Injects a contiguous block of colors from secondary parent into primary parent copy, maintaining permutation via HashMap tracking | 1 block (1/12 to 1/4 of triangles) |
-| **Grid Swap** | Swaps two random colors within a grid section (localized) | ~26 per child |
-| **Random Swap** | Swaps two fully random colors (global) | ~1 per child |
-| **Targeted Swap** | Finds worst-matching triangle, searches for best net-improvement swap partner | 12 per child |
+Operators are applied in this order (exploration first, then guided refinement):
+
+| Order | Operator | Description | Per-child count |
+|-------|----------|-------------|-----------------|
+| 1 | **Spatial Block Crossover** | Injects a contiguous block of colors from secondary parent into primary parent copy, maintaining permutation via HashMap tracking | 1 block (1/12 to 1/4 of triangles) |
+| 2 | **Grid Swap** | Swaps two random colors within a grid section (localized) | ~32 per child (decays) |
+| 3 | **Random Swap** | Swaps two fully random colors (global), with probabilistic count preserving variance | ~1 per child (0-3 range) |
+| 4 | **Close Swap** | Swaps nearby colors in palette order (gated: only active when CLOSE_MUTATIONS_PER_CHILD > 0) | 0 (disabled by default) |
+| 5 | **Targeted Swap** | Finds worst-matching triangle, searches for best net-improvement swap partner (guided repair after random noise) | 12 per child |
+
+The ordering is critical: random mutations (steps 1-4) add exploration diversity,
+then targeted swap (step 5) repairs the worst damage, giving the child both diversity
+and guided refinement.
 
 ### Targeted Swap Algorithm (v3.1)
 
 ```
 for each attempt:
-    1. Sample 256 triangles, find the one with largest
+    1. Sample 384 triangles, find the one with largest
        RGB distance between its color and source image centroid
     2. Search 512 candidates for the swap that maximizes:
        improvement = (before_distA + before_distB) - (after_distA + after_distB)

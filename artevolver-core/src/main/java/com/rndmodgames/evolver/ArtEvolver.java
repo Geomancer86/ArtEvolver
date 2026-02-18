@@ -1227,6 +1227,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             for (AbstractEvolver currentEvolver : evolvers) {
                 ((ImageEvolver)currentEvolver).setResizedOriginal(resizedOriginal);
                 ((ImageEvolver)currentEvolver).initializeIsosceles();
+                ((ImageEvolver)currentEvolver).initDeltaEngine();
             }
             long initTime = System.currentTimeMillis() - initStart;
 

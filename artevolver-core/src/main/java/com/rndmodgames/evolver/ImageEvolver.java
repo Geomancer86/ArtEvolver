@@ -1456,6 +1456,164 @@ public class ImageEvolver extends AbstractEvolver {
 //		System.out.println("evolve with " + iterations + " iterations took " + (float)(evolveNow - evolveThen) / 1000f + " seconds");
 	}
 
+	// --- Delta Fitness Evolution ---
+
+	private DeltaFitnessEngine deltaEngine;
+	private boolean useDeltaEvolution = true;
+
+	public void setUseDeltaEvolution(boolean use) {
+		this.useDeltaEvolution = use;
+	}
+
+	/**
+	 * Initializes the DeltaFitnessEngine for the best individual.
+	 * Must be called after initialization and before evolveDelta().
+	 */
+	public void initDeltaEngine() {
+		if (pop.isEmpty() || resizedOriginal == null) return;
+		TriangleList<Triangle> best = pop.get(pop.size() - 1);
+		deltaEngine = new DeltaFitnessEngine(best, resizedOriginal);
+	}
+
+	/**
+	 * Delta-based evolution: evaluates swaps in O(pixels_per_triangle) instead
+	 * of O(total_pixels). Works in-place on the best individual — no deep copies,
+	 * no rendering, no full-image comparison.
+	 *
+	 * A single call performs 'iterations' rounds. Each round does:
+	 *   1. Grid-localized swaps (spatially coherent exploration)
+	 *   2. Random global swaps (diversity / escape local optima)
+	 *   3. Targeted swaps (source-image-guided refinement)
+	 *
+	 * Periodically syncs colors back to the TriangleList and renders for UI.
+	 */
+	public void evolveDelta(long start, int iterations) {
+		if (deltaEngine == null) return;
+
+		int n = deltaEngine.getTriangleCount();
+		if (n < 2) return;
+
+		TriangleList<Triangle> best = pop.get(pop.size() - 1);
+		SplittableRandom r = random();
+
+		int gridSize = Math.max(1, n / CrossOver.TOTAL_GRIDS);
+		int numGrids = CrossOver.TOTAL_GRIDS;
+
+		for (int iter = 0; iter < iterations; iter++) {
+
+			int acceptedThisIter = 0;
+
+			// --- Grid-localized swaps ---
+			int gridSwaps = (int) CrossOver.GRID_MUTATION_CHANCES;
+			for (int g = 0; g < gridSwaps; g++) {
+				int gridId = r.nextInt(numGrids);
+				int base = gridId * gridSize;
+				int a = base + r.nextInt(gridSize);
+				int b = base + r.nextInt(gridSize);
+				if (a >= n || b >= n || a == b) continue;
+				if (deltaEngine.trySwap(a, b)) acceptedThisIter++;
+			}
+
+			// --- Random global swaps ---
+			float expectedSwaps = CrossOver.RANDOM_MUTATION_CHANCES * CrossOver.RANDOM_MUTATION_PERCENT;
+			int randomSwapCount;
+			if (expectedSwaps >= 1f) {
+				randomSwapCount = (int) expectedSwaps;
+			} else {
+				randomSwapCount = (r.nextFloat() < expectedSwaps) ? 1 : 0;
+			}
+			for (int s = 0; s < randomSwapCount; s++) {
+				int a = r.nextInt(n);
+				int b = r.nextInt(n);
+				if (a == b) continue;
+				if (deltaEngine.trySwap(a, b)) acceptedThisIter++;
+			}
+
+			// --- Targeted swaps (guided by source image centroid matching) ---
+			int targetedAttempts = CrossOver.TARGETED_SWAP_ATTEMPTS;
+			for (int t = 0; t < targetedAttempts; t++) {
+				int worstIdx = -1;
+				long worstDelta = Long.MIN_VALUE;
+
+				int startIdx = r.nextInt(n);
+				int checkCount = Math.min(n, 384);
+
+				for (int k = 0; k < checkCount; k++) {
+					int i = (startIdx + k) % n;
+					long selfDelta = computeTriangleSelfDiff(i);
+					if (selfDelta > worstDelta) {
+						worstDelta = selfDelta;
+						worstIdx = i;
+					}
+				}
+
+				if (worstIdx < 0) continue;
+
+				int bestSwapPartner = -1;
+				long bestDelta = 0;
+
+				int searchStart = r.nextInt(n);
+				int searchCount = Math.min(512, n);
+
+				for (int k = 0; k < searchCount; k++) {
+					int j = (searchStart + k) % n;
+					if (j == worstIdx) continue;
+					long delta = deltaEngine.computeSwapDelta(worstIdx, j);
+					if (delta < bestDelta) {
+						bestDelta = delta;
+						bestSwapPartner = j;
+					}
+				}
+
+				if (bestSwapPartner >= 0) {
+					deltaEngine.applySwapWithDelta(worstIdx, bestSwapPartner, bestDelta);
+					acceptedThisIter++;
+				}
+			}
+
+			if (acceptedThisIter > 0) {
+				goodIterations++;
+			}
+
+			totalIterations++;
+
+			// Sync colors back to TriangleList every N iterations for UI display
+			if (totalIterations % 50 == 0) {
+				syncDeltaToTriangles(best);
+				double newScore = deltaEngine.getScore();
+				best.setScore(newScore);
+
+				if (newScore > bestScore) {
+					bestScore = newScore;
+					bestImage = renderTrianglesToNewImage(best);
+					isDirty = true;
+				}
+			}
+		}
+	}
+
+	/**
+	 * Computes how poorly triangle i is matched (its contribution to total diff).
+	 * Higher = worse match = better candidate for targeted swap.
+	 */
+	private long computeTriangleSelfDiff(int triIdx) {
+		return deltaEngine.getTriangleError(triIdx);
+	}
+
+	/**
+	 * Copies delta engine's internal color state back to the TriangleList.
+	 */
+	private void syncDeltaToTriangles(TriangleList<Triangle> triangles) {
+		int n = triangles.size();
+		for (int i = 0; i < n; i++) {
+			Triangle tri = triangles.get(i);
+			int r = deltaEngine.getCurrentColorR(i);
+			int g = deltaEngine.getCurrentColorG(i);
+			int b = deltaEngine.getCurrentColorB(i);
+			tri.setColor(new Color(r, g, b));
+		}
+	}
+
 	volatile boolean isStarted = false;
 	volatile boolean isRunning = false;
 	
@@ -1489,7 +1647,11 @@ public class ImageEvolver extends AbstractEvolver {
 		while (true) {
 			if (isRunning) {
 				try {
-					evolve(start, ArtEvolver.EVOLVE_ITERATIONS);
+					if (useDeltaEvolution && deltaEngine != null) {
+						evolveDelta(start, ArtEvolver.EVOLVE_ITERATIONS);
+					} else {
+						evolve(start, ArtEvolver.EVOLVE_ITERATIONS);
+					}
 				} catch (Exception e) {
 					// resilient: ignore and retry
 				}

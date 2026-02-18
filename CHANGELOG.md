@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [3.1.0] - 2026-02-18 (develop branch)
+### Added — Delta Fitness Engine (Phase 1 Optimization)
+- **DeltaFitnessEngine**: pre-computed triangle pixel masks with O(pixels_per_triangle) swap evaluation
+  - Builds all masks in a single render pass using index-encoded colors (~200ms init)
+  - Accounts for background pixels (exact score match with full render+compare: 0.00 difference)
+  - `computeSwapDelta()`: evaluates a swap in ~650 pixel ops instead of 1.85M
+  - `trySwap()`: atomic evaluate-and-accept for hill-climbing
+  - `getTriangleError()`: per-triangle error for targeted mutation guidance
+  - Achieves **3.3 million raw swaps/sec** (single thread)
+- **evolveDelta()**: new evolution loop using DeltaFitnessEngine
+  - Grid-localized swaps, random global swaps, and targeted swaps — all via delta evaluation
+  - In-place mutation (no deep copies, no rendering per iteration)
+  - Periodic sync to TriangleList + UI render (every 50 iterations)
+  - **51.6x faster iteration throughput** (83 → 4,295 iter/sec, benchmarked)
+- **GA_OPTIMIZATION_DESIGN.md**: comprehensive analysis and optimization roadmap
+  - CPU time breakdown (rendering 40-55%, comparison 20-30%, allocation 10-15%)
+  - 4-phase optimization plan with expected speedups
+  - Identified 12 issues across algorithmic, implementation, and missed opportunities
+- Delta fitness benchmark tests: accuracy validation + head-to-head legacy comparison
+
 ### Added
 - **Smart Initialization**: greedy nearest-color assignment based on source image analysis
   - Each triangle's centroid region is sampled (7-point sampling) from the source image

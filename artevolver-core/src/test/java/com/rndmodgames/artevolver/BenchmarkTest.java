@@ -11,6 +11,7 @@ import java.net.URISyntaxException;
 import org.junit.jupiter.api.Test;
 
 import com.rndmodgames.evolver.ArtEvolverTools;
+import com.rndmodgames.evolver.DeltaFitnessEngine;
 import com.rndmodgames.evolver.ImageEvolver;
 import com.rndmodgames.evolver.Triangle;
 import com.rndmodgames.evolver.TriangleList;
@@ -213,5 +214,128 @@ class BenchmarkTest {
         }
 
         System.out.println("[PASS] Color multiset integrity maintained through init + 1000 iterations");
+    }
+
+    /**
+     * Validates DeltaFitnessEngine produces identical scores to full render+compare,
+     * and benchmarks the speedup for in-place swap evaluation.
+     */
+    @Test
+    void deltaFitnessAccuracy() throws IOException, URISyntaxException {
+
+        ImageEvolver evolver = ArtEvolverTools.getDefaultImageEvolver(
+            1, 2, 2, 2, "000_zeldathumb-1920-789452.jpg", false,
+            38, 39, 1f);
+
+        TriangleList<Triangle> individual = evolver.getPopulation().get(0);
+
+        double fullScore = individual.getScore();
+        System.out.printf("[DELTA TEST] Full render+compare score: %.10f%n", fullScore);
+
+        long t0 = System.nanoTime();
+        DeltaFitnessEngine engine = new DeltaFitnessEngine(individual, evolver.getResizedOriginal());
+        long buildMs = (System.nanoTime() - t0) / 1_000_000;
+        System.out.printf("[DELTA TEST] Mask build time: %d ms%n", buildMs);
+
+        double deltaScore = engine.getScore();
+        System.out.printf("[DELTA TEST] Delta engine score:        %.10f%n", deltaScore);
+        System.out.printf("[DELTA TEST] Difference:                %.2e%n", Math.abs(fullScore - deltaScore));
+
+        assertTrue(Math.abs(fullScore - deltaScore) < 0.001,
+            "Delta score should match full score within 0.001, got diff=" +
+            Math.abs(fullScore - deltaScore));
+
+        int swapCount = 10_000;
+        int n = engine.getTriangleCount();
+        java.util.concurrent.ThreadLocalRandom rng = java.util.concurrent.ThreadLocalRandom.current();
+
+        t0 = System.nanoTime();
+        int accepted = 0;
+        for (int i = 0; i < swapCount; i++) {
+            int a = rng.nextInt(n);
+            int b = rng.nextInt(n);
+            if (a == b) continue;
+            if (engine.trySwap(a, b)) accepted++;
+        }
+        long deltaMs = (System.nanoTime() - t0) / 1_000_000;
+
+        System.out.printf("[DELTA TEST] %d swap evaluations in %d ms = %.0f swaps/sec%n",
+            swapCount, deltaMs, swapCount * 1000.0 / deltaMs);
+        System.out.printf("[DELTA TEST] Accepted: %d (%.1f%%)%n", accepted, accepted * 100.0 / swapCount);
+        System.out.printf("[DELTA TEST] Final delta score: %.10f (gain: %.6f)%n",
+            engine.getScore(), engine.getScore() - fullScore);
+
+        assertTrue(engine.getScore() >= fullScore,
+            "Hill-climbing should not decrease score");
+    }
+
+    /**
+     * Head-to-head comparison: delta evolution vs legacy render+compare evolution.
+     * Both run for a fixed wall-clock duration and we compare iterations and score gain.
+     */
+    @Test
+    void deltaVsLegacyBenchmark() throws IOException, URISyntaxException {
+
+        int testDurationMs = 5000;
+
+        // --- Legacy (render + compare) ---
+        ImageEvolver legacyEvolver = ArtEvolverTools.getDefaultImageEvolver(
+            1, 2, 2, 2, "000_zeldathumb-1920-789452.jpg", false,
+            38, 39, 1f);
+        legacyEvolver.setUseDeltaEvolution(false);
+
+        double legacyStartScore = legacyEvolver.getBestScore();
+        long legacyStartIter = legacyEvolver.getTotalIterations();
+
+        long t0 = System.nanoTime();
+        long deadline = t0 + (long) testDurationMs * 1_000_000L;
+        while (System.nanoTime() < deadline) {
+            legacyEvolver.evolve(0L, 10);
+        }
+        long legacyElapsed = (System.nanoTime() - t0) / 1_000_000;
+        long legacyIters = legacyEvolver.getTotalIterations() - legacyStartIter;
+        double legacyGain = legacyEvolver.getBestScore() - legacyStartScore;
+
+        System.out.printf("[BENCHMARK] === Legacy (render+compare) ===%n");
+        System.out.printf("[BENCHMARK] Duration: %d ms%n", legacyElapsed);
+        System.out.printf("[BENCHMARK] Iterations: %d (%.0f iter/sec)%n",
+            legacyIters, legacyIters * 1000.0 / legacyElapsed);
+        System.out.printf("[BENCHMARK] Score: %.10f -> %.10f (gain: %.6f)%n",
+            legacyStartScore, legacyEvolver.getBestScore(), legacyGain);
+
+        // --- Delta evolution ---
+        ImageEvolver deltaEvolver = ArtEvolverTools.getDefaultImageEvolver(
+            1, 2, 2, 2, "000_zeldathumb-1920-789452.jpg", false,
+            38, 39, 1f);
+        deltaEvolver.initDeltaEngine();
+        deltaEvolver.setUseDeltaEvolution(true);
+
+        double deltaStartScore = deltaEvolver.getBestScore();
+        long deltaStartIter = deltaEvolver.getTotalIterations();
+
+        t0 = System.nanoTime();
+        deadline = t0 + (long) testDurationMs * 1_000_000L;
+        while (System.nanoTime() < deadline) {
+            deltaEvolver.evolveDelta(0L, 10);
+        }
+        long deltaElapsed = (System.nanoTime() - t0) / 1_000_000;
+        long deltaIters = deltaEvolver.getTotalIterations() - deltaStartIter;
+        double deltaGain = deltaEvolver.getBestScore() - deltaStartScore;
+
+        System.out.printf("[BENCHMARK] === Delta Evolution ===%n");
+        System.out.printf("[BENCHMARK] Duration: %d ms%n", deltaElapsed);
+        System.out.printf("[BENCHMARK] Iterations: %d (%.0f iter/sec)%n",
+            deltaIters, deltaIters * 1000.0 / deltaElapsed);
+        System.out.printf("[BENCHMARK] Score: %.10f -> %.10f (gain: %.6f)%n",
+            deltaStartScore, deltaEvolver.getBestScore(), deltaGain);
+
+        // --- Comparison ---
+        double iterSpeedup = (deltaIters * 1000.0 / deltaElapsed) / (legacyIters * 1000.0 / legacyElapsed);
+        double gainSpeedup = deltaGain / Math.max(legacyGain, 1e-15);
+        System.out.printf("[BENCHMARK] === Speedup ===%n");
+        System.out.printf("[BENCHMARK] Iteration throughput: %.1fx faster%n", iterSpeedup);
+        System.out.printf("[BENCHMARK] Score gain: %.1fx more gain%n", gainSpeedup);
+
+        assertTrue(deltaIters > legacyIters, "Delta should achieve more iterations");
     }
 }

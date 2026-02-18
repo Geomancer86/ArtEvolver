@@ -93,19 +93,38 @@ git clone https://github.com/Geomancer86/ArtEvolver.git
 cd ArtEvolver
 ```
 
-### Build
+### Quick Start (Recommended)
+
+On Windows, double-click or run from a terminal:
+
+```bash
+start.bat
+```
+
+On Linux/Mac:
+
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+The script checks for Java and Maven, builds the project if needed, and launches the GUI.
+
+Use `--rebuild` to force a clean build: `start.bat --rebuild`
+
+### Manual Build
 
 ```bash
 mvn compile
 ```
 
-> **Note:** The `palette4.txt` resource file contains characters that can cause issues with Maven's resource filtering. If you encounter encoding errors during a full build, use the following workaround:
+> **Note:** If you encounter `MalformedInputException` during a full build, palette `.txt` files have non-UTF-8 characters. This is handled automatically in v3.1+, but for older checkouts use:
 >
 > ```bash
 > mvn compiler:compile -pl artevolver-core
 > ```
 
-### Run
+### Manual Run
 
 Execute the main class to launch the GUI:
 

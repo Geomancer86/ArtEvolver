@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - BENCHMARKING.md: comprehensive guide for running, analyzing, and comparing benchmarks
 - Version bump to 3.1.0-SNAPSHOT across all POMs
 - Window title updated to "ArtEvolver v3.1"
+- start.bat / start.sh: one-click launcher with Java/Maven detection, auto-build, and --rebuild flag
+- benchmark.bat / benchmark.sh: interactive benchmark runner with menu-driven test selection
+- exec-maven-plugin configuration for `mvn exec:java` support
 
 ### Fixed
 - Maven resource filtering on palette .txt files causing MalformedInputException (palette files now excluded from filtering)

@@ -107,9 +107,20 @@ public class BenchmarkRunner {
         File imageFile = new File(imagePath);
         BufferedImage originalImage = ImageIO.read(imageFile);
 
+        int newWidth = (int) (width * widthTriangles);
+        int newHeight = (int) ((height * heightTriangles) - height);
+
+        BufferedImage resizedOriginal = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D g2d = resizedOriginal.createGraphics();
+        g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                             java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2d.drawImage(originalImage, 0, 0, newWidth, newHeight,
+                       0, 0, originalImage.getWidth(), originalImage.getHeight(), null);
+        g2d.dispose();
+
         ImageEvolver.SHUFFLE_PALETTE = shufflePopulation;
         for (ImageEvolver ev : evolvers) {
-            ev.setResizedOriginal(originalImage);
+            ev.setResizedOriginal(resizedOriginal);
             ev.initialize();
         }
 

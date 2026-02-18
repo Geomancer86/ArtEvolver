@@ -1,5 +1,6 @@
 package com.rndmodgames.evolver;
 
+import java.awt.Color;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class CrossOver {
@@ -42,6 +43,9 @@ public class CrossOver {
 	public static int RANDOM_GRID_MUTATION_CHANCES = 10; // default is 1
     public static float RANDOM_GRID_MUTATION_PERCENT = 1f / 10000; // default is 1
 	
+	public static int TARGETED_SWAP_ATTEMPTS = 12;
+	public static boolean CROSSOVER_BLOCK_ENABLED = true;
+
 	public static       int   TOTAL_GRIDS                   =  8; // NEEDS TO BE == THREADS
 	public static       int   DEFAULT_GRID_SIZE             = 256; // default is 4260
 	public static       int   MINIMUM_GRID_SIZE             =   2; // default is 4260
@@ -73,29 +77,10 @@ public class CrossOver {
 		
 		// keep track
 		this.evolverInstance = evolverInstance;
-		
-		// set grid size dynamically defaults to false
-		boolean dynamicGridSize = true;
-		
-		/**
-		 * TODO: this needs to be the number of triangles or colors
-		 */
-		if (dynamicGridSize) {
-//		    DEFAULT_GRID_SIZE = (ArtEvolver.heightTriangles * ArtEvolver.widthTriangles) / TOTAL_GRIDS;
-//		    DEFAULT_GRID_SIZE = 6048 / TOTAL_GRIDS;
-//		    DEFAULT_GRID_SIZE = 23868 / TOTAL_GRIDS;
-//		    DEFAULT_GRID_SIZE = 6006 / TOTAL_GRIDS;
-//		    DEFAULT_GRID_SIZE = 6048 / TOTAL_GRIDS;
-//		    DEFAULT_GRID_SIZE = (102*57) / TOTAL_GRIDS;
-		    
-//		    DEFAULT_GRID_SIZE = (38*39) / TOTAL_GRIDS; // 1 palette
-//		    DEFAULT_GRID_SIZE = (54*55) / TOTAL_GRIDS; // 2 palettes
-//		    DEFAULT_GRID_SIZE = (66*67) / TOTAL_GRIDS; // 3 palettes
-		    DEFAULT_GRID_SIZE = (76*77) / TOTAL_GRIDS; // 4 palettes
-//		    DEFAULT_GRID_SIZE = (86*87) / TOTAL_GRIDS; // 5 palettes
-//		    DEFAULT_GRID_SIZE = (94*95) / TOTAL_GRIDS; // 6 palettes
-//		    DEFAULT_GRID_SIZE = (110*111) / TOTAL_GRIDS; // 8 palettes
-//		    DEFAULT_GRID_SIZE = (156*157) / TOTAL_GRIDS; // 16 palettes
+
+		int totalTriangles = evolverInstance.getTriangleWidth() * evolverInstance.getTriangleHeight();
+		if (totalTriangles > 0 && TOTAL_GRIDS > 0) {
+			DEFAULT_GRID_SIZE = Math.max(2, totalTriangles / TOTAL_GRIDS);
 		}
 	}
 	
@@ -234,27 +219,56 @@ public class CrossOver {
 	}
 
 	/**
-	 * Creates a Child Drawing between two Parent Drawings
+	 * Creates a Child Drawing between two Parent Drawings using spatial block crossover.
+	 * Copies primary parent, then injects a spatial region from the secondary parent,
+	 * swapping colors to maintain the permutation constraint.
 	 */
 	public TriangleList<Triangle> getChild(TriangleList<Triangle> parentA, TriangleList<Triangle> parentB, int evolverId) {
 		
-		// TODO static or pool
 		TriangleList<Triangle> child = new TriangleList<Triangle>();
 
 		ThreadLocalRandom r = ThreadLocalRandom.current();
+		int n = parentA.size();
 
-		// base parent chance 50/50
 		boolean isParentA = r.nextBoolean();
+		TriangleList<Triangle> primary = isParentA ? parentA : parentB;
+		TriangleList<Triangle> secondary = isParentA ? parentB : parentA;
 		
-		if (isParentA){
-			for (Triangle triangle : parentA){
-				Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor());
-				child.add(copy);
+		for (Triangle triangle : primary) {
+			Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor());
+			child.add(copy);
+		}
+
+		if (n > 4 && CROSSOVER_BLOCK_ENABLED) {
+			int blockSize = Math.max(2, n / r.nextInt(4, 12));
+			int blockStart = r.nextInt(n);
+
+			java.util.HashMap<Integer, Integer> colorIndex = new java.util.HashMap<>(n * 2);
+			for (int i = 0; i < n; i++) {
+				Color c = child.get(i).getColor();
+				if (c != null) {
+					colorIndex.put(c.getRGB(), i);
+				}
 			}
-		}else{
-			for (Triangle triangle : parentB){
-				Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor());
-				child.add(copy);
+
+			for (int k = 0; k < blockSize; k++) {
+				int idx = (blockStart + k) % n;
+				Color wantColor = secondary.get(idx).getColor();
+				if (wantColor == null) continue;
+
+				Color currentColor = child.get(idx).getColor();
+				if (currentColor != null && currentColor.getRGB() == wantColor.getRGB()) continue;
+
+				Integer holderIdx = colorIndex.get(wantColor.getRGB());
+				if (holderIdx == null) continue;
+
+				child.get(holderIdx.intValue()).setColor(currentColor);
+				child.get(idx).setColor(wantColor);
+
+				if (currentColor != null) {
+					colorIndex.put(currentColor.getRGB(), holderIdx);
+				}
+				colorIndex.put(wantColor.getRGB(), idx);
 			}
 		}
 
@@ -306,6 +320,14 @@ public class CrossOver {
                 //
                 ImageEvolver.switchGridColor(child, ImageEvolver.roll(TOTAL_GRIDS), DEFAULT_GRID_SIZE);
             }
+        }
+
+        /**
+         * Targeted Swap (v3.1): guided mutation using source image analysis.
+         * Finds worst-matching triangles and swaps toward better colors.
+         */
+        if (evolverInstance != null && evolverInstance.getResizedOriginal() != null) {
+            ImageEvolver.targetedSwap(child, evolverInstance.getResizedOriginal(), TARGETED_SWAP_ATTEMPTS);
         }
 
 		return child;

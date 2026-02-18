@@ -7,9 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.0] - 2026-02-18 (develop branch)
 ### Added
+- **Smart Initialization**: greedy nearest-color assignment based on source image analysis
+  - Each triangle's centroid region is sampled (7-point sampling) from the source image
+  - Palette colors are assigned by minimizing RGB distance to target, prioritizing high-saturation regions
+  - Initial fitness jumps from ~0.49 (random) to ~0.51+ immediately
+  - Controlled by `ImageEvolver.SMART_INITIALIZATION` flag (default: true)
+- **Targeted Swap mutation**: source-image-guided color swapping
+  - Finds worst-matching triangles (largest color distance from source) using centroid sampling
+  - Searches for swap candidates that maximize **net improvement** for both positions
+  - Pre-computes centroid coordinates and source pixel values for efficiency
+  - Configurable via `CrossOver.TARGETED_SWAP_ATTEMPTS` (default: 12)
+- **Real two-parent crossover**: spatial block crossover preserving color permutation
+  - Copies primary parent, then injects a contiguous block from secondary parent
+  - Uses HashMap-based color index for O(1) permutation-safe swap resolution
+  - Block size varies randomly (1/12 to 1/4 of total triangles per crossover)
+  - Controlled by `CrossOver.CROSSOVER_BLOCK_ENABLED` flag (default: true)
+- **Dynamic grid size**: `CrossOver.DEFAULT_GRID_SIZE` now computed from actual triangle count
+  - Eliminates "grid outside population" errors when triangle count doesn't match hardcoded values
+  - Grid size = totalTriangles / TOTAL_GRIDS, ensuring all grid mutations are valid
 - Structured benchmarking system replacing ad-hoc System.out.println output
 - BenchmarkLogger: thread-safe CSV writer with timestamped metrics, auto-file creation, and summary reports
 - BenchmarkRunner: headless benchmark harness with Builder pattern for automated testing
+  - Properly resizes source image to match triangle grid dimensions (fixes evaluation accuracy)
 - BenchmarkTest: four automated benchmark tests (quick, baseline, thread scaling, population sizing)
 - Benchmark comparison utility for side-by-side run analysis
 - GUI benchmark integration: automatic CSV logging when evolution runs (toggle with BENCHMARK_LOGGING flag)
@@ -20,8 +39,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - benchmark.bat / benchmark.sh: interactive benchmark runner with menu-driven test selection
 - exec-maven-plugin configuration for `mvn exec:java` support
 
+### Changed
+- CrossOver.getChild() now performs real two-parent crossover instead of single-parent copy
+- Mutation rebalanced: targeted swaps (guided) complement grid/random swaps (blind)
+- BenchmarkRunner now properly resizes source image to match triangle grid (was using raw image)
+
 ### Fixed
 - Maven resource filtering on palette .txt files causing MalformedInputException (palette files now excluded from filtering)
+- CrossOver.DEFAULT_GRID_SIZE was hardcoded for 4-palette config (76*77/8=731), causing IndexOutOfBoundsException and wasted grid mutations on other configurations
 
 ## [3.0.0] - 2026-02-18 (develop branch)
 ### Added

@@ -3,6 +3,7 @@ package com.rndmodgames.evolver;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -10,6 +11,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -37,6 +40,8 @@ public class ImageEvolver extends AbstractEvolver {
 
 	// default is true
 	public static boolean SHUFFLE_PALETTE = false;
+
+	public static boolean SMART_INITIALIZATION = true;
 	
 	public final static DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("##.###################");
 	
@@ -94,6 +99,14 @@ public class ImageEvolver extends AbstractEvolver {
 	
 	public Long getId() {
 		return this.id;
+	}
+
+	public int getTriangleWidth() {
+		return triangleWidth;
+	}
+
+	public int getTriangleHeight() {
+		return triangleHeight;
 	}
 
 	/**
@@ -256,23 +269,245 @@ public class ImageEvolver extends AbstractEvolver {
 
 				pop.add(triangles);
 			}
+		}
 
-			double scoreA = 0d;
-
+		if (SMART_INITIALIZATION && resizedOriginal != null) {
 			for (TriangleList<Triangle> triangles : pop) {
-				BufferedImage rendered = renderTriangles(triangles);
-				scoreA = compare(rendered, resizedOriginal);
-				triangles.setScore(scoreA);
+				smartAssignColors(triangles);
 			}
+		}
+
+		double scoreA = 0d;
+		for (TriangleList<Triangle> triangles : pop) {
+			BufferedImage rendered = renderTriangles(triangles);
+			scoreA = compare(rendered, resizedOriginal);
+			triangles.setScore(scoreA);
 		}
 
 		// Comparator used only once, no need to extract
 		Collections.sort(pop, new TrianglesComparator());
+	}
 
-//		System.out.println("total pixels is " + pop.get(0).size());
+	/**
+	 * Assigns palette colors to triangles by matching each triangle's region
+	 * to the nearest available palette color based on average source image RGB.
+	 *
+	 * Greedy O(triangles * palette_colors) approach to the color assignment problem.
+	 */
+	private void smartAssignColors(TriangleList<Triangle> triangles) {
+		int imgW = resizedOriginal.getWidth();
+		int imgH = resizedOriginal.getHeight();
 
-		// keep only defined population
-//		pop = pop.subList(0, population);
+		int n = triangles.size();
+
+		int[] targetR = new int[n];
+		int[] targetG = new int[n];
+		int[] targetB = new int[n];
+
+		for (int i = 0; i < n; i++) {
+			Triangle tri = triangles.get(i);
+			int cx = (tri.getxPoly()[0] + tri.getxPoly()[1] + tri.getxPoly()[2]) / 3;
+			int cy = (tri.getyPoly()[0] + tri.getyPoly()[1] + tri.getyPoly()[2]) / 3;
+
+			int sampleCount = 0;
+			long rSum = 0, gSum = 0, bSum = 0;
+
+			int[][] offsets = {
+				{cx, cy},
+				{tri.getxPoly()[0], tri.getyPoly()[0]},
+				{tri.getxPoly()[1], tri.getyPoly()[1]},
+				{tri.getxPoly()[2], tri.getyPoly()[2]},
+				{(cx + tri.getxPoly()[0]) / 2, (cy + tri.getyPoly()[0]) / 2},
+				{(cx + tri.getxPoly()[1]) / 2, (cy + tri.getyPoly()[1]) / 2},
+				{(cx + tri.getxPoly()[2]) / 2, (cy + tri.getyPoly()[2]) / 2}
+			};
+
+			for (int[] pt : offsets) {
+				int px = Math.max(0, Math.min(pt[0], imgW - 1));
+				int py = Math.max(0, Math.min(pt[1], imgH - 1));
+				int rgb = resizedOriginal.getRGB(px, py);
+				rSum += (rgb >> 16) & 0xff;
+				gSum += (rgb >> 8) & 0xff;
+				bSum += rgb & 0xff;
+				sampleCount++;
+			}
+
+			targetR[i] = (int) (rSum / sampleCount);
+			targetG[i] = (int) (gSum / sampleCount);
+			targetB[i] = (int) (bSum / sampleCount);
+		}
+
+		Color[] currentColors = new Color[n];
+		for (int i = 0; i < n; i++) {
+			currentColors[i] = triangles.get(i).getColor();
+		}
+
+		Integer[] sortedTriangles = new Integer[n];
+		for (int i = 0; i < n; i++) sortedTriangles[i] = i;
+
+		Arrays.sort(sortedTriangles, (a, b) -> {
+			int satA = Math.max(targetR[a], Math.max(targetG[a], targetB[a]))
+					 - Math.min(targetR[a], Math.min(targetG[a], targetB[a]));
+			int satB = Math.max(targetR[b], Math.max(targetG[b], targetB[b]))
+					 - Math.min(targetR[b], Math.min(targetG[b], targetB[b]));
+			return Integer.compare(satB, satA);
+		});
+
+		boolean[] colorUsed = new boolean[n];
+		int[] assignment = new int[n];
+		Arrays.fill(assignment, -1);
+
+		for (int idx : sortedTriangles) {
+			int bestColor = -1;
+			int bestDist = Integer.MAX_VALUE;
+
+			int tr = targetR[idx], tg = targetG[idx], tb = targetB[idx];
+
+			for (int c = 0; c < n; c++) {
+				if (colorUsed[c]) continue;
+				if (currentColors[c] == null) continue;
+
+				int dr = tr - currentColors[c].getRed();
+				int dg = tg - currentColors[c].getGreen();
+				int db = tb - currentColors[c].getBlue();
+				int dist = dr * dr + dg * dg + db * db;
+
+				if (dist < bestDist) {
+					bestDist = dist;
+					bestColor = c;
+				}
+			}
+
+			if (bestColor >= 0) {
+				assignment[idx] = bestColor;
+				colorUsed[bestColor] = true;
+			}
+		}
+
+		Color[] assignedColors = new Color[n];
+		for (int i = 0; i < n; i++) {
+			if (assignment[i] >= 0) {
+				assignedColors[i] = currentColors[assignment[i]];
+			} else {
+				assignedColors[i] = currentColors[i];
+			}
+		}
+		for (int i = 0; i < n; i++) {
+			triangles.get(i).setColor(assignedColors[i]);
+		}
+	}
+
+	/**
+	 * Targeted mutation: finds the worst-matching triangle and swaps its color
+	 * with the triangle that currently holds the closest matching color.
+	 * Much more effective than random swaps.
+	 */
+	/**
+	 * Targeted mutation: finds the worst-matching triangle and swaps its color
+	 * with the triangle that yields the best net fitness improvement for both positions.
+	 */
+	public static void targetedSwap(TriangleList<Triangle> triangles,
+	                                  BufferedImage sourceImage, int attempts) {
+		int imgW = sourceImage.getWidth();
+		int imgH = sourceImage.getHeight();
+		int n = triangles.size();
+		if (n < 2) return;
+
+		int[] cxArr = null;
+		int[] cyArr = null;
+		int[] srcR = null, srcG = null, srcB = null;
+
+		if (cxArr == null) {
+			cxArr = new int[n];
+			cyArr = new int[n];
+			srcR = new int[n];
+			srcG = new int[n];
+			srcB = new int[n];
+			for (int i = 0; i < n; i++) {
+				Triangle tri = triangles.get(i);
+				cxArr[i] = Math.max(0, Math.min(
+					(tri.getxPoly()[0] + tri.getxPoly()[1] + tri.getxPoly()[2]) / 3, imgW - 1));
+				cyArr[i] = Math.max(0, Math.min(
+					(tri.getyPoly()[0] + tri.getyPoly()[1] + tri.getyPoly()[2]) / 3, imgH - 1));
+				int rgb = sourceImage.getRGB(cxArr[i], cyArr[i]);
+				srcR[i] = (rgb >> 16) & 0xff;
+				srcG[i] = (rgb >> 8) & 0xff;
+				srcB[i] = rgb & 0xff;
+			}
+		}
+
+		for (int attempt = 0; attempt < attempts; attempt++) {
+			int worstIdx = -1;
+			int worstDist = -1;
+
+			int startIdx = random().nextInt(n);
+			int checkCount = Math.min(256, n);
+
+			for (int k = 0; k < checkCount; k++) {
+				int i = (startIdx + k) % n;
+				Triangle tri = triangles.get(i);
+				if (tri.getColor() == null) continue;
+
+				int dr = srcR[i] - tri.getColor().getRed();
+				int dg = srcG[i] - tri.getColor().getGreen();
+				int db = srcB[i] - tri.getColor().getBlue();
+				int dist = dr * dr + dg * dg + db * db;
+
+				if (dist > worstDist) {
+					worstDist = dist;
+					worstIdx = i;
+				}
+			}
+
+			if (worstIdx < 0) continue;
+
+			Triangle worstTri = triangles.get(worstIdx);
+			Color worstColor = worstTri.getColor();
+			int wR = worstColor.getRed(), wG = worstColor.getGreen(), wB = worstColor.getBlue();
+
+			int bestSwap = -1;
+			int bestImprovement = 0;
+
+			int searchStart = random().nextInt(n);
+			int searchCount = Math.min(512, n);
+
+			for (int k = 0; k < searchCount; k++) {
+				int j = (searchStart + k) % n;
+				if (j == worstIdx) continue;
+				Triangle cand = triangles.get(j);
+				if (cand.getColor() == null) continue;
+
+				int cR = cand.getColor().getRed();
+				int cG = cand.getColor().getGreen();
+				int cB = cand.getColor().getBlue();
+
+				int beforeA = (srcR[worstIdx] - wR) * (srcR[worstIdx] - wR)
+				            + (srcG[worstIdx] - wG) * (srcG[worstIdx] - wG)
+				            + (srcB[worstIdx] - wB) * (srcB[worstIdx] - wB);
+				int beforeB = (srcR[j] - cR) * (srcR[j] - cR)
+				            + (srcG[j] - cG) * (srcG[j] - cG)
+				            + (srcB[j] - cB) * (srcB[j] - cB);
+
+				int afterA = (srcR[worstIdx] - cR) * (srcR[worstIdx] - cR)
+				           + (srcG[worstIdx] - cG) * (srcG[worstIdx] - cG)
+				           + (srcB[worstIdx] - cB) * (srcB[worstIdx] - cB);
+				int afterB = (srcR[j] - wR) * (srcR[j] - wR)
+				           + (srcG[j] - wG) * (srcG[j] - wG)
+				           + (srcB[j] - wB) * (srcB[j] - wB);
+
+				int improvement = (beforeA + beforeB) - (afterA + afterB);
+
+				if (improvement > bestImprovement) {
+					bestImprovement = improvement;
+					bestSwap = j;
+				}
+			}
+
+			if (bestSwap >= 0) {
+				worstTri.setColor(triangles.get(bestSwap).getColor());
+				triangles.get(bestSwap).setColor(worstColor);
+			}
+		}
 	}
 
 	public void initialize() {
@@ -331,27 +566,32 @@ public class ImageEvolver extends AbstractEvolver {
 					}
 				}
 
-				// randomize
-				for (int k = 0; k < triangles.size() * randomMult; k++) {
-					switchColor(triangles, roll(triangles.size()), roll(triangles.size()));
+				// randomize unless smart init will handle it
+				if (!SMART_INITIALIZATION || resizedOriginal == null) {
+					for (int k = 0; k < triangles.size() * randomMult; k++) {
+						switchColor(triangles, roll(triangles.size()), roll(triangles.size()));
+					}
 				}
 
 				pop.add(triangles);
 			}
+		}
 
-			double scoreA = 0d;
-
+		if (SMART_INITIALIZATION && resizedOriginal != null) {
 			for (TriangleList<Triangle> triangles : pop) {
-				BufferedImage rendered = renderTriangles(triangles);
-				scoreA = compare(rendered, resizedOriginal);
-				triangles.setScore(scoreA);
+				smartAssignColors(triangles);
 			}
+		}
+
+		double scoreA = 0d;
+		for (TriangleList<Triangle> triangles : pop) {
+			BufferedImage rendered = renderTriangles(triangles);
+			scoreA = compare(rendered, resizedOriginal);
+			triangles.setScore(scoreA);
 		}
 
 		// Comparator used only once, no need to extract
 		Collections.sort(pop, new TrianglesComparator());
-
-//		System.out.println("total pixels is " + pop.get(0).size());
 
 		// keep only defined population
 		pop = pop.subList(0, population);

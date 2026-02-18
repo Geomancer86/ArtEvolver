@@ -459,6 +459,59 @@ evolve.
 
 ---
 
+## Evolution Algorithm (v3.1)
+
+The evolution loop in `ImageEvolver.evolve()` uses a steady-state genetic algorithm with
+several mutation operators working in concert.
+
+### Initialization
+
+1. **Geometry creation**: Isosceles triangles are arranged on a grid
+2. **Smart color assignment** (v3.1): Each triangle's region is sampled from the source image
+   (7 points: centroid, 3 vertices, 3 midpoints). A greedy algorithm assigns the nearest
+   unused palette color to each triangle, prioritizing high-saturation regions first.
+   This produces an initial fitness of ~0.51 vs ~0.49 for random assignment.
+
+### Mutation Operators (in CrossOver.getChild)
+
+| Operator | Description | Per-child count |
+|----------|-------------|-----------------|
+| **Spatial Block Crossover** | Injects a contiguous block of colors from secondary parent into primary parent copy, maintaining permutation via HashMap tracking | 1 block (1/12 to 1/4 of triangles) |
+| **Grid Swap** | Swaps two random colors within a grid section (localized) | ~26 per child |
+| **Random Swap** | Swaps two fully random colors (global) | ~1 per child |
+| **Targeted Swap** | Finds worst-matching triangle, searches for best net-improvement swap partner | 12 per child |
+
+### Targeted Swap Algorithm (v3.1)
+
+```
+for each attempt:
+    1. Sample 256 triangles, find the one with largest
+       RGB distance between its color and source image centroid
+    2. Search 512 candidates for the swap that maximizes:
+       improvement = (before_distA + before_distB) - (after_distA + after_distB)
+    3. Only execute swap if net improvement > 0
+```
+
+This ensures every targeted swap improves overall local fitness for both positions involved.
+
+### Selection and Replacement
+
+- **Parent selection**: ParentA = last in population (worst), ParentB = random
+- **Replacement**: Child replaces parent if child's fitness > parent's fitness
+- **Elitism**: Global best score is tracked; best image is preserved across all threads
+
+### Parameter Decay (Tournament)
+
+Every `tournamentRoundSize` iterations (default 80):
+- `GRID_MUTATION_CHANCES` decreases by `GRID_MUTATION_DECAY` (0.1)
+- `RANDOM_MUTATION_CHANCES` decreases by `RANDOM_MUTATION_CHANCES_SUBSTRACT`
+- `randomJumpDistance` is halved (minimum 1)
+
+This progressively shifts from exploration (many random mutations) to exploitation
+(fewer, more precise mutations) as evolution progresses.
+
+---
+
 ## Resolution Modes
 
 Resolution is controlled by the number of palette repetitions. More repetitions mean more

@@ -35,6 +35,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import com.rndmodgames.evolver.benchmark.BenchmarkLogger;
 import com.rndmodgames.evolver.render.Renderer;
 
 public class ArtEvolver extends JFrame implements ActionListener, ChangeListener {
@@ -44,6 +45,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public JFrame mainFrame;
 	private JPanel imagePanel;
 	private Palette pallete;
+	
+	/**
+	 * Structured benchmark logging (v3.1). Set BENCHMARK_LOGGING = true to write CSV files.
+	 */
+	public static boolean BENCHMARK_LOGGING = true;
+	public static String BENCHMARK_OUTPUT_DIR = "benchmarks";
+	private BenchmarkLogger benchmarkLogger;
 	
 	//
 	DecimalFormat df = new DecimalFormat();
@@ -373,7 +381,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
     public ArtEvolver() throws IOException, URISyntaxException {
         
-        super("ArtEvolver 2021 v2.05");
+        super("ArtEvolver v3.1");
 
         //
         df.setMaximumFractionDigits(2);
@@ -872,7 +880,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                     if (bestScore >= 0.5f) {
                         System.out.println(bestScore);
                     }
-//                    System.out.println(bestScore + "," + ((float) maxJumpDistanceSum / (float) THREADS));
+
+                    if (benchmarkLogger != null) {
+                        double health = streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS);
+                        benchmarkLogger.record(totalIterations, goodIterations, health,
+                                bestScore, THREADS, POPULATION, TOTAL_TRIANGLES,
+                                MODES[CURRENT_MODE] != null ? MODES[CURRENT_MODE] : "CUSTOM");
+                    }
                     
 //                    System.out.println("Evolver " + ((ImageEvolver)currentEvolver).getId() + ", iterations: " + ((ImageEvolver)currentEvolver).getTotalIterations() + ", bestScore: " + ((ImageEvolver)currentEvolver).getBestScore());
             	}
@@ -1229,6 +1243,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
     	this.isRunning = true;
     	
+    	if (BENCHMARK_LOGGING && benchmarkLogger == null) {
+    	    try {
+    	        String runLabel = MODES[CURRENT_MODE] != null ? MODES[CURRENT_MODE] : "mode_" + CURRENT_MODE;
+    	        benchmarkLogger = new BenchmarkLogger(BENCHMARK_OUTPUT_DIR, runLabel);
+    	    } catch (IOException ex) {
+    	        System.err.println("Failed to initialize benchmark logger: " + ex.getMessage());
+    	    }
+    	}
+    	
     	// run() Evolver instances and as configured by THREADS parameter
 		for (AbstractEvolver currentEvolver : evolvers) {
 
@@ -1258,6 +1281,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	this.isRunning = false;
     	
     	processTimer.stop();
+    	
+    	if (benchmarkLogger != null) {
+    	    System.out.println(benchmarkLogger.generateSummary());
+    	    benchmarkLogger.close();
+    	    benchmarkLogger = null;
+    	}
     }
     
     /**

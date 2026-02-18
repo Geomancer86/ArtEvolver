@@ -5,7 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - develop branch
+## [3.1.0] - 2026-02-18 (develop branch)
+### Added
+- Structured benchmarking system replacing ad-hoc System.out.println output
+- BenchmarkLogger: thread-safe CSV writer with timestamped metrics, auto-file creation, and summary reports
+- BenchmarkRunner: headless benchmark harness with Builder pattern for automated testing
+- BenchmarkTest: four automated benchmark tests (quick, baseline, thread scaling, population sizing)
+- Benchmark comparison utility for side-by-side run analysis
+- GUI benchmark integration: automatic CSV logging when evolution runs (toggle with BENCHMARK_LOGGING flag)
+- BENCHMARKING.md: comprehensive guide for running, analyzing, and comparing benchmarks
+- Version bump to 3.1.0-SNAPSHOT across all POMs
+- Window title updated to "ArtEvolver v3.1"
+
+### Fixed
+- Maven resource filtering on palette .txt files causing MalformedInputException (palette files now excluded from filtering)
+
+## [3.0.0] - 2026-02-18 (develop branch)
 ### Added
 - Bulk pixel comparison in AbstractEvolver (3-5x faster fitness evaluation)
 - Reusable image buffer pool in ImageEvolver (renderTriangles/renderTrianglesToNewImage)

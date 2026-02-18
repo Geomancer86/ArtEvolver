@@ -221,6 +221,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
 	private static final int HEALTH_ITERATIONS = 1000;
 	private final float [] GOOD_ITERATIONS  = new float [HEALTH_ITERATIONS];
+
+	private static final int UI_UPDATE_INTERVAL = 40;
+	private static final int LOG_INTERVAL_MS = 5000;
+	private long lastLogTimeMs = 0;
 	
 	/**
 	 * TODO: document and benchmark
@@ -787,30 +791,35 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                 GOOD_ITERATIONS[(int) (currentFrame % HEALTH_ITERATIONS)] = (float) (goodIterations - prevGoodIterations) * 100;
 
             	/**
-            	 * This stats only make sense for benchmarking and should keep consistent, for example, printed once each 1 second
+            	 * Update UI labels frequently (~1 second intervals)
             	 */
-            	if (currentFrame % HEALTH_ITERATIONS == 0) {
-//            	    if (currentFrame % 4 == 0) {
+            	if (currentFrame % UI_UPDATE_INTERVAL == 0) {
+
+            	    float health = streamAvg(GOOD_ITERATIONS, Math.min((int) currentFrame, HEALTH_ITERATIONS));
 
             	    lblScore.setText("S: " + df4.format(bestScore * 100f) + PERCENT_SIGN);
-                    
-            	    // avoid divisions by zero just in case
-                    if (goodIterations > 0 && totalIterations > HEALTH_ITERATIONS) {
 
-                        // health is the average of the last HEALTH_ITERATIONS count
-                        lblAverageScore.setText("H: " + df.format(streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS)) + PERCENT_SIGN);
+            	    if (goodIterations > 0 && totalIterations > 0) {
+                        lblAverageScore.setText("H: " + df.format(health) + PERCENT_SIGN);
                     }
-                    
-                    // 
+
                     lblPopulation.setText("Pop: " + population);
                     lblIterations.setText("I: " + goodIterations + "/" + totalIterations);
-                    
+            	}
+
+            	/**
+            	 * Health checks, parameter adjustments, logging at HEALTH_ITERATIONS intervals
+            	 */
+            	if (currentFrame % HEALTH_ITERATIONS == 0) {
+
+                    float health = streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS);
+
                     /**
                      * DYNAMIC HEALTH CHECK
                      */
                     if (HALVE_PARAMETERS_ON_LOW_HEALTH) {
                         
-                        if ((streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS)) <= LOW_HEALTH_HALVE_PARAMETERS_TRESHOLD ) {
+                        if (health <= LOW_HEALTH_HALVE_PARAMETERS_TRESHOLD) {
 
                             for (AbstractEvolver currentEvolver : evolvers) {
                                 
@@ -818,11 +827,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                                 ((ImageEvolver) currentEvolver).raiseMaxJumpDistance(EVOLVE_JUMPS_ADD);
                             }
                         }
-                        
-                        
                     }
                     
-                    // healthy evolve, add max jumps if count reaches treshold
                     if (EVOLUTION_JUMPS_ENABLED) {
 
                         if (currentFrame % (EVOLVE_HEALTH_CHECKS_ADD_MAX_JUMP_DISTANCE * HEALTH_ITERATIONS) == 0) {
@@ -839,27 +845,21 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                         }
                     }
                     
-                    // 
                     if (JUMPS_DEPEND_ON_FRESH_HEALTH) {
                         
-                        float healthDifference = lastCheckHealth - streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS);
-                        
-//                        System.out.println("lastCheckHealth: " + lastCheckHealth + ", " + healthDifference);
+                        float healthDifference = lastCheckHealth - health;
                         
                         for (AbstractEvolver currentEvolver : evolvers) {
                          
-                            // TODO implement percent based chance with FRESH_HEALTH_JUMP_PERCENT
                             ((ImageEvolver) currentEvolver).raiseMaxJumpDistance((int) healthDifference);
                             
-                            // NORMALIZE JUMPS
                             if (((ImageEvolver) currentEvolver).getRandomJumpDistance() < 0) {
                                 
                                 ((ImageEvolver) currentEvolver).setRandomJumpDistance(1);
                             }
                         }
                         
-                        // need to record this health check for next comparison
-                        lastCheckHealth = streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS);
+                        lastCheckHealth = health;
                     }
 
                     // TOURNAMENT PRINT
@@ -869,23 +869,24 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                         }
                         System.out.println();
                     }
-                    
-                    // total_iterations, good_iterations, health, best_score, max_jump_average
-//                    System.out.println(totalIterations 
-//                                        + "," + goodIterations
-//                                        + "," + streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS)
-//                                        + "," + bestScore
-//                                        + "," + ((float) maxJumpDistanceSum / (float) THREADS));
-                    
-                    if (bestScore >= 0.5f) {
-                        System.out.println(bestScore);
-                    }
 
                     if (benchmarkLogger != null) {
-                        double health = streamAvg(GOOD_ITERATIONS, HEALTH_ITERATIONS);
                         benchmarkLogger.record(totalIterations, goodIterations, health,
                                 bestScore, THREADS, POPULATION, TOTAL_TRIANGLES,
                                 MODES[CURRENT_MODE] != null ? MODES[CURRENT_MODE] : "CUSTOM");
+                    }
+                    
+                    /**
+                     * Console progress log every LOG_INTERVAL_MS
+                     */
+                    long nowMs = System.currentTimeMillis();
+                    if (nowMs - lastLogTimeMs >= LOG_INTERVAL_MS) {
+                        lastLogTimeMs = nowMs;
+                        System.out.println("[ArtEvolver] Score: " + df4.format(bestScore * 100f) + "%"
+                                + " | Health: " + df.format(health) + "%"
+                                + " | Iter: " + goodIterations + "/" + totalIterations
+                                + " | Pop: " + population
+                                + " | Threads: " + THREADS);
                     }
                     
 //                    System.out.println("Evolver " + ((ImageEvolver)currentEvolver).getId() + ", iterations: " + ((ImageEvolver)currentEvolver).getTotalIterations() + ", bestScore: " + ((ImageEvolver)currentEvolver).getBestScore());
@@ -1217,10 +1218,21 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             
             g.dispose();
 
+            System.out.println("[ArtEvolver] Image loaded: " + originalImage.getWidth() + "x" + originalImage.getHeight()
+                    + " -> resized to " + newWidth + "x" + newHeight);
+            System.out.println("[ArtEvolver] Initializing " + evolvers.size() + " evolvers with "
+                    + (widthTriangles * heightTriangles) + " triangles each...");
+
+            long initStart = System.currentTimeMillis();
             for (AbstractEvolver currentEvolver : evolvers) {
                 ((ImageEvolver)currentEvolver).setResizedOriginal(resizedOriginal);
                 ((ImageEvolver)currentEvolver).initializeIsosceles();
             }
+            long initTime = System.currentTimeMillis() - initStart;
+
+            double initScore = evolvers.isEmpty() ? 0 : ((ImageEvolver) evolvers.get(0)).getBestScore();
+            System.out.println("[ArtEvolver] Initialization complete in " + initTime + "ms"
+                    + " | Initial score: " + df4.format(initScore * 100f) + "%");
 
             this.setResizedOriginal(resizedOriginal);
         }
@@ -1240,6 +1252,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     public void start(){
         
     	start = System.currentTimeMillis();
+    	lastLogTimeMs = start;
+
+    	System.out.println("[ArtEvolver] Starting evolution...");
+    	System.out.println("[ArtEvolver] Mode: " + (MODES[CURRENT_MODE] != null ? MODES[CURRENT_MODE] : "CUSTOM")
+    	        + " | Threads: " + THREADS
+    	        + " | Population: " + POPULATION
+    	        + " | Triangles: " + TOTAL_TRIANGLES
+    	        + " | Smart Init: " + ImageEvolver.SMART_INITIALIZATION);
 
     	this.isRunning = true;
     	

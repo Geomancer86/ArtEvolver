@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Encapsulates one independent evolution run in Tournament Mode.
@@ -23,7 +24,7 @@ public class TournamentContestant {
     private double bestScore = 0;
     private long totalIterations;
     private long goodIterations;
-    private boolean running;
+    private volatile boolean running;
     private long startTimeMs;
 
     private static final Color[] PRESET_COLORS = {
@@ -39,12 +40,12 @@ public class TournamentContestant {
         new Color(141, 110, 99),   // brown
     };
 
-    private static int colorIndex = 0;
+    private static final AtomicInteger colorIndex = new AtomicInteger(0);
 
     public TournamentContestant(String id, String name) {
         this.id = id;
         this.name = name;
-        this.chartColor = PRESET_COLORS[colorIndex++ % PRESET_COLORS.length];
+        this.chartColor = PRESET_COLORS[colorIndex.getAndIncrement() % PRESET_COLORS.length];
         this.config = EvolutionConfig.fromCurrentSettings();
     }
 
@@ -133,14 +134,14 @@ public class TournamentContestant {
                 double evScore = ev.getBestScore();
                 if (evScore > 0 && evScore > bestScore) {
                     bestScore = evScore;
-                    bestImage = ev.getBestImage();
+                    BufferedImage img = ev.getBestImage();
+                    if (img != null) bestImage = img;
                     bestPop = ev.getBestPop();
                     improved = true;
                     ev.setDirty(false);
                 } else if (evScore > 0) {
                     ev.setDirty(false);
                 }
-                // leave isDirty=true if evolver has no real score yet
             }
         }
 

@@ -297,10 +297,15 @@ public class TournamentManagerWindow extends JFrame {
             contestants.add(c);
         }
 
-        tableModel.fireTableDataChanged();
+        notifyContestantsChanged();
         if (!contestants.isEmpty()) {
             table.setRowSelectionInterval(0, 0);
         }
+    }
+
+    private void notifyContestantsChanged() {
+        tableModel.fireTableDataChanged();
+        artEvolver.refreshContestantCombo();
     }
 
     private void addContestant() {
@@ -314,7 +319,7 @@ public class TournamentManagerWindow extends JFrame {
         c.getConfig().name = name.trim();
         c.getConfig().chartColor = c.getChartColor();
         contestants.add(c);
-        tableModel.fireTableDataChanged();
+        notifyContestantsChanged();
         table.setRowSelectionInterval(contestants.size() - 1, contestants.size() - 1);
     }
 
@@ -332,7 +337,7 @@ public class TournamentManagerWindow extends JFrame {
         c.setConfig(cfg);
         cfg.chartColor = c.getChartColor();
         contestants.add(c);
-        tableModel.fireTableDataChanged();
+        notifyContestantsChanged();
         table.setRowSelectionInterval(contestants.size() - 1, contestants.size() - 1);
     }
 
@@ -345,7 +350,7 @@ public class TournamentManagerWindow extends JFrame {
             return;
         }
         contestants.remove(row);
-        tableModel.fireTableDataChanged();
+        notifyContestantsChanged();
         detailPanel.removeAll();
         detailPanel.revalidate();
         detailPanel.repaint();
@@ -457,7 +462,7 @@ public class TournamentManagerWindow extends JFrame {
             cfg.targetedSwapAttempts = (int) sTargeted.getValue();
             cfg.blockCrossoverEnabled = cBlock.isSelected();
 
-            tableModel.fireTableDataChanged();
+            notifyContestantsChanged();
             showSelectedDetail();
         }
     }
@@ -492,7 +497,11 @@ public class TournamentManagerWindow extends JFrame {
     }
 
     public void refreshTable() {
+        int sel = table.getSelectedRow();
         tableModel.fireTableDataChanged();
+        if (sel >= 0 && sel < contestants.size()) {
+            table.setRowSelectionInterval(sel, sel);
+        }
     }
 
     private static class ColorCellRenderer extends DefaultTableCellRenderer {
@@ -516,6 +525,7 @@ public class TournamentManagerWindow extends JFrame {
 
         @Override
         public Object getValueAt(int row, int col) {
+            if (row < 0 || row >= contestants.size()) return "";
             TournamentContestant c = contestants.get(row);
             DecimalFormat df = new DecimalFormat("0.0000");
             switch (col) {

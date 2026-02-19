@@ -29,6 +29,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`TournamentContestant.bestScore` initialization**: Changed from `Double.MIN_VALUE` to `0` for
   reliable comparison and display
 
+### Fixed — Code Review Polish Pass
+- **Active contestant combo resets to first**: `refreshContestantCombo()` was calling
+  `removeAllItems()` which fired the action listener, resetting `selectedContestant` to null.
+  Now uses a `refreshingCombo` guard flag and preserves the selected index across rebuilds.
+- **Thread safety: `TournamentContestant.running`**: Made `volatile` for visibility across
+  evolver threads and the EDT timer
+- **Thread safety: `colorIndex`**: Changed from plain `int` to `AtomicInteger` to prevent
+  duplicate colors under concurrent contestant creation
+- **NPE guard in `updateBest()`**: Added null check on `ev.getBestImage()` before assignment
+- **Tournament table selection lost on refresh**: `refreshTable()` now preserves the selected
+  row across `fireTableDataChanged()` calls
+- **Contestant list changes not synced to main combo**: Add/duplicate/remove/quick-setup in
+  `TournamentManagerWindow` now calls `notifyContestantsChanged()` which updates both the table
+  and the main ArtEvolver contestant combo box
+- **`stopTournament()` combo refresh**: Now refreshes the contestant combo after stopping
+- **`startTournament()` exception handling**: Wrapped per-contestant initialization in try-catch
+  to prevent one failing contestant from blocking others
+- **Table model bounds check**: Added defensive row bounds check in `getValueAt()`
+- **`onContestantSelected` marks display dirty**: Setting `isDirty = true` when switching contestant
+  ensures the canvas repaints immediately with the selected contestant's image
+
 ### Added — Tournament Mode
 - **`EvolutionConfig`** — parameter bundle class replacing static CrossOver fields with instance-level configuration
   - Encapsulates all 15+ tunable GA parameters (mutation rates, probabilities, decay, crossover, population)

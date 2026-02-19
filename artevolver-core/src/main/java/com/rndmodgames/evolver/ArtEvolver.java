@@ -2048,28 +2048,41 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	}
 
 	private void onContestantSelected() {
-	    if (cmbContestant == null) return;
+	    if (cmbContestant == null || refreshingCombo) return;
 	    int idx = cmbContestant.getSelectedIndex();
 	    if (idx >= 0 && idx < contestants.size()) {
 	        selectedContestant = contestants.get(idx);
 	        if (selectedContestant.getBestImage() != null) {
 	            bestImage = selectedContestant.getBestImage();
+	            isDirty = true;
 	        }
 	    } else {
 	        selectedContestant = null;
 	    }
 	}
 
-	private void refreshContestantCombo() {
+	private boolean refreshingCombo = false;
+
+	void refreshContestantCombo() {
 	    if (cmbContestant == null) return;
-	    cmbContestant.removeAllItems();
-	    if (contestants.isEmpty()) {
-	        cmbContestant.addItem("(single mode)");
-	    } else {
-	        for (TournamentContestant c : contestants) {
-	            cmbContestant.addItem(c.getName() + " (" + new DecimalFormat("0.00").format(
-	                Math.max(0, c.getBestScore()) * 100) + "%)");
+	    refreshingCombo = true;
+	    try {
+	        int prevIdx = cmbContestant.getSelectedIndex();
+	        cmbContestant.removeAllItems();
+	        if (contestants.isEmpty()) {
+	            cmbContestant.addItem("(single mode)");
+	        } else {
+	            DecimalFormat df = new DecimalFormat("0.00");
+	            for (TournamentContestant c : contestants) {
+	                cmbContestant.addItem(c.getName() + " (" + df.format(
+	                    Math.max(0, c.getBestScore()) * 100) + "%)");
+	            }
 	        }
+	        if (prevIdx >= 0 && prevIdx < cmbContestant.getItemCount()) {
+	            cmbContestant.setSelectedIndex(prevIdx);
+	        }
+	    } finally {
+	        refreshingCombo = false;
 	    }
 	}
 
@@ -2120,12 +2133,16 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 	    for (TournamentContestant c : contestants) {
 	        if (!c.isRunning()) {
-	            if (c.getEvolvers().isEmpty()) {
-	                c.createEvolvers(pallete, width, height, widthTriangles, heightTriangles,
-	                        triangleScaleHeight, RANDOM_JUMP_MAX_DISTANCES);
-	                c.initializeWithImage(resizedOriginal);
+	            try {
+	                if (c.getEvolvers().isEmpty()) {
+	                    c.createEvolvers(pallete, width, height, widthTriangles, heightTriangles,
+	                            triangleScaleHeight, RANDOM_JUMP_MAX_DISTANCES);
+	                    c.initializeWithImage(resizedOriginal);
+	                }
+	                c.start();
+	            } catch (Exception ex) {
+	                System.err.println("[Tournament] Failed to start contestant " + c.getName() + ": " + ex.getMessage());
 	            }
-	            c.start();
 	        }
 	    }
 
@@ -2141,12 +2158,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    System.out.println("[Tournament] Started " + contestants.size() + " contestants");
 	}
 
-	/** Stops all tournament contestants. */
+	/** Stops all tournament contestants (threads remain alive but idle). */
 	public void stopTournament() {
 	    for (TournamentContestant c : contestants) {
 	        c.stop();
 	    }
 	    if (tournamentManagerWindow != null) tournamentManagerWindow.refreshTable();
+	    refreshContestantCombo();
 	    System.out.println("[Tournament] All contestants stopped");
 	}
 

@@ -11,7 +11,10 @@ import java.awt.GraphicsEnvironment;
 import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.Image;
 import java.awt.image.BufferedImage;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -23,6 +26,7 @@ import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
@@ -1041,12 +1045,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
       		setSize((int) (325 * triangleScaleWidth), (int) (200 * triangleScaleHeight));
       	}
 
-      	/**
-      	 * Set Starting folder to Source Folder instead of Classpath
-      	 */
-//		chooser = new JFileChooser(new File(System.getProperty("user.dir")));
-		chooser = new JFileChooser(new File("C:\\Media\\Art Evolver Stream"));
+		File defaultDir = new File("C:\\Media\\Art Evolver Stream");
+		if (!defaultDir.exists()) {
+			defaultDir = new File(System.getProperty("user.dir"));
+		}
+		chooser = new JFileChooser(defaultDir);
 		chooser.setAcceptAllFileFilterUsed(false);
+		chooser.setAccessory(new ImagePreviewPanel(chooser));
 		
 		//
         mainFrame.setLocationRelativeTo(null);
@@ -1107,19 +1112,16 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     	
 		this.chooser.setFileFilter(new FileNameExtensionFilter("Image Files", new String[] { "jpg", "jpeg", "png", "gif", "bmp" }));
 
-		if (this.chooser.showOpenDialog(this) == 0) {
-		    
-			try {
-			    
-				originalImage = ImageIO.read(new File(chooser.getCurrentDirectory().toString() + "\\"	+ chooser.getSelectedFile().getName()));
-				setPath((chooser.getCurrentDirectory().toString() + "\\" + chooser.getSelectedFile().getName()));
+		if (this.chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
 
-				// 
-				imageSourceName = chooser.getSelectedFile().getName();
+			try {
+				File selected = chooser.getSelectedFile();
+				originalImage = ImageIO.read(selected);
+				setPath(selected.getAbsolutePath());
+				imageSourceName = selected.getName();
 
 			} catch (Exception localException) {
-			    
-				JOptionPane.showMessageDialog(null, "Unable to Load Image", "Fail", 2);
+				JOptionPane.showMessageDialog(null, "Unable to Load Image: " + localException.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 			}
 		}
 
@@ -1793,5 +1795,94 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         }
         
         return avg;
+    }
+
+    /**
+     * Image preview accessory panel for JFileChooser.
+     * Shows a scaled thumbnail and file dimensions when a file is selected.
+     */
+    static class ImagePreviewPanel extends JPanel implements PropertyChangeListener {
+
+        private static final long serialVersionUID = 1L;
+        private static final int PREVIEW_WIDTH = 220;
+        private static final int PREVIEW_HEIGHT = 220;
+
+        private final JLabel imageLabel;
+        private final JLabel infoLabel;
+
+        ImagePreviewPanel(JFileChooser chooser) {
+            setPreferredSize(new Dimension(PREVIEW_WIDTH + 20, PREVIEW_HEIGHT + 60));
+            setLayout(new BorderLayout(0, 4));
+            setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 4));
+
+            JLabel title = new JLabel("Preview", SwingConstants.CENTER);
+            title.setFont(new Font("SansSerif", Font.BOLD, 11));
+            add(title, BorderLayout.NORTH);
+
+            imageLabel = new JLabel("", SwingConstants.CENTER);
+            imageLabel.setPreferredSize(new Dimension(PREVIEW_WIDTH, PREVIEW_HEIGHT));
+            imageLabel.setBorder(BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200)));
+            imageLabel.setVerticalAlignment(SwingConstants.CENTER);
+            add(imageLabel, BorderLayout.CENTER);
+
+            infoLabel = new JLabel("", SwingConstants.CENTER);
+            infoLabel.setFont(new Font("SansSerif", Font.PLAIN, 10));
+            add(infoLabel, BorderLayout.SOUTH);
+
+            chooser.addPropertyChangeListener(this);
+        }
+
+        @Override
+        public void propertyChange(PropertyChangeEvent evt) {
+            String prop = evt.getPropertyName();
+            if (!JFileChooser.SELECTED_FILE_CHANGED_PROPERTY.equals(prop) &&
+                !JFileChooser.DIRECTORY_CHANGED_PROPERTY.equals(prop)) {
+                return;
+            }
+
+            File file = null;
+            if (evt.getNewValue() instanceof File) {
+                file = (File) evt.getNewValue();
+            }
+
+            if (file == null || !file.isFile()) {
+                imageLabel.setIcon(null);
+                imageLabel.setText("No image selected");
+                infoLabel.setText("");
+                return;
+            }
+
+            try {
+                BufferedImage img = ImageIO.read(file);
+                if (img == null) {
+                    imageLabel.setIcon(null);
+                    imageLabel.setText("Not an image");
+                    infoLabel.setText("");
+                    return;
+                }
+
+                int w = img.getWidth();
+                int h = img.getHeight();
+                double scale = Math.min(
+                    (double) PREVIEW_WIDTH / w,
+                    (double) PREVIEW_HEIGHT / h);
+                if (scale > 1.0) scale = 1.0;
+
+                int tw = (int) (w * scale);
+                int th = (int) (h * scale);
+
+                Image scaled = img.getScaledInstance(tw, th, Image.SCALE_SMOOTH);
+                imageLabel.setIcon(new ImageIcon(scaled));
+                imageLabel.setText(null);
+
+                long sizeKb = file.length() / 1024;
+                infoLabel.setText(w + " x " + h + "  (" + sizeKb + " KB)");
+
+            } catch (IOException ex) {
+                imageLabel.setIcon(null);
+                imageLabel.setText("Load error");
+                infoLabel.setText("");
+            }
+        }
     }
 }

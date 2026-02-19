@@ -20,7 +20,7 @@ public class TournamentContestant {
     private final List<ImageEvolver> evolvers = new ArrayList<>();
     private TriangleList<Triangle> bestPop = new TriangleList<>();
     private BufferedImage bestImage;
-    private double bestScore = Double.MIN_VALUE;
+    private double bestScore = 0;
     private long totalIterations;
     private long goodIterations;
     private boolean running;
@@ -56,7 +56,7 @@ public class TournamentContestant {
                                int widthTriangles, int heightTriangles,
                                float triangleScaleHeight, int[] jumpDistances) {
         evolvers.clear();
-        bestScore = Double.MIN_VALUE;
+        bestScore = 0;
         bestImage = null;
         bestPop = new TriangleList<>();
         totalIterations = 0;
@@ -130,13 +130,17 @@ public class TournamentContestant {
             goodIterations += ev.getGoodIterations();
 
             if (ev.isDirty()) {
-                if (ev.getBestScore() > bestScore) {
-                    bestScore = ev.getBestScore();
+                double evScore = ev.getBestScore();
+                if (evScore > 0 && evScore > bestScore) {
+                    bestScore = evScore;
                     bestImage = ev.getBestImage();
                     bestPop = ev.getBestPop();
                     improved = true;
+                    ev.setDirty(false);
+                } else if (evScore > 0) {
+                    ev.setDirty(false);
                 }
-                ev.setDirty(false);
+                // leave isDirty=true if evolver has no real score yet
             }
         }
 

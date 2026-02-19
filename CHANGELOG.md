@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.0] - 2026-02-19 (develop branch)
 
+### Added — Tournament Quick Setup Preset
+- **Quick Setup** button in Tournament Manager — auto-generates contestants from CPU core count
+  - User picks total CPU cores and threads-per-contestant; contestants are calculated automatically
+  - Up to 8 distinct strategy presets: Balanced, Aggressive Explorer, Grid Refiner, Targeted Precision,
+    Heavy Random, Close Mutation Focus, Fast Convergence, Wide Search
+  - Each strategy applies different mutation/swap parameter ratios from the base UI settings
+  - "Clear existing contestants" option for fresh setup or additive configuration
+
+### Fixed — Tournament Mode Chart & Delta Evolution
+- **Chart not showing data**: Fixed `bestScore > Double.MIN_VALUE` condition that prevented data points
+  from being fed to the chart; changed to `> 0` across all code paths
+- **`isDirty` flag consumed prematurely**: `TournamentContestant.updateBest()` no longer clears the
+  evolver's dirty flag when the evolver hasn't produced a real score yet (still at `Double.MIN_VALUE`)
+- **Chart single-point rendering**: `FitnessChartWindow` now renders with just 1 data point (as a dot)
+  instead of requiring >= 2 points, eliminating the initial "Collecting data..." delay
+- **`evolveDelta()` ignored per-contestant config**: Delta evolution was reading mutation parameters
+  from static `CrossOver` fields instead of the evolver's `EvolutionConfig`, making all tournament
+  contestants behave identically. Now reads `gridMutationChances`, `randomMutationChances`,
+  `randomMutationPercent`, and `targetedSwapAttempts` from the per-instance config
+- **`TournamentContestant.bestScore` initialization**: Changed from `Double.MIN_VALUE` to `0` for
+  reliable comparison and display
+
 ### Added — Tournament Mode
 - **`EvolutionConfig`** — parameter bundle class replacing static CrossOver fields with instance-level configuration
   - Encapsulates all 15+ tunable GA parameters (mutation rates, probabilities, decay, crossover, population)

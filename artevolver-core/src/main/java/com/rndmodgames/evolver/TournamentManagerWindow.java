@@ -73,6 +73,11 @@ public class TournamentManagerWindow extends JFrame {
         btnRemove.setForeground(new Color(178, 34, 34));
         btnRemove.addActionListener(e -> removeSelected());
 
+        JButton btnQuickSetup = makeBtn("\u26A1 Quick Setup");
+        btnQuickSetup.setBackground(new Color(33, 150, 243));
+        btnQuickSetup.setForeground(Color.WHITE);
+        btnQuickSetup.addActionListener(e -> showQuickSetup());
+
         JButton btnStartAll = makeBtn("\u25B6 Start All");
         btnStartAll.setBackground(new Color(46, 139, 87));
         btnStartAll.setForeground(Color.WHITE);
@@ -83,6 +88,8 @@ public class TournamentManagerWindow extends JFrame {
         btnStopAll.setForeground(Color.WHITE);
         btnStopAll.addActionListener(e -> artEvolver.stopTournament());
 
+        buttonBar.add(btnQuickSetup);
+        buttonBar.add(Box.createHorizontalStrut(8));
         buttonBar.add(btnAdd);
         buttonBar.add(btnDuplicate);
         buttonBar.add(btnRemove);
@@ -126,6 +133,174 @@ public class TournamentManagerWindow extends JFrame {
         btn.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 11));
         btn.setFocusPainted(false);
         return btn;
+    }
+
+    // --- Strategy presets for Quick Setup ---
+
+    private static final String[] STRATEGY_NAMES = {
+        "Balanced",
+        "Aggressive Explorer",
+        "Grid Refiner",
+        "Targeted Precision",
+        "Heavy Random",
+        "Close Mutation Focus",
+        "Fast Convergence",
+        "Wide Search",
+    };
+
+    private EvolutionConfig applyStrategy(EvolutionConfig base, int strategyIndex) {
+        EvolutionConfig cfg = base.clone();
+        switch (strategyIndex % STRATEGY_NAMES.length) {
+            case 0: // Balanced — defaults from UI
+                cfg.name = STRATEGY_NAMES[0];
+                break;
+            case 1: // Aggressive Explorer — high random, low grid
+                cfg.name = STRATEGY_NAMES[1];
+                cfg.gridMutationChances = Math.max(4, cfg.gridMutationChances / 4);
+                cfg.randomMutationChances = cfg.randomMutationChances * 4;
+                cfg.randomMutationPercent = Math.min(1f, cfg.randomMutationPercent * 4);
+                cfg.targetedSwapAttempts = Math.max(2, cfg.targetedSwapAttempts / 2);
+                cfg.closeMutationChances = Math.max(2, cfg.closeMutationChances / 2);
+                break;
+            case 2: // Grid Refiner — heavy grid, low random
+                cfg.name = STRATEGY_NAMES[2];
+                cfg.gridMutationChances = cfg.gridMutationChances * 4;
+                cfg.gridMutationDecay = cfg.gridMutationDecay * 0.5f;
+                cfg.randomMutationChances = Math.max(10, cfg.randomMutationChances / 4);
+                cfg.targetedSwapAttempts = cfg.targetedSwapAttempts * 2;
+                break;
+            case 3: // Targeted Precision — max targeted swaps
+                cfg.name = STRATEGY_NAMES[3];
+                cfg.targetedSwapAttempts = cfg.targetedSwapAttempts * 4;
+                cfg.gridMutationChances = Math.max(4, cfg.gridMutationChances / 2);
+                cfg.randomMutationChances = Math.max(10, cfg.randomMutationChances / 2);
+                cfg.closeMutationChances = cfg.closeMutationChances * 2;
+                break;
+            case 4: // Heavy Random — brute-force diversity
+                cfg.name = STRATEGY_NAMES[4];
+                cfg.randomMutationChances = cfg.randomMutationChances * 8;
+                cfg.randomMutationPercent = Math.min(1f, cfg.randomMutationPercent * 2);
+                cfg.gridMutationChances = 0;
+                cfg.targetedSwapAttempts = Math.max(2, cfg.targetedSwapAttempts / 4);
+                break;
+            case 5: // Close Mutation Focus — fine local tuning
+                cfg.name = STRATEGY_NAMES[5];
+                cfg.closeMutationChances = cfg.closeMutationChances * 6;
+                cfg.closeMutationPercent = Math.min(1f, cfg.closeMutationPercent * 4);
+                cfg.gridMutationChances = Math.max(4, cfg.gridMutationChances / 2);
+                cfg.randomMutationChances = Math.max(10, cfg.randomMutationChances / 4);
+                cfg.targetedSwapAttempts = cfg.targetedSwapAttempts * 2;
+                break;
+            case 6: // Fast Convergence — all operators high, small population
+                cfg.name = STRATEGY_NAMES[6];
+                cfg.gridMutationChances = cfg.gridMutationChances * 2;
+                cfg.targetedSwapAttempts = cfg.targetedSwapAttempts * 3;
+                cfg.closeMutationChances = cfg.closeMutationChances * 2;
+                cfg.population = Math.max(1, cfg.population);
+                break;
+            case 7: // Wide Search — big population, moderate mutations
+                cfg.name = STRATEGY_NAMES[7];
+                cfg.population = Math.max(cfg.population, 4);
+                cfg.gridMutationChances = cfg.gridMutationChances * 2;
+                cfg.randomMutationChances = cfg.randomMutationChances * 2;
+                cfg.targetedSwapAttempts = cfg.targetedSwapAttempts;
+                break;
+        }
+        return cfg;
+    }
+
+    private void showQuickSetup() {
+        boolean hasRunning = contestants.stream().anyMatch(TournamentContestant::isRunning);
+        if (hasRunning) {
+            JOptionPane.showMessageDialog(this, "Stop all contestants before Quick Setup.",
+                    "Cannot Setup", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int availableCores = Runtime.getRuntime().availableProcessors();
+
+        JPanel form = new JPanel(new GridLayout(0, 2, 8, 6));
+        form.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        form.add(new JLabel("Total CPU Cores to Use:"));
+        JSpinner spnCores = new JSpinner(new SpinnerNumberModel(
+                Math.max(2, availableCores - 2), 2, availableCores * 2, 1));
+        form.add(spnCores);
+
+        form.add(new JLabel("Threads per Contestant:"));
+        JSpinner spnThreadsEach = new JSpinner(new SpinnerNumberModel(
+                Math.max(1, Math.min(4, availableCores / 4)), 1, availableCores, 1));
+        form.add(spnThreadsEach);
+
+        JLabel lblContestants = new JLabel();
+        Runnable updateCount = () -> {
+            int cores = (int) spnCores.getValue();
+            int threadsEach = (int) spnThreadsEach.getValue();
+            int count = Math.max(1, cores / threadsEach);
+            int capped = Math.min(count, STRATEGY_NAMES.length);
+            lblContestants.setText(capped + " contestants (" + (capped * threadsEach) + " total threads)");
+        };
+        updateCount.run();
+        spnCores.addChangeListener(e -> updateCount.run());
+        spnThreadsEach.addChangeListener(e -> updateCount.run());
+
+        form.add(new JLabel("Auto-calculated:"));
+        lblContestants.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
+        lblContestants.setForeground(new Color(33, 150, 243));
+        form.add(lblContestants);
+
+        form.add(new JLabel(""));
+        JCheckBox chkClearExisting = new JCheckBox("Clear existing contestants", true);
+        form.add(chkClearExisting);
+
+        JPanel info = new JPanel();
+        info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
+        info.setBorder(new EmptyBorder(8, 0, 0, 0));
+        JLabel lblInfo = new JLabel("<html><b>Strategies generated:</b></html>");
+        lblInfo.setFont(SECTION_FONT);
+        info.add(lblInfo);
+        for (String name : STRATEGY_NAMES) {
+            JLabel lbl = new JLabel("  \u2022 " + name);
+            lbl.setFont(TBL_FONT);
+            info.add(lbl);
+        }
+
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.add(form, BorderLayout.NORTH);
+        wrapper.add(info, BorderLayout.CENTER);
+
+        int result = JOptionPane.showConfirmDialog(this, wrapper,
+                "Quick Tournament Setup", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result != JOptionPane.OK_OPTION) return;
+
+        int totalCores = (int) spnCores.getValue();
+        int threadsEach = (int) spnThreadsEach.getValue();
+        int numContestants = Math.min(Math.max(1, totalCores / threadsEach), STRATEGY_NAMES.length);
+
+        if (chkClearExisting.isSelected()) {
+            contestants.clear();
+            nextId = 1;
+        }
+
+        EvolutionConfig baseConfig = EvolutionConfig.fromCurrentSettings();
+        artEvolver.populateConfigFromUI(baseConfig);
+        baseConfig.threads = threadsEach;
+
+        for (int i = 0; i < numContestants; i++) {
+            EvolutionConfig stratCfg = applyStrategy(baseConfig, i);
+            stratCfg.threads = threadsEach;
+
+            TournamentContestant c = new TournamentContestant("c" + nextId++, stratCfg.name);
+            c.setConfig(stratCfg);
+            stratCfg.chartColor = c.getChartColor();
+            contestants.add(c);
+        }
+
+        tableModel.fireTableDataChanged();
+        if (!contestants.isEmpty()) {
+            table.setRowSelectionInterval(0, 0);
+        }
     }
 
     private void addContestant() {
@@ -347,7 +522,7 @@ public class TournamentManagerWindow extends JFrame {
                 case 0: return row + 1;
                 case 1: return c.getChartColor();
                 case 2: return c.getName();
-                case 3: return c.getBestScore() > Double.MIN_VALUE ? df.format(c.getBestScore() * 100) + "%" : "--";
+                case 3: return c.getBestScore() > 0 ? df.format(c.getBestScore() * 100) + "%" : "--";
                 case 4: return c.isRunning() ? "Running" : "Stopped";
                 case 5: return c.getConfig().toSummary();
                 default: return "";

@@ -1501,12 +1501,17 @@ public class ImageEvolver extends AbstractEvolver {
 		int gridSize = Math.max(1, n / CrossOver.TOTAL_GRIDS);
 		int numGrids = CrossOver.TOTAL_GRIDS;
 
+		float cfgGridMut = (config != null) ? config.gridMutationChances : CrossOver.GRID_MUTATION_CHANCES;
+		int cfgRndMutChances = (config != null) ? config.randomMutationChances : CrossOver.RANDOM_MUTATION_CHANCES;
+		float cfgRndMutPct = (config != null) ? config.randomMutationPercent : CrossOver.RANDOM_MUTATION_PERCENT;
+		int cfgTargetedSwaps = (config != null) ? config.targetedSwapAttempts : CrossOver.TARGETED_SWAP_ATTEMPTS;
+
 		for (int iter = 0; iter < iterations; iter++) {
 
 			int acceptedThisIter = 0;
 
 			// --- Grid-localized swaps ---
-			int gridSwaps = (int) CrossOver.GRID_MUTATION_CHANCES;
+			int gridSwaps = (int) cfgGridMut;
 			for (int g = 0; g < gridSwaps; g++) {
 				int gridId = r.nextInt(numGrids);
 				int base = gridId * gridSize;
@@ -1517,7 +1522,7 @@ public class ImageEvolver extends AbstractEvolver {
 			}
 
 			// --- Random global swaps ---
-			float expectedSwaps = CrossOver.RANDOM_MUTATION_CHANCES * CrossOver.RANDOM_MUTATION_PERCENT;
+			float expectedSwaps = cfgRndMutChances * cfgRndMutPct;
 			int randomSwapCount;
 			if (expectedSwaps >= 1f) {
 				randomSwapCount = (int) expectedSwaps;
@@ -1532,7 +1537,7 @@ public class ImageEvolver extends AbstractEvolver {
 			}
 
 			// --- Targeted swaps (guided by source image centroid matching) ---
-			int targetedAttempts = CrossOver.TARGETED_SWAP_ATTEMPTS;
+			int targetedAttempts = cfgTargetedSwaps;
 			for (int t = 0; t < targetedAttempts; t++) {
 				int worstIdx = -1;
 				long worstDelta = Long.MIN_VALUE;

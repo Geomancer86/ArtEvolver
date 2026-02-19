@@ -903,12 +903,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                     if (fitnessChartWindow != null && fitnessChartWindow.isVisible()) {
                         if (tournamentMode && !contestants.isEmpty()) {
                             for (TournamentContestant c : contestants) {
-                                if (c.getBestScore() > Double.MIN_VALUE) {
+                                if (c.getBestScore() > 0) {
                                     fitnessChartWindow.addDataPoint(c.getId(), c.getName(),
                                         c.getTotalIterations(), c.getBestScore(), c.getChartColor());
                                 }
                             }
-                        } else if (bestScore > Double.MIN_VALUE) {
+                        } else if (bestScore > 0) {
                             fitnessChartWindow.addDataPoint(totalIterations, bestScore);
                         }
                     }

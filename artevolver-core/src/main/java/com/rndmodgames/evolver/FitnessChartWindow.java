@@ -217,14 +217,14 @@ public class FitnessChartWindow extends JFrame {
             boolean hasData = false;
             for (Series s : allSeries) {
                 synchronized (s.data) {
-                    if (s.data.size() >= 2) { hasData = true; break; }
+                    if (!s.data.isEmpty()) { hasData = true; break; }
                 }
             }
 
             if (!hasData) {
                 g.setColor(LABEL_COLOR);
                 g.setFont(TITLE_FONT);
-                String msg = allSeries.isEmpty() ? "Waiting for data..." : "Collecting data...";
+                String msg = "Waiting for data...";
                 FontMetrics fm = g.getFontMetrics();
                 g.drawString(msg, MARGIN_LEFT + (chartW - fm.stringWidth(msg)) / 2, MARGIN_TOP + chartH / 2);
                 return;
@@ -255,7 +255,7 @@ public class FitnessChartWindow extends JFrame {
 
             for (Series s : allSeries) {
                 synchronized (s.data) {
-                    if (s.data.size() < 2) continue;
+                    if (s.data.isEmpty()) continue;
                     drawSeries(g, s, chartW, chartH, minScore, maxScore, scoreRange, minIter, iterRange);
                 }
             }
@@ -300,6 +300,15 @@ public class FitnessChartWindow extends JFrame {
 
         private void drawSeries(Graphics2D g, Series s, int cW, int cH,
                                 double minS, double maxS, double sR, double minI, double iR) {
+            if (s.data.size() == 1) {
+                double[] dp = s.data.get(0);
+                double px = MARGIN_LEFT + ((dp[0] - minI) / iR) * cW;
+                double py = MARGIN_TOP + ((maxS - dp[1]) / sR) * cH;
+                g.setColor(s.color);
+                g.fillOval((int) px - 5, (int) py - 5, 10, 10);
+                return;
+            }
+
             Path2D.Double line = new Path2D.Double();
             Path2D.Double fill = new Path2D.Double();
             boolean first = true;

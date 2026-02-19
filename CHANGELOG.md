@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.0] - 2026-02-19 (develop branch)
 
+### Added — Configurable UI Parameter Panels & Real-Time Fitness Chart
+- **Sidebar reorganized into three clear categories**:
+  - **QUALITY** — Grid Width, Grid Height, Palette Repetitions, Color Assignment Method
+  - **GENETIC ALGORITHM** — Evolution Method, Population, Crossover, Iterations, Max Iterations, all Mutation operators with probability/decay sub-controls
+  - **SPEED & PERFORMANCE** — Threads (with detected CPU core count), Evolution Loop FPS, GUI Update FPS, Validate Permutation, Benchmark Logging, Export Video
+- **New UI controls exposed**:
+  - Grid Width (`widthTriangles`) and Grid Height (`heightTriangles`) spinners — with reload-required tooltip
+  - Evolution Loop FPS (`FPS`) — controls evolution timer speed, live-adjustable
+  - Max Iterations (in thousands) — set iteration limit or 0 for unlimited
+  - Grid Mutation Decay (x1000) — controls how fast grid mutations reduce per tournament
+  - Random Mutation Probability (x10000) — fine-tune random mutation likelihood
+  - Close Mutation Probability (x10000) — fine-tune close mutation likelihood
+- **FitnessChartWindow** — separate movable/resizable JFrame with real-time fitness chart
+  - Dark theme with gradient area fill and antialiased line rendering
+  - Auto-scaling Y-axis tracking score progression
+  - X-axis shows iterations with K/M formatting
+  - Stats bar: current score, peak score, sample count, gain per minute
+  - Peak score dashed indicator line
+  - Data thinning when exceeding 10,000 samples
+  - Opens from "Show Fitness Chart" button in the STATUS section
+- **Apply Live** button now handles all GA + Speed parameters without restart
+  - Population, Crossover Max, Evolution Method, Validate Permutation, Max Iterations all live-adjustable
+  - Evolution Loop FPS changes timer delay immediately via `processTimer.setDelay()`
+
+### Changed — Default Settings Restored to Master Branch (paint-by-colors)
+- `CURRENT_MODE` changed from `QUALITY_MODE_STREAM` back to `QUALITY_MODE`
+- `widthTriangles` changed from 100 back to **80** (40 visual columns)
+- `heightTriangles` changed from 57 back to **53** (26 visual rows)
+- `triangleScaleHeight/Width` defaults restored to **1.0f** (from 3.0f)
+- `width/height` formula restored to **2.5f * scale** (from 3.0f * scale)
+- `QUALITY_MODE` threads restored to **24** (from 32), width formula to **2f * scale** (from 3.0f)
+- `EXPORT_VIDEO` and `VIDEO_4K_RESOLUTION_EXPORT` both set to **false** (were true)
+- These match the `master` branch settings used for actual paint-by-colors production
+
 ### Added — Paint-by-Colors Export System
 - **PalleteColor tracking through entire evolution pipeline**
   - `PalleteColor` now has proper encapsulation with `getId()`, `getName()`, `getPallete()` accessors

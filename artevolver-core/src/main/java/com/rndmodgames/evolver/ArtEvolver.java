@@ -87,8 +87,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	// default to false
 	public static boolean TOURNAMENT_MODE_PRINT = false;
 	
-	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
-//	public static int CURRENT_MODE = QUALITY_MODE;
+//	public static int CURRENT_MODE = QUALITY_MODE_STREAM;
+	public static int CURRENT_MODE = QUALITY_MODE;
 //	public static int CURRENT_MODE = FASTEST_MODE;
 	
 	// 
@@ -98,10 +98,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	public static boolean MASTER_RESOLUTION_EXPORT = false;
 	
 	// default to false
-	public static boolean EXPORT_VIDEO = true;
+	public static boolean EXPORT_VIDEO = false;
 	public static int EXPORT_VIDEO_FRAMES_FPS = 1;
 	public static boolean VIDEO_FULL_HD_RESOLUTION_EXPORT = false;
-    public static boolean VIDEO_4K_RESOLUTION_EXPORT = true;
+    public static boolean VIDEO_4K_RESOLUTION_EXPORT = false;
     
     // default to false
     public static boolean VIDEO_REGULAR_QUALITY = false;
@@ -134,11 +134,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * width = 3 * scale
 	 * triangles = 80x53
 	 */
-	float triangleScaleHeight = 3.0f; // 0.25f, 0.5f, 0.66f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f 
-	float triangleScaleWidth = 3.0f;
+	float triangleScaleHeight = 1.0f; // 0.25f, 0.5f, 0.66f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f 
+	float triangleScaleWidth = 1.0f;
 
-	float width = 3.0f * triangleScaleWidth;
-	float height = 3.0f * triangleScaleHeight;
+	float width = 2.5f * triangleScaleWidth;
+	float height = 2.5f * triangleScaleHeight;
 	
 	/**
 	 * TODO:
@@ -169,8 +169,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 *     - 26x16 squares = 416 squares = 1664 triangles
 	 *     - 52x33         = 1716 triangle
 	 */
-	public static int widthTriangles  = 100; // 71
-	public static int heightTriangles = 57; // 60
+	public static int widthTriangles  = 80; // 71
+	public static int heightTriangles = 53; // 60
 	public static int TOTAL_TRIANGLES = widthTriangles * heightTriangles;
 
 	/**
@@ -348,6 +348,17 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private javax.swing.JCheckBox chkValidatePermutation;
 	private javax.swing.JCheckBox chkBenchmarkLogging;
 	private javax.swing.JCheckBox chkExportVideo;
+
+	private JSpinner spnGridWidth;
+	private JSpinner spnGridHeight;
+	private JSpinner spnEvolutionFps;
+	private JSpinner spnMaxIterations;
+	private JSpinner spnMutationDecay;
+	private JSpinner spnRandomMutationPct;
+	private JSpinner spnCloseMutationPct;
+	private JSpinner spnGridMutationPct;
+
+	private FitnessChartWindow fitnessChartWindow;
 	private long evolveStartTimeMs;
 	private double initialScore = 0.0;
 	
@@ -616,7 +627,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             
     	case QUALITY_MODE:
 
-    	    THREADS = 32;
+    	    THREADS = 24;
     	    POPULATION = 2;
             triangleScaleHeight = 3f;
             triangleScaleWidth = 3f;
@@ -626,8 +637,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                 triangleScaleWidth = 2f;
             }
             
-            width = 3.0f * triangleScaleWidth;
-            height = 3.0f * triangleScaleHeight;
+            width = 2f * triangleScaleWidth;
+            height = 2f * triangleScaleHeight;
               
             break;
             
@@ -876,6 +887,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                     int initIdx = Math.min(cmbInitMethod.getSelectedIndex(), initNames.length - 1);
                     int evolveIdx = Math.min(cmbEvolveMethod.getSelectedIndex(), evolveNames.length - 1);
                     lblMethod.setText("Mode: " + initNames[initIdx] + " + " + evolveNames[evolveIdx]);
+
+                    if (fitnessChartWindow != null && fitnessChartWindow.isVisible()
+                            && bestScore > Double.MIN_VALUE) {
+                        fitnessChartWindow.addDataPoint(totalIterations, bestScore);
+                    }
             	}
 
             	/**
@@ -1467,6 +1483,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 	    labelSequential = new JLabel("");
 
+	    sb.add(Box.createVerticalStrut(4));
+
+	    JButton btnChart = makeStyledButton("\u2197 Show Fitness Chart");
+	    btnChart.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    btnChart.setMaximumSize(BTN_SIZE);
+	    btnChart.setToolTipText("Open a separate window with a real-time fitness progression chart.");
+	    btnChart.addActionListener(e -> showFitnessChart());
+	    sb.add(btnChart);
+
 	    addSeparator(sb);
 
 	    // ── ACTIONS ─────────────────────────────────
@@ -1516,8 +1541,32 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 	    addSeparator(sb);
 
-	    // ── INITIALIZATION ──────────────────────────
-	    addSection(sb, "\u2699  INITIALIZATION");
+	    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+	    //  QUALITY — Image size, grid, resolution
+	    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+	    addSection(sb, "\uD83D\uDDBC  QUALITY");
+
+	    addFieldLabel(sb, "Grid Width (triangle columns):");
+	    spnGridWidth = makeSpinner(widthTriangles, 10, 400, 2,
+	        "<html>Triangle grid width. Default 80 for 4-palette (~40 visual columns).<br>" +
+	        "<b>Requires image reload to take effect.</b></html>");
+	    sb.add(spnGridWidth);
+	    sb.add(Box.createVerticalStrut(4));
+
+	    addFieldLabel(sb, "Grid Height (triangle rows):");
+	    spnGridHeight = makeSpinner(heightTriangles, 10, 300, 1,
+	        "<html>Triangle grid height. Default 53 for 4-palette (~26 visual rows).<br>" +
+	        "<b>Requires image reload to take effect.</b></html>");
+	    sb.add(spnGridHeight);
+	    sb.add(Box.createVerticalStrut(4));
+
+	    addFieldLabel(sb, "Palette Repetitions (1 = 1535 colors):");
+	    spnPalettes = makeSpinner(TOTAL_PALLETES, 1, 64, 1,
+	        "<html>Number of palette copies. More = finer detail but slower.<br>" +
+	        "1\u00D71535=1535 | 4\u00D71535=6140 | 8\u00D71535=12280<br>" +
+	        "<b>Requires image reload to take effect.</b></html>");
+	    sb.add(spnPalettes);
+	    sb.add(Box.createVerticalStrut(4));
 
 	    addFieldLabel(sb, "Color Assignment Method:");
 	    cmbInitMethod = new JComboBox<>(new String[]{
@@ -1532,17 +1581,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	        "LAP Optimal: O(N\u00B3) exact solver, provably best color assignment</html>");
 	    styleCombo(cmbInitMethod);
 	    sb.add(cmbInitMethod);
-	    sb.add(Box.createVerticalStrut(4));
-
-	    addFieldLabel(sb, "Palette Repetitions (1 = 1535 colors):");
-	    spnPalettes = makeSpinner(TOTAL_PALLETES, 1, 64, 1,
-	        "Number of palette copies. More = more triangles = finer detail.");
-	    sb.add(spnPalettes);
 
 	    addSeparator(sb);
 
-	    // ── EVOLUTION ENGINE ─────────────────────────
-	    addSection(sb, "\u2699  EVOLUTION ENGINE");
+	    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+	    //  GENETIC ALGORITHM — Population, mutation, crossover
+	    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+	    addSection(sb, "\uD83E\uDDEC  GENETIC ALGORITHM");
 
 	    addFieldLabel(sb, "Evolution Method:");
 	    cmbEvolveMethod = new JComboBox<>(new String[]{
@@ -1557,38 +1602,46 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    sb.add(cmbEvolveMethod);
 	    sb.add(Box.createVerticalStrut(4));
 
-	    addFieldLabel(sb, "Threads:");
-	    spnThreads = makeSpinner(THREADS, 1, 128, 1,
-	        "Number of parallel evolution threads. Recommended: CPU core count.");
-	    sb.add(spnThreads);
-	    sb.add(Box.createVerticalStrut(4));
-
 	    addFieldLabel(sb, "Population per Thread:");
 	    spnPopulation = makeSpinner(POPULATION, 1, 256, 1,
-	        "Individuals per thread. Higher = more diversity, slower per iteration.");
+	        "<html>Individuals per thread. Higher = more diversity but slower.<br>" +
+	        "Total population = Threads \u00D7 Population</html>");
 	    sb.add(spnPopulation);
 	    sb.add(Box.createVerticalStrut(4));
 
 	    addFieldLabel(sb, "Crossover Max:");
 	    spnCrossoverMax = makeSpinner(CROSSOVER_MAX, 1, 64, 1,
-	        "Maximum number of crossover children per generation.");
+	        "Maximum crossover children per generation.");
 	    sb.add(spnCrossoverMax);
 	    sb.add(Box.createVerticalStrut(4));
 
 	    addFieldLabel(sb, "Evolve Iterations per Batch:");
 	    spnEvolveIterations = makeSpinner(EVOLVE_ITERATIONS, 1, 100, 1,
-	        "Iterations per evolution batch. Higher = less overhead, less responsive UI.");
+	        "<html>Iterations per evolution batch.<br>Higher = less overhead, less responsive UI.</html>");
 	    sb.add(spnEvolveIterations);
+	    sb.add(Box.createVerticalStrut(4));
 
-	    addSeparator(sb);
+	    addFieldLabel(sb, "Max Iterations (0 = unlimited):");
+	    spnMaxIterations = makeSpinner(MAX_ITERATIONS / 1000, 0, 100000, 1000,
+	        "<html>Maximum iterations in thousands (0 = no limit).<br>" +
+	        "Current default: " + (MAX_ITERATIONS / 1000) + "K</html>");
+	    sb.add(spnMaxIterations);
+	    sb.add(Box.createVerticalStrut(4));
 
-	    // ── MUTATION OPERATORS ───────────────────────
-	    addSection(sb, "\u2699  MUTATION OPERATORS");
+	    addFieldLabel(sb, "  \u2500\u2500 Mutation Operators \u2500\u2500");
+	    sb.add(Box.createVerticalStrut(2));
 
 	    addFieldLabel(sb, "Grid Mutations / Child:");
 	    spnGridMutations = makeSpinner((int) CrossOver.GRID_MUTATION_CHANCES, 0, 512, 4,
 	        "Localized color swaps within the evolver's grid section.");
 	    sb.add(spnGridMutations);
+	    sb.add(Box.createVerticalStrut(4));
+
+	    addFieldLabel(sb, "Grid Mutation Decay (x1000):");
+	    spnMutationDecay = makeSpinner((int) (CrossOver.GRID_MUTATION_DECAY * 1000), 0, 1000, 10,
+	        "<html>Decay rate per tournament round (x1000).<br>" +
+	        "100 = 0.1 decay. Lower = mutations persist longer.</html>");
+	    sb.add(spnMutationDecay);
 	    sb.add(Box.createVerticalStrut(4));
 
 	    addFieldLabel(sb, "Random Mutations:");
@@ -1597,15 +1650,29 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    sb.add(spnRandomMutations);
 	    sb.add(Box.createVerticalStrut(4));
 
+	    addFieldLabel(sb, "Random Mutation Prob (x10000):");
+	    spnRandomMutationPct = makeSpinner((int) (CrossOver.RANDOM_MUTATION_PERCENT * 10000), 0, 10000, 1,
+	        "<html>Probability multiplier for random mutations (x10000).<br>" +
+	        "10 = 0.001. Higher = more mutations applied per attempt.</html>");
+	    sb.add(spnRandomMutationPct);
+	    sb.add(Box.createVerticalStrut(4));
+
 	    addFieldLabel(sb, "Close Mutations:");
 	    spnCloseMutations = makeSpinner(CrossOver.RANDOM_CLOSE_MUTATION_CHANCES, 0, 200, 5,
 	        "Random swaps between nearby triangles.");
 	    sb.add(spnCloseMutations);
 	    sb.add(Box.createVerticalStrut(4));
 
+	    addFieldLabel(sb, "Close Mutation Prob (x10000):");
+	    spnCloseMutationPct = makeSpinner((int) (CrossOver.RANDOM_CLOSE_MUTATION_PERCENT * 10000), 0, 10000, 1,
+	        "<html>Probability multiplier for close mutations (x10000).<br>" +
+	        "1 = 0.0001. Higher = more close mutations applied.</html>");
+	    sb.add(spnCloseMutationPct);
+	    sb.add(Box.createVerticalStrut(4));
+
 	    addFieldLabel(sb, "Targeted Swap Attempts:");
 	    spnTargetedSwaps = makeSpinner(CrossOver.TARGETED_SWAP_ATTEMPTS, 0, 128, 4,
-	        "Intelligent swaps: finds worst-matching triangle and tries to improve it.");
+	        "Intelligent swaps: finds worst-matching triangle and tries to improve.");
 	    sb.add(spnTargetedSwaps);
 	    sb.add(Box.createVerticalStrut(4));
 
@@ -1619,12 +1686,31 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 	    addSeparator(sb);
 
-	    // ── DISPLAY & LOGGING ───────────────────────
-	    addSection(sb, "\u2699  DISPLAY & LOGGING");
+	    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+	    //  SPEED & PERFORMANCE — Threads, FPS, resources
+	    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+	    addSection(sb, "\u26A1  SPEED & PERFORMANCE");
+
+	    addFieldLabel(sb, "Threads (CPU cores):");
+	    spnThreads = makeSpinner(THREADS, 1, 128, 1,
+	        "<html>Parallel evolution threads. Each runs an independent evolver.<br>" +
+	        "Recommended: match your CPU core count.<br>" +
+	        "Available: " + Runtime.getRuntime().availableProcessors() + " cores</html>");
+	    sb.add(spnThreads);
+	    sb.add(Box.createVerticalStrut(4));
+
+	    addFieldLabel(sb, "Evolution Loop FPS:");
+	    spnEvolutionFps = makeSpinner(FPS, 1, 1000, 10,
+	        "<html>How fast the evolution timer fires (frames/sec).<br>" +
+	        "Higher = more throughput but more CPU overhead.<br>" +
+	        "40 = balanced | 200+ = maximum speed</html>");
+	    sb.add(spnEvolutionFps);
+	    sb.add(Box.createVerticalStrut(4));
 
 	    addFieldLabel(sb, "GUI Update FPS:");
 	    spnGuiFps = makeSpinner(GUI_FPS, 1, 60, 5,
-	        "How many times per second the image repaints. Higher = smoother but more CPU.");
+	        "<html>Image repaint rate. Higher = smoother but more CPU.<br>" +
+	        "10 = low overhead | 30 = smooth | 60 = max</html>");
 	    sb.add(spnGuiFps);
 	    sb.add(Box.createVerticalStrut(4));
 
@@ -1633,7 +1719,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    chkValidatePermutation.setFont(FNT_LABEL);
 	    chkValidatePermutation.setOpaque(false);
 	    chkValidatePermutation.setAlignmentX(Component.LEFT_ALIGNMENT);
-	    chkValidatePermutation.setToolTipText("Check that every palette color is used exactly once after each operation.");
+	    chkValidatePermutation.setToolTipText(
+	        "<html>Check color permutation integrity after each operation.<br>" +
+	        "Disabling gives a small speed boost but skips safety checks.</html>");
 	    sb.add(chkValidatePermutation);
 	    sb.add(Box.createVerticalStrut(2));
 
@@ -1690,6 +1778,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    applyLive.setForeground(java.awt.Color.WHITE);
 	    applyLive.setAlignmentX(Component.LEFT_ALIGNMENT);
 	    applyLive.setMaximumSize(BTN_SIZE);
+	    applyLive.setToolTipText("<html>Apply GA and Speed changes without restarting evolution.<br>" +
+	        "Quality changes (grid size, palettes) require image reload.</html>");
 	    applyLive.addActionListener(e -> applyLiveSettings());
 	    sb.add(applyLive);
 
@@ -1759,16 +1849,21 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * Called before starting evolution.
 	 */
 	private void applyUISettings() {
+	    applyQualitySettings();
+
 	    THREADS = (int) spnThreads.getValue();
 	    POPULATION = (int) spnPopulation.getValue();
-	    TOTAL_PALLETES = (int) spnPalettes.getValue();
 	    CROSSOVER_MAX = (int) spnCrossoverMax.getValue();
 	    EVOLVE_ITERATIONS = (int) spnEvolveIterations.getValue();
 	    ImageEvolver.INITIALIZATION_METHOD = cmbInitMethod.getSelectedIndex();
 	    ImageEvolver.SMART_INITIALIZATION = (cmbInitMethod.getSelectedIndex() == 1);
 	    ImageEvolver.VALIDATE_PERMUTATION = chkValidatePermutation.isSelected();
 
+	    int maxIterK = (int) spnMaxIterations.getValue();
+	    MAX_ITERATIONS = maxIterK > 0 ? maxIterK * 1000 : Integer.MAX_VALUE;
+
 	    applyMutationSettings();
+	    applySpeedSettings();
 	    applyDisplaySettings();
 
 	    boolean useDelta = (cmbEvolveMethod.getSelectedIndex() == 1);
@@ -1778,6 +1873,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 	    evolveStartTimeMs = System.currentTimeMillis();
 	    initialScore = bestScore > 0 ? bestScore : 0.0;
+
+	    if (fitnessChartWindow != null) {
+	        fitnessChartWindow.clearData();
+	    }
 	}
 
 	/**
@@ -1786,10 +1885,48 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
 	private void applyMutationSettings() {
 	    CrossOver.GRID_MUTATION_CHANCES = (int) spnGridMutations.getValue();
+	    CrossOver.GRID_MUTATION_DECAY = (int) spnMutationDecay.getValue() / 1000f;
 	    CrossOver.RANDOM_MUTATION_CHANCES = (int) spnRandomMutations.getValue();
+	    CrossOver.RANDOM_MUTATION_PERCENT = (int) spnRandomMutationPct.getValue() / 10000f;
 	    CrossOver.RANDOM_CLOSE_MUTATION_CHANCES = (int) spnCloseMutations.getValue();
+	    CrossOver.RANDOM_CLOSE_MUTATION_PERCENT = (int) spnCloseMutationPct.getValue() / 10000f;
 	    CrossOver.TARGETED_SWAP_ATTEMPTS = (int) spnTargetedSwaps.getValue();
 	    CrossOver.CROSSOVER_BLOCK_ENABLED = chkBlockCrossover.isSelected();
+	}
+
+	/**
+	 * Applies quality settings (grid dimensions, palette count).
+	 * These require an image reload to take effect on the evolvers.
+	 */
+	private void applyQualitySettings() {
+	    int newW = (int) spnGridWidth.getValue();
+	    int newH = (int) spnGridHeight.getValue();
+	    int newPal = (int) spnPalettes.getValue();
+
+	    boolean gridChanged = (newW != widthTriangles || newH != heightTriangles || newPal != TOTAL_PALLETES);
+
+	    widthTriangles = newW;
+	    heightTriangles = newH;
+	    TOTAL_TRIANGLES = widthTriangles * heightTriangles;
+	    TOTAL_PALLETES = newPal;
+
+	    if (gridChanged) {
+	        RANDOM_JUMP_MAX_DISTANCES = new int[128];
+	        java.util.Arrays.fill(RANDOM_JUMP_MAX_DISTANCES, TOTAL_TRIANGLES);
+	        resizedOriginal = null;
+	    }
+	}
+
+	/**
+	 * Applies speed/performance settings from UI controls.
+	 * Can be called live during evolution.
+	 */
+	private void applySpeedSettings() {
+	    FPS = (int) spnEvolutionFps.getValue();
+	    EVOLVER_UPDATE_MS = FPS > 0 ? 1000 / FPS : 0;
+	    if (processTimer != null) {
+	        processTimer.setDelay(EVOLVER_UPDATE_MS);
+	    }
 	}
 
 	/**
@@ -1797,6 +1934,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
 	private void applyDisplaySettings() {
 	    GUI_FPS = (int) spnGuiFps.getValue();
+	    GUI_UPDATE_MS = GUI_FPS > 0 ? 1000 / GUI_FPS : 50;
 	    BENCHMARK_LOGGING = chkBenchmarkLogging.isSelected();
 	    EXPORT_VIDEO = chkExportVideo.isSelected();
 	}
@@ -1807,8 +1945,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
 	private void applyLiveSettings() {
 	    applyMutationSettings();
+	    applySpeedSettings();
 	    applyDisplaySettings();
 	    EVOLVE_ITERATIONS = (int) spnEvolveIterations.getValue();
+	    POPULATION = (int) spnPopulation.getValue();
+	    CROSSOVER_MAX = (int) spnCrossoverMax.getValue();
+	    ImageEvolver.VALIDATE_PERMUTATION = chkValidatePermutation.isSelected();
+
+	    int maxIterK = (int) spnMaxIterations.getValue();
+	    MAX_ITERATIONS = maxIterK > 0 ? maxIterK * 1000 : Integer.MAX_VALUE;
 
 	    boolean useDelta = (cmbEvolveMethod.getSelectedIndex() == 1);
 	    for (ImageEvolver ev : evolvers) {
@@ -1817,13 +1962,25 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 	    System.out.println("[ArtEvolver] Live settings applied:"
 	        + " Grid=" + CrossOver.GRID_MUTATION_CHANCES
-	        + " Random=" + CrossOver.RANDOM_MUTATION_CHANCES
-	        + " Close=" + CrossOver.RANDOM_CLOSE_MUTATION_CHANCES
+	        + " Decay=" + CrossOver.GRID_MUTATION_DECAY
+	        + " Random=" + CrossOver.RANDOM_MUTATION_CHANCES + "(p=" + CrossOver.RANDOM_MUTATION_PERCENT + ")"
+	        + " Close=" + CrossOver.RANDOM_CLOSE_MUTATION_CHANCES + "(p=" + CrossOver.RANDOM_CLOSE_MUTATION_PERCENT + ")"
 	        + " Targeted=" + CrossOver.TARGETED_SWAP_ATTEMPTS
 	        + " Block=" + CrossOver.CROSSOVER_BLOCK_ENABLED
+	        + " Threads=" + THREADS
+	        + " Pop=" + POPULATION
+	        + " EvolveFPS=" + FPS
 	        + " GUI_FPS=" + GUI_FPS
 	        + " EvolveIter=" + EVOLVE_ITERATIONS
 	        + " Delta=" + useDelta);
+	}
+
+	private void showFitnessChart() {
+	    if (fitnessChartWindow == null) {
+	        fitnessChartWindow = new FitnessChartWindow();
+	    }
+	    fitnessChartWindow.setVisible(true);
+	    fitnessChartWindow.toFront();
 	}
 
 	@Override

@@ -266,6 +266,14 @@ public class DeltaFitnessEngine {
         return err;
     }
 
+    public int[] getTrianglePixelIndices(int triIdx) {
+        return trianglePixelIndices[triIdx];
+    }
+
+    public int[] getRefR() { return refR; }
+    public int[] getRefG() { return refG; }
+    public int[] getRefB() { return refB; }
+
     public int getCurrentColorR(int triIdx) {
         return currentColorR[triIdx];
     }

@@ -45,6 +45,7 @@ artevolver/
 |           +-- AbstractEvolver.java     Fitness function base class
 |           +-- ImageEvolver.java        Core evolution engine (per-thread)
 |           +-- DeltaFitnessEngine.java  Pre-computed pixel masks + delta evaluation
+|           +-- LAPSolver.java          Jonker-Volgenant optimal color assignment
 |           +-- CrossOver.java           Genetic operators (mutation, crossover)
 |           +-- Triangle.java            Triangle polygon with color
 |           +-- TriangleList.java        Scored list of triangles
@@ -75,8 +76,12 @@ evolution threads.
 
 **GUI responsibilities:**
 - Swing JFrame with an image panel displaying the current best evolved image
-- Control buttons: Load (source image), Start, Stop, Sequential, Source (view original),
-  Export (save PNG)
+- Professional sidebar control panel (v3.1) with organized sections:
+  - Status dashboard: score, progress bar, gain, speed, elapsed, population, method
+  - Actions: Load, Start/Stop, Toggle Source, Export
+  - Settings: initialization method, evolution method, threads, population, mutations
+  - Live parameter adjustment during evolution via "Apply Settings Live"
+- All evolution parameters user-selectable from dropdown/spinner/checkbox controls
 
 **Orchestration responsibilities:**
 - Creates N `ImageEvolver` instances, each assigned to its own thread
@@ -127,6 +132,30 @@ Base class that provides the pixel-comparison fitness function used by all evolv
 - One-time reference pixel caching via `cacheReferencePixels(BufferedImage ref)`, which
   extracts the source image pixels into a reusable int array
 - Zero-copy `DataBufferInt` access to avoid intermediate array allocation
+
+### LAPSolver (Optimal Color Assignment) — v3.1
+
+`com.rndmodgames.evolver.LAPSolver`
+
+Implements the Jonker-Volgenant (1987) shortest-augmenting-path algorithm for the Linear
+Assignment Problem. Given an N x N cost matrix, finds the permutation that minimizes total
+cost in O(N^3) time.
+
+**Key methods:**
+- `solve(int[] cost, int n)`: Core JV solver operating on a flat row-major cost matrix
+- `buildCostMatrix(DeltaFitnessEngine, Color[])`: Builds cost[i][j] = pixel error when
+  triangle i gets color j, using pre-computed pixel masks for efficiency
+- `solveOptimal(DeltaFitnessEngine, Color[])`: Convenience method that builds + solves + logs timing
+
+**Performance (N=1482, 1-palette):**
+- Cost matrix build: ~40ms
+- Solve: ~5-6 seconds
+- Result: provably optimal color assignment (score 0.4893319 vs Smart's 0.4892470)
+
+**Integration:** Called from `ImageEvolver.lapAssignColors()` when `INITIALIZATION_METHOD == INIT_LAP_OPTIMAL`.
+Selectable from the UI initialization method dropdown.
+
+---
 
 ### ImageEvolver (Core Evolution Engine)
 

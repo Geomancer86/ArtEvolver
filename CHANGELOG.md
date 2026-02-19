@@ -6,6 +6,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [3.1.0] - 2026-02-18 (develop branch)
+
+### Added — LAP Solver Implementation
+- **LAPSolver.java**: Jonker-Volgenant algorithm for provably optimal color assignment
+  - O(N^3) solver computing the exact minimum-cost permutation
+  - Cost matrix builder using DeltaFitnessEngine pixel masks (~40ms for N=1482)
+  - Solve time: ~5-6 seconds for 1-palette (1482 triangles)
+  - Achieves **provably optimal** score of 0.4893319 vs Smart's 0.4892470 (+0.000085)
+  - Selectable from UI as "LAP Optimal (Jonker-Volgenant)" initialization method
+- **ImageEvolver.INITIALIZATION_METHOD**: new static field with INIT_RANDOM, INIT_SMART, INIT_LAP_OPTIMAL
+- **lapAssignColors()**: integration method that builds DeltaFitnessEngine + cost matrix + solves
+- **BenchmarkTest.lapSolverOptimal()**: validates LAP > Smart > Random scores
+
+### Added — Major UI Overhaul
+- **Professional sidebar control panel** replacing the basic button list
+  - Organized into labeled sections: Status, Actions, Initialization, Evolution, Mutations, Display
+  - Color-coded score display with large monospaced font
+  - Progress bar showing fitness percentage
+  - Score gain tracking (shows improvement since start)
+  - Elapsed time with hours/minutes/seconds formatting
+  - Iteration speed with comma-formatted numbers
+  - Triangle count with grid dimensions
+  - Active method display (init + evolve combination)
+- **User-selectable parameters** (all configurable from UI before/during evolution):
+  - Initialization method: Random / Smart Greedy / LAP Optimal
+  - Evolution method: Legacy (render+compare) / Delta Fitness (50x faster)
+  - Threads (1-128), Population per thread (1-256)
+  - Palette repetitions (1-64), Crossover max (1-64)
+  - Evolve iterations per batch (1-100)
+  - Grid mutations, Random mutations, Close mutations, Targeted swap attempts
+  - Block crossover toggle, Permutation validation toggle
+  - Benchmark CSV logging toggle, Video export toggle
+  - GUI update FPS (1-60)
+- **"Apply Settings Live" button**: changes mutation/display params during active evolution
+- **Styled action buttons**: colored Start (green) / Stop (red), grid layout
+- **Tooltips** on all controls explaining what each parameter does
+- **Scrollable sidebar** for small screens
+
 ### Fixed — UI Responsiveness
 - **Image repaint rate**: was 0.8 FPS due to bug using `GUI_UPDATE_MS` (50ms value) as frame-count
   modulus instead of `FPS/GUI_FPS` (=2). Now repaints at intended 20 FPS.

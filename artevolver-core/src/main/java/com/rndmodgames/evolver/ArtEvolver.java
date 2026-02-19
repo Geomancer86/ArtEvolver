@@ -20,14 +20,20 @@ import java.util.List;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
@@ -312,6 +318,32 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private JLabel lblIterations;
 	private JLabel lblIterationsPerSecond;
 	private JLabel lblGoodIterationsPerSecond;
+
+	// Enhanced UI components (v3.1)
+	private JLabel lblElapsed;
+	private JLabel lblIterPerSec;
+	private JLabel lblMethod;
+	private JLabel lblTriangles;
+	private JLabel lblScoreGain;
+	private javax.swing.JProgressBar progressBar;
+	private JComboBox<String> cmbInitMethod;
+	private JComboBox<String> cmbEvolveMethod;
+	private JSpinner spnThreads;
+	private JSpinner spnPopulation;
+	private JSpinner spnGridMutations;
+	private JSpinner spnTargetedSwaps;
+	private JSpinner spnRandomMutations;
+	private JSpinner spnCloseMutations;
+	private JSpinner spnCrossoverMax;
+	private JSpinner spnPalettes;
+	private JSpinner spnGuiFps;
+	private JSpinner spnEvolveIterations;
+	private javax.swing.JCheckBox chkBlockCrossover;
+	private javax.swing.JCheckBox chkValidatePermutation;
+	private javax.swing.JCheckBox chkBenchmarkLogging;
+	private javax.swing.JCheckBox chkExportVideo;
+	private long evolveStartTimeMs;
+	private double initialScore = 0.0;
 	
 	private String path;
 	
@@ -791,14 +823,51 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
             	    float health = streamAvg(GOOD_ITERATIONS, Math.min((int) currentFrame, HEALTH_ITERATIONS));
 
-            	    lblScore.setText("S: " + df4.format(bestScore * 100f) + PERCENT_SIGN);
+            	    lblScore.setText(df4.format(bestScore * 100f) + PERCENT_SIGN);
+            	    int progressVal = (int) (bestScore * 10000);
+            	    progressBar.setValue(Math.min(progressVal, 10000));
+            	    progressBar.setString(df4.format(bestScore * 100f) + PERCENT_SIGN);
 
             	    if (goodIterations > 0 && totalIterations > 0) {
-                        lblAverageScore.setText("H: " + df.format(health) + PERCENT_SIGN);
+                        lblAverageScore.setText("Health: " + df.format(health) + PERCENT_SIGN);
                     }
 
-                    lblPopulation.setText("Pop: " + population);
-                    lblIterations.setText("I: " + goodIterations + "/" + totalIterations);
+                    double gain = bestScore - initialScore;
+                    if (gain > 0) {
+                        lblScoreGain.setText("Gain: +" + df4.format(gain * 100f) + PERCENT_SIGN);
+                        lblScoreGain.setForeground(new java.awt.Color(34, 139, 34));
+                    } else {
+                        lblScoreGain.setText("Gain: --");
+                    }
+
+                    lblPopulation.setText("Population: " + population + " (" + evolvers.size() + " threads)");
+                    lblIterations.setText("Iterations: " + goodIterations + " / " + totalIterations);
+                    lblTriangles.setText("Triangles: " + TOTAL_TRIANGLES + " (" + widthTriangles + "x" + heightTriangles + ")");
+
+                    if (evolveStartTimeMs > 0) {
+                        long elapsedSec = (System.currentTimeMillis() - evolveStartTimeMs) / 1000;
+                        long hrs = elapsedSec / 3600;
+                        long mins = (elapsedSec % 3600) / 60;
+                        long secs = elapsedSec % 60;
+                        if (hrs > 0) {
+                            lblElapsed.setText("Elapsed: " + hrs + "h " + mins + "m " + secs + "s");
+                        } else if (mins > 0) {
+                            lblElapsed.setText("Elapsed: " + mins + "m " + secs + "s");
+                        } else {
+                            lblElapsed.setText("Elapsed: " + secs + "s");
+                        }
+
+                        if (elapsedSec > 0) {
+                            long ips = totalIterations / elapsedSec;
+                            lblIterPerSec.setText("Speed: " + String.format("%,d", ips) + " iter/sec");
+                        }
+                    }
+
+                    String[] initNames = {"Random", "Smart Greedy", "LAP Optimal"};
+                    String[] evolveNames = {"Legacy", "Delta"};
+                    int initIdx = Math.min(cmbInitMethod.getSelectedIndex(), initNames.length - 1);
+                    int evolveIdx = Math.min(cmbEvolveMethod.getSelectedIndex(), evolveNames.length - 1);
+                    lblMethod.setText("Mode: " + initNames[initIdx] + " + " + evolveNames[evolveIdx]);
             	}
 
             	/**
@@ -934,156 +1003,28 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         });
         
         Container container = getContentPane();
-        Container menuContainer = new JPanel();
-        
-        menuContainer.setLayout(new BoxLayout(menuContainer, BoxLayout.Y_AXIS));
-        ((JComponent) menuContainer).setBorder(BorderFactory.createEmptyBorder(32, 0, 0, 0));
 
 		imagePanel = new JPanel() {
-
             private static final long serialVersionUID = -1275189729010345619L;
-
             @Override
 	        protected void paintComponent(Graphics g) {
 	            super.paintComponent(g);
 	            if (bestImage != null) {
-	                g.drawImage(bestImage, 32, 32, null);
+	                g.drawImage(bestImage, 16, 16, null);
 	            }
 	        }
 	    };
-	    
-//	    imagePanel.setBackground(Color.BLUE);
 
-	    JButton loadButton = new JButton("Load");
-	    loadButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-	    loadButton.addActionListener(this);
-	    loadButton.setMinimumSize(new Dimension(160, 24));
-	    loadButton.setPreferredSize(new Dimension(160, 24));
-	    loadButton.setMaximumSize(new Dimension(160, 24));
-	    
-	    menuContainer.add(loadButton);
-	    
-	    JButton startButton = new JButton("Start");
-	    startButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-      	startButton.addActionListener(this);
-      	startButton.setMinimumSize(new Dimension(160, 24));
-      	startButton.setPreferredSize(new Dimension(160, 24));
-      	startButton.setMaximumSize(new Dimension(160, 24));
-      	
-      	menuContainer.add(startButton);
-      	
-        JButton stopButton = new JButton("Stop");
-        stopButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        stopButton.addActionListener(this);
-        stopButton.setMinimumSize(new Dimension(160, 24));
-        stopButton.setPreferredSize(new Dimension(160, 24));
-        stopButton.setMaximumSize(new Dimension(160, 24));
-        
-        menuContainer.add(stopButton);
-        
-        JButton enableSecuentialButton = new JButton("Secuential");
-        enableSecuentialButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        enableSecuentialButton.addActionListener(this);
-//        menuContainer.add(enableSecuentialButton);
+	    JPanel sidebar = buildSidebarPanel();
 
-        JButton source = new JButton("Source");
-        source.setAlignmentX(Component.CENTER_ALIGNMENT);
-        source.addActionListener(this);
-        source.setMinimumSize(new Dimension(160, 24));
-        source.setPreferredSize(new Dimension(160, 24));
-        source.setMaximumSize(new Dimension(160, 24));
-        
-        menuContainer.add(source);
-        
-        JButton export = new JButton("Export");
-        export.setAlignmentX(Component.CENTER_ALIGNMENT);
-        export.addActionListener(this);
-        export.setMinimumSize(new Dimension(160, 24));
-        export.setPreferredSize(new Dimension(160, 24));
-        export.setMaximumSize(new Dimension(160, 24));
+	    JScrollPane scrollPane = new JScrollPane(sidebar);
+	    scrollPane.setPreferredSize(new Dimension(310, 900));
+	    scrollPane.setMinimumSize(new Dimension(310, 300));
+	    scrollPane.setBorder(BorderFactory.createMatteBorder(0, 1, 0, 0,
+	        new java.awt.Color(180, 180, 180)));
+	    scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
-        menuContainer.add(export);
-        
-        /**
-         * HALVE PARAMETERS
-         * DOUBLE PARAMETERS
-         * TOGGLE SECUENTIAL
-         */
-        JButton sequential = new JButton("Sequential");
-        sequential.setAlignmentX(Component.CENTER_ALIGNMENT);
-        sequential.addActionListener(this);
-        sequential.setMinimumSize(new Dimension(160, 24));
-        sequential.setPreferredSize(new Dimension(160, 24));
-        sequential.setMaximumSize(new Dimension(160, 24));
-        
-        menuContainer.add(sequential);
-                
-        Container labelContainer = new JPanel();
-        
-        menuContainer.add(export);
-        
-        //
-		lblScore = new JLabel("S: 0.0");
-		lblScore.setHorizontalAlignment(SwingConstants.CENTER);
-		lblScore.setMinimumSize(new Dimension(220, 44));
-		lblScore.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 20));
-		lblScore.setPreferredSize(new Dimension(220, 44));
-		lblScore.setMaximumSize(new Dimension(220, 44));
-
-		//
-		lblPopulation = new JLabel("Pop: 0");
-		lblPopulation.setHorizontalAlignment(SwingConstants.CENTER);
-		lblPopulation.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 30));
-		lblPopulation.setMinimumSize(new Dimension(220, 44));
-		lblPopulation.setPreferredSize(new Dimension(220, 44));
-		lblPopulation.setMaximumSize(new Dimension(220, 44));
-
-		//
-		lblIterations = new JLabel("I: 0/0");
-		lblIterations.setHorizontalAlignment(SwingConstants.CENTER);
-		lblIterations.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 20));
-		lblIterations.setMinimumSize(new Dimension(220, 44));
-		lblIterations.setPreferredSize(new Dimension(220, 44));
-		lblIterations.setMaximumSize(new Dimension(220, 44));
-
-		labelSequential = new JLabel("Sequential: OFF");
-		labelSequential.setHorizontalAlignment(SwingConstants.CENTER);
-		labelSequential.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 20));
-		labelSequential.setMinimumSize(new Dimension(220, 44));
-		labelSequential.setPreferredSize(new Dimension(220, 44));
-		labelSequential.setMaximumSize(new Dimension(220, 44));
-		
-		//
-//		lblIterationsPerSecond = new JLabel("I/second: 0.0");
-//		lblIterationsPerSecond.setMinimumSize(new Dimension(160, 24));
-//		lblIterationsPerSecond.setPreferredSize(new Dimension(160, 24));
-//		lblIterationsPerSecond.setMaximumSize(new Dimension(160, 24));
-        
-		labelContainer.add(lblPopulation);
-        labelContainer.add(lblScore);
-		labelContainer.add(lblIterations);
-		labelContainer.add(labelSequential);
-		
-        lblAverageScore = new JLabel("H: 100.00%");
-        
-        lblAverageScore.setHorizontalAlignment(SwingConstants.CENTER);
-        
-        lblAverageScore.setMinimumSize(new Dimension(220, 44));
-        lblAverageScore.setPreferredSize(new Dimension(220, 44));
-        lblAverageScore.setMaximumSize(new Dimension(220, 44));
-        lblAverageScore.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 30));
-        
-        labelContainer.add(lblAverageScore);
-		
-		menuContainer.add(labelContainer);
-		
-		// padding
-		menuContainer.setPreferredSize(new Dimension(280, 900));
-		menuContainer.setSize(new Dimension(280, 900));
-		menuContainer.setMaximumSize(new Dimension(280, 900));
-
-		//
-      	container.add(menuContainer, BorderLayout.LINE_END);
+      	container.add(scrollPane, BorderLayout.LINE_END);
       	container.add(imagePanel, BorderLayout.CENTER);
 	    
       	// NOTE: set minimum size
@@ -1247,16 +1188,28 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
      * TODO: this breaks processing if start is pressed twice (or after stopping)
      */
     public void start(){
-        
+
+    	applyUISettings();
+
     	start = System.currentTimeMillis();
     	lastLogTimeMs = start;
+    	evolveStartTimeMs = start;
 
+    	String[] initNames = {"Random", "Smart Greedy", "LAP Optimal"};
+    	String[] evolveNames = {"Legacy", "Delta Fitness"};
+    	int initIdx = Math.min(ImageEvolver.INITIALIZATION_METHOD, initNames.length - 1);
+    	int evolveIdx = Math.min(cmbEvolveMethod.getSelectedIndex(), evolveNames.length - 1);
     	System.out.println("[ArtEvolver] Starting evolution...");
-    	System.out.println("[ArtEvolver] Mode: " + (MODES[CURRENT_MODE] != null ? MODES[CURRENT_MODE] : "CUSTOM")
+    	System.out.println("[ArtEvolver] Init: " + initNames[initIdx]
+    	        + " | Evolve: " + evolveNames[evolveIdx]
     	        + " | Threads: " + THREADS
     	        + " | Population: " + POPULATION
     	        + " | Triangles: " + TOTAL_TRIANGLES
-    	        + " | Smart Init: " + ImageEvolver.SMART_INITIALIZATION);
+    	        + " | Grid=" + CrossOver.GRID_MUTATION_CHANCES
+    	        + " | Random=" + CrossOver.RANDOM_MUTATION_CHANCES
+    	        + " | Close=" + CrossOver.RANDOM_CLOSE_MUTATION_CHANCES
+    	        + " | Targeted=" + CrossOver.TARGETED_SWAP_ATTEMPTS
+    	        + " | Block=" + CrossOver.CROSSOVER_BLOCK_ENABLED);
 
     	this.isRunning = true;
     	
@@ -1360,6 +1313,430 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	@Override
 	public void stateChanged(ChangeEvent e) {
 
+	}
+
+	// ============================================================
+	//  UI Builder helpers
+	// ============================================================
+
+	private static final java.awt.Color ACCENT       = new java.awt.Color(40, 120, 200);
+	private static final java.awt.Color BG_SIDEBAR   = new java.awt.Color(245, 245, 248);
+	private static final java.awt.Color SECTION_BG   = new java.awt.Color(235, 235, 240);
+	private static final java.awt.Color SEPARATOR_CLR = new java.awt.Color(200, 200, 210);
+
+	private static final Font FNT_SECTION = new Font(Font.SANS_SERIF, Font.BOLD, 11);
+	private static final Font FNT_LABEL   = new Font(Font.SANS_SERIF, Font.PLAIN, 11);
+	private static final Font FNT_VALUE   = new Font(Font.MONOSPACED, Font.BOLD, 16);
+	private static final Font FNT_SCORE   = new Font(Font.MONOSPACED, Font.BOLD, 22);
+	private static final Font FNT_BTN     = new Font(Font.SANS_SERIF, Font.BOLD, 12);
+	private static final Dimension BTN_SIZE  = new Dimension(280, 30);
+	private static final Dimension CTRL_SIZE = new Dimension(280, 26);
+
+	private JPanel buildSidebarPanel() {
+	    JPanel sb = new JPanel();
+	    sb.setLayout(new BoxLayout(sb, BoxLayout.Y_AXIS));
+	    sb.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+	    sb.setBackground(BG_SIDEBAR);
+
+	    // ── STATUS ──────────────────────────────────
+	    addSection(sb, "\u25B6  STATUS");
+
+	    lblScore = makeValueLabel("Score: --", FNT_SCORE, ACCENT);
+	    sb.add(lblScore);
+	    sb.add(Box.createVerticalStrut(4));
+
+	    progressBar = new javax.swing.JProgressBar(0, 10000);
+	    progressBar.setStringPainted(true);
+	    progressBar.setString("0.00%");
+	    progressBar.setFont(FNT_LABEL);
+	    progressBar.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    progressBar.setMaximumSize(CTRL_SIZE);
+	    progressBar.setPreferredSize(new Dimension(280, 18));
+	    sb.add(progressBar);
+	    sb.add(Box.createVerticalStrut(6));
+
+	    lblScoreGain = makeValueLabel("Gain: --", FNT_LABEL, null);
+	    sb.add(lblScoreGain);
+
+	    lblAverageScore = makeValueLabel("Health: --", FNT_LABEL, null);
+	    sb.add(lblAverageScore);
+
+	    lblIterations = makeValueLabel("Iterations: 0 / 0", FNT_LABEL, null);
+	    sb.add(lblIterations);
+
+	    lblIterPerSec = makeValueLabel("Speed: -- iter/sec", FNT_LABEL, null);
+	    sb.add(lblIterPerSec);
+
+	    lblElapsed = makeValueLabel("Elapsed: 0s", FNT_LABEL, null);
+	    sb.add(lblElapsed);
+
+	    lblPopulation = makeValueLabel("Population: 0", FNT_LABEL, null);
+	    sb.add(lblPopulation);
+
+	    lblTriangles = makeValueLabel("Triangles: " + TOTAL_TRIANGLES, FNT_LABEL, null);
+	    sb.add(lblTriangles);
+
+	    lblMethod = makeValueLabel("Method: --", FNT_LABEL, null);
+	    sb.add(lblMethod);
+
+	    labelSequential = new JLabel("");
+
+	    addSeparator(sb);
+
+	    // ── ACTIONS ─────────────────────────────────
+	    addSection(sb, "\u25B6  ACTIONS");
+
+	    JPanel btnRow1 = new JPanel(new java.awt.GridLayout(1, 2, 4, 0));
+	    btnRow1.setOpaque(false);
+	    btnRow1.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    btnRow1.setMaximumSize(new Dimension(280, 32));
+
+	    JButton loadButton = makeStyledButton("Load Image");
+	    loadButton.addActionListener(this);
+	    loadButton.setActionCommand("Load");
+	    btnRow1.add(loadButton);
+
+	    JButton sourceBtn = makeStyledButton("Toggle Source");
+	    sourceBtn.addActionListener(this);
+	    sourceBtn.setActionCommand("Source");
+	    btnRow1.add(sourceBtn);
+	    sb.add(btnRow1);
+	    sb.add(Box.createVerticalStrut(4));
+
+	    JPanel btnRow2 = new JPanel(new java.awt.GridLayout(1, 3, 4, 0));
+	    btnRow2.setOpaque(false);
+	    btnRow2.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    btnRow2.setMaximumSize(new Dimension(280, 32));
+
+	    JButton startButton = makeStyledButton("\u25B6 Start");
+	    startButton.setBackground(new java.awt.Color(46, 139, 87));
+	    startButton.setForeground(java.awt.Color.WHITE);
+	    startButton.addActionListener(this);
+	    startButton.setActionCommand("Start");
+	    btnRow2.add(startButton);
+
+	    JButton stopButton = makeStyledButton("\u25A0 Stop");
+	    stopButton.setBackground(new java.awt.Color(178, 34, 34));
+	    stopButton.setForeground(java.awt.Color.WHITE);
+	    stopButton.addActionListener(this);
+	    stopButton.setActionCommand("Stop");
+	    btnRow2.add(stopButton);
+
+	    JButton exportBtn = makeStyledButton("Export");
+	    exportBtn.addActionListener(this);
+	    exportBtn.setActionCommand("Export");
+	    btnRow2.add(exportBtn);
+	    sb.add(btnRow2);
+
+	    addSeparator(sb);
+
+	    // ── INITIALIZATION ──────────────────────────
+	    addSection(sb, "\u2699  INITIALIZATION");
+
+	    addFieldLabel(sb, "Color Assignment Method:");
+	    cmbInitMethod = new JComboBox<>(new String[]{
+	        "Random Shuffle",
+	        "Smart Greedy (fast heuristic)",
+	        "LAP Optimal (Jonker-Volgenant)"
+	    });
+	    cmbInitMethod.setSelectedIndex(1);
+	    cmbInitMethod.setToolTipText(
+	        "<html>Random: shuffled palette<br>" +
+	        "Smart Greedy: O(N\u00B2) heuristic, good starting point<br>" +
+	        "LAP Optimal: O(N\u00B3) exact solver, provably best color assignment</html>");
+	    styleCombo(cmbInitMethod);
+	    sb.add(cmbInitMethod);
+	    sb.add(Box.createVerticalStrut(4));
+
+	    addFieldLabel(sb, "Palette Repetitions (1 = 1535 colors):");
+	    spnPalettes = makeSpinner(TOTAL_PALLETES, 1, 64, 1,
+	        "Number of palette copies. More = more triangles = finer detail.");
+	    sb.add(spnPalettes);
+
+	    addSeparator(sb);
+
+	    // ── EVOLUTION ENGINE ─────────────────────────
+	    addSection(sb, "\u2699  EVOLUTION ENGINE");
+
+	    addFieldLabel(sb, "Evolution Method:");
+	    cmbEvolveMethod = new JComboBox<>(new String[]{
+	        "Legacy (render + compare)",
+	        "Delta Fitness (50x faster)"
+	    });
+	    cmbEvolveMethod.setSelectedIndex(1);
+	    cmbEvolveMethod.setToolTipText(
+	        "<html>Legacy: renders full image each iteration (slow but simple)<br>" +
+	        "Delta: computes only affected pixels per swap (50x throughput)</html>");
+	    styleCombo(cmbEvolveMethod);
+	    sb.add(cmbEvolveMethod);
+	    sb.add(Box.createVerticalStrut(4));
+
+	    addFieldLabel(sb, "Threads:");
+	    spnThreads = makeSpinner(THREADS, 1, 128, 1,
+	        "Number of parallel evolution threads. Recommended: CPU core count.");
+	    sb.add(spnThreads);
+	    sb.add(Box.createVerticalStrut(4));
+
+	    addFieldLabel(sb, "Population per Thread:");
+	    spnPopulation = makeSpinner(POPULATION, 1, 256, 1,
+	        "Individuals per thread. Higher = more diversity, slower per iteration.");
+	    sb.add(spnPopulation);
+	    sb.add(Box.createVerticalStrut(4));
+
+	    addFieldLabel(sb, "Crossover Max:");
+	    spnCrossoverMax = makeSpinner(CROSSOVER_MAX, 1, 64, 1,
+	        "Maximum number of crossover children per generation.");
+	    sb.add(spnCrossoverMax);
+	    sb.add(Box.createVerticalStrut(4));
+
+	    addFieldLabel(sb, "Evolve Iterations per Batch:");
+	    spnEvolveIterations = makeSpinner(EVOLVE_ITERATIONS, 1, 100, 1,
+	        "Iterations per evolution batch. Higher = less overhead, less responsive UI.");
+	    sb.add(spnEvolveIterations);
+
+	    addSeparator(sb);
+
+	    // ── MUTATION OPERATORS ───────────────────────
+	    addSection(sb, "\u2699  MUTATION OPERATORS");
+
+	    addFieldLabel(sb, "Grid Mutations / Child:");
+	    spnGridMutations = makeSpinner((int) CrossOver.GRID_MUTATION_CHANCES, 0, 512, 4,
+	        "Localized color swaps within the evolver's grid section.");
+	    sb.add(spnGridMutations);
+	    sb.add(Box.createVerticalStrut(4));
+
+	    addFieldLabel(sb, "Random Mutations:");
+	    spnRandomMutations = makeSpinner(CrossOver.RANDOM_MUTATION_CHANCES, 0, 10000, 100,
+	        "Fully random color swaps across the entire image.");
+	    sb.add(spnRandomMutations);
+	    sb.add(Box.createVerticalStrut(4));
+
+	    addFieldLabel(sb, "Close Mutations:");
+	    spnCloseMutations = makeSpinner(CrossOver.RANDOM_CLOSE_MUTATION_CHANCES, 0, 200, 5,
+	        "Random swaps between nearby triangles.");
+	    sb.add(spnCloseMutations);
+	    sb.add(Box.createVerticalStrut(4));
+
+	    addFieldLabel(sb, "Targeted Swap Attempts:");
+	    spnTargetedSwaps = makeSpinner(CrossOver.TARGETED_SWAP_ATTEMPTS, 0, 128, 4,
+	        "Intelligent swaps: finds worst-matching triangle and tries to improve it.");
+	    sb.add(spnTargetedSwaps);
+	    sb.add(Box.createVerticalStrut(4));
+
+	    chkBlockCrossover = new javax.swing.JCheckBox("Block Crossover (spatial)",
+	        CrossOver.CROSSOVER_BLOCK_ENABLED);
+	    chkBlockCrossover.setFont(FNT_LABEL);
+	    chkBlockCrossover.setOpaque(false);
+	    chkBlockCrossover.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    chkBlockCrossover.setToolTipText("Enables spatial block crossover between parents.");
+	    sb.add(chkBlockCrossover);
+
+	    addSeparator(sb);
+
+	    // ── DISPLAY & LOGGING ───────────────────────
+	    addSection(sb, "\u2699  DISPLAY & LOGGING");
+
+	    addFieldLabel(sb, "GUI Update FPS:");
+	    spnGuiFps = makeSpinner(GUI_FPS, 1, 60, 5,
+	        "How many times per second the image repaints. Higher = smoother but more CPU.");
+	    sb.add(spnGuiFps);
+	    sb.add(Box.createVerticalStrut(4));
+
+	    chkValidatePermutation = new javax.swing.JCheckBox("Validate Permutation",
+	        ImageEvolver.VALIDATE_PERMUTATION);
+	    chkValidatePermutation.setFont(FNT_LABEL);
+	    chkValidatePermutation.setOpaque(false);
+	    chkValidatePermutation.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    chkValidatePermutation.setToolTipText("Check that every palette color is used exactly once after each operation.");
+	    sb.add(chkValidatePermutation);
+	    sb.add(Box.createVerticalStrut(2));
+
+	    chkBenchmarkLogging = new javax.swing.JCheckBox("Benchmark CSV Logging",
+	        BENCHMARK_LOGGING);
+	    chkBenchmarkLogging.setFont(FNT_LABEL);
+	    chkBenchmarkLogging.setOpaque(false);
+	    chkBenchmarkLogging.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    chkBenchmarkLogging.setToolTipText("Write structured CSV benchmark files to benchmarks/ directory.");
+	    sb.add(chkBenchmarkLogging);
+	    sb.add(Box.createVerticalStrut(2));
+
+	    chkExportVideo = new javax.swing.JCheckBox("Export Video Frames",
+	        EXPORT_VIDEO);
+	    chkExportVideo.setFont(FNT_LABEL);
+	    chkExportVideo.setOpaque(false);
+	    chkExportVideo.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    chkExportVideo.setToolTipText("Automatically export video frames during evolution.");
+	    sb.add(chkExportVideo);
+
+	    sb.add(Box.createVerticalStrut(8));
+
+	    // ── Apply Live button ───────────────────────
+	    JButton applyLive = makeStyledButton("Apply Settings Live");
+	    applyLive.setBackground(ACCENT);
+	    applyLive.setForeground(java.awt.Color.WHITE);
+	    applyLive.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    applyLive.setMaximumSize(BTN_SIZE);
+	    applyLive.addActionListener(e -> applyLiveSettings());
+	    sb.add(applyLive);
+
+	    sb.add(Box.createVerticalGlue());
+
+	    return sb;
+	}
+
+	private static JButton makeStyledButton(String text) {
+	    JButton btn = new JButton(text);
+	    btn.setFont(FNT_BTN);
+	    btn.setFocusPainted(false);
+	    return btn;
+	}
+
+	private static JLabel makeValueLabel(String text, Font font, java.awt.Color color) {
+	    JLabel lbl = new JLabel(text);
+	    lbl.setFont(font);
+	    if (color != null) lbl.setForeground(color);
+	    lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    return lbl;
+	}
+
+	private static void addSection(JPanel panel, String text) {
+	    panel.add(Box.createVerticalStrut(2));
+	    JLabel lbl = new JLabel(text);
+	    lbl.setFont(FNT_SECTION);
+	    lbl.setForeground(new java.awt.Color(80, 80, 100));
+	    lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    panel.add(lbl);
+	    panel.add(Box.createVerticalStrut(4));
+	}
+
+	private static void addSeparator(JPanel panel) {
+	    panel.add(Box.createVerticalStrut(6));
+	    JSeparator sep = new JSeparator(JSeparator.HORIZONTAL);
+	    sep.setForeground(SEPARATOR_CLR);
+	    sep.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    panel.add(sep);
+	    panel.add(Box.createVerticalStrut(6));
+	}
+
+	private static void addFieldLabel(JPanel panel, String text) {
+	    JLabel lbl = new JLabel(text);
+	    lbl.setFont(FNT_LABEL);
+	    lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    panel.add(lbl);
+	}
+
+	private static JSpinner makeSpinner(int value, int min, int max, int step, String tooltip) {
+	    JSpinner spn = new JSpinner(new SpinnerNumberModel(value, min, max, step));
+	    spn.setMaximumSize(CTRL_SIZE);
+	    spn.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    spn.setFont(FNT_LABEL);
+	    if (tooltip != null) spn.setToolTipText(tooltip);
+	    return spn;
+	}
+
+	private static void styleCombo(JComboBox<?> cmb) {
+	    cmb.setMaximumSize(CTRL_SIZE);
+	    cmb.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    cmb.setFont(FNT_LABEL);
+	}
+
+	@SuppressWarnings("unused")
+	private static JButton makeButton(String text, Dimension size) {
+	    JButton btn = new JButton(text);
+	    btn.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    btn.setMinimumSize(size);
+	    btn.setPreferredSize(size);
+	    btn.setMaximumSize(size);
+	    return btn;
+	}
+
+	@SuppressWarnings("unused")
+	private static void addSectionLabel(JPanel panel, String text, Font font) {
+	    JLabel lbl = new JLabel(text);
+	    lbl.setFont(font);
+	    lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    panel.add(lbl);
+	    panel.add(Box.createVerticalStrut(4));
+	}
+
+	@SuppressWarnings("unused")
+	private static void addFieldLabel(JPanel panel, String text, Font font) {
+	    JLabel lbl = new JLabel(text);
+	    lbl.setFont(font);
+	    lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    panel.add(lbl);
+	}
+
+	/**
+	 * Reads current UI control values and applies them to the evolver parameters.
+	 * Called before starting evolution.
+	 */
+	private void applyUISettings() {
+	    THREADS = (int) spnThreads.getValue();
+	    POPULATION = (int) spnPopulation.getValue();
+	    TOTAL_PALLETES = (int) spnPalettes.getValue();
+	    CROSSOVER_MAX = (int) spnCrossoverMax.getValue();
+	    EVOLVE_ITERATIONS = (int) spnEvolveIterations.getValue();
+	    ImageEvolver.INITIALIZATION_METHOD = cmbInitMethod.getSelectedIndex();
+	    ImageEvolver.SMART_INITIALIZATION = (cmbInitMethod.getSelectedIndex() == 1);
+	    ImageEvolver.VALIDATE_PERMUTATION = chkValidatePermutation.isSelected();
+
+	    applyMutationSettings();
+	    applyDisplaySettings();
+
+	    boolean useDelta = (cmbEvolveMethod.getSelectedIndex() == 1);
+	    for (ImageEvolver ev : evolvers) {
+	        ev.setUseDeltaEvolution(useDelta);
+	    }
+
+	    evolveStartTimeMs = System.currentTimeMillis();
+	    initialScore = bestScore > 0 ? bestScore : 0.0;
+	}
+
+	/**
+	 * Applies mutation and operator parameters from UI controls.
+	 * Can be called live during evolution.
+	 */
+	private void applyMutationSettings() {
+	    CrossOver.GRID_MUTATION_CHANCES = (int) spnGridMutations.getValue();
+	    CrossOver.RANDOM_MUTATION_CHANCES = (int) spnRandomMutations.getValue();
+	    CrossOver.RANDOM_CLOSE_MUTATION_CHANCES = (int) spnCloseMutations.getValue();
+	    CrossOver.TARGETED_SWAP_ATTEMPTS = (int) spnTargetedSwaps.getValue();
+	    CrossOver.CROSSOVER_BLOCK_ENABLED = chkBlockCrossover.isSelected();
+	}
+
+	/**
+	 * Applies display and logging settings from UI controls.
+	 */
+	private void applyDisplaySettings() {
+	    GUI_FPS = (int) spnGuiFps.getValue();
+	    BENCHMARK_LOGGING = chkBenchmarkLogging.isSelected();
+	    EXPORT_VIDEO = chkExportVideo.isSelected();
+	}
+
+	/**
+	 * Applies settings that can safely change during evolution
+	 * without requiring a restart.
+	 */
+	private void applyLiveSettings() {
+	    applyMutationSettings();
+	    applyDisplaySettings();
+	    EVOLVE_ITERATIONS = (int) spnEvolveIterations.getValue();
+
+	    boolean useDelta = (cmbEvolveMethod.getSelectedIndex() == 1);
+	    for (ImageEvolver ev : evolvers) {
+	        ev.setUseDeltaEvolution(useDelta);
+	    }
+
+	    System.out.println("[ArtEvolver] Live settings applied:"
+	        + " Grid=" + CrossOver.GRID_MUTATION_CHANCES
+	        + " Random=" + CrossOver.RANDOM_MUTATION_CHANCES
+	        + " Close=" + CrossOver.RANDOM_CLOSE_MUTATION_CHANCES
+	        + " Targeted=" + CrossOver.TARGETED_SWAP_ATTEMPTS
+	        + " Block=" + CrossOver.CROSSOVER_BLOCK_ENABLED
+	        + " GUI_FPS=" + GUI_FPS
+	        + " EvolveIter=" + EVOLVE_ITERATIONS
+	        + " Delta=" + useDelta);
 	}
 
 	@Override

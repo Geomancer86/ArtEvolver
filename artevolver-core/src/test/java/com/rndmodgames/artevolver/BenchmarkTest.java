@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import com.rndmodgames.evolver.ArtEvolverTools;
 import com.rndmodgames.evolver.DeltaFitnessEngine;
 import com.rndmodgames.evolver.ImageEvolver;
+import com.rndmodgames.evolver.LAPSolver;
 import com.rndmodgames.evolver.Triangle;
 import com.rndmodgames.evolver.TriangleList;
 import com.rndmodgames.evolver.benchmark.BenchmarkLogger;
@@ -337,5 +338,53 @@ class BenchmarkTest {
         System.out.printf("[BENCHMARK] Score gain: %.1fx more gain%n", gainSpeedup);
 
         assertTrue(deltaIters > legacyIters, "Delta should achieve more iterations");
+    }
+
+    /**
+     * Tests the LAP solver: builds cost matrix, solves, and compares score
+     * against smart initialization and random initialization.
+     */
+    @Test
+    void lapSolverOptimal() throws IOException, URISyntaxException {
+
+        // Random init
+        ImageEvolver.INITIALIZATION_METHOD = ImageEvolver.INIT_RANDOM;
+        ImageEvolver.SMART_INITIALIZATION = false;
+        ImageEvolver randomEvolver = ArtEvolverTools.getDefaultImageEvolver(
+            1, 2, 2, 2, "000_zeldathumb-1920-789452.jpg", false,
+            38, 39, 1f);
+        double randomScore = randomEvolver.getPopulation().get(0).getScore();
+        System.out.printf("[LAP TEST] Random init score:  %.10f%n", randomScore);
+
+        // Smart init
+        ImageEvolver.INITIALIZATION_METHOD = ImageEvolver.INIT_SMART;
+        ImageEvolver.SMART_INITIALIZATION = true;
+        ImageEvolver smartEvolver = ArtEvolverTools.getDefaultImageEvolver(
+            1, 2, 2, 2, "000_zeldathumb-1920-789452.jpg", false,
+            38, 39, 1f);
+        double smartScore = smartEvolver.getPopulation().get(0).getScore();
+        System.out.printf("[LAP TEST] Smart init score:   %.10f%n", smartScore);
+
+        // LAP optimal
+        ImageEvolver.INITIALIZATION_METHOD = ImageEvolver.INIT_LAP_OPTIMAL;
+        long t0 = System.nanoTime();
+        ImageEvolver lapEvolver = ArtEvolverTools.getDefaultImageEvolver(
+            1, 2, 2, 2, "000_zeldathumb-1920-789452.jpg", false,
+            38, 39, 1f);
+        long lapMs = (System.nanoTime() - t0) / 1_000_000;
+        double lapScore = lapEvolver.getPopulation().get(0).getScore();
+        System.out.printf("[LAP TEST] LAP optimal score:  %.10f (in %d ms)%n", lapScore, lapMs);
+
+        System.out.printf("[LAP TEST] LAP vs Smart gain:  +%.6f%n", lapScore - smartScore);
+        System.out.printf("[LAP TEST] LAP vs Random gain: +%.6f%n", lapScore - randomScore);
+
+        // Reset to safe default so other tests don't break
+        ImageEvolver.INITIALIZATION_METHOD = ImageEvolver.INIT_SMART;
+        ImageEvolver.SMART_INITIALIZATION = true;
+
+        assertTrue(lapScore >= smartScore,
+            "LAP should be >= smart init score");
+        assertTrue(lapScore > randomScore,
+            "LAP should be > random init score");
     }
 }

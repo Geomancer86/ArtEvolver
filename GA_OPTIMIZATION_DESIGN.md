@@ -312,11 +312,65 @@ a native JNI dependency (~50MB). Overkill for what is a 200-line algorithm.
 **Recommendation**: Implement LAP as the primary solver for best quality, keep GA/delta
 as a "live evolution" display mode for streaming/entertainment.
 
+### 7.8 Implementation Status: COMPLETE
+
+**LAPSolver.java** — Jonker-Volgenant algorithm fully implemented and tested.
+
+| Metric | Result |
+|--------|--------|
+| Algorithm | Shortest augmenting path (JV, 1987) |
+| Lines of code | ~150 (pure Java, zero dependencies) |
+| Cost matrix build | 40ms for N=1482 |
+| Solve time | 5-6 seconds for N=1482 |
+| Score (1-palette) | 0.4893319 (provably optimal) |
+| vs Smart Greedy | +0.000085 better |
+| vs Random | +0.000089 better |
+| Integration | Selectable from UI dropdown |
+| Fallback | Gracefully falls back to Smart Greedy if null colors detected |
+
+The LAP solver is available as "LAP Optimal (Jonker-Volgenant)" in the UI's initialization
+method dropdown. It creates a temporary DeltaFitnessEngine for pixel mask computation, builds
+the N x N cost matrix, solves the assignment, and applies the optimal color permutation.
+
 ---
 
-## 8. UI Performance Analysis
+## 8. UI Overhaul (v3.1)
 
-### 8.1 Bugs Found
+### 8.1 New Control Panel
+
+The sidebar was completely redesigned from a simple button list to a professional control
+panel with organized sections, selectable parameters, and live-update capability.
+
+**User-Selectable Parameters:**
+
+| Section | Parameters | Live-Adjustable |
+|---------|-----------|-----------------|
+| Initialization | Method (Random/Smart/LAP), Palette reps | Before start |
+| Evolution | Method (Legacy/Delta), Threads, Population, Crossover max, Batch size | Before start |
+| Mutations | Grid, Random, Close, Targeted swaps, Block crossover | Yes (Apply Live) |
+| Display | GUI FPS, Benchmark logging, Video export, Permutation validation | Yes (Apply Live) |
+
+**Status Dashboard:**
+- Large color-coded score with progress bar
+- Score gain since start (green when positive)
+- Real-time iteration speed (comma-formatted)
+- Elapsed time (h/m/s format)
+- Population count with thread count
+- Triangle grid dimensions
+- Active method combination display
+
+### 8.2 Live Settings
+
+The "Apply Settings Live" button allows changing mutation operators, display settings,
+and evolution method during an active run without stopping and restarting. Parameters
+like thread count and initialization method require a restart since they affect the
+population structure.
+
+---
+
+## 9. UI Performance Analysis (Bugs Fixed)
+
+### 9.1 Bugs Found
 
 1. **Image repaint at 0.8 FPS instead of 20 FPS**: `currentFrame % GUI_UPDATE_MS`
    used `GUI_UPDATE_MS = 50` (a millisecond value) as a frame-count modulus.

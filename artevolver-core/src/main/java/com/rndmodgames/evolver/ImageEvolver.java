@@ -44,6 +44,11 @@ public class ImageEvolver extends AbstractEvolver {
 	public static boolean SMART_INITIALIZATION = true;
 
 	public static boolean VALIDATE_PERMUTATION = true;
+
+	public static final int INIT_RANDOM = 0;
+	public static final int INIT_SMART = 1;
+	public static final int INIT_LAP_OPTIMAL = 2;
+	public static int INITIALIZATION_METHOD = INIT_SMART;
 	
 	public final static DecimalFormat DEFAULT_DECIMAL_FORMAT = new DecimalFormat("##.###################");
 	
@@ -273,7 +278,11 @@ public class ImageEvolver extends AbstractEvolver {
 			}
 		}
 
-		if (SMART_INITIALIZATION && resizedOriginal != null) {
+		if (INITIALIZATION_METHOD == INIT_LAP_OPTIMAL && resizedOriginal != null) {
+			for (TriangleList<Triangle> triangles : pop) {
+				lapAssignColors(triangles);
+			}
+		} else if (SMART_INITIALIZATION && resizedOriginal != null) {
 			for (TriangleList<Triangle> triangles : pop) {
 				smartAssignColors(triangles);
 			}
@@ -292,8 +301,38 @@ public class ImageEvolver extends AbstractEvolver {
 			triangles.setScore(scoreA);
 		}
 
-		// Comparator used only once, no need to extract
 		Collections.sort(pop, new TrianglesComparator());
+	}
+
+	/**
+	 * Uses the Jonker-Volgenant LAP solver to find the provably optimal
+	 * color assignment for the given triangles.
+	 */
+	private void lapAssignColors(TriangleList<Triangle> triangles) {
+		int n = triangles.size();
+		Color[] colors = new Color[n];
+		boolean hasNulls = false;
+		for (int i = 0; i < n; i++) {
+			colors[i] = triangles.get(i).getColor();
+			if (colors[i] == null) hasNulls = true;
+		}
+
+		if (hasNulls) {
+			System.out.println("[LAP] Warning: null colors found, falling back to smart init");
+			smartAssignColors(triangles);
+			return;
+		}
+
+		DeltaFitnessEngine tempEngine = new DeltaFitnessEngine(triangles, resizedOriginal);
+		int[] assignment = LAPSolver.solveOptimal(tempEngine, colors);
+
+		Color[] orderedColors = new Color[n];
+		for (int i = 0; i < n; i++) {
+			orderedColors[i] = colors[assignment[i]];
+		}
+		for (int i = 0; i < n; i++) {
+			triangles.get(i).setColor(orderedColors[i]);
+		}
 	}
 
 	/**
@@ -585,7 +624,11 @@ public class ImageEvolver extends AbstractEvolver {
 			}
 		}
 
-		if (SMART_INITIALIZATION && resizedOriginal != null) {
+		if (INITIALIZATION_METHOD == INIT_LAP_OPTIMAL && resizedOriginal != null) {
+			for (TriangleList<Triangle> triangles : pop) {
+				lapAssignColors(triangles);
+			}
+		} else if (SMART_INITIALIZATION && resizedOriginal != null) {
 			for (TriangleList<Triangle> triangles : pop) {
 				smartAssignColors(triangles);
 			}
@@ -604,10 +647,8 @@ public class ImageEvolver extends AbstractEvolver {
 			triangles.setScore(scoreA);
 		}
 
-		// Comparator used only once, no need to extract
 		Collections.sort(pop, new TrianglesComparator());
 
-		// keep only defined population
 		pop = pop.subList(0, population);
 	}
 

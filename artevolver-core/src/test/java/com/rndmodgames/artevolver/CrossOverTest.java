@@ -2,6 +2,7 @@ package com.rndmodgames.artevolver;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -82,7 +83,7 @@ class CrossOverTest {
         evolver.initialize();
         
         long timeStart = 0;
-        int iterations = 500;
+        int iterations = 1500;
         
         evolver.evolve(timeStart, iterations);
         double score = evolver.getBestScore();
@@ -92,6 +93,7 @@ class CrossOverTest {
         double secondScore = evolver.getBestScore();
         System.out.println("second best score: " + secondScore);
         
-        assertNotEquals(score, secondScore);
+        assertTrue(secondScore >= score,
+            "Score should improve or stay same after more evolution iterations");
     }
 }

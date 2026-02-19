@@ -47,6 +47,7 @@ import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import com.rndmodgames.evolver.benchmark.BenchmarkLogger;
+import com.rndmodgames.evolver.exporter.PaintByColorsExporter;
 import com.rndmodgames.evolver.render.Renderer;
 
 public class ArtEvolver extends JFrame implements ActionListener, ChangeListener {
@@ -583,20 +584,20 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                 
                 // 4 k triangles (default) BAD_QUALITY
                 triangleScaleWidth = 1f;
-                triangleScaleWidth = 1f;
+                triangleScaleHeight = 1f;
                 RENDERING_SCALE = 16;
                 
                 if (VIDEO_REGULAR_QUALITY) {
                     
                     triangleScaleWidth = 2f;
-                    triangleScaleWidth = 2f;
+                    triangleScaleHeight = 2f;
                     RENDERING_SCALE = 8;
                 }
                 
                 if (VIDEO_GOOD_QUALITY) {
                     
                     triangleScaleWidth = 4f;
-                    triangleScaleWidth = 4f;
+                    triangleScaleHeight = 4f;
                     RENDERING_SCALE = 4;
                 }
             }
@@ -609,7 +610,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             }
             
             width = 3.0f * triangleScaleWidth;
-            height = 3.0f * triangleScaleWidth;
+            height = 3.0f * triangleScaleHeight;
             
             break;
             
@@ -1315,7 +1316,86 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         
         ArtEvolver.isRendering = false;
     }
-    
+
+    /**
+     * Exports a high-resolution paint-by-numbers PNG with color names
+     * rendered on each triangle, plus a standard colored version.
+     */
+    private void exportPaintByNumbers() {
+        if (bestPop == null || bestPop.isEmpty()) {
+            javax.swing.JOptionPane.showMessageDialog(this,
+                "No evolution data to export. Load an image and run evolution first.",
+                "Export", javax.swing.JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int missing = PaintByColorsExporter.validateAssignment(bestPop);
+        if (missing > 0) {
+            System.out.println("[Export] " + missing + " triangles without palette color — names will show as blank.");
+        }
+
+        String baseName = imageSourceName != null ? imageSourceName.split("\\.")[0] : "artevolver";
+        float exportScale = Math.max(RENDERING_SCALE, 4);
+
+        Renderer.renderPaintByNumbersPNG(bestPop, baseName, EXPORT_FOLDER, exportedImages,
+                (int) (width * widthTriangles),
+                (int) (height * (heightTriangles - 1)),
+                IMAGE_TYPE, exportScale);
+
+        javax.swing.JOptionPane.showMessageDialog(this,
+            "Paint-by-numbers image exported to:\n" + EXPORT_FOLDER + baseName + "_pbn_" + exportedImages + ".png",
+            "Export Complete", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /**
+     * Exports a clean outline-only guide with color names inside each triangle.
+     */
+    private void exportOutlineGuide() {
+        if (bestPop == null || bestPop.isEmpty()) {
+            javax.swing.JOptionPane.showMessageDialog(this,
+                "No evolution data to export. Load an image and run evolution first.",
+                "Export", javax.swing.JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String baseName = imageSourceName != null ? imageSourceName.split("\\.")[0] : "artevolver";
+        float exportScale = Math.max(RENDERING_SCALE, 4);
+
+        Renderer.renderOutlineGuidePNG(bestPop, baseName, EXPORT_FOLDER, exportedImages,
+                (int) (width * widthTriangles),
+                (int) (height * (heightTriangles - 1)),
+                IMAGE_TYPE, exportScale);
+
+        javax.swing.JOptionPane.showMessageDialog(this,
+            "Outline guide exported to:\n" + EXPORT_FOLDER + baseName + "_guide_" + exportedImages + ".png",
+            "Export Complete", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /**
+     * Exports the color mapping CSV and materials list.
+     */
+    private void exportColorMapCSV() {
+        if (bestPop == null || bestPop.isEmpty()) {
+            javax.swing.JOptionPane.showMessageDialog(this,
+                "No evolution data to export. Load an image and run evolution first.",
+                "Export", javax.swing.JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String baseName = imageSourceName != null ? imageSourceName.split("\\.")[0] : "artevolver";
+
+        PaintByColorsExporter.validateAssignment(bestPop);
+        boolean csv = PaintByColorsExporter.exportToCSV(bestPop, EXPORT_FOLDER, baseName);
+        boolean mat = PaintByColorsExporter.exportMaterialsList(bestPop, EXPORT_FOLDER, baseName);
+
+        String msg = "Export results:\n";
+        msg += csv ? "  Color map CSV: OK\n" : "  Color map CSV: FAILED\n";
+        msg += mat ? "  Materials list: OK" : "  Materials list: FAILED";
+
+        javax.swing.JOptionPane.showMessageDialog(this, msg,
+            "CSV Export", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+    }
+
 	@Override
 	public void stateChanged(ChangeEvent e) {
 
@@ -1573,6 +1653,34 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    chkExportVideo.setAlignmentX(Component.LEFT_ALIGNMENT);
 	    chkExportVideo.setToolTipText("Automatically export video frames during evolution.");
 	    sb.add(chkExportVideo);
+
+	    addSeparator(sb);
+
+	    // ── EXPORT ────────────────────────────────────
+	    addSection(sb, "\uD83C\uDFA8  PAINT-BY-COLORS EXPORT");
+
+	    JButton btnExportPbn = makeStyledButton("Export Paint-by-Numbers");
+	    btnExportPbn.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    btnExportPbn.setMaximumSize(BTN_SIZE);
+	    btnExportPbn.setToolTipText("Export high-res image with color names rendered on each triangle.");
+	    btnExportPbn.addActionListener(e -> exportPaintByNumbers());
+	    sb.add(btnExportPbn);
+	    sb.add(Box.createVerticalStrut(4));
+
+	    JButton btnExportGuide = makeStyledButton("Export Outline Guide");
+	    btnExportGuide.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    btnExportGuide.setMaximumSize(BTN_SIZE);
+	    btnExportGuide.setToolTipText("Export clean outline guide with color labels (for printing).");
+	    btnExportGuide.addActionListener(e -> exportOutlineGuide());
+	    sb.add(btnExportGuide);
+	    sb.add(Box.createVerticalStrut(4));
+
+	    JButton btnExportCsv = makeStyledButton("Export Color Map CSV");
+	    btnExportCsv.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    btnExportCsv.setMaximumSize(BTN_SIZE);
+	    btnExportCsv.setToolTipText("Export CSV with triangle-to-color mapping and materials list.");
+	    btnExportCsv.addActionListener(e -> exportColorMapCSV());
+	    sb.add(btnExportCsv);
 
 	    sb.add(Box.createVerticalStrut(8));
 

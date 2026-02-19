@@ -132,6 +132,7 @@ public class CrossOver {
 			if (sideA) {
 				child.set(a, parentA.get(a));
 				child.get(a).setColor(parentA.get(a).getColor());
+				child.get(a).setPalleteColor(parentA.get(a).getPalleteColor());
 			}
 			
 			// switch sides
@@ -151,6 +152,7 @@ public class CrossOver {
 					
 					child.set(a, parentB.get(a));
 					child.get(a).setColor(parentB.get(a).getColor());
+					child.get(a).setPalleteColor(parentB.get(a).getPalleteColor());
 
 				} else {
 					// add to unused colors
@@ -179,6 +181,7 @@ public class CrossOver {
 				
 				child.set(a, parentA.get(a));
 				child.get(a).setColor(unusedColors.get(currentUnusedColor).getColor());
+				child.get(a).setPalleteColor(unusedColors.get(currentUnusedColor).getPalleteColor());
 				
 				unusedColors.remove(currentUnusedColor);
 				
@@ -198,7 +201,7 @@ public class CrossOver {
 
 		TriangleList<Triangle> child = new TriangleList<Triangle>();
 		for (Triangle triangle : parent) {
-			child.add(new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor()));
+			child.add(new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor(), triangle.getPalleteColor()));
 		}
 		
 		ImageEvolver.switchCloseColor(child, getRandomJumpDistance());
@@ -223,7 +226,7 @@ public class CrossOver {
 		TriangleList<Triangle> child = new TriangleList<Triangle>();
 		for (int i = 0; i < n; i++) {
 			Triangle t = primary.get(i);
-			child.add(new Triangle(t.getxPoly(), t.getyPoly(), t.getLenght(), t.getColor()));
+			child.add(new Triangle(t.getxPoly(), t.getyPoly(), t.getLenght(), t.getColor(), t.getPalleteColor()));
 		}
 
 		if (n > 4 && CROSSOVER_BLOCK_ENABLED) {
@@ -249,8 +252,13 @@ public class CrossOver {
 				Integer holderIdx = colorIndex.get(wantColor.getRGB());
 				if (holderIdx == null) continue;
 
-				child.get(holderIdx.intValue()).setColor(currentColor);
-				child.get(idx).setColor(wantColor);
+				Triangle holderTri = child.get(holderIdx.intValue());
+				Triangle targetTri = child.get(idx);
+
+				holderTri.setColor(currentColor);
+				holderTri.setPalleteColor(targetTri.getPalleteColor());
+				targetTri.setColor(wantColor);
+				targetTri.setPalleteColor(secondary.get(idx).getPalleteColor());
 
 				if (currentColor != null) {
 					colorIndex.put(currentColor.getRGB(), holderIdx);
@@ -324,7 +332,7 @@ public class CrossOver {
 	public TriangleList<Triangle> getSecuentialChild(TriangleList<Triangle> parent, int startTriangle, int targetTriangle) {
 		TriangleList<Triangle> child = new TriangleList<Triangle>();
 		for (Triangle triangle : parent) {
-			child.add(new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor()));
+			child.add(new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor(), triangle.getPalleteColor()));
 		}
 		
 		ImageEvolver.switchColor(child, startTriangle, targetTriangle);

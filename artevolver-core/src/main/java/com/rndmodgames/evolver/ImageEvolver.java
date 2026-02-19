@@ -250,23 +250,24 @@ public class ImageEvolver extends AbstractEvolver {
 
 						position++;
 
-						Long colorId = null;
-						Color color = null;
-						
-						if (pallete.getColor(count) != null) {
-							colorId = pallete.getColor(count).id;
-							color = pallete.getColor(count).color;
-						}
-
-						Triangle triangle = new Triangle(xPoly, yPoly, 3, colorId, color);
-						triangles.add(triangle);
-
-						count++;
+					Long colorId = null;
+					Color color = null;
+					PalleteColor palleteColor = pallete.getColor(count);
+					
+					if (palleteColor != null) {
+						colorId = palleteColor.getId();
+						color = palleteColor.getColor();
 					}
-				}
 
-				// randomize
-				if (SHUFFLE_PALETTE) {
+					Triangle triangle = new Triangle(xPoly, yPoly, 3, colorId, color, palleteColor);
+					triangles.add(triangle);
+
+					count++;
+				}
+			}
+
+			// randomize
+			if (SHUFFLE_PALETTE) {
 				    for (int k = 0; k < triangles.size() * randomMult; k++){
 				        switchColor(triangles, roll(triangles.size()), roll(triangles.size()));
 				    }
@@ -309,9 +310,11 @@ public class ImageEvolver extends AbstractEvolver {
 	private void lapAssignColors(TriangleList<Triangle> triangles) {
 		int n = triangles.size();
 		Color[] colors = new Color[n];
+		PalleteColor[] palleteColors = new PalleteColor[n];
 		boolean hasNulls = false;
 		for (int i = 0; i < n; i++) {
 			colors[i] = triangles.get(i).getColor();
+			palleteColors[i] = triangles.get(i).getPalleteColor();
 			if (colors[i] == null) hasNulls = true;
 		}
 
@@ -325,11 +328,14 @@ public class ImageEvolver extends AbstractEvolver {
 		int[] assignment = LAPSolver.solveOptimal(tempEngine, colors);
 
 		Color[] orderedColors = new Color[n];
+		PalleteColor[] orderedPalleteColors = new PalleteColor[n];
 		for (int i = 0; i < n; i++) {
 			orderedColors[i] = colors[assignment[i]];
+			orderedPalleteColors[i] = palleteColors[assignment[i]];
 		}
 		for (int i = 0; i < n; i++) {
 			triangles.get(i).setColor(orderedColors[i]);
+			triangles.get(i).setPalleteColor(orderedPalleteColors[i]);
 		}
 	}
 
@@ -383,8 +389,10 @@ public class ImageEvolver extends AbstractEvolver {
 		}
 
 		Color[] currentColors = new Color[n];
+		PalleteColor[] currentPalleteColors = new PalleteColor[n];
 		for (int i = 0; i < n; i++) {
 			currentColors[i] = triangles.get(i).getColor();
+			currentPalleteColors[i] = triangles.get(i).getPalleteColor();
 		}
 
 		Integer[] sortedTriangles = new Integer[n];
@@ -430,15 +438,19 @@ public class ImageEvolver extends AbstractEvolver {
 		}
 
 		Color[] assignedColors = new Color[n];
+		PalleteColor[] assignedPalleteColors = new PalleteColor[n];
 		for (int i = 0; i < n; i++) {
 			if (assignment[i] >= 0) {
 				assignedColors[i] = currentColors[assignment[i]];
+				assignedPalleteColors[i] = currentPalleteColors[assignment[i]];
 			} else {
 				assignedColors[i] = currentColors[i];
+				assignedPalleteColors[i] = currentPalleteColors[i];
 			}
 		}
 		for (int i = 0; i < n; i++) {
 			triangles.get(i).setColor(assignedColors[i]);
+			triangles.get(i).setPalleteColor(assignedPalleteColors[i]);
 		}
 	}
 
@@ -549,8 +561,14 @@ public class ImageEvolver extends AbstractEvolver {
 			}
 
 			if (bestSwap >= 0) {
-				worstTri.setColor(triangles.get(bestSwap).getColor());
-				triangles.get(bestSwap).setColor(worstColor);
+				Triangle swapTri = triangles.get(bestSwap);
+
+				worstTri.setColor(swapTri.getColor());
+				swapTri.setColor(worstColor);
+
+				PalleteColor auxPc = worstTri.getPalleteColor();
+				worstTri.setPalleteColor(swapTri.getPalleteColor());
+				swapTri.setPalleteColor(auxPc);
 			}
 		}
 	}
@@ -599,13 +617,14 @@ public class ImageEvolver extends AbstractEvolver {
 						yPoly[1] -= (height * scale) * (b / 2);
 						yPoly[2] -= (height * scale) * (b / 2);
 
-						Color color = null;
-						if (pallete.getColor(count) != null) {
-							color = pallete.getColor(count).color;
-						}
+					Color color = null;
+					PalleteColor palleteColor = pallete.getColor(count);
+					if (palleteColor != null) {
+						color = palleteColor.getColor();
+					}
 
-						Triangle triangle = new Triangle(xPoly, yPoly, 3, color);
-						triangles.add(triangle);
+					Triangle triangle = new Triangle(xPoly, yPoly, 3, color, palleteColor);
+					triangles.add(triangle);
 
 						count++;
 					}
@@ -665,6 +684,10 @@ public class ImageEvolver extends AbstractEvolver {
 		Color aux = origin.getColor();
 		origin.setColor(dest.getColor());
 		dest.setColor(aux);
+
+		PalleteColor auxPc = origin.getPalleteColor();
+		origin.setPalleteColor(dest.getPalleteColor());
+		dest.setPalleteColor(auxPc);
 	}
 
 	/**
@@ -678,6 +701,10 @@ public class ImageEvolver extends AbstractEvolver {
 		Color aux = origin.getColor();
 		origin.setColor(dest.getColor());
 		dest.setColor(aux);
+
+		PalleteColor auxPc = origin.getPalleteColor();
+		origin.setPalleteColor(dest.getPalleteColor());
+		dest.setPalleteColor(auxPc);
 	}
 
 	/**
@@ -713,6 +740,10 @@ public class ImageEvolver extends AbstractEvolver {
 		Color aux = origin.getColor();
 		origin.setColor(dest.getColor());
 		dest.setColor(aux);
+
+		PalleteColor auxPc = origin.getPalleteColor();
+		origin.setPalleteColor(dest.getPalleteColor());
+		dest.setPalleteColor(auxPc);
 	}
 
 	public static void switchCloseColor(TriangleList<Triangle> triangles, int randomJumpDistance) {
@@ -742,6 +773,10 @@ public class ImageEvolver extends AbstractEvolver {
 		Color aux = origin.getColor();
 		origin.setColor(dest.getColor());
 		dest.setColor(aux);
+
+		PalleteColor auxPc = origin.getPalleteColor();
+		origin.setPalleteColor(dest.getPalleteColor());
+		dest.setPalleteColor(auxPc);
 	}
 
 	public static int roll(int n) {
@@ -1559,7 +1594,8 @@ public class ImageEvolver extends AbstractEvolver {
 	}
 
 	/**
-	 * Copies delta engine's internal color state back to the TriangleList.
+	 * Copies delta engine's internal color state back to the TriangleList,
+	 * including PalleteColor references for paint-by-number export.
 	 */
 	private void syncDeltaToTriangles(TriangleList<Triangle> triangles) {
 		int n = triangles.size();
@@ -1573,6 +1609,7 @@ public class ImageEvolver extends AbstractEvolver {
 				existing.getRed() != r || existing.getGreen() != g || existing.getBlue() != b) {
 				tri.setColor(new Color(r, g, b));
 			}
+			tri.setPalleteColor(deltaEngine.getPalleteColor(i));
 		}
 	}
 

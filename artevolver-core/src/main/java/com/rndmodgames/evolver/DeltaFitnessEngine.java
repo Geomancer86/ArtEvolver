@@ -34,6 +34,7 @@ public class DeltaFitnessEngine {
     private long totalDiff;
 
     private int[] currentColorR, currentColorG, currentColorB;
+    private PalleteColor[] currentPalleteColors;
 
     public DeltaFitnessEngine(TriangleList<Triangle> triangles, BufferedImage referenceImage) {
         this.imageWidth = referenceImage.getWidth();
@@ -58,6 +59,7 @@ public class DeltaFitnessEngine {
         currentColorR = new int[triangleCount];
         currentColorG = new int[triangleCount];
         currentColorB = new int[triangleCount];
+        currentPalleteColors = new PalleteColor[triangleCount];
         for (int t = 0; t < triangleCount; t++) {
             Color c = triangles.get(t).getColor();
             if (c != null) {
@@ -65,6 +67,7 @@ public class DeltaFitnessEngine {
                 currentColorG[t] = c.getGreen();
                 currentColorB[t] = c.getBlue();
             }
+            currentPalleteColors[t] = triangles.get(t).getPalleteColor();
         }
 
         totalDiff = computeFullDiff();
@@ -181,6 +184,10 @@ public class DeltaFitnessEngine {
         currentColorR[triB] = tmpR;
         currentColorG[triB] = tmpG;
         currentColorB[triB] = tmpB;
+
+        PalleteColor tmpPc = currentPalleteColors[triA];
+        currentPalleteColors[triA] = currentPalleteColors[triB];
+        currentPalleteColors[triB] = tmpPc;
     }
 
     /**
@@ -196,6 +203,10 @@ public class DeltaFitnessEngine {
         currentColorR[triB] = tmpR;
         currentColorG[triB] = tmpG;
         currentColorB[triB] = tmpB;
+
+        PalleteColor tmpPc = currentPalleteColors[triA];
+        currentPalleteColors[triA] = currentPalleteColors[triB];
+        currentPalleteColors[triB] = tmpPc;
     }
 
     /**
@@ -233,6 +244,7 @@ public class DeltaFitnessEngine {
                 currentColorG[t] = c.getGreen();
                 currentColorB[t] = c.getBlue();
             }
+            currentPalleteColors[t] = triangles.get(t).getPalleteColor();
         }
         totalDiff = computeFullDiff();
     }
@@ -284,5 +296,9 @@ public class DeltaFitnessEngine {
 
     public int getCurrentColorB(int triIdx) {
         return currentColorB[triIdx];
+    }
+
+    public PalleteColor getPalleteColor(int triIdx) {
+        return currentPalleteColors[triIdx];
     }
 }

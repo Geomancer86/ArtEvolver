@@ -5,7 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.1.0] - 2026-02-18 (develop branch)
+## [3.1.0] - 2026-02-19 (develop branch)
+
+### Added — Paint-by-Colors Export System
+- **PalleteColor tracking through entire evolution pipeline**
+  - `PalleteColor` now has proper encapsulation with `getId()`, `getName()`, `getPallete()` accessors
+  - `Triangle` carries `PalleteColor palleteColor` alongside `Color color` through all operations
+  - All swap methods (`switchColor`, `switchRandomColor`, `switchGridColor`, `switchCloseColor`, `targetedSwap`) propagate PalleteColor
+  - `DeltaFitnessEngine` tracks `PalleteColor[]` array alongside RGB, swapping in `applySwap()`/`applySwapWithDelta()`
+  - `syncDeltaToTriangles()` writes PalleteColor back from engine to TriangleList
+  - `CrossOver.getChild()` spatial block crossover propagates PalleteColor during color swaps
+  - `CrossOver.mutate()` and `getSecuentialChild()` preserve PalleteColor in child copies
+  - `smartAssignColors()` and `lapAssignColors()` both reassign PalleteColor with their color assignments
+- **Renderer.renderPaintByNumbersPNG()**: high-res export with Sherwin-Williams color names rendered on each triangle
+  - Two-pass rendering: fill triangles, then overlay centered labels with black outline + white text
+  - Font size scales with export scale factor for readability at any resolution
+- **Renderer.renderOutlineGuidePNG()**: clean white-background outline guide with color names
+  - Designed for printing as physical tile placement reference
+  - Gray triangle outlines with black text labels
+- **PaintByColorsExporter** (`com.rndmodgames.evolver.exporter`)
+  - `printColorAssignment()`: console summary of all triangle color assignments
+  - `exportToCSV()`: CSV file with TriangleIndex, ColorId, ColorName, R, G, B columns
+  - `exportMaterialsList()`: bill of materials sorted by color name with counts
+  - `validateAssignment()`: checks for triangles missing PalleteColor and reports gaps
+- **ArtEvolver UI export buttons**
+  - "Export Paint-by-Numbers" button — exports high-res labeled image
+  - "Export Outline Guide" button — exports printable guide sheet
+  - "Export Color Map CSV" button — exports CSV mapping + materials list
+
+### Fixed — Pre-existing Scale Bugs
+- `QUALITY_MODE_STREAM` / `VIDEO_4K_RESOLUTION_EXPORT`: fixed 4 copy-paste bugs where `triangleScaleHeight` was written as `triangleScaleWidth`
+  - Lines 586, 592, 599: second assignment set width instead of height
+  - Line 612: `height = 3.0f * triangleScaleWidth` corrected to `triangleScaleHeight`
+  - These bugs had no visible effect when both scales were equal (the default), but would cause distorted aspect ratios in video export modes
 
 ### Added — LAP Solver Implementation
 - **LAPSolver.java**: Jonker-Volgenant algorithm for provably optimal color assignment

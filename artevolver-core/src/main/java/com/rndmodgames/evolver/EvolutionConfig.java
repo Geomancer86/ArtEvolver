@@ -98,6 +98,72 @@ public class EvolutionConfig implements Cloneable {
                 + " Thr=" + threads;
     }
 
+    // --- Gene array support for evolutionary parameter breeding ---
+
+    public static final int GENE_COUNT = 9;
+
+    private static final float[] GENE_MIN = {
+        0f,     // gridMutationChances
+        0f,     // gridMutationDecay
+        0f,     // randomMutationChances
+        0f,     // randomMutationPercent
+        0f,     // closeMutationChances
+        0f,     // closeMutationPercent
+        0f,     // targetedSwapAttempts
+        1f,     // population
+        1f,     // crossoverMax
+    };
+
+    private static final float[] GENE_MAX = {
+        256f,   // gridMutationChances
+        1f,     // gridMutationDecay
+        10000f, // randomMutationChances
+        0.1f,   // randomMutationPercent
+        200f,   // closeMutationChances
+        0.01f,  // closeMutationPercent
+        128f,   // targetedSwapAttempts
+        8f,     // population
+        8f,     // crossoverMax
+    };
+
+    public static float[] getGeneMin() { return GENE_MIN.clone(); }
+    public static float[] getGeneMax() { return GENE_MAX.clone(); }
+
+    public float[] toGeneArray() {
+        return new float[] {
+            gridMutationChances,
+            gridMutationDecay,
+            (float) randomMutationChances,
+            randomMutationPercent,
+            (float) closeMutationChances,
+            closeMutationPercent,
+            (float) targetedSwapAttempts,
+            (float) population,
+            (float) crossoverMax,
+        };
+    }
+
+    /**
+     * Creates a config from a gene array, copying non-gene fields from template.
+     */
+    public static EvolutionConfig fromGeneArray(float[] genes, EvolutionConfig template) {
+        EvolutionConfig cfg = template.clone();
+        cfg.gridMutationChances = clampGene(genes[0], 0);
+        cfg.gridMutationDecay   = clampGene(genes[1], 1);
+        cfg.randomMutationChances = (int) clampGene(genes[2], 2);
+        cfg.randomMutationPercent = clampGene(genes[3], 3);
+        cfg.closeMutationChances  = (int) clampGene(genes[4], 4);
+        cfg.closeMutationPercent  = clampGene(genes[5], 5);
+        cfg.targetedSwapAttempts  = (int) clampGene(genes[6], 6);
+        cfg.population            = Math.max(1, (int) clampGene(genes[7], 7));
+        cfg.crossoverMax          = Math.max(1, (int) clampGene(genes[8], 8));
+        return cfg;
+    }
+
+    private static float clampGene(float value, int geneIndex) {
+        return Math.max(GENE_MIN[geneIndex], Math.min(GENE_MAX[geneIndex], value));
+    }
+
     @Override
     public EvolutionConfig clone() {
         try {

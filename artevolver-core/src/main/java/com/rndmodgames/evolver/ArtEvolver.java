@@ -916,6 +916,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                     if (tournamentMode && tournamentManagerWindow != null
                             && tournamentManagerWindow.isVisible()) {
                         tournamentManagerWindow.refreshTable();
+                        tournamentManagerWindow.refreshEvolutionaryState();
                         refreshContestantCombo();
                     }
             	}
@@ -2160,6 +2161,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 	/** Stops all tournament contestants (threads remain alive but idle). */
 	public void stopTournament() {
+	    if (tournamentManagerWindow != null) {
+	        EvolutionaryTournament evo = tournamentManagerWindow.getEvoTournament();
+	        if (evo != null && evo.isRunning()) evo.stop();
+	    }
 	    for (TournamentContestant c : contestants) {
 	        c.stop();
 	    }
@@ -2233,6 +2238,16 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     public void setResizedOriginal(BufferedImage resizedOriginal) {
         this.resizedOriginal = resizedOriginal;
     }
+
+    public Palette getPallete() { return pallete; }
+    public float getTriangleWidth() { return width; }
+    public float getTriangleHeight() { return height; }
+    public int getWidthTriangles() { return widthTriangles; }
+    public int getHeightTriangles() { return heightTriangles; }
+    public float getTriangleScaleHeight() { return triangleScaleHeight; }
+    public int[] getJumpDistances() { return RANDOM_JUMP_MAX_DISTANCES; }
+    public FitnessChartWindow getFitnessChartWindow() { return fitnessChartWindow; }
+    public TournamentManagerWindow getTournamentManagerWindow() { return tournamentManagerWindow; }
 
     // Returns the average of a stream of numbers
     static float streamAvg(float [] array, int n) {

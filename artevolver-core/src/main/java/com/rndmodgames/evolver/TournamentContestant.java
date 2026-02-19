@@ -19,6 +19,7 @@ public class TournamentContestant {
     private EvolutionConfig config;
 
     private final List<ImageEvolver> evolvers = new ArrayList<>();
+    private final List<Thread> evolverThreads = new ArrayList<>();
     private TriangleList<Triangle> bestPop = new TriangleList<>();
     private volatile BufferedImage bestImage;
     private volatile double bestScore = 0;
@@ -26,6 +27,8 @@ public class TournamentContestant {
     private long goodIterations;
     private volatile boolean running;
     private long startTimeMs;
+    private int generation;
+    private String parentage = "initial";
 
     private static final Color[] PRESET_COLORS = {
         new Color(80, 200, 120),   // green
@@ -103,6 +106,7 @@ public class TournamentContestant {
                 t.setName("Contestant-" + name + "-Evolver-" + ev.getId());
                 t.start();
                 ev.isStarted = true;
+                evolverThreads.add(t);
             }
             ev.isRunning = true;
         }
@@ -114,6 +118,16 @@ public class TournamentContestant {
         for (ImageEvolver ev : evolvers) {
             ev.isRunning = false;
         }
+    }
+
+    /** Fully stops and disposes all evolver threads. Used when culling. */
+    public void dispose() {
+        stop();
+        for (Thread t : evolverThreads) {
+            t.interrupt();
+        }
+        evolverThreads.clear();
+        evolvers.clear();
     }
 
     /**
@@ -172,4 +186,8 @@ public class TournamentContestant {
     public long getGoodIterations() { return goodIterations; }
     public boolean isRunning() { return running; }
     public long getStartTimeMs() { return startTimeMs; }
+    public int getGeneration() { return generation; }
+    public void setGeneration(int generation) { this.generation = generation; }
+    public String getParentage() { return parentage; }
+    public void setParentage(String parentage) { this.parentage = parentage; }
 }

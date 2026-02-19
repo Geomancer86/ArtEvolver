@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.0] - 2026-02-19 (develop branch)
 
+### Added — Evolutionary Tournament Mode (Meta-GA)
+- **`EvolutionaryTournament`** — meta-genetic algorithm that evolves GA parameters themselves
+  - At configurable cutoff intervals (default 60s), ranks all contestants by fitness score
+  - Culls the worst performer (disposes threads, clears evolvers, removes chart series)
+  - Breeds a replacement via BLX-alpha crossover + Gaussian mutation on 9 numeric genes
+  - Tournament selection picks parents from the top half of performers
+  - Spawns the new contestant with bred config, fresh evolvers, and starts it immediately
+  - Tracks full generation history with culled/bred/parent details
+  - Configurable: cutoff interval, mutation rate (0-1), mutation strength (0-1), min contestants
+- **Gene array system in `EvolutionConfig`** — 9 breedable parameters mapped to float arrays
+  - `toGeneArray()` / `fromGeneArray()` for genetic operations
+  - `getGeneMin()` / `getGeneMax()` define parameter ranges
+  - Covers: gridMutationChances, gridMutationDecay, randomMutationChances, randomMutationPercent,
+    closeMutationChances, closeMutationPercent, targetedSwapAttempts, population, crossoverMax
+- **Evolutionary UI controls in Tournament Manager**
+  - "Start Evolving" / "Stop Evolving" toggle button
+  - "Evo Settings" dialog for all meta-GA parameters
+  - Generation counter label updated in real-time
+  - History log panel showing all cull/breed events with parent names and parameters
+  - Table now includes "Gen" column showing which meta-generation spawned each contestant
+  - Detail panel shows parentage ("bred from X x Y" or "initial")
+- **`TournamentContestant.dispose()`** — full cleanup: stop + interrupt threads + clear evolvers
+- **`TournamentContestant` generation/parentage tracking** for evolutionary lineage
+
+### Fixed — Flickering Black Triangles
+- **`renderTrianglesToNewImage()` returned a shared mutable buffer**: The EDT was reading
+  `bestImage` while evolver threads cleared and redrew `bestImageBuffer`, causing black/empty
+  triangles. Now allocates a fresh `BufferedImage` snapshot for each improvement, so the EDT
+  always reads a complete, immutable image.
+- **Memory visibility**: Made `bestImage`, `bestScore`, and `isDirty` volatile in `ImageEvolver`
+  for proper cross-thread visibility between evolver threads and the EDT.
+- **`TournamentContestant.bestImage/bestScore`**: Made volatile for same reason.
+
 ### Added — Tournament Quick Setup Preset
 - **Quick Setup** button in Tournament Manager — auto-generates contestants from CPU core count
   - User picks total CPU cores and threads-per-contestant; contestants are calculated automatically

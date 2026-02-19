@@ -1,7 +1,6 @@
 package com.rndmodgames.evolver;
 
 import java.awt.Color;
-import java.awt.image.BufferedImage;
 
 /**
  * Jonker-Volgenant Linear Assignment Problem solver.
@@ -108,13 +107,14 @@ public class LAPSolver {
             colB[j] = colors[j].getBlue();
         }
 
+        int[] rr = engine.getRefR();
+        int[] rg = engine.getRefG();
+        int[] rb = engine.getRefB();
+
         for (int i = 0; i < n; i++) {
             int rowBase = i * n;
-            int pixCount = engine.getPixelCount(i);
             int[] pixels = engine.getTrianglePixelIndices(i);
-            int[] rr = engine.getRefR();
-            int[] rg = engine.getRefG();
-            int[] rb = engine.getRefB();
+            int pixCount = pixels.length;
 
             for (int j = 0; j < n; j++) {
                 int err = 0;

@@ -7,6 +7,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GraphicsEnvironment;
 import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -713,7 +714,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     		evolvers.get(a).setId((long) a);
     	}
 
-        initComponents();
+        if (!GraphicsEnvironment.isHeadless()) {
+            initComponents();
+        }
     }
     
 	private void initComponents() {
@@ -959,7 +962,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             	/**
             	 * EXPORT n FRAMES per second
             	 */
-            	if (EXPORT_VIDEO && currentFrame % (FPS / EXPORT_VIDEO_FRAMES_FPS) == 0) {
+            	int exportInterval = EXPORT_VIDEO_FRAMES_FPS > 0 ? Math.max(1, FPS / EXPORT_VIDEO_FRAMES_FPS) : FPS;
+            	if (EXPORT_VIDEO && currentFrame % exportInterval == 0) {
             	    
             	    if (isRendering) {
             	        
@@ -1638,33 +1642,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    cmb.setMaximumSize(CTRL_SIZE);
 	    cmb.setAlignmentX(Component.LEFT_ALIGNMENT);
 	    cmb.setFont(FNT_LABEL);
-	}
-
-	@SuppressWarnings("unused")
-	private static JButton makeButton(String text, Dimension size) {
-	    JButton btn = new JButton(text);
-	    btn.setAlignmentX(Component.LEFT_ALIGNMENT);
-	    btn.setMinimumSize(size);
-	    btn.setPreferredSize(size);
-	    btn.setMaximumSize(size);
-	    return btn;
-	}
-
-	@SuppressWarnings("unused")
-	private static void addSectionLabel(JPanel panel, String text, Font font) {
-	    JLabel lbl = new JLabel(text);
-	    lbl.setFont(font);
-	    lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-	    panel.add(lbl);
-	    panel.add(Box.createVerticalStrut(4));
-	}
-
-	@SuppressWarnings("unused")
-	private static void addFieldLabel(JPanel panel, String text, Font font) {
-	    JLabel lbl = new JLabel(text);
-	    lbl.setFont(font);
-	    lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-	    panel.add(lbl);
 	}
 
 	/**

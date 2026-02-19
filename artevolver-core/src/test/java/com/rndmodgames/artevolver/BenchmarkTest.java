@@ -1,5 +1,7 @@
 package com.rndmodgames.artevolver;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -341,50 +343,93 @@ class BenchmarkTest {
     }
 
     /**
+     * Verifies LAP solver correctness on small known cost matrices
+     * where the optimal assignment can be determined by inspection.
+     */
+    @Test
+    void lapSolverUnitTest() {
+        // 2x2: cost = [[1, 9], [9, 1]] → optimal: row0→col0, row1→col1 (cost=2)
+        int[] cost2 = {1, 9, 9, 1};
+        int[] result2 = LAPSolver.solve(cost2, 2);
+        assertEquals(0, result2[0], "Row 0 should map to col 0");
+        assertEquals(1, result2[1], "Row 1 should map to col 1");
+
+        // 3x3: cost = [[10, 5, 13], [3, 7, 15], [6, 12, 8]]
+        // Optimal: row0→col1(5), row1→col0(3), row2→col2(8) = 16
+        int[] cost3 = {10, 5, 13, 3, 7, 15, 6, 12, 8};
+        int[] result3 = LAPSolver.solve(cost3, 3);
+        int totalCost = cost3[result3[0]] + cost3[3 + result3[1]] + cost3[6 + result3[2]];
+        assertEquals(16, totalCost, "3x3 optimal cost should be 16");
+        assertTrue(result3[0] != result3[1] && result3[1] != result3[2] && result3[0] != result3[2],
+            "All assignments must be distinct columns");
+
+        // 1x1: trivial
+        int[] cost1 = {42};
+        int[] result1 = LAPSolver.solve(cost1, 1);
+        assertEquals(0, result1[0]);
+
+        // 4x4 identity-like: diagonal is cheapest
+        int[] cost4 = {
+            0, 100, 100, 100,
+            100, 0, 100, 100,
+            100, 100, 0, 100,
+            100, 100, 100, 0
+        };
+        int[] result4 = LAPSolver.solve(cost4, 4);
+        assertArrayEquals(new int[]{0, 1, 2, 3}, result4, "Diagonal should be optimal");
+
+        System.out.println("[LAP UNIT] All small matrix tests passed");
+    }
+
+    /**
      * Tests the LAP solver: builds cost matrix, solves, and compares score
      * against smart initialization and random initialization.
      */
     @Test
     void lapSolverOptimal() throws IOException, URISyntaxException {
 
-        // Random init
-        ImageEvolver.INITIALIZATION_METHOD = ImageEvolver.INIT_RANDOM;
-        ImageEvolver.SMART_INITIALIZATION = false;
-        ImageEvolver randomEvolver = ArtEvolverTools.getDefaultImageEvolver(
-            1, 2, 2, 2, "000_zeldathumb-1920-789452.jpg", false,
-            38, 39, 1f);
-        double randomScore = randomEvolver.getPopulation().get(0).getScore();
-        System.out.printf("[LAP TEST] Random init score:  %.10f%n", randomScore);
+        int savedMethod = ImageEvolver.INITIALIZATION_METHOD;
+        boolean savedSmart = ImageEvolver.SMART_INITIALIZATION;
 
-        // Smart init
-        ImageEvolver.INITIALIZATION_METHOD = ImageEvolver.INIT_SMART;
-        ImageEvolver.SMART_INITIALIZATION = true;
-        ImageEvolver smartEvolver = ArtEvolverTools.getDefaultImageEvolver(
-            1, 2, 2, 2, "000_zeldathumb-1920-789452.jpg", false,
-            38, 39, 1f);
-        double smartScore = smartEvolver.getPopulation().get(0).getScore();
-        System.out.printf("[LAP TEST] Smart init score:   %.10f%n", smartScore);
+        try {
+            // Random init
+            ImageEvolver.INITIALIZATION_METHOD = ImageEvolver.INIT_RANDOM;
+            ImageEvolver.SMART_INITIALIZATION = false;
+            ImageEvolver randomEvolver = ArtEvolverTools.getDefaultImageEvolver(
+                1, 2, 2, 2, "000_zeldathumb-1920-789452.jpg", false,
+                38, 39, 1f);
+            double randomScore = randomEvolver.getPopulation().get(0).getScore();
+            System.out.printf("[LAP TEST] Random init score:  %.10f%n", randomScore);
 
-        // LAP optimal
-        ImageEvolver.INITIALIZATION_METHOD = ImageEvolver.INIT_LAP_OPTIMAL;
-        long t0 = System.nanoTime();
-        ImageEvolver lapEvolver = ArtEvolverTools.getDefaultImageEvolver(
-            1, 2, 2, 2, "000_zeldathumb-1920-789452.jpg", false,
-            38, 39, 1f);
-        long lapMs = (System.nanoTime() - t0) / 1_000_000;
-        double lapScore = lapEvolver.getPopulation().get(0).getScore();
-        System.out.printf("[LAP TEST] LAP optimal score:  %.10f (in %d ms)%n", lapScore, lapMs);
+            // Smart init
+            ImageEvolver.INITIALIZATION_METHOD = ImageEvolver.INIT_SMART;
+            ImageEvolver.SMART_INITIALIZATION = true;
+            ImageEvolver smartEvolver = ArtEvolverTools.getDefaultImageEvolver(
+                1, 2, 2, 2, "000_zeldathumb-1920-789452.jpg", false,
+                38, 39, 1f);
+            double smartScore = smartEvolver.getPopulation().get(0).getScore();
+            System.out.printf("[LAP TEST] Smart init score:   %.10f%n", smartScore);
 
-        System.out.printf("[LAP TEST] LAP vs Smart gain:  +%.6f%n", lapScore - smartScore);
-        System.out.printf("[LAP TEST] LAP vs Random gain: +%.6f%n", lapScore - randomScore);
+            // LAP optimal
+            ImageEvolver.INITIALIZATION_METHOD = ImageEvolver.INIT_LAP_OPTIMAL;
+            long t0 = System.nanoTime();
+            ImageEvolver lapEvolver = ArtEvolverTools.getDefaultImageEvolver(
+                1, 2, 2, 2, "000_zeldathumb-1920-789452.jpg", false,
+                38, 39, 1f);
+            long lapMs = (System.nanoTime() - t0) / 1_000_000;
+            double lapScore = lapEvolver.getPopulation().get(0).getScore();
+            System.out.printf("[LAP TEST] LAP optimal score:  %.10f (in %d ms)%n", lapScore, lapMs);
 
-        // Reset to safe default so other tests don't break
-        ImageEvolver.INITIALIZATION_METHOD = ImageEvolver.INIT_SMART;
-        ImageEvolver.SMART_INITIALIZATION = true;
+            System.out.printf("[LAP TEST] LAP vs Smart gain:  +%.6f%n", lapScore - smartScore);
+            System.out.printf("[LAP TEST] LAP vs Random gain: +%.6f%n", lapScore - randomScore);
 
-        assertTrue(lapScore >= smartScore,
-            "LAP should be >= smart init score");
-        assertTrue(lapScore > randomScore,
-            "LAP should be > random init score");
+            assertTrue(lapScore >= smartScore,
+                "LAP should be >= smart init score");
+            assertTrue(lapScore > randomScore,
+                "LAP should be > random init score");
+        } finally {
+            ImageEvolver.INITIALIZATION_METHOD = savedMethod;
+            ImageEvolver.SMART_INITIALIZATION = savedSmart;
+        }
     }
 }

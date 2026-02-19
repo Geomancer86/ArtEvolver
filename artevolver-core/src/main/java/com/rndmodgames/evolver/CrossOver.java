@@ -78,9 +78,11 @@ public class CrossOver {
 		// keep track
 		this.evolverInstance = evolverInstance;
 
-		int totalTriangles = evolverInstance.getTriangleWidth() * evolverInstance.getTriangleHeight();
-		if (totalTriangles > 0 && TOTAL_GRIDS > 0) {
-			DEFAULT_GRID_SIZE = Math.max(2, totalTriangles / TOTAL_GRIDS);
+		if (evolverInstance != null) {
+			int totalTriangles = evolverInstance.getTriangleWidth() * evolverInstance.getTriangleHeight();
+			if (totalTriangles > 0 && TOTAL_GRIDS > 0) {
+				DEFAULT_GRID_SIZE = Math.max(2, totalTriangles / TOTAL_GRIDS);
+			}
 		}
 	}
 	

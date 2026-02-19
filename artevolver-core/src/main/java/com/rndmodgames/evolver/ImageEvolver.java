@@ -1651,7 +1651,11 @@ public class ImageEvolver extends AbstractEvolver {
 			int r = deltaEngine.getCurrentColorR(i);
 			int g = deltaEngine.getCurrentColorG(i);
 			int b = deltaEngine.getCurrentColorB(i);
-			tri.setColor(new Color(r, g, b));
+			Color existing = tri.getColor();
+			if (existing == null ||
+				existing.getRed() != r || existing.getGreen() != g || existing.getBlue() != b) {
+				tri.setColor(new Color(r, g, b));
+			}
 		}
 	}
 

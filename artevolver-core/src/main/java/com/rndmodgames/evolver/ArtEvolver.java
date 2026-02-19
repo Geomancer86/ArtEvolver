@@ -1042,8 +1042,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 	    JPanel sidebar = buildSidebarPanel();
 
-	    JScrollPane scrollPane = new JScrollPane(sidebar);
-	    scrollPane.setPreferredSize(new Dimension(310, 900));
+	    JScrollPane scrollPane = new JScrollPane(sidebar,
+	        JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+	        JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 	    scrollPane.setMinimumSize(new Dimension(310, 300));
 	    scrollPane.setBorder(BorderFactory.createMatteBorder(0, 1, 0, 0,
 	        new java.awt.Color(180, 180, 180)));
@@ -1051,16 +1052,22 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
       	container.add(scrollPane, BorderLayout.LINE_END);
       	container.add(imagePanel, BorderLayout.CENTER);
-	    
-      	// NOTE: set minimum size
-      	if (triangleScaleWidth < 1f) {
 
-      		setSize(420, 300);
-      		
-      	} else {
-      	    
-      		setSize((int) (325 * triangleScaleWidth), (int) (200 * triangleScaleHeight));
-      	}
+      	int imageW = (int) (width * widthTriangles) + 32;
+      	int imageH = (int) (height * heightTriangles - height) + 32;
+      	int sidebarW = 320;
+
+      	Dimension screenSize = java.awt.Toolkit.getDefaultToolkit().getScreenSize();
+      	java.awt.Insets insets = java.awt.Toolkit.getDefaultToolkit().getScreenInsets(
+      	    getGraphicsConfiguration());
+      	int usableW = screenSize.width - insets.left - insets.right;
+      	int usableH = screenSize.height - insets.top - insets.bottom;
+
+      	int winW = Math.min(imageW + sidebarW, usableW);
+      	int winH = Math.min(Math.max(imageH, 700), usableH);
+
+      	setSize(winW, winH);
+      	scrollPane.setPreferredSize(new Dimension(sidebarW, winH));
 
 		File defaultDir = new File("C:\\Media\\Art Evolver Stream");
 		if (!defaultDir.exists()) {

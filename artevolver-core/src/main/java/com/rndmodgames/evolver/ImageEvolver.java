@@ -2,6 +2,7 @@ package com.rndmodgames.evolver;
 
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
 import java.io.File;
@@ -53,8 +54,8 @@ public class ImageEvolver extends AbstractEvolver {
 	private Long id = null;
 	private BufferedImage resizedOriginal;
 	private BufferedImage currentImage;
-	private BufferedImage bestImage;
-	private double bestScore = Double.MIN_VALUE;
+	private volatile BufferedImage bestImage;
+	private volatile double bestScore = Double.MIN_VALUE;
 	private double averageScore = Double.MIN_VALUE;
 
 	private int population;
@@ -78,7 +79,7 @@ public class ImageEvolver extends AbstractEvolver {
 	// The population for this Evolver instance
 	private List<TriangleList<Triangle>> pop = new TriangleList<TriangleList<Triangle>>();
 
-	private boolean isDirty = true;
+	private volatile boolean isDirty = true;
 	private boolean exportNextAndClose = false;
 
 	public ImageEvolver(int population, int randomJumpDistance, int crossoverMax, float scale, Palette pallete,
@@ -1011,26 +1012,26 @@ public class ImageEvolver extends AbstractEvolver {
 		return reusableChildImage;
 	}
 
-	private BufferedImage bestImageBuffer;
-	private Graphics bestImageGraphics;
-
+	/**
+	 * Renders triangles to a NEW BufferedImage snapshot for thread-safe UI display.
+	 * Each call allocates a fresh image so the EDT can safely read the previous
+	 * bestImage while evolver threads produce the next one.
+	 */
 	private BufferedImage renderTrianglesToNewImage(TriangleList<Triangle> triangles) {
 		int w = resizedOriginal.getWidth();
 		int h = resizedOriginal.getHeight();
-		if (bestImageBuffer == null || bestImageBuffer.getWidth() != w || bestImageBuffer.getHeight() != h) {
-			if (bestImageGraphics != null) bestImageGraphics.dispose();
-			bestImageBuffer = new BufferedImage(w, h, ArtEvolver.IMAGE_TYPE);
-			bestImageGraphics = bestImageBuffer.getGraphics();
-		}
-		bestImageGraphics.clearRect(0, 0, w, h);
+		BufferedImage snapshot = new BufferedImage(w, h, ArtEvolver.IMAGE_TYPE);
+		Graphics2D g = snapshot.createGraphics();
 		for (int i = 0, size = triangles.size(); i < size; i++) {
 			Triangle triangle = triangles.get(i);
-			if (triangle.getColor() != null) {
-				bestImageGraphics.setColor(triangle.getColor());
-				bestImageGraphics.fillPolygon(triangle);
+			Color c = triangle.getColor();
+			if (c != null) {
+				g.setColor(c);
+				g.fillPolygon(triangle);
 			}
 		}
-		return bestImageBuffer;
+		g.dispose();
+		return snapshot;
 	}
 
 	/**

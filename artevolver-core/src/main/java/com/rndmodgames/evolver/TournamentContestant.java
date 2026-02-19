@@ -20,8 +20,8 @@ public class TournamentContestant {
 
     private final List<ImageEvolver> evolvers = new ArrayList<>();
     private TriangleList<Triangle> bestPop = new TriangleList<>();
-    private BufferedImage bestImage;
-    private double bestScore = 0;
+    private volatile BufferedImage bestImage;
+    private volatile double bestScore = 0;
     private long totalIterations;
     private long goodIterations;
     private volatile boolean running;

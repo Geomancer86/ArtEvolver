@@ -43,6 +43,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tooltips** on all controls explaining what each parameter does
 - **Scrollable sidebar** for small screens
 
+### Fixed — Test Infrastructure & Stability
+- **Headless test mode**: Surefire now passes `-Djava.awt.headless=true`, tests run without
+  opening Swing windows (no more blocking during automated builds)
+- **JVM heap for tests**: Surefire fork gets `-Xmx2g` preventing OOM crash when all 27 tests
+  run in a single JVM fork
+- **ArtEvolver headless guard**: constructor skips `initComponents()` in headless mode,
+  enabling tests that instantiate ArtEvolver without a display
+- **CrossOver null-safety**: constructor null-guards `evolverInstance` access, fixing NPE
+  in 3 unit tests that create CrossOver with `null` evolver
+- **CrossOverTest.getAverageSuccessfulJumpSize**: fixed flaky test — was using 80x53 grid
+  (4240 positions > 1535 palette colors) leaving most triangles null-colored; now uses
+  38x39 grid (1482 <= 1535) where all triangles get assigned colors
+- **BenchmarkTest.lapSolverOptimal**: save/restore static fields in try-finally to prevent
+  test pollution between benchmark tests
+- **Divide-by-zero guard**: ArtEvolver video export frame interval calculation now guards
+  against `EXPORT_VIDEO_FRAMES_FPS = 0`
+- **LAP solver unit tests**: new `lapSolverUnitTest` validates correctness on 1x1, 2x2, 3x3,
+  and 4x4 known cost matrices with deterministic expected assignments
+
+### Code Cleanup
+- Removed dead methods: `evolveGreedy()`, `evolve2()`, `updateStats()`, `updateFitness()`,
+  `GEN_SIZE` field, `KILL_PARENTS` field
+- Removed unused imports: `DataBufferInt`, `DecimalFormatSymbols`, `Locale`, `BufferedImage`
+  (from LAPSolver)
+- Removed 3 dead `@SuppressWarnings("unused")` UI helper methods from ArtEvolver
+- **LAPSolver.buildCostMatrix** optimization: hoisted `getRefR/G/B()` out of the per-triangle
+  loop (same arrays, were fetched N times)
+- **syncDeltaToTriangles** optimization: skips Color object allocation when RGB components
+  haven't changed (reduces GC pressure in the hot delta evolution loop)
+
 ### Fixed — UI Responsiveness
 - **Image repaint rate**: was 0.8 FPS due to bug using `GUI_UPDATE_MS` (50ms value) as frame-count
   modulus instead of `FPS/GUI_FPS` (=2). Now repaints at intended 20 FPS.

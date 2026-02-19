@@ -140,6 +140,31 @@ mvn exec:java -pl artevolver-core -Dexec.mainClass="com.rndmodgames.evolver.ArtE
 
 Or run `com.rndmodgames.evolver.ArtEvolver` directly from your IDE.
 
+### Testing
+
+All tests run in **headless mode** (no Swing windows open). The test suite takes ~3 minutes.
+
+```bash
+# Run all tests (27 tests across 5 test classes)
+mvn test -pl artevolver-core
+
+# Run a specific test class
+mvn test -pl artevolver-core -Dtest=BenchmarkTest
+
+# Run a specific test method
+mvn test -pl artevolver-core -Dtest=BenchmarkTest#lapSolverUnitTest
+```
+
+**Test classes:**
+
+| Class | Tests | Description |
+|-------|-------|-------------|
+| `ArtEvolverTest` | 7 | Palette loading, shuffling, color operations |
+| `ArtEvolverToolsTest` | 5 | ImageEvolver creation and evolution |
+| `BenchmarkTest` | 9 | Delta fitness, LAP solver, permutation integrity, benchmarks |
+| `CrossOverTest` | 4 | CrossOver parameter management and evolution |
+| `ImageEvolverTest` | 2 | ImageEvolver instantiation and iteration counting |
+
 ---
 
 ## Usage Guide
@@ -171,6 +196,11 @@ artevolver/
 │       ├── TriangleList.java        # Scored population member (drawing)
 │       ├── Palette.java             # Palette loader (parses text files)
 │       ├── PalleteColor.java        # Named color with RGB values
+│       ├── DeltaFitnessEngine.java  # O(pixels_per_tri) swap evaluation (v3.1)
+│       ├── LAPSolver.java           # Jonker-Volgenant optimal color assignment (v3.1)
+│       ├── benchmark/
+│       │   ├── BenchmarkLogger.java # Thread-safe CSV benchmark writer
+│       │   └── BenchmarkRunner.java # Headless benchmark harness
 │       └── render/
 │           └── Renderer.java        # PNG export with scaling
 │   └── src/main/resources/

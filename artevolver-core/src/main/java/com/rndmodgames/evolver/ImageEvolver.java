@@ -3,20 +3,20 @@ package com.rndmodgames.evolver;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferInt;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
+
 import java.util.SplittableRandom;
 import java.util.stream.Stream;
 
@@ -36,8 +36,6 @@ public class ImageEvolver extends AbstractEvolver {
 		return THREAD_RANDOM.get();
 	}
 	
-	public final boolean KILL_PARENTS = false;
-
 	// default is true
 	public static boolean SHUFFLE_PALETTE = false;
 
@@ -991,87 +989,6 @@ public class ImageEvolver extends AbstractEvolver {
 		return bestImageBuffer;
 	}
 
-	public void evolveGreedy(long start) {
-
-		// start with position 0
-		// measure, keep score
-		// repeat until trying all the elements
-	}
-
-	private int GEN_SIZE = 8;
-	
-	public void evolve2(long start, int iterations) {
-		
-//		long beforeChild = System.currentTimeMillis();
-		
-		int rollA, rollB;
-		int popSize = pop.size();
-		
-		for (int a = 0; a < iterations; a++) {
-
-			rollA = 0;
-			rollB = 0;
-	
-			while (rollA == rollB) {
-				rollA = roll(popSize);
-				rollB = roll(popSize);
-			}
-	
-			parentA = pop.get(rollA);
-			parentB = pop.get(rollB);
-		
-			childA = crossOver.getGeneticChild(parentA, parentB, GEN_SIZE);
-			TriangleList<Triangle> mutatedChild = crossOver.mutate(childA);
-			
-			updateFitness(mutatedChild);
-			updateStats();
-		}
-	}
-	
-	public void updateStats() {
-	    
-		totalIterations++;
-
-		if (totalIterations % ((population / 2) * 1000) == 0) {
-			System.out.println(new DecimalFormat("####.###################", 
-							   new DecimalFormatSymbols(Locale.ITALIAN)).format(bestScore));
-		}
-	}
-	
-	public void updateFitness(TriangleList<Triangle> mutatedChild) {
-
-		BufferedImage rendered = renderTriangles(mutatedChild);
-		double scoreC = compare(rendered, resizedOriginal);
-		mutatedChild.setScore(scoreC);
-
-		if (scoreC < bestScore) {
-			return;
-		}
-
-		Double currentWorstScore = Double.MAX_VALUE;
-		int actualWorstPosition = 0;
-		int currentWorstPosition = 0;
-		int popSize = pop.size();
-		
-		for (;currentWorstPosition < popSize; currentWorstPosition++) {
-			if (pop.get(currentWorstPosition).getScore() < currentWorstScore) {
-				currentWorstScore = pop.get(currentWorstPosition).getScore();
-				actualWorstPosition = currentWorstPosition;
-			}
-		}
-		
-		if (scoreC > bestScore) {
-			bestScore = scoreC;
-			bestImage = renderTrianglesToNewImage(mutatedChild);
-			goodIterations++;
-			
-			pop.remove(actualWorstPosition);
-			pop.add(mutatedChild);
-
-			isDirty = true;
-		}
-	}
-	
 	/**
 	 * DEFAULT
 	 * 

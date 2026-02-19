@@ -312,6 +312,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 	private List <ImageEvolver> evolvers = new ArrayList<>();
 
+	private final List<TournamentContestant> contestants = new ArrayList<>();
+	private TournamentContestant selectedContestant;
+	private TournamentManagerWindow tournamentManagerWindow;
+	private JComboBox<String> cmbContestant;
+	private boolean tournamentMode = false;
+
 	// Timer
 	public Timer processTimer;
 	
@@ -761,50 +767,55 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				    return;
 				}
 				
+				// --- Single mode: iterate legacy evolvers ---
 				for (AbstractEvolver currentEvolver : evolvers) {
-					
-				    // update sequential
 				    ((ImageEvolver)currentEvolver).setSecuential(sequential);
-				    
 					totalIterations += ((ImageEvolver)currentEvolver).getTotalIterations();
 					goodIterations += ((ImageEvolver)currentEvolver).getGoodIterations();
-					
-					// average max jump distance
-//					((ImageEvolver)currentEvolver).m
 					maxJumpDistanceSum += ((ImageEvolver)currentEvolver).getRandomJumpDistance();
 
 					if (((ImageEvolver)currentEvolver).isDirty()) {
-
-						// Check again with the best ArtEvolver score
 						if (((ImageEvolver)currentEvolver).getBestScore() > bestScore) {
-							
-//							System.out.println("Evolver " + ((ImageEvolver)currentEvolver).getId() + ", iterations: " + ((ImageEvolver)currentEvolver).getTotalIterations() + ", bestScore: " + ((ImageEvolver)currentEvolver).getBestScore());
-							
 							bestScore = ((ImageEvolver)currentEvolver).getBestScore();
 							bestImage = ((ImageEvolver)currentEvolver).getBestImage();
-							
 							try {
 							    bestPop = ((ImageEvolver)currentEvolver).getBestPop();
 							} catch (IndexOutOfBoundsException eb) {
 							    // ignore
-							} finally {
-							    // we might have an issue hidden here TODO FIXME array index out of bounds exceptions
 							}
-														
 							isDirty = true;
-        				}
-						
-						// clean dirty
+    					}
 						((ImageEvolver)currentEvolver).setDirty(false);
 					}
+				}
+
+				// --- Tournament mode: iterate contestants ---
+				if (tournamentMode && !contestants.isEmpty()) {
+				    long tTotalIter = 0;
+				    long tGoodIter = 0;
+				    for (TournamentContestant c : contestants) {
+				        c.updateBest();
+				        tTotalIter += c.getTotalIterations();
+				        tGoodIter += c.getGoodIterations();
+
+				        // display the selected contestant's image
+				        if (c == selectedContestant || (selectedContestant == null && c.getBestScore() > bestScore)) {
+				            if (c.getBestScore() > bestScore || c == selectedContestant) {
+				                bestScore = Math.max(bestScore, c.getBestScore());
+				                if (c.getBestImage() != null) {
+				                    bestImage = c.getBestImage();
+				                    isDirty = true;
+				                }
+				            }
+				        }
+				    }
+				    totalIterations += tTotalIter;
+				    goodIterations += tGoodIter;
 				}
 				
 				// draw bestImage to panel
 				if (showSource) {
-				    
-				    // 
 				    showSource();
-				    
 				} else {
 				    int guiFrameSkip = Math.max(1, FPS / GUI_FPS);
 				    if (currentFrame % guiFrameSkip == 0 && isDirty) {
@@ -813,18 +824,19 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	                }
 				}
 				
-				// sync best images
-            	// TODO: set sync speed to get the best performance
+				// sync best images for single mode evolvers
 				int population = 0;
-				
             	for (AbstractEvolver currentEvolver : evolvers) {
-            	    
             		if (((ImageEvolver)currentEvolver).getBestScore() < bestScore) {
-            		    
             			((ImageEvolver)currentEvolver).setBestPop(bestPop);
             		}
-            		
             		population += ((ImageEvolver)currentEvolver).getPopulation().size();
+            	}
+            	// count tournament population too
+            	for (TournamentContestant c : contestants) {
+            	    for (ImageEvolver ev : c.getEvolvers()) {
+            	        population += ev.getPopulation().size();
+            	    }
             	}
             	
             	/**
@@ -888,9 +900,23 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                     int evolveIdx = Math.min(cmbEvolveMethod.getSelectedIndex(), evolveNames.length - 1);
                     lblMethod.setText("Mode: " + initNames[initIdx] + " + " + evolveNames[evolveIdx]);
 
-                    if (fitnessChartWindow != null && fitnessChartWindow.isVisible()
-                            && bestScore > Double.MIN_VALUE) {
-                        fitnessChartWindow.addDataPoint(totalIterations, bestScore);
+                    if (fitnessChartWindow != null && fitnessChartWindow.isVisible()) {
+                        if (tournamentMode && !contestants.isEmpty()) {
+                            for (TournamentContestant c : contestants) {
+                                if (c.getBestScore() > Double.MIN_VALUE) {
+                                    fitnessChartWindow.addDataPoint(c.getId(), c.getName(),
+                                        c.getTotalIterations(), c.getBestScore(), c.getChartColor());
+                                }
+                            }
+                        } else if (bestScore > Double.MIN_VALUE) {
+                            fitnessChartWindow.addDataPoint(totalIterations, bestScore);
+                        }
+                    }
+
+                    if (tournamentMode && tournamentManagerWindow != null
+                            && tournamentManagerWindow.isVisible()) {
+                        tournamentManagerWindow.refreshTable();
+                        refreshContestantCombo();
                     }
             	}
 
@@ -1549,6 +1575,29 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    addSeparator(sb);
 
 	    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+	    //  TOURNAMENT MODE
+	    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+	    addSection(sb, "\uD83C\uDFC6  TOURNAMENT MODE");
+
+	    JButton btnTournament = makeStyledButton("Open Tournament Manager");
+	    btnTournament.setAlignmentX(Component.LEFT_ALIGNMENT);
+	    btnTournament.setMaximumSize(BTN_SIZE);
+	    btnTournament.setToolTipText("<html>Manage multiple independent evolution runs<br>" +
+	        "with different parameters competing simultaneously.</html>");
+	    btnTournament.addActionListener(e -> showTournamentManager());
+	    sb.add(btnTournament);
+	    sb.add(Box.createVerticalStrut(4));
+
+	    addFieldLabel(sb, "Active Contestant:");
+	    cmbContestant = new JComboBox<>(new String[]{"(single mode)"});
+	    cmbContestant.setToolTipText("Select which contestant's image to display.");
+	    styleCombo(cmbContestant);
+	    cmbContestant.addActionListener(e -> onContestantSelected());
+	    sb.add(cmbContestant);
+
+	    addSeparator(sb);
+
+	    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 	    //  QUALITY — Image size, grid, resolution
 	    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 	    addSection(sb, "\uD83D\uDDBC  QUALITY");
@@ -1988,6 +2037,117 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    }
 	    fitnessChartWindow.setVisible(true);
 	    fitnessChartWindow.toFront();
+	}
+
+	private void showTournamentManager() {
+	    if (tournamentManagerWindow == null) {
+	        tournamentManagerWindow = new TournamentManagerWindow(this, contestants);
+	    }
+	    tournamentManagerWindow.setVisible(true);
+	    tournamentManagerWindow.toFront();
+	}
+
+	private void onContestantSelected() {
+	    if (cmbContestant == null) return;
+	    int idx = cmbContestant.getSelectedIndex();
+	    if (idx >= 0 && idx < contestants.size()) {
+	        selectedContestant = contestants.get(idx);
+	        if (selectedContestant.getBestImage() != null) {
+	            bestImage = selectedContestant.getBestImage();
+	        }
+	    } else {
+	        selectedContestant = null;
+	    }
+	}
+
+	private void refreshContestantCombo() {
+	    if (cmbContestant == null) return;
+	    cmbContestant.removeAllItems();
+	    if (contestants.isEmpty()) {
+	        cmbContestant.addItem("(single mode)");
+	    } else {
+	        for (TournamentContestant c : contestants) {
+	            cmbContestant.addItem(c.getName() + " (" + new DecimalFormat("0.00").format(
+	                Math.max(0, c.getBestScore()) * 100) + "%)");
+	        }
+	    }
+	}
+
+	/**
+	 * Populates an EvolutionConfig from the current UI control values.
+	 * Used by TournamentManagerWindow when creating new contestants.
+	 */
+	public void populateConfigFromUI(EvolutionConfig cfg) {
+	    cfg.threads = (int) spnThreads.getValue();
+	    cfg.population = (int) spnPopulation.getValue();
+	    cfg.crossoverMax = (int) spnCrossoverMax.getValue();
+	    cfg.evolveIterations = (int) spnEvolveIterations.getValue();
+	    cfg.initializationMethod = cmbInitMethod.getSelectedIndex();
+	    cfg.useDeltaEvolution = (cmbEvolveMethod.getSelectedIndex() == 1);
+	    cfg.validatePermutation = chkValidatePermutation.isSelected();
+	    cfg.gridMutationChances = (int) spnGridMutations.getValue();
+	    cfg.gridMutationDecay = (int) spnMutationDecay.getValue() / 1000f;
+	    cfg.randomMutationChances = (int) spnRandomMutations.getValue();
+	    cfg.randomMutationPercent = (int) spnRandomMutationPct.getValue() / 10000f;
+	    cfg.closeMutationChances = (int) spnCloseMutations.getValue();
+	    cfg.closeMutationPercent = (int) spnCloseMutationPct.getValue() / 10000f;
+	    cfg.targetedSwapAttempts = (int) spnTargetedSwaps.getValue();
+	    cfg.blockCrossoverEnabled = chkBlockCrossover.isSelected();
+	}
+
+	/**
+	 * Starts all tournament contestants. Each contestant creates its own
+	 * set of ImageEvolver threads with its own EvolutionConfig.
+	 */
+	public void startTournament() {
+	    if (resizedOriginal == null) {
+	        JOptionPane.showMessageDialog(this, "Load an image first.", "No Image", JOptionPane.WARNING_MESSAGE);
+	        return;
+	    }
+	    if (contestants.isEmpty()) {
+	        JOptionPane.showMessageDialog(this, "Add at least one contestant in the Tournament Manager.",
+	                "No Contestants", JOptionPane.WARNING_MESSAGE);
+	        return;
+	    }
+
+	    tournamentMode = true;
+
+	    if (fitnessChartWindow == null) {
+	        fitnessChartWindow = new FitnessChartWindow();
+	    }
+	    fitnessChartWindow.clearData();
+	    fitnessChartWindow.setVisible(true);
+
+	    for (TournamentContestant c : contestants) {
+	        if (!c.isRunning()) {
+	            if (c.getEvolvers().isEmpty()) {
+	                c.createEvolvers(pallete, width, height, widthTriangles, heightTriangles,
+	                        triangleScaleHeight, RANDOM_JUMP_MAX_DISTANCES);
+	                c.initializeWithImage(resizedOriginal);
+	            }
+	            c.start();
+	        }
+	    }
+
+	    if (!isRunning) {
+	        evolveStartTimeMs = System.currentTimeMillis();
+	        processTimer.start();
+	        isRunning = true;
+	    }
+
+	    refreshContestantCombo();
+	    if (tournamentManagerWindow != null) tournamentManagerWindow.refreshTable();
+
+	    System.out.println("[Tournament] Started " + contestants.size() + " contestants");
+	}
+
+	/** Stops all tournament contestants. */
+	public void stopTournament() {
+	    for (TournamentContestant c : contestants) {
+	        c.stop();
+	    }
+	    if (tournamentManagerWindow != null) tournamentManagerWindow.refreshTable();
+	    System.out.println("[Tournament] All contestants stopped");
 	}
 
 	@Override

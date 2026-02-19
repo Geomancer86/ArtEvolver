@@ -85,6 +85,22 @@ public class CrossOver {
 			}
 		}
 	}
+
+	/** Returns the contestant's config, or null if running in legacy/test mode. */
+	private EvolutionConfig cfg() {
+		return (evolverInstance != null) ? evolverInstance.getConfig() : null;
+	}
+
+	private float cfgGridMutationChances()      { EvolutionConfig c = cfg(); return c != null ? c.gridMutationChances      : GRID_MUTATION_CHANCES; }
+	private float cfgGridMutationPercent()       { EvolutionConfig c = cfg(); return c != null ? c.gridMutationPercent       : GRID_MUTATION_PERCENT; }
+	private int   cfgRandomMutationChances()     { EvolutionConfig c = cfg(); return c != null ? c.randomMutationChances     : RANDOM_MUTATION_CHANCES; }
+	private float cfgRandomMutationPercent()     { EvolutionConfig c = cfg(); return c != null ? c.randomMutationPercent     : RANDOM_MUTATION_PERCENT; }
+	private int   cfgCloseMutationChances()      { EvolutionConfig c = cfg(); return c != null ? c.closeMutationChances      : RANDOM_CLOSE_MUTATION_CHANCES; }
+	private float cfgCloseMutationPercent()      { EvolutionConfig c = cfg(); return c != null ? c.closeMutationPercent      : RANDOM_CLOSE_MUTATION_PERCENT; }
+	private int   cfgRandomGridMutationChances() { EvolutionConfig c = cfg(); return c != null ? c.randomGridMutationChances : RANDOM_GRID_MUTATION_CHANCES; }
+	private float cfgRandomGridMutationPercent() { EvolutionConfig c = cfg(); return c != null ? c.randomGridMutationPercent : RANDOM_GRID_MUTATION_PERCENT; }
+	private int   cfgTargetedSwapAttempts()      { EvolutionConfig c = cfg(); return c != null ? c.targetedSwapAttempts      : TARGETED_SWAP_ATTEMPTS; }
+	private boolean cfgBlockCrossoverEnabled()   { EvolutionConfig c = cfg(); return c != null ? c.blockCrossoverEnabled     : CROSSOVER_BLOCK_ENABLED; }
 	
 	public void halveParameters() {
 	    
@@ -229,7 +245,7 @@ public class CrossOver {
 			child.add(new Triangle(t.getxPoly(), t.getyPoly(), t.getLenght(), t.getColor(), t.getPalleteColor()));
 		}
 
-		if (n > 4 && CROSSOVER_BLOCK_ENABLED) {
+		if (n > 4 && cfgBlockCrossoverEnabled()) {
 			int blockSize = Math.max(2, n / r.nextInt(4, 12));
 			int blockStart = r.nextInt(n);
 
@@ -270,19 +286,14 @@ public class CrossOver {
 		/**
 		 * Grid Crossovers: localized swaps within evolver's grid section
 		 */
-        int gridCount = (int) GRID_MUTATION_CHANCES;
+        int gridCount = (int) cfgGridMutationChances();
         for (int a = 0; a < gridCount; a++) {
-            if (r.nextFloat() < GRID_MUTATION_PERCENT) {
+            if (r.nextFloat() < cfgGridMutationPercent()) {
                 ImageEvolver.switchGridColor(child, evolverId, DEFAULT_GRID_SIZE);
             }
         }
 
-        /**
-         * Fully Random: use expected count with Poisson-like sampling for variance.
-         * Original looped 1000x checking 0.001 probability; this preserves the
-         * distribution (sometimes 0, sometimes 2-3) without wasting 999 iterations.
-         */
-        float expectedSwaps = RANDOM_MUTATION_CHANCES * RANDOM_MUTATION_PERCENT;
+        float expectedSwaps = cfgRandomMutationChances() * cfgRandomMutationPercent();
         int randomSwapCount = 0;
         if (expectedSwaps >= 1f) {
             randomSwapCount = (int) expectedSwaps;
@@ -293,12 +304,9 @@ public class CrossOver {
             ImageEvolver.switchRandomColor(child);
         }
 
-        /**
-         * Close mutations: only execute if probability is meaningful
-         */
-        if (CLOSE_MUTATIONS_PER_CHILD > 0 && RANDOM_CLOSE_MUTATION_PERCENT > 0.001f) {
-            for (int a = 0; a < RANDOM_CLOSE_MUTATION_CHANCES; a++) {
-                if (r.nextFloat() < RANDOM_CLOSE_MUTATION_PERCENT) {
+        if (CLOSE_MUTATIONS_PER_CHILD > 0 && cfgCloseMutationPercent() > 0.001f) {
+            for (int a = 0; a < cfgCloseMutationChances(); a++) {
+                if (r.nextFloat() < cfgCloseMutationPercent()) {
                     for (int b = 0; b < CLOSE_MUTATIONS_PER_CHILD; b++) {
                         ImageEvolver.switchCloseColor(child, this.randomJumpDistance);
                     }
@@ -306,24 +314,16 @@ public class CrossOver {
             }
         }
 
-        /**
-         * Random Grid: only execute if probability is meaningful
-         */
-        if (RANDOM_GRID_MUTATION_PERCENT > 0.001f) {
-            for (int a = 0; a < RANDOM_GRID_MUTATION_CHANCES; a++) {
-                if (r.nextFloat() < RANDOM_GRID_MUTATION_PERCENT) {
+        if (cfgRandomGridMutationPercent() > 0.001f) {
+            for (int a = 0; a < cfgRandomGridMutationChances(); a++) {
+                if (r.nextFloat() < cfgRandomGridMutationPercent()) {
                     ImageEvolver.switchGridColor(child, ImageEvolver.roll(TOTAL_GRIDS), DEFAULT_GRID_SIZE);
                 }
             }
         }
 
-        /**
-         * Targeted Swap (v3.1): guided repair pass AFTER random mutations.
-         * Random mutations add diversity; targeted swap then fixes the worst damage,
-         * so the child inherits both exploration AND guided refinement.
-         */
         if (evolverInstance != null && evolverInstance.getResizedOriginal() != null) {
-            ImageEvolver.targetedSwap(child, evolverInstance.getResizedOriginal(), TARGETED_SWAP_ATTEMPTS);
+            ImageEvolver.targetedSwap(child, evolverInstance.getResizedOriginal(), cfgTargetedSwapAttempts());
         }
 
 		return child;

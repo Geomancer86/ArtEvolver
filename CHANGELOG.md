@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.0] - 2026-02-19 (develop branch)
 
+### Added — Tournament Mode
+- **`EvolutionConfig`** — parameter bundle class replacing static CrossOver fields with instance-level configuration
+  - Encapsulates all 15+ tunable GA parameters (mutation rates, probabilities, decay, crossover, population)
+  - `fromCurrentSettings()` factory reads current static values; `applyToStaticFields()` writes back
+  - `clone()` support for duplicating contestant configurations
+  - `toSummary()` for compact parameter display
+- **`TournamentContestant`** — encapsulates one independent evolution run
+  - Own list of `ImageEvolver` threads, own `EvolutionConfig`, own best score/image/population
+  - `createEvolvers()` + `initializeWithImage()` for initialization with shared source image
+  - `start()`/`stop()` with daemon threads named per-contestant for easy identification
+  - `updateBest()` polled by the process timer; syncs best population within contestant only
+  - 10 preset chart colors automatically assigned to new contestants
+- **`TournamentManagerWindow`** — full-featured management UI (separate JFrame)
+  - Table view: #, color swatch, name, score, running status, parameter summary
+  - **Add Contestant**: creates with current UI settings as defaults
+  - **Duplicate Selected**: clones an existing contestant's full configuration
+  - **Remove Selected**: with running-check guard
+  - **Start All / Stop All**: controls entire tournament
+  - **Edit Parameters**: double-click or button opens full parameter editor dialog
+  - Detail panel showing all parameters for selected contestant
+- **CrossOver config accessor layer** — `cfg()` helper + 10 accessor methods
+  - When `evolverInstance.getConfig()` is non-null, reads parameters from config
+  - Falls back to static fields when config is null (backward compat for tests/single mode)
+  - Zero-breakage: all 27 existing tests pass unchanged
+- **ImageEvolver config integration**
+  - New `config` field with getter/setter
+  - `run()` reads `evolveIterations` from config when available
+- **FitnessChartWindow multi-series support**
+  - `Map<String, Series>` replaces single data list
+  - Each series: unique name, color, independent data/peak tracking
+  - Color-coded legend drawn at bottom when multiple series active
+  - Stats bar rebuilds dynamically as series are added
+  - Backward-compatible `addDataPoint(long, double)` still works for single mode
+- **ArtEvolver tournament integration**
+  - `List<TournamentContestant>` field with selected-contestant tracking
+  - "Tournament Mode" sidebar section with "Open Tournament Manager" button
+  - Active Contestant combo box to select which contestant's image is displayed
+  - Process timer polls all contestants via `updateBest()`
+  - Chart receives data for each contestant with distinct series ID and color
+  - `startTournament()` / `stopTournament()` orchestration
+  - `populateConfigFromUI()` for seeding new contestants from current sidebar values
+  - Population counter aggregates both single-mode evolvers and all tournament contestants
+
 ### Added — Configurable UI Parameter Panels & Real-Time Fitness Chart
 - **Sidebar reorganized into three clear categories**:
   - **QUALITY** — Grid Width, Grid Height, Palette Repetitions, Color Assignment Method

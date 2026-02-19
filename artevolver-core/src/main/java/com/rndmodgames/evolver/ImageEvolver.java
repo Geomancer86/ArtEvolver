@@ -73,6 +73,7 @@ public class ImageEvolver extends AbstractEvolver {
 	private int triangleWidth;
 
 	private CrossOver crossOver;
+	private EvolutionConfig config;
 
 	// The population for this Evolver instance
 	private List<TriangleList<Triangle>> pop = new TriangleList<TriangleList<Triangle>>();
@@ -112,6 +113,14 @@ public class ImageEvolver extends AbstractEvolver {
 
 	public int getTriangleHeight() {
 		return triangleHeight;
+	}
+
+	public EvolutionConfig getConfig() {
+		return config;
+	}
+
+	public void setConfig(EvolutionConfig config) {
+		this.config = config;
 	}
 
 	/**
@@ -1646,10 +1655,11 @@ public class ImageEvolver extends AbstractEvolver {
 		while (true) {
 			if (isRunning) {
 				try {
+					int iters = (config != null) ? config.evolveIterations : ArtEvolver.EVOLVE_ITERATIONS;
 					if (useDeltaEvolution && deltaEngine != null) {
-						evolveDelta(start, ArtEvolver.EVOLVE_ITERATIONS);
+						evolveDelta(start, iters);
 					} else {
-						evolve(start, ArtEvolver.EVOLVE_ITERATIONS);
+						evolve(start, iters);
 					}
 				} catch (Exception e) {
 					// resilient: ignore and retry

@@ -15,6 +15,8 @@ public class FitnessTracker {
 
     private final List<Snapshot> snapshots = new ArrayList<>();
     private int velocityWindowMs = 30_000;
+    private static final int MAX_SNAPSHOTS = 2000;
+    private static final int PRUNE_TO = 1000;
 
     public FitnessTracker() {}
 
@@ -29,11 +31,38 @@ public class FitnessTracker {
     /** Records a fitness observation at the current time. */
     public void addSnapshot(double fitness, long totalIterations) {
         snapshots.add(new Snapshot(System.currentTimeMillis(), fitness, totalIterations));
+        pruneIfNeeded();
     }
 
     /** Records a fitness observation at a specific timestamp. */
     public void addSnapshot(long timestampMs, double fitness, long totalIterations) {
         snapshots.add(new Snapshot(timestampMs, fitness, totalIterations));
+        pruneIfNeeded();
+    }
+
+    /**
+     * Keeps recent snapshots and downsamples older ones to prevent unbounded growth.
+     * Retains recent window at full resolution, older data at reduced resolution.
+     */
+    private void pruneIfNeeded() {
+        if (snapshots.size() <= MAX_SNAPSHOTS) return;
+        long now = snapshots.get(snapshots.size() - 1).timestampMs;
+        long recentCutoff = now - velocityWindowMs * 2;
+
+        List<Snapshot> pruned = new ArrayList<>(PRUNE_TO);
+        int olderCount = 0;
+        for (int i = 0; i < snapshots.size(); i++) {
+            if (snapshots.get(i).timestampMs >= recentCutoff) {
+                pruned.addAll(snapshots.subList(i, snapshots.size()));
+                break;
+            }
+            if (olderCount % 4 == 0) {
+                pruned.add(snapshots.get(i));
+            }
+            olderCount++;
+        }
+        snapshots.clear();
+        snapshots.addAll(pruned);
     }
 
     public int getSnapshotCount() {

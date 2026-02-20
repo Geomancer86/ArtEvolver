@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.0] - 2026-02-20 (develop branch)
 
+### Improved — Dynamic Tournament, Performance, Draw All Sorting
+- **Draw All sorted** — the "Draw All" view now renders contestants sorted by best
+  score (highest first), with eliminated contestants at the bottom. No more hunting
+  for the best — it's always top-left
+- **Tournament table** already sorts by status then score (eliminated at bottom)
+- **Multi-spawn per tick** — new `spawnsPerTick` parameter (default 1, up to 10)
+  allows culling and breeding N contestants per generation tick. Each spawn gets its
+  own unique name suffix (e.g., G5a, G5b). Re-ranks alive pool between each cull
+- **Adaptive cutoff** — when enabled (default ON), the cutoff interval auto-adjusts:
+  shortens by 10s when stalled (>=3 gens), lengthens by 5s when improving. Bounded
+  by configurable min (15s) and max (300s). Lets the system find its own optimal pace
+- **Performance: `syncDeltaToTriangles` moved inside improvement guard** — previously
+  called unconditionally every 10 iterations (~1482 `new Color()` objects each time),
+  now only called when a score actually improves. Eliminates massive GC pressure
+- **Performance: Color object cache** — `ConcurrentHashMap<Integer, Color>` caches
+  Color instances by RGB key, preventing duplicate allocations across all threads
+- **Performance: `expectedSwaps` hoisted** — constant calculation moved outside inner
+  loop to avoid redundant float multiplication per iteration
+- **Performance: FitnessTracker pruning** — snapshots are automatically downsampled
+  when exceeding 2000 entries, keeping recent data at full resolution and older data
+  at 1/4 resolution to prevent unbounded memory growth in long tournaments
+- **JVM tuning for Threadripper 2950x / 128GB** — `start.bat` now launches with:
+  `-Xmx16g -Xms4g -XX:+UseZGC -XX:+ZGenerational -XX:+AlwaysPreTouch
+  -XX:-TieredCompilation`. ZGC provides sub-millisecond GC pauses at scale,
+  generational mode improves throughput, pre-touch avoids runtime page faults,
+  and skipping tiered compilation goes straight to C2 for faster steady-state
+- **Evo Settings expanded** — new sections for "Adaptive Cutoff" (toggle, min, max)
+  and "Spawns per Tick" control. All parameters configurable at runtime
+
 ### Added — Evolutionary Tournament v2 (Velocity-Aware Meta-GA)
 Major redesign solving the "newcomer problem" where bred contestants were immediately culled
 before proving their parameter quality, since they always started at fitness 0.

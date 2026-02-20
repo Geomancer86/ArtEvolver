@@ -90,6 +90,10 @@
                 <version>3.1.0</version>
                 <configuration>
                     <mainClass>com.rndmodgames.evolver.ArtEvolver</mainClass>
+                    <jvmArgs>
+                        <jvmArg>-Xmx16g</jvmArg>
+                        <jvmArg>-Xms4g</jvmArg>
+                    </jvmArgs>
                 </configuration>
             </plugin>
             <plugin>

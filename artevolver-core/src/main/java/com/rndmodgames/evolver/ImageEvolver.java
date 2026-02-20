@@ -1507,6 +1507,9 @@ public class ImageEvolver extends AbstractEvolver {
 		float cfgRndMutPct = (config != null) ? config.randomMutationPercent : CrossOver.RANDOM_MUTATION_PERCENT;
 		int cfgTargetedSwaps = (config != null) ? config.targetedSwapAttempts : CrossOver.TARGETED_SWAP_ATTEMPTS;
 
+		// Hoist random swap count outside inner loop — it's constant per batch
+		float expectedSwaps = cfgRndMutChances * cfgRndMutPct;
+
 		for (int iter = 0; iter < iterations; iter++) {
 
 			int acceptedThisIter = 0;
@@ -1523,7 +1526,6 @@ public class ImageEvolver extends AbstractEvolver {
 			}
 
 			// --- Random global swaps ---
-			float expectedSwaps = cfgRndMutChances * cfgRndMutPct;
 			int randomSwapCount;
 			if (expectedSwaps >= 1f) {
 				randomSwapCount = (int) expectedSwaps;
@@ -1585,14 +1587,14 @@ public class ImageEvolver extends AbstractEvolver {
 
 			totalIterations++;
 
-			// Sync colors back to TriangleList for UI display
+			// Check score periodically; only sync + render when actually improved
 			if (totalIterations % 10 == 0) {
-				syncDeltaToTriangles(best);
 				double newScore = deltaEngine.getScore();
 				best.setScore(newScore);
 
 				if (newScore > bestScore) {
 					bestScore = newScore;
+					syncDeltaToTriangles(best);
 					bestImage = renderTrianglesToNewImage(best);
 					isDirty = true;
 				}
@@ -1612,6 +1614,14 @@ public class ImageEvolver extends AbstractEvolver {
 	 * Copies delta engine's internal color state back to the TriangleList,
 	 * including PalleteColor references for paint-by-number export.
 	 */
+	private static final java.util.concurrent.ConcurrentHashMap<Integer, Color> COLOR_CACHE =
+			new java.util.concurrent.ConcurrentHashMap<>(4096);
+
+	private static Color cachedColor(int r, int g, int b) {
+		int key = (r << 16) | (g << 8) | b;
+		return COLOR_CACHE.computeIfAbsent(key, k -> new Color(r, g, b));
+	}
+
 	private void syncDeltaToTriangles(TriangleList<Triangle> triangles) {
 		int n = triangles.size();
 		for (int i = 0; i < n; i++) {
@@ -1622,7 +1632,7 @@ public class ImageEvolver extends AbstractEvolver {
 			Color existing = tri.getColor();
 			if (existing == null ||
 				existing.getRed() != r || existing.getGreen() != g || existing.getBlue() != b) {
-				tri.setColor(new Color(r, g, b));
+				tri.setColor(cachedColor(r, g, b));
 			}
 			tri.setPalleteColor(deltaEngine.getPalleteColor(i));
 		}

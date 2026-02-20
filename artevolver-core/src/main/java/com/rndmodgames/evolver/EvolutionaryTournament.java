@@ -39,6 +39,12 @@ public class EvolutionaryTournament {
     // --- Grace period ---
     private int gracePeriodTicks = 1;
 
+    // --- Dynamic tournament ---
+    private int spawnsPerTick = 1;
+    private boolean adaptiveCutoff = true;
+    private int adaptiveCutoffMin = 15;
+    private int adaptiveCutoffMax = 300;
+
     // --- Composite ranking weights (must sum to ~1.0) ---
     private float fitnessWeight = 0.35f;
     private float velocityWeight = 0.40f;
@@ -103,6 +109,8 @@ public class EvolutionaryTournament {
         cullTimer.start();
         System.out.println("[EvoTournament] Started — cutoff every " + cutoffSeconds
                 + "s, pop=" + aliveCount + ", grace=" + gracePeriodTicks + " ticks"
+                + ", spawns=" + spawnsPerTick
+                + ", adaptive=" + (adaptiveCutoff ? "ON [" + adaptiveCutoffMin + "-" + adaptiveCutoffMax + "s]" : "OFF")
                 + ", weights: fit=" + fitnessWeight + " vel=" + velocityWeight
                 + " acc=" + accelerationWeight + " lin=" + lineageWeight);
         return true;
@@ -157,12 +165,10 @@ public class EvolutionaryTournament {
         lastTickMs = System.currentTimeMillis();
         generation++;
 
-        // Decrement grace ticks for all alive contestants
         for (TournamentContestant c : alive) {
             c.decrementGraceTicks();
         }
 
-        // Check if any contestant has meaningful data
         boolean anyReady = alive.stream().anyMatch(c -> c.getBestScore() > 0);
         if (!anyReady) {
             System.out.println("[EvoTournament] Gen " + generation
@@ -175,7 +181,6 @@ public class EvolutionaryTournament {
             return;
         }
 
-        // Update lineage peak metrics from fitness trackers
         for (TournamentContestant c : alive) {
             if (c.getLineageNode() != null) {
                 c.getLineageNode().setPeakFitness(c.getFitnessTracker().getPeakFitness());
@@ -187,52 +192,15 @@ public class EvolutionaryTournament {
         List<ScoredContestant> scored = computeCompositeScores(alive);
         scored.sort((a, b) -> Double.compare(b.compositeScore, a.compositeScore));
 
-        // Find best (by composite) and worst (eligible for culling)
         ScoredContestant bestScored = scored.get(0);
         TournamentContestant best = bestScored.contestant;
 
-        // Find worst among non-protected contestants
-        ScoredContestant worstScored = null;
-        for (int i = scored.size() - 1; i >= 0; i--) {
-            ScoredContestant sc = scored.get(i);
-            if (!sc.contestant.isProtected()) {
-                worstScored = sc;
-                break;
-            }
-        }
-
-        if (worstScored == null) {
-            System.out.println("[EvoTournament] Gen " + generation
-                    + ": Skipping — all contestants are under grace period");
-            GenerationRecord rec = new GenerationRecord(generation);
-            rec.skipped = true;
-            rec.skipReason = "All contestants under grace period protection";
-            rec.timestamp = System.currentTimeMillis();
-            history.add(rec);
-            return;
-        }
-
-        TournamentContestant worst = worstScored.contestant;
-
-        // Tie-breaking: if multiple share the worst composite score, prefer oldest
-        double worstComposite = worstScored.compositeScore;
-        for (int i = scored.size() - 2; i >= 0; i--) {
-            ScoredContestant sc = scored.get(i);
-            if (sc.compositeScore > worstComposite) break;
-            if (!sc.contestant.isProtected() && sc.contestant.getGeneration() < worst.getGeneration()) {
-                worst = sc.contestant;
-                worstScored = sc;
-            }
-        }
-
-        // Best-ever tracking (by raw fitness, not composite)
         if (best.getBestScore() > bestEverScore) {
             bestEverScore = best.getBestScore();
             bestEverName = best.getName();
             bestEverConfig = best.getConfig().clone();
         }
 
-        // Convergence detection
         double improvement = best.getBestScore() - previousBestScore;
         if (improvement < CONVERGENCE_IMPROVEMENT_THRESHOLD) {
             stalledGenerations++;
@@ -244,48 +212,189 @@ public class EvolutionaryTournament {
             converged = true;
         }
 
-        // === Cull the worst ===
-        String culledName = worst.getName();
-        double culledScore = worst.getBestScore();
-        double culledComposite = worstScored.compositeScore;
-        double culledVelocity = worst.getFitnessTracker().getVelocity();
-        int culledGen = worst.getGeneration();
+        // === Multi-spawn: cull N worst, breed N replacements ===
+        int maxCulls = Math.min(spawnsPerTick, countEligibleForCull(scored));
+        if (maxCulls == 0) {
+            System.out.println("[EvoTournament] Gen " + generation
+                    + ": Skipping — all contestants are under grace period");
+            GenerationRecord rec = new GenerationRecord(generation);
+            rec.skipped = true;
+            rec.skipReason = "All contestants under grace period protection";
+            rec.timestamp = System.currentTimeMillis();
+            history.add(rec);
+            return;
+        }
 
-        // === Breed replacement ===
-        TournamentContestant parentA = selectParent(scored, worst);
-        TournamentContestant parentB = selectParent(scored, worst);
+        // Ensure we keep at least minContestants alive after culling
+        maxCulls = Math.min(maxCulls, alive.size() - minContestants);
+        if (maxCulls < 1) maxCulls = 1;
 
-        // Inbreeding prevention
+        StringBuilder cullLog = new StringBuilder();
+        StringBuilder breedLog = new StringBuilder();
+        String lastCulledName = null;
+        double lastCulledScore = 0, lastCulledComposite = 0, lastCulledVelocity = 0;
+        int lastCulledGen = 0;
+        String lastParentA = null, lastParentB = null, lastChildName = null;
+        String lastChildParams = null;
+
+        for (int spawn = 0; spawn < maxCulls; spawn++) {
+            // Re-rank alive (non-eliminated) after each cull
+            List<TournamentContestant> currentAlive = getAlive();
+            if (currentAlive.size() <= minContestants) break;
+
+            List<ScoredContestant> currentScored = computeCompositeScores(currentAlive);
+            currentScored.sort((a, b) -> Double.compare(b.compositeScore, a.compositeScore));
+
+            ScoredContestant worstScored = findWorstEligible(currentScored);
+            if (worstScored == null) break;
+
+            TournamentContestant worst = worstScored.contestant;
+            lastCulledName = worst.getName();
+            lastCulledScore = worst.getBestScore();
+            lastCulledComposite = worstScored.compositeScore;
+            lastCulledVelocity = worst.getFitnessTracker().getVelocity();
+            lastCulledGen = worst.getGeneration();
+
+            TournamentContestant parentA = selectParent(currentScored, worst);
+            TournamentContestant parentB = selectParentDiverse(currentScored, worst, parentA);
+
+            EvolutionConfig childConfig;
+            if (useAncestralCrossover && parentA.getLineageNode() != null
+                    && parentB.getLineageNode() != null) {
+                childConfig = breedWithAncestry(parentA, parentB);
+            } else {
+                childConfig = breedConfigs(parentA.getConfig(), parentB.getConfig());
+            }
+            childConfig.threads = worst.getConfig().threads;
+
+            String childName = "G" + generation
+                    + (maxCulls > 1 ? (char)('a' + spawn) : "") + "-"
+                    + parentA.getName().substring(0, Math.min(3, parentA.getName().length()))
+                    + "x"
+                    + parentB.getName().substring(0, Math.min(3, parentB.getName().length()));
+
+            worst.eliminate(generation);
+
+            spawnChild(childName, childConfig, parentA, parentB);
+
+            lastParentA = parentA.getName();
+            lastParentB = parentB.getName();
+            lastChildName = childName;
+            lastChildParams = childConfig.toSummary();
+
+            if (spawn > 0) { cullLog.append(", "); breedLog.append(", "); }
+            cullLog.append(worst.getName());
+            breedLog.append(childName);
+        }
+
+        // Adaptive cutoff: if converged, shorten interval; if improving, lengthen
+        if (adaptiveCutoff) {
+            adaptCutoffInterval();
+        }
+
+        double[] rawScores = alive.stream().mapToDouble(TournamentContestant::getBestScore).toArray();
+        double avgScore = Arrays.stream(rawScores).average().orElse(0);
+
+        GenerationRecord rec = new GenerationRecord(generation);
+        rec.timestamp = System.currentTimeMillis();
+        rec.culledName = maxCulls > 1 ? cullLog.toString() : (lastCulledName != null ? lastCulledName : "");
+        rec.culledScore = lastCulledScore;
+        rec.culledComposite = lastCulledComposite;
+        rec.culledVelocity = lastCulledVelocity;
+        rec.culledGeneration = lastCulledGen;
+        rec.parentA = lastParentA != null ? lastParentA : "";
+        rec.parentB = lastParentB != null ? lastParentB : "";
+        rec.childName = maxCulls > 1 ? breedLog.toString() : (lastChildName != null ? lastChildName : "");
+        rec.childParams = lastChildParams != null ? lastChildParams : "";
+        rec.childGraceTicks = gracePeriodTicks;
+        rec.spawnsThisTick = maxCulls;
+        rec.bestName = best.getName();
+        rec.bestScore = best.getBestScore();
+        rec.bestComposite = bestScored.compositeScore;
+        rec.bestVelocity = best.getFitnessTracker().getVelocity();
+        rec.worstScore = lastCulledScore;
+        rec.avgScore = avgScore;
+        rec.aliveCount = getAlive().size();
+        rec.bestEverScore = bestEverScore;
+        rec.bestEverName = bestEverName;
+        rec.converged = converged;
+        rec.ancestralCrossover = useAncestralCrossover;
+        rec.currentCutoff = cutoffSeconds;
+        history.add(rec);
+
+        artEvolver.refreshContestantCombo();
+        if (artEvolver.getTournamentManagerWindow() != null) {
+            artEvolver.getTournamentManagerWindow().refreshTable();
+        }
+
+        System.out.println("[EvoTournament] === Generation " + generation + " ==="
+                + (maxCulls > 1 ? " (" + maxCulls + " spawns)" : ""));
+        System.out.println("[EvoTournament] Composite ranking: " + formatCompositeRanking(scored));
+        System.out.println("[EvoTournament] Culled: " + cullLog);
+        System.out.println("[EvoTournament] Bred: " + breedLog
+                + (useAncestralCrossover ? " [ancestral crossover]" : "")
+                + " grace=" + gracePeriodTicks);
+        System.out.println("[EvoTournament] Best: " + best.getName()
+                + " (fit=" + DF4.format(best.getBestScore() * 100) + "%, vel="
+                + DF4.format(best.getFitnessTracker().getVelocity() * 100) + "/s)  Avg: "
+                + DF4.format(avgScore * 100) + "%");
+        if (adaptiveCutoff) {
+            System.out.println("[EvoTournament] Adaptive cutoff: " + cutoffSeconds + "s");
+        }
+        if (converged) {
+            System.out.println("[EvoTournament] CONVERGENCE DETECTED — "
+                    + stalledGenerations + " generations without significant improvement");
+        }
+    }
+
+    private ScoredContestant findWorstEligible(List<ScoredContestant> scored) {
+        ScoredContestant worst = null;
+        for (int i = scored.size() - 1; i >= 0; i--) {
+            ScoredContestant sc = scored.get(i);
+            if (!sc.contestant.isProtected()) {
+                if (worst == null || sc.compositeScore < worst.compositeScore
+                        || (sc.compositeScore == worst.compositeScore
+                            && sc.contestant.getGeneration() < worst.contestant.getGeneration())) {
+                    worst = sc;
+                }
+            }
+        }
+        return worst;
+    }
+
+    private int countEligibleForCull(List<ScoredContestant> scored) {
+        int count = 0;
+        for (ScoredContestant sc : scored) {
+            if (!sc.contestant.isProtected()) count++;
+        }
+        return count;
+    }
+
+    /** Parent selection with inbreeding prevention. */
+    private TournamentContestant selectParentDiverse(List<ScoredContestant> ranked,
+                                                      TournamentContestant exclude,
+                                                      TournamentContestant otherParent) {
+        TournamentContestant candidate = selectParent(ranked, exclude);
         int attempts = 0;
-        while (parentB == parentA && alive.size() > 2 && attempts < 10) {
-            parentB = selectParent(scored, worst);
+        while (candidate == otherParent && ranked.size() > 2 && attempts < 10) {
+            candidate = selectParent(ranked, exclude);
             attempts++;
         }
-        if (parentA.getLineageNode() != null && parentB.getLineageNode() != null) {
+        if (otherParent.getLineageNode() != null && candidate.getLineageNode() != null) {
             int inbreedAttempts = 0;
-            while (parentA.getLineageNode().sharesAncestorWith(parentB.getLineageNode(), 2)
+            while (otherParent.getLineageNode().sharesAncestorWith(candidate.getLineageNode(), 2)
                     && inbreedAttempts < 5) {
-                parentB = selectParent(scored, worst);
+                candidate = selectParent(ranked, exclude);
                 inbreedAttempts++;
             }
         }
+        return candidate;
+    }
 
-        EvolutionConfig childConfig;
-        if (useAncestralCrossover && parentA.getLineageNode() != null
-                && parentB.getLineageNode() != null) {
-            childConfig = breedWithAncestry(parentA, parentB);
-        } else {
-            childConfig = breedConfigs(parentA.getConfig(), parentB.getConfig());
-        }
-        childConfig.threads = worst.getConfig().threads;
-
-        String childName = "G" + generation + "-"
-                + parentA.getName().substring(0, Math.min(3, parentA.getName().length()))
-                + "x"
-                + parentB.getName().substring(0, Math.min(3, parentB.getName().length()));
-
-        worst.eliminate(generation);
-
+    /** Creates, initializes, and starts a new child contestant. */
+    private TournamentContestant spawnChild(String childName, EvolutionConfig childConfig,
+                                             TournamentContestant parentA,
+                                             TournamentContestant parentB) {
         TournamentContestant child = new TournamentContestant("evo" + nextId++, childName);
         child.setConfig(childConfig);
         childConfig.name = childName;
@@ -295,7 +404,6 @@ public class EvolutionaryTournament {
         child.setGraceTicks(gracePeriodTicks);
         child.getFitnessTracker().setVelocityWindowSeconds(velocityWindowSeconds);
 
-        // Build lineage node for child
         LineageNode childNode = new LineageNode(child.getId(), childName,
                 generation, childConfig);
         childNode.setParentA(parentA.getLineageNode());
@@ -317,60 +425,31 @@ public class EvolutionaryTournament {
                 child.initializeWithImage(resized);
                 child.start();
             } catch (Exception ex) {
-                System.err.println("[EvoTournament] Failed to start child " + childName + ": " + ex.getMessage());
+                System.err.println("[EvoTournament] Failed to start child "
+                        + childName + ": " + ex.getMessage());
             }
         }
+        return child;
+    }
 
-        // Build generation record
-        double[] rawScores = alive.stream().mapToDouble(TournamentContestant::getBestScore).toArray();
-        double avgScore = Arrays.stream(rawScores).average().orElse(0);
+    /**
+     * Adaptive cutoff: shortens interval when converged (to explore faster),
+     * lengthens when improving well (to let contestants build more data).
+     */
+    private void adaptCutoffInterval() {
+        int newCutoff = cutoffSeconds;
 
-        GenerationRecord rec = new GenerationRecord(generation);
-        rec.timestamp = System.currentTimeMillis();
-        rec.culledName = culledName;
-        rec.culledScore = culledScore;
-        rec.culledComposite = culledComposite;
-        rec.culledVelocity = culledVelocity;
-        rec.culledGeneration = culledGen;
-        rec.parentA = parentA.getName();
-        rec.parentB = parentB.getName();
-        rec.childName = childName;
-        rec.childParams = childConfig.toSummary();
-        rec.childGraceTicks = gracePeriodTicks;
-        rec.bestName = best.getName();
-        rec.bestScore = best.getBestScore();
-        rec.bestComposite = bestScored.compositeScore;
-        rec.bestVelocity = best.getFitnessTracker().getVelocity();
-        rec.worstScore = culledScore;
-        rec.avgScore = avgScore;
-        rec.aliveCount = getAlive().size();
-        rec.bestEverScore = bestEverScore;
-        rec.bestEverName = bestEverName;
-        rec.converged = converged;
-        rec.ancestralCrossover = useAncestralCrossover;
-        history.add(rec);
-
-        artEvolver.refreshContestantCombo();
-        if (artEvolver.getTournamentManagerWindow() != null) {
-            artEvolver.getTournamentManagerWindow().refreshTable();
+        if (stalledGenerations >= 3) {
+            newCutoff = Math.max(adaptiveCutoffMin, cutoffSeconds - 10);
+        } else if (stalledGenerations == 0) {
+            newCutoff = Math.min(adaptiveCutoffMax, cutoffSeconds + 5);
         }
 
-        System.out.println("[EvoTournament] === Generation " + generation + " ===");
-        System.out.println("[EvoTournament] Composite ranking: " + formatCompositeRanking(scored));
-        System.out.println("[EvoTournament] Culled: " + culledName
-                + " (fit=" + DF4.format(culledScore * 100) + "%, vel=" + DF4.format(culledVelocity * 100)
-                + "/s, comp=" + DF4.format(culledComposite) + ", gen " + culledGen + ")");
-        System.out.println("[EvoTournament] Bred: " + childName
-                + " from [" + parentA.getName() + " x " + parentB.getName() + "]"
-                + (useAncestralCrossover ? " [ancestral crossover]" : "")
-                + " grace=" + gracePeriodTicks);
-        System.out.println("[EvoTournament] Best: " + best.getName()
-                + " (fit=" + DF4.format(best.getBestScore() * 100) + "%, vel="
-                + DF4.format(best.getFitnessTracker().getVelocity() * 100) + "/s)  Avg: "
-                + DF4.format(avgScore * 100) + "%");
-        if (converged) {
-            System.out.println("[EvoTournament] CONVERGENCE DETECTED — "
-                    + stalledGenerations + " generations without significant improvement");
+        if (newCutoff != cutoffSeconds) {
+            int old = cutoffSeconds;
+            setCutoffSeconds(newCutoff);
+            System.out.println("[EvoTournament] Adaptive cutoff: " + old + "s -> " + newCutoff + "s"
+                    + (stalledGenerations > 0 ? " (stalled " + stalledGenerations + " gens)" : " (improving)"));
         }
     }
 
@@ -574,7 +653,7 @@ public class EvolutionaryTournament {
 
     public int getCutoffSeconds() { return cutoffSeconds; }
     public void setCutoffSeconds(int s) {
-        this.cutoffSeconds = Math.max(10, s);
+        this.cutoffSeconds = Math.max(5, s);
         if (cullTimer != null && running) {
             cullTimer.stop();
             cullTimer = new Timer(cutoffSeconds * 1000, e -> onCutoffTick());
@@ -607,6 +686,14 @@ public class EvolutionaryTournament {
     public void setUseAncestralCrossover(boolean b) { this.useAncestralCrossover = b; }
     public int getVelocityWindowSeconds() { return velocityWindowSeconds; }
     public void setVelocityWindowSeconds(int s) { this.velocityWindowSeconds = Math.max(5, s); }
+    public int getSpawnsPerTick() { return spawnsPerTick; }
+    public void setSpawnsPerTick(int n) { this.spawnsPerTick = Math.max(1, n); }
+    public boolean isAdaptiveCutoff() { return adaptiveCutoff; }
+    public void setAdaptiveCutoff(boolean b) { this.adaptiveCutoff = b; }
+    public int getAdaptiveCutoffMin() { return adaptiveCutoffMin; }
+    public void setAdaptiveCutoffMin(int s) { this.adaptiveCutoffMin = Math.max(5, s); }
+    public int getAdaptiveCutoffMax() { return adaptiveCutoffMax; }
+    public void setAdaptiveCutoffMax(int s) { this.adaptiveCutoffMax = Math.max(30, s); }
 
     // ═══════════════════════════════════════════════════════════
     //  INNER CLASSES
@@ -664,6 +751,8 @@ public class EvolutionaryTournament {
         public String bestEverName;
         public boolean converged;
         public boolean ancestralCrossover;
+        public int spawnsThisTick = 1;
+        public int currentCutoff;
 
         GenerationRecord(int gen) {
             this.generation = gen;
@@ -674,17 +763,19 @@ public class EvolutionaryTournament {
             if (skipped) {
                 return "Gen " + generation + ": SKIPPED — " + skipReason;
             }
-            return "Gen " + generation + ": "
+            String spawnStr = spawnsThisTick > 1 ? " [" + spawnsThisTick + " spawns]" : "";
+            String cutoffStr = currentCutoff > 0 ? " cutoff=" + currentCutoff + "s" : "";
+            return "Gen " + generation + spawnStr + ": "
                     + culledName + " (fit=" + DF2_STATIC.format(culledScore * 100)
                     + "% vel=" + DF4_STATIC.format(culledVelocity * 100)
                     + "/s comp=" + DF2_STATIC.format(culledComposite) + ") CULLED"
-                    + " → " + childName + " bred [" + parentA + " × " + parentB + "]"
+                    + " \u2192 " + childName + " bred [" + parentA + " \u00D7 " + parentB + "]"
                     + (ancestralCrossover ? " [ancestry]" : "")
                     + " grace=" + childGraceTicks
                     + "  |  Best: " + bestName + " " + DF2_STATIC.format(bestScore * 100) + "%"
                     + " vel=" + DF4_STATIC.format(bestVelocity * 100) + "/s"
                     + "  Avg: " + DF2_STATIC.format(avgScore * 100) + "%"
-                    + "  Alive: " + aliveCount;
+                    + "  Alive: " + aliveCount + cutoffStr;
         }
 
         private static final DecimalFormat DF2_STATIC = new DecimalFormat("0.00");

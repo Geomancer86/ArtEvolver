@@ -512,6 +512,28 @@ public class TournamentManagerWindow extends JFrame {
                 evoTournament.getMinContestants(), 2, 20, 1));
         form.add(spnMinPop);
 
+        form.add(new JLabel("Spawns per Tick:"));
+        JSpinner spnSpawns = new JSpinner(new SpinnerNumberModel(
+                evoTournament.getSpawnsPerTick(), 1, 10, 1));
+        form.add(spnSpawns);
+
+        // --- Adaptive Cutoff ---
+        addSectionLabel(form, "ADAPTIVE CUTOFF");
+
+        form.add(new JLabel("Adaptive Cutoff:"));
+        JCheckBox chkAdaptive = new JCheckBox("Auto-adjust interval", evoTournament.isAdaptiveCutoff());
+        form.add(chkAdaptive);
+
+        form.add(new JLabel("Adaptive Min (seconds):"));
+        JSpinner spnAdaptMin = new JSpinner(new SpinnerNumberModel(
+                evoTournament.getAdaptiveCutoffMin(), 5, 120, 5));
+        form.add(spnAdaptMin);
+
+        form.add(new JLabel("Adaptive Max (seconds):"));
+        JSpinner spnAdaptMax = new JSpinner(new SpinnerNumberModel(
+                evoTournament.getAdaptiveCutoffMax(), 30, 600, 10));
+        form.add(spnAdaptMax);
+
         // --- Breeding ---
         addSectionLabel(form, "BREEDING & MUTATION");
 
@@ -588,6 +610,10 @@ public class TournamentManagerWindow extends JFrame {
             evoTournament.setCutoffSeconds((int) spnCutoff.getValue());
             evoTournament.setGracePeriodTicks((int) spnGrace.getValue());
             evoTournament.setMinContestants((int) spnMinPop.getValue());
+            evoTournament.setSpawnsPerTick((int) spnSpawns.getValue());
+            evoTournament.setAdaptiveCutoff(chkAdaptive.isSelected());
+            evoTournament.setAdaptiveCutoffMin((int) spnAdaptMin.getValue());
+            evoTournament.setAdaptiveCutoffMax((int) spnAdaptMax.getValue());
             evoTournament.setMutationRate(((Number) spnMutRate.getValue()).floatValue());
             evoTournament.setMutationStrength(((Number) spnMutStr.getValue()).floatValue());
             evoTournament.setUseAncestralCrossover(chkAncestral.isSelected());
@@ -621,6 +647,12 @@ public class TournamentManagerWindow extends JFrame {
             int m = remaining / 60;
             int s = remaining % 60;
             String countText = (m > 0) ? String.format("Next: %d:%02d", m, s) : String.format("Next: %ds", s);
+            if (evoTournament.isAdaptiveCutoff()) {
+                countText += " [adaptive " + evoTournament.getCutoffSeconds() + "s]";
+            }
+            if (evoTournament.getSpawnsPerTick() > 1) {
+                countText += " x" + evoTournament.getSpawnsPerTick();
+            }
             lblCountdown.setText(countText);
             if (remaining <= 10) {
                 lblCountdown.setForeground(new Color(244, 67, 54));

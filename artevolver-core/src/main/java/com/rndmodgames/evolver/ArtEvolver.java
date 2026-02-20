@@ -2142,6 +2142,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
 	        java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 
+	    // Sort: alive by best score descending, then eliminated at bottom
+	    List<TournamentContestant> sorted = new java.util.ArrayList<>(contestants);
+	    sorted.sort((a, b) -> {
+	        if (a.isEliminated() != b.isEliminated()) return a.isEliminated() ? 1 : -1;
+	        double sa = a.isEliminated() ? a.getFinalScore() : a.getBestScore();
+	        double sb = b.isEliminated() ? b.getFinalScore() : b.getBestScore();
+	        return Double.compare(sb, sa);
+	    });
+
 	    int cols = (int) Math.ceil(Math.sqrt(n));
 	    int rows = (int) Math.ceil((double) n / cols);
 
@@ -2159,7 +2168,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	        .mapToDouble(TournamentContestant::getBestScore).max().orElse(0);
 
 	    for (int i = 0; i < n; i++) {
-	        TournamentContestant c = contestants.get(i);
+	        TournamentContestant c = sorted.get(i);
 	        int col = i % cols;
 	        int row = i / cols;
 	        int cx = pad + col * cellW;

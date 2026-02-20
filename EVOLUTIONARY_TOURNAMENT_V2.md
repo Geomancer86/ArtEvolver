@@ -165,6 +165,55 @@ When selecting parents for a new contestant:
    show velocity/composite score in table and detail panel; display lineage in history
 6. **GenerationRecord** — Enrich with velocity data, composite scores, lineage info
 
+## Dynamic Tournament Philosophy
+
+The core insight is that we don't know the optimal tournament pace. Maybe 5 seconds
+between iterations is better than 60, or maybe 300. The answer depends on:
+
+- Image complexity and triangle count
+- Number of contestants and threads per contestant
+- Current phase of evolution (early = lots of easy gains, late = diminishing returns)
+- Hardware (more cores = faster score accumulation = shorter intervals make sense)
+
+### Adaptive Cutoff
+
+Instead of guessing, we let the system find its own pace:
+- When stalled (3+ generations without improvement), **shorten** the interval
+  (faster turnover to try more parameter combinations)
+- When improving, **lengthen** the interval (give good contestants more time to
+  differentiate themselves)
+- Bounded by configurable min/max (default 15s-300s)
+
+### Multi-Spawn
+
+Rather than always culling exactly 1 and breeding exactly 1, the system supports
+`spawnsPerTick` > 1 (configurable). When set to e.g. 3, each tick:
+1. Rank all alive contestants by composite score
+2. Cull the worst eligible, breed a replacement
+3. Re-rank (the pool has changed), cull the next worst, breed another
+4. Repeat up to N times, respecting `minContestants` floor
+
+This is particularly useful on high-core systems where you can afford more
+parallelism: more contestants running simultaneously, more culled per tick,
+faster exploration of the parameter space.
+
+### Java 21 Performance Features
+
+For the Threadripper 2950x (16 cores, 128GB RAM):
+
+1. **ZGC (Z Garbage Collector)** — Sub-millisecond GC pauses regardless of heap
+   size. Critical for 16+ concurrent evolver threads that all allocate.
+2. **Generational ZGC** (`-XX:+ZGenerational`, Java 21+) — Separates young/old
+   generations for better throughput than non-generational ZGC.
+3. **Virtual Threads** (Java 21) — Future: could replace daemon threads for
+   evolvers, eliminating context-switch overhead for 100+ threads. Not yet
+   implemented but the architecture supports it.
+4. **`-XX:-TieredCompilation`** — Skips the C1 interpreter tier, going straight
+   to C2 optimized compilation. Slower startup (~5s) but steady-state performance
+   is 10-20% better for long-running evolution.
+5. **`-XX:+AlwaysPreTouch`** — Pre-faults all heap pages at startup, avoiding
+   OS page faults during evolution that would cause latency spikes.
+
 ## Why This Matters
 
 With these changes, the evolutionary tournament becomes a proper meta-optimizer:
@@ -174,4 +223,6 @@ With these changes, the evolutionary tournament becomes a proper meta-optimizer:
   good offspring, creating evolutionary pressure toward robust parameter spaces
 - Multi-generational breeding preserves and leverages proven genetic material
   from ancestors, preventing catastrophic forgetting
+- Dynamic pacing adapts to the problem's characteristics automatically
+- Multi-spawn enables faster exploration on high-core hardware
 - All parameters are exposed for future meta-meta-optimization

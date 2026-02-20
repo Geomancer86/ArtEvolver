@@ -14,6 +14,7 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.Executors;
+import com.rndmodgames.evolver.clicker.ClickerState;
 
 /**
  * Embedded HTTP server that serves a real-time leaderboard dashboard.
@@ -35,6 +36,7 @@ public class DashboardServer {
     private final ArtEvolver artEvolver;
     private final List<TournamentContestant> contestants;
     private final TournamentManagerWindow managerWindow;
+    private final ClickerState clickerState = new ClickerState();
 
     public DashboardServer(ArtEvolver artEvolver,
                            List<TournamentContestant> contestants,
@@ -49,7 +51,12 @@ public class DashboardServer {
         port = server.getAddress().getPort();
 
         server.createContext("/", this::handleDashboard);
+        server.createContext("/clicker", this::handleClicker);
         server.createContext("/api/state", this::handleState);
+        server.createContext("/api/clicker/state", this::handleClickerState);
+        server.createContext("/api/clicker/click", this::handleClickerClick);
+        server.createContext("/api/clicker/buy", this::handleClickerBuy);
+        server.createContext("/api/clicker/prestige", this::handleClickerPrestige);
         server.createContext("/api/image/", this::handleImage);
         server.createContext("/api/export/", this::handleExport);
 
@@ -165,6 +172,112 @@ public class DashboardServer {
         ex.getResponseBody().write(data);
         ex.close();
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  CLICKER HANDLERS
+    // ═══════════════════════════════════════════════════════════════
+
+    private void handleClicker(HttpExchange ex) throws IOException {
+        if (!ex.getRequestMethod().equals("GET")) { sendError(ex, 405); return; }
+        try (InputStream is = getClass().getResourceAsStream("/clicker.html")) {
+            byte[] html;
+            if (is != null) {
+                html = is.readAllBytes();
+            } else {
+                html = "<html><body><h1>clicker.html not found</h1></body></html>".getBytes(StandardCharsets.UTF_8);
+            }
+            ex.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
+            ex.sendResponseHeaders(200, html.length);
+            ex.getResponseBody().write(html);
+        }
+        ex.close();
+    }
+
+    private void handleClickerState(HttpExchange ex) throws IOException {
+        if (!ex.getRequestMethod().equals("GET")) { sendError(ex, 405); return; }
+
+        // Tick the game with real evolution data
+        double fitness = 0;
+        long iterPerSec = 0;
+        int generation = 0;
+        for (TournamentContestant c : contestants) {
+            if (!c.isEliminated()) {
+                fitness = Math.max(fitness, c.getBestScore());
+                long elapsed = System.currentTimeMillis() - c.getStartTimeMs();
+                if (elapsed > 0) iterPerSec += c.getTotalIterations() * 1000 / elapsed;
+            }
+        }
+        EvolutionaryTournament evo = managerWindow.getEvoTournament();
+        if (evo != null) generation = evo.getGeneration();
+
+        clickerState.tick(fitness, iterPerSec, generation);
+
+        String json = clickerState.toJson();
+        byte[] data = json.getBytes(StandardCharsets.UTF_8);
+        ex.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+        ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        ex.getResponseHeaders().set("Cache-Control", "no-cache");
+        ex.sendResponseHeaders(200, data.length);
+        ex.getResponseBody().write(data);
+        ex.close();
+    }
+
+    private void handleClickerClick(HttpExchange ex) throws IOException {
+        if (!ex.getRequestMethod().equals("POST") && !ex.getRequestMethod().equals("GET")) {
+            sendError(ex, 405); return;
+        }
+        double earned = clickerState.click();
+        String json = "{\"earned\":" + earned + ",\"ep\":" + clickerState.getEp() + "}";
+        byte[] data = json.getBytes(StandardCharsets.UTF_8);
+        ex.getResponseHeaders().set("Content-Type", "application/json");
+        ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        ex.sendResponseHeaders(200, data.length);
+        ex.getResponseBody().write(data);
+        ex.close();
+    }
+
+    private void handleClickerBuy(HttpExchange ex) throws IOException {
+        String query = ex.getRequestURI().getQuery();
+        String id = null;
+        boolean max = false;
+        if (query != null) {
+            for (String param : query.split("&")) {
+                String[] kv = param.split("=", 2);
+                if (kv[0].equals("id") && kv.length > 1) id = kv[1];
+                if (kv[0].equals("max")) max = true;
+            }
+        }
+        if (id == null) { sendError(ex, 400); return; }
+
+        String json;
+        if (max) {
+            int count = clickerState.buyMax(id);
+            json = "{\"bought\":" + count + ",\"ep\":" + clickerState.getEp() + "}";
+        } else {
+            boolean success = clickerState.buyUpgrade(id);
+            json = "{\"success\":" + success + ",\"ep\":" + clickerState.getEp() + "}";
+        }
+        byte[] data = json.getBytes(StandardCharsets.UTF_8);
+        ex.getResponseHeaders().set("Content-Type", "application/json");
+        ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        ex.sendResponseHeaders(200, data.length);
+        ex.getResponseBody().write(data);
+        ex.close();
+    }
+
+    private void handleClickerPrestige(HttpExchange ex) throws IOException {
+        boolean success = clickerState.ascend();
+        String json = "{\"success\":" + success + ",\"gf\":" + clickerState.getGf()
+                + ",\"ascensions\":" + clickerState.getAscensionCount() + "}";
+        byte[] data = json.getBytes(StandardCharsets.UTF_8);
+        ex.getResponseHeaders().set("Content-Type", "application/json");
+        ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        ex.sendResponseHeaders(200, data.length);
+        ex.getResponseBody().write(data);
+        ex.close();
+    }
+
+    public ClickerState getClickerState() { return clickerState; }
 
     // ═══════════════════════════════════════════════════════════════
     //  JSON BUILDER

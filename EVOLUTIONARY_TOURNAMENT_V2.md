@@ -341,3 +341,100 @@ Java App (Swing)
 - Status badges: LIVE (pulsing), AUTOPILOT, ERA (prehistoric mode)
 - Auto-refresh every 2 seconds, graceful reconnection on network errors
 - Fully responsive: collapses sidebar below leaderboard on narrow screens
+
+---
+
+## Evolution Clicker — Cookie Clicker Mode
+
+### Design Philosophy
+
+Channeling the greatest game designers:
+- **Carmack**: Every upgrade maps to a real evolution parameter — deep technical layers
+- **Will Wright**: Emergent complexity from simple multiplicative rules
+- **Sid Meier**: "One more upgrade" — every decision is interesting
+- **Miyamoto**: Immediate tactile feedback — floating EP numbers, achievement popups
+- **Kojima**: Meta-narrative — the algorithm "becoming aware" through prestige
+- **Gabe Newell**: Platform economy — currencies cascade into each other
+- **Sandy Petersen**: Random events create emergent gameplay moments
+- **Tim Cain**: Deep upgrade trees with meaningful build diversity
+- **Gygax**: Critical hits, luck mechanics, dice rolls on events
+
+### Currency System
+
+| Currency | Symbol | Earned From | Spent On |
+|----------|--------|-------------|----------|
+| Evolution Points (EP) | ⚡ | Clicks, passive production, fitness gains | Upgrades (most) |
+| Mutation Crystals (MC) | 💎 | Achievements, rare events | Special upgrades |
+| Genome Fragments (GF) | 🌟 | Prestige/Ascension (sqrt scaling) | Prestige upgrades |
+
+### Upgrade Categories (52 total)
+
+| Category | Count | Currency | Theme |
+|----------|-------|----------|-------|
+| Mutation Lab | 8 | EP | All mutation types + mastery |
+| Population Lab | 6 | EP | Population dynamics |
+| Crossover Lab | 5 | EP | Crossover mechanics |
+| Initialization | 4 | EP | Starting conditions |
+| Computing | 6 | EP | Thread/speed optimization |
+| Tournament | 6 | EP | Tournament parameters |
+| Meta-Evolution | 6 | EP | Meta-GA tuning |
+| Special | 8 | MC | Rare powerful effects |
+| Prestige | 4 | GF | Permanent bonuses |
+
+Each upgrade has: base cost, exponential cost growth (1.14x-1.70x per level),
+max level (20-200), and a real effect target mapping to EvolutionConfig parameters.
+
+### Achievement System (120+)
+
+Procedurally generated across 10 milestone categories:
+- Fitness (20 tiers: 0.1% to 99.9%)
+- Total EP (15 tiers: 10 to 1T)
+- Clicks (12 tiers: 1 to 1M)
+- Play Time (10 tiers: 1min to 1 week)
+- Generations (10 tiers: 1 to 10K)
+- Upgrades (8 tiers: 1 to 500)
+- Prestige (7 tiers: 1 to 100)
+- Speed (10 tiers: 100 to 10M iter/s)
+- 10+ hidden discovery achievements
+
+Each achievement grants EP bonus + permanent multiplier (1.001x to 1.25x).
+
+### Prestige / Ascension
+
+- Available when enough EP has been earned lifetime
+- Resets: EP, MC, non-prestige upgrades, fitness progress
+- Keeps: Achievements, prestige upgrades, Genome Fragments
+- Reward: GF = floor(sqrt(totalEpEarned / 1000) * prestigeMultiplier)
+- Each GF provides +1% to all production (compounding)
+- After first ascension: Prestige upgrade tier becomes visible
+
+### Random Events (8 types)
+
+| Event | Duration | Effect | Base Chance |
+|-------|----------|--------|-------------|
+| Golden Mutation | 30s | 2x mutations | 0.3%/5s |
+| Fitness Surge | 45s | 3x fitness gains | 0.2%/5s |
+| EP Rain | 30s | 5x EP production | 0.4%/5s |
+| Population Boom | 60s | +1 population | 0.2%/5s |
+| Algorithm Insight | 45s | 2.5x algorithms | 0.15%/5s |
+| Cosmic Alignment | 120s | 2x everything | 0.1%/5s |
+| Time Dilation | 60s | 2x speed | 0.2%/5s |
+| Mutation Frenzy | 30s | 3x mutation rate | 0.3%/5s |
+
+Event spawn chance scales with Lucky Star upgrade + Eternal Fortune prestige.
+
+### Combinatorial Option Space
+
+With 52 upgrades × avg 100 levels × prestige multipliers × 120 achievements ×
+8 event types × synergy combinations, the total build space is effectively
+**billions of distinct configurations** — each playthrough is unique.
+
+### Endgame Progression
+
+1. **Early Game**: Manual clicking, first upgrades, unlocking mutation types
+2. **Mid Game**: Auto-clicker, tournament upgrades, first events
+3. **Late Game**: Meta-evolution, special upgrades, approaching first prestige
+4. **Prestige 1**: Unlock GF currency and eternal upgrades, restart with bonuses
+5. **Prestige 5+**: Compound growth, faster cycles, deeper upgrades
+6. **Prestige 25+**: All achievement tiers, event optimization
+7. **Prestige 100+**: Effectively infinite scaling — numbers in the trillions

@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.0] - 2026-02-20 (develop branch)
 
+### Added — Evolution Clicker (Cookie Clicker Mode)
+- **Full idle/clicker game** integrated into the genetic algorithm, inspired by
+  Cookie Clicker, designed channeling Carmack, Will Wright, Sid Meier, Miyamoto,
+  Kojima, Gabe Newell, Sandy Petersen, Tim Cain, and Gygax
+- **3 Currencies**: Evolution Points (EP, main), Mutation Crystals (MC, rare),
+  Genome Fragments (GF, prestige). EP earned from evolution, clicks, and upgrades
+- **52 Upgrades** across 8 categories, each with 20-200 levels:
+  - Mutation Lab (8): Random Swap Power, Grid Awareness, Precision Touch,
+    Targeted Strikes, Mutation Efficiency, Double Down, Chain Reaction, Mastery
+  - Population Lab (6): Growth, Elite Retention, Diversity, Fresh Blood,
+    Crossover Partners, Mastery
+  - Crossover Lab (5): Block Crossover, Frequency, Multi-Parent, Adaptive, Mastery
+  - Initialization (4): Smart Init, LAP Solver, Hybrid Init, Mastery
+  - Computing (6): Processing Power, Batch Size, Memory Cache, CPU Affinity,
+    Parallel Eval, Mastery
+  - Tournament (6): Contestant Slots, Quick Culling, Multi-Spawn, Adaptive
+    Intelligence, Grace Extension, Mastery
+  - Meta-Evolution (6): Gene Crossover, Gene Mutation, Composite Weights,
+    Deep Ancestry, Convergence Detection, Mastery
+  - Special (8, MC): Golden Mutations, Critical Hits, Time Warp, Fitness Magnet,
+    Auto-Clicker, EP Overflow, Lucky Star, Legacy Power
+  - Prestige (4, GF): Eternal Speed, Eternal Fitness, Eternal Production,
+    Eternal Fortune
+- **120+ Achievements** procedurally generated across 10 categories:
+  fitness, EP earned, clicks, play time, generations, upgrades, prestige,
+  speed, contestants, and 10+ hidden discovery achievements
+- **Prestige/Ascension System**: Reset progress for Genome Fragments (sqrt
+  scaling), permanent multipliers, unlock prestige-tier upgrades
+- **8 Random Events**: Golden Mutation, Fitness Surge, EP Rain, Population Boom,
+  Algorithm Insight, Cosmic Alignment, Time Dilation, Mutation Frenzy — each
+  with duration, strength multiplier, and luck-scaled spawn chance
+- **Browser-based UI** (`/clicker` endpoint):
+  - Dark theme with neon accents, 3-column layout
+  - Giant clickable evolution orb with floating EP popups and critical hit effects
+  - Tabbed upgrade store with cost scaling, max-buy (right-click), affordability
+  - Achievement grid with tooltips, celebration popups on unlock
+  - Live event pills with countdown timers and glow animations
+  - Stats dashboard: clicks, EP/click, upgrades, achievements, play time
+  - Prestige button with earned fragment preview
+  - Activity log with color-coded notifications
+  - Links between Dashboard and Clicker pages
+- **Every upgrade maps to real evolution parameters** — this isn't a fake game,
+  purchases actually change mutation rates, thread counts, population sizes, etc.
+
 ### Added — Browser Dashboard (Real-Time Leaderboard)
 - **Embedded HTTP server** (`DashboardServer.java`) using Java's built-in
   `com.sun.net.httpserver.HttpServer` — zero external dependencies, auto-selects

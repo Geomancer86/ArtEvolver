@@ -259,6 +259,10 @@ public class TournamentManagerWindow extends JFrame {
 
         JPanel statusBtnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
         statusBtnPanel.setOpaque(false);
+        JButton btnClicker = makeBtn("\uD83C\uDFAE Clicker");
+        btnClicker.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 10));
+        btnClicker.addActionListener(e -> openClicker());
+        statusBtnPanel.add(btnClicker);
         JButton btnDashboard = makeBtn("\uD83C\uDF10 Dashboard");
         btnDashboard.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 10));
         btnDashboard.addActionListener(e -> openDashboard());
@@ -478,22 +482,37 @@ public class TournamentManagerWindow extends JFrame {
     public boolean isAutopilotActive() { return autopilotActive; }
 
     private void openDashboard() {
+        ensureDashboardServer();
         if (dashboardServer != null) {
             dashboardServer.openInBrowser();
-            return;
-        }
-        try {
-            dashboardServer = new DashboardServer(artEvolver, contestants, this);
-            dashboardServer.start();
-            dashboardServer.openInBrowser();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this,
-                    "Failed to start dashboard server:\n" + ex.getMessage(),
-                    "Dashboard Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     public DashboardServer getDashboardServer() { return dashboardServer; }
+
+    private void openClicker() {
+        ensureDashboardServer();
+        if (dashboardServer != null) {
+            try {
+                java.awt.Desktop.getDesktop().browse(
+                        java.net.URI.create(dashboardServer.getUrl() + "/clicker"));
+            } catch (Exception ex) {
+                System.err.println("[Clicker] Could not open browser: " + ex.getMessage());
+            }
+        }
+    }
+
+    private void ensureDashboardServer() {
+        if (dashboardServer != null) return;
+        try {
+            dashboardServer = new DashboardServer(artEvolver, contestants, this);
+            dashboardServer.start();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Failed to start server:\n" + ex.getMessage(),
+                    "Server Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
 
     // ═══════════════════════════════════════════════════════════════
     //  PREHISTORIC MODE UI

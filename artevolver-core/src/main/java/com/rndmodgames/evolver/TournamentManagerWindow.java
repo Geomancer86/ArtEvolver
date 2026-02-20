@@ -31,6 +31,7 @@ public class TournamentManagerWindow extends JFrame {
     private JLabel lblCountdown;
     private JLabel lblBestEver;
     private JTextArea txtHistory;
+    private int lastHistoryRecordCount = 0;
     private JButton btnEvolve;
     private JButton btnQuickSetupRef;
     private JButton btnStartAllRef;
@@ -508,16 +509,19 @@ public class TournamentManagerWindow extends JFrame {
 
         // Auto-start evolutionary tournament if enough running contestants
         if (aliveCount >= 3 && (evoTournament == null || !evoTournament.isRunning())) {
-            // Only start tournament if contestants have had time to produce scores
             boolean anyHaveScores = contestants.stream()
                     .anyMatch(c -> !c.isEliminated() && c.getBestScore() > 0);
             if (anyHaveScores) {
                 createEvoTournament();
                 if (evoTournament != null && !evoTournament.isRunning()) {
+                    // Machine gun start: begin at minimum cutoff, adaptive ramps up
+                    evoTournament.setCutoffSeconds(evoTournament.getAdaptiveCutoffMin());
                     evoTournament.setAdaptiveCutoff(true);
+                    lastHistoryRecordCount = 0;
                     evoTournament.start();
                     System.out.println("[Autopilot] Started evolutionary tournament"
-                            + " (" + aliveCount + " contestants active)");
+                            + " (fast start at " + evoTournament.getCutoffSeconds()
+                            + "s, " + aliveCount + " contestants)");
                 }
             }
         }
@@ -802,17 +806,15 @@ public class TournamentManagerWindow extends JFrame {
         }
 
         // Update era history in the main history area
-        java.util.List<PrehistoricMode.EraRecord> records = prehistoricMode.getHistory();
-        if (!records.isEmpty()) {
-            PrehistoricMode.EraRecord latest = records.get(records.size() - 1);
-            if (txtHistory.getText().isEmpty() || !txtHistory.getText().contains("Era " + latest.era)) {
-                StringBuilder sb = new StringBuilder();
-                for (PrehistoricMode.EraRecord rec : records) {
-                    sb.append(rec.toNarrative()).append('\n');
-                }
-                txtHistory.setText(sb.toString());
-                txtHistory.setCaretPosition(txtHistory.getDocument().getLength());
+        java.util.List<PrehistoricMode.EraRecord> eraRecords = prehistoricMode.getHistory();
+        if (eraRecords.size() > lastHistoryRecordCount) {
+            lastHistoryRecordCount = eraRecords.size();
+            StringBuilder sb = new StringBuilder();
+            for (PrehistoricMode.EraRecord rec : eraRecords) {
+                sb.append(rec.toNarrative()).append('\n');
             }
+            txtHistory.setText(sb.toString());
+            txtHistory.setCaretPosition(txtHistory.getDocument().getLength());
         }
     }
 
@@ -1023,6 +1025,7 @@ public class TournamentManagerWindow extends JFrame {
                 }
             }
 
+            lastHistoryRecordCount = 0;
             boolean started = evoTournament.start();
             if (!started) {
                 JOptionPane.showMessageDialog(this,
@@ -1083,7 +1086,8 @@ public class TournamentManagerWindow extends JFrame {
 
         form.add(new JLabel("Cutoff Interval (seconds):"));
         JSpinner spnCutoff = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getCutoffSeconds(), 10, 600, 10));
+                evoTournament.getCutoffSeconds(), 5, 600, 5));
+        spnCutoff.setToolTipText("Time between tournament cycles. Start low (5-10s) for fast churn.");
         form.add(spnCutoff);
 
         form.add(new JLabel("Grace Period (ticks):"));
@@ -1271,15 +1275,139 @@ public class TournamentManagerWindow extends JFrame {
         }
 
         List<EvolutionaryTournament.GenerationRecord> records = evoTournament.getHistory();
-        int historyLines = txtHistory.getLineCount() - 1;
-        if (historyLines < records.size()) {
+        if (records.size() > lastHistoryRecordCount) {
+            lastHistoryRecordCount = records.size();
             StringBuilder sb = new StringBuilder();
+            sb.append(buildLiveStatusBlock());
+            sb.append('\n');
             for (EvolutionaryTournament.GenerationRecord rec : records) {
                 sb.append(rec.toNarrative()).append('\n');
             }
             txtHistory.setText(sb.toString());
-            txtHistory.setCaretPosition(txtHistory.getDocument().getLength());
+            txtHistory.setCaretPosition(0);
+        } else if (evoTournament.isRunning()) {
+            // Between generations: refresh the live status block at the top
+            String currentText = txtHistory.getText();
+            String liveBlock = buildLiveStatusBlock();
+            int dividerIdx = currentText.indexOf("\n--- ");
+            if (dividerIdx > 0) {
+                txtHistory.setText(liveBlock + "\n" + currentText.substring(dividerIdx));
+            } else {
+                txtHistory.setText(liveBlock);
+            }
+            txtHistory.setCaretPosition(0);
         }
+    }
+
+    /**
+     * Builds a live status block shown at the top of the history panel.
+     * Acts as a "smart announcer" with real-time contestant analysis.
+     */
+    private String buildLiveStatusBlock() {
+        StringBuilder sb = new StringBuilder();
+        java.text.DecimalFormat df2 = new java.text.DecimalFormat("0.00");
+        java.text.DecimalFormat df4 = new java.text.DecimalFormat("0.0000");
+
+        List<TournamentContestant> alive = contestants.stream()
+                .filter(c -> !c.isEliminated()).collect(java.util.stream.Collectors.toList());
+        long eliminated = contestants.size() - alive.size();
+
+        sb.append("═══ LIVE TOURNAMENT STATUS ═══\n");
+
+        if (alive.isEmpty()) {
+            sb.append("  No active contestants.\n");
+            return sb.toString();
+        }
+
+        // Sort by score descending
+        alive.sort((a, b) -> Double.compare(b.getBestScore(), a.getBestScore()));
+
+        TournamentContestant leader = alive.get(0);
+        TournamentContestant trailer = alive.get(alive.size() - 1);
+
+        sb.append("  Active: ").append(alive.size())
+          .append("  |  Eliminated: ").append(eliminated)
+          .append("  |  Gen: ").append(evoTournament != null ? evoTournament.getGeneration() : 0)
+          .append('\n');
+
+        // Leader info
+        double leaderVel = leader.getFitnessTracker().getVelocity();
+        sb.append("  \uD83C\uDFC6 Leader: ").append(leader.getName())
+          .append(" — ").append(df2.format(leader.getBestScore() * 100)).append("% fitness");
+        if (leaderVel > 0) {
+            sb.append(", +").append(df4.format(leaderVel * 100)).append("%/s");
+        }
+        sb.append('\n');
+
+        // Per-contestant mini leaderboard with promise indicators
+        sb.append('\n');
+        for (int i = 0; i < alive.size(); i++) {
+            TournamentContestant c = alive.get(i);
+            double vel = c.getFitnessTracker().getVelocity();
+            double acc = c.getFitnessTracker().getAcceleration();
+            double score = c.getBestScore();
+            long startMs = c.getStartTimeMs();
+            long uptimeSec = startMs > 0 ? (System.currentTimeMillis() - startMs) / 1000 : 0;
+
+            String rank = String.format("  %2d. ", i + 1);
+            sb.append(rank).append(c.getName());
+
+            // Score
+            sb.append("  ").append(df2.format(score * 100)).append("%");
+
+            // Velocity indicator
+            if (vel > 0.0001) {
+                sb.append("  \u25B2").append(df4.format(vel * 100)).append("/s");
+            } else if (vel < -0.0001) {
+                sb.append("  \u25BC").append(df4.format(Math.abs(vel) * 100)).append("/s");
+            } else {
+                sb.append("  \u25AC flat");
+            }
+
+            // Promise tag
+            if (vel > 0.001) sb.append("  \u2B50 FAST");
+            else if (vel > 0 && acc > 0) sb.append("  \u2197 rising");
+            else if (vel <= 0 && acc < 0) sb.append("  \u2198 fading");
+            else if (uptimeSec > 30 && score < leader.getBestScore() * 0.95 && vel <= 0)
+                sb.append("  \u26A0 at risk");
+
+            // Grace period
+            if (c.isProtected()) sb.append("  \u2B50");
+
+            // Uptime
+            if (uptimeSec < 60) sb.append("  [" + uptimeSec + "s]");
+            else sb.append("  [" + (uptimeSec / 60) + "m" + (uptimeSec % 60) + "s]");
+
+            sb.append('\n');
+        }
+
+        // Summary stats
+        double avgScore = alive.stream().mapToDouble(TournamentContestant::getBestScore).average().orElse(0);
+        double maxVel = alive.stream().mapToDouble(c -> c.getFitnessTracker().getVelocity()).max().orElse(0);
+        String fastestName = alive.stream()
+                .max((a, b) -> Double.compare(a.getFitnessTracker().getVelocity(),
+                        b.getFitnessTracker().getVelocity()))
+                .map(TournamentContestant::getName).orElse("?");
+
+        sb.append('\n');
+        sb.append("  Avg fitness: ").append(df2.format(avgScore * 100)).append("%");
+        sb.append("  |  Spread: ").append(df2.format((leader.getBestScore() - trailer.getBestScore()) * 100)).append("pp");
+        if (maxVel > 0) {
+            sb.append("  |  Fastest learner: ").append(fastestName);
+        }
+        sb.append('\n');
+
+        if (evoTournament != null && evoTournament.isRunning()) {
+            int remaining = evoTournament.getSecondsUntilNextTick();
+            if (remaining >= 0) {
+                sb.append("  Next cycle in ").append(remaining).append("s");
+                sb.append(" [").append(evoTournament.getCutoffSeconds()).append("s interval");
+                if (evoTournament.isAdaptiveCutoff()) sb.append(", adaptive");
+                sb.append("]\n");
+            }
+        }
+
+        return sb.toString();
     }
 
     public EvolutionaryTournament getEvoTournament() { return evoTournament; }

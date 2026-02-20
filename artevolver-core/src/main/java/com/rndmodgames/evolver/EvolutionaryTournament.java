@@ -28,7 +28,7 @@ public class EvolutionaryTournament {
     private int nextId = 100;
 
     // --- Core timing ---
-    private int cutoffSeconds = 60;
+    private int cutoffSeconds = 10;
     private long lastTickMs = 0;
 
     // --- Breeding ---
@@ -37,12 +37,12 @@ public class EvolutionaryTournament {
     private int minContestants = 3;
 
     // --- Grace period ---
-    private int gracePeriodTicks = 1;
+    private int gracePeriodTicks = 2;
 
     // --- Dynamic tournament ---
     private int spawnsPerTick = 1;
     private boolean adaptiveCutoff = true;
-    private int adaptiveCutoffMin = 15;
+    private int adaptiveCutoffMin = 5;
     private int adaptiveCutoffMax = 300;
 
     // --- Composite ranking weights (must sum to ~1.0) ---
@@ -318,8 +318,14 @@ public class EvolutionaryTournament {
         rec.bestEverScore = bestEverScore;
         rec.bestEverName = bestEverName;
         rec.converged = converged;
+        rec.stalledGens = stalledGenerations;
         rec.ancestralCrossover = useAncestralCrossover;
         rec.currentCutoff = cutoffSeconds;
+        // Track previous generation's average for delta comparison
+        if (!history.isEmpty()) {
+            GenerationRecord prev = history.get(history.size() - 1);
+            if (!prev.skipped) rec.prevAvgScore = prev.avgScore;
+        }
         history.add(rec);
 
         artEvolver.refreshContestantCombo();
@@ -436,13 +442,25 @@ public class EvolutionaryTournament {
      * Adaptive cutoff: shortens interval when converged (to explore faster),
      * lengthens when improving well (to let contestants build more data).
      */
+    /**
+     * Adapts the cutoff interval based on tournament health.
+     * Strategy: start fast (machine gun), slow down as contestants differentiate,
+     * speed up again when stalled/converged to churn through bad configs faster.
+     */
     private void adaptCutoffInterval() {
         int newCutoff = cutoffSeconds;
 
-        if (stalledGenerations >= 3) {
-            newCutoff = Math.max(adaptiveCutoffMin, cutoffSeconds - 10);
-        } else if (stalledGenerations == 0) {
-            newCutoff = Math.min(adaptiveCutoffMax, cutoffSeconds + 5);
+        if (stalledGenerations >= 5) {
+            // Heavily stalled: drop fast to flush out the pool
+            newCutoff = Math.max(adaptiveCutoffMin, cutoffSeconds * 2 / 3);
+        } else if (stalledGenerations >= 2) {
+            // Mildly stalled: gentle decrease
+            newCutoff = Math.max(adaptiveCutoffMin, cutoffSeconds - 5);
+        } else if (stalledGenerations == 0 && generation > 1) {
+            // Improving: give contestants more time to differentiate
+            // Ramp up faster in early generations, slower once established
+            int increment = (cutoffSeconds < 30) ? 10 : 5;
+            newCutoff = Math.min(adaptiveCutoffMax, cutoffSeconds + increment);
         }
 
         if (newCutoff != cutoffSeconds) {
@@ -746,10 +764,12 @@ public class EvolutionaryTournament {
         public double bestVelocity;
         public double worstScore;
         public double avgScore;
+        public double prevAvgScore;
         public int aliveCount;
         public double bestEverScore;
         public String bestEverName;
         public boolean converged;
+        public int stalledGens;
         public boolean ancestralCrossover;
         public int spawnsThisTick = 1;
         public int currentCutoff;
@@ -780,11 +800,11 @@ public class EvolutionaryTournament {
 
         /**
          * Returns a multi-line, human-readable narrative of this generation's events.
+         * Acts as a "smart announcer" with commentary on trends and promise.
          */
         public String toNarrative() {
             StringBuilder sb = new StringBuilder();
-            String divider = "--- Generation " + generation + " ---\n";
-            sb.append(divider);
+            sb.append("--- Generation ").append(generation).append(" ---\n");
 
             if (skipped) {
                 sb.append("  Tournament paused: ").append(skipReason).append("\n");
@@ -792,62 +812,73 @@ public class EvolutionaryTournament {
             }
 
             java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm:ss");
-            sb.append("  Time: ").append(sdf.format(new java.util.Date(timestamp))).append("\n");
-            sb.append("  Population: ").append(aliveCount).append(" active competitors\n");
-
-            // Best performer
-            sb.append("  Leader: ").append(bestName)
-              .append(" at ").append(DF2_STATIC.format(bestScore * 100)).append("% fitness");
-            if (bestVelocity > 0) {
-                sb.append(", gaining ").append(DF4_STATIC.format(bestVelocity * 100)).append("%/s");
-            }
+            sb.append("  ").append(sdf.format(new java.util.Date(timestamp)));
+            sb.append("  |  ").append(aliveCount).append(" active");
+            if (spawnsThisTick > 1) sb.append("  |  ").append(spawnsThisTick).append(" spawns");
             sb.append("\n");
 
-            // Average
-            sb.append("  Average fitness: ").append(DF2_STATIC.format(avgScore * 100)).append("%\n");
-
-            // Convergence
-            if (converged) {
-                sb.append("  \u26A0 Population has converged - competitors are performing similarly\n");
+            // Score summary with delta from previous gen
+            sb.append("  Avg: ").append(DF2_STATIC.format(avgScore * 100)).append("%");
+            if (prevAvgScore > 0) {
+                double delta = (avgScore - prevAvgScore) * 100;
+                if (delta > 0.001) sb.append(" (+").append(DF4_STATIC.format(delta)).append(")");
+                else if (delta < -0.001) sb.append(" (").append(DF4_STATIC.format(delta)).append(")");
+                else sb.append(" (flat)");
             }
+            sb.append("  |  Best: ").append(DF2_STATIC.format(bestScore * 100)).append("%");
+            sb.append("  |  Spread: ").append(DF2_STATIC.format((bestScore - worstScore) * 100)).append("pp\n");
 
-            // Culling
-            sb.append("\n");
-            if (spawnsThisTick > 1) {
-                sb.append("  \u2694 ").append(spawnsThisTick).append(" competitors eliminated this cycle:\n");
-                sb.append("    Weakest: ").append(culledName)
-                  .append(" (").append(DF2_STATIC.format(culledScore * 100)).append("% fitness");
-                sb.append(", composite rank ").append(DF2_STATIC.format(culledComposite)).append(")\n");
+            // Leader with commentary
+            sb.append("  \uD83C\uDFC6 ").append(bestName);
+            if (bestVelocity > 0.001) {
+                sb.append(" accelerating at +").append(DF4_STATIC.format(bestVelocity * 100)).append("%/s");
+            } else if (bestVelocity > 0) {
+                sb.append(" gaining steadily");
             } else {
-                sb.append("  \u2694 Eliminated: ").append(culledName)
-                  .append(" (").append(DF2_STATIC.format(culledScore * 100)).append("% fitness");
-                if (culledVelocity != 0) {
-                    sb.append(", velocity ").append(DF4_STATIC.format(culledVelocity * 100)).append("%/s");
-                }
-                sb.append(")\n");
+                sb.append(" at plateau");
             }
+            sb.append('\n');
+
+            // Convergence/stall warning
+            if (converged) {
+                sb.append("  \u26A0 CONVERGED — population stalled for ").append(stalledGens).append(" generations\n");
+            } else if (stalledGens >= 2) {
+                sb.append("  \u26A0 Stalling (").append(stalledGens).append(" gens without improvement)\n");
+            }
+
+            // Culling with story
+            sb.append("  \u2694 ");
+            if (spawnsThisTick > 1) {
+                sb.append(spawnsThisTick).append(" eliminated: ").append(culledName);
+            } else {
+                sb.append("Eliminated ").append(culledName);
+            }
+            sb.append(" (").append(DF2_STATIC.format(culledScore * 100)).append("%");
+            if (culledVelocity > 0) sb.append(", was still improving");
+            else if (culledVelocity < -0.0001) sb.append(", declining");
+            else sb.append(", stagnant");
+            if (culledGeneration > 0) sb.append(", born Gen ").append(culledGeneration);
+            sb.append(")\n");
 
             // Breeding
-            sb.append("  \u2728 New competitor: ").append(childName).append("\n");
-            sb.append("    Parents: ").append(parentA).append(" x ").append(parentB);
-            if (ancestralCrossover) {
-                sb.append(" (with ancestral genes)");
-            }
-            sb.append("\n");
-            sb.append("    Grace period: ").append(childGraceTicks).append(" cycles to prove itself\n");
+            sb.append("  \u2728 ").append(childName);
+            sb.append(" = ").append(parentA).append(" x ").append(parentB);
+            if (ancestralCrossover) sb.append(" +ancestry");
+            sb.append(" (").append(childGraceTicks).append(" grace)\n");
 
-            // Best ever
-            if (bestEverScore > 0) {
-                sb.append("  \u2B50 All-time best: ").append(bestEverName)
-                  .append(" at ").append(DF2_STATIC.format(bestEverScore * 100)).append("%\n");
+            // Best ever tracker
+            if (bestEverScore > bestScore * 1.001) {
+                sb.append("  \u2B50 Record: ").append(bestEverName)
+                  .append(" ").append(DF2_STATIC.format(bestEverScore * 100)).append("%\n");
             }
 
-            // Adaptive cutoff
+            // Cycle timing
             if (currentCutoff > 0) {
-                sb.append("  Next cycle in ").append(currentCutoff).append(" seconds");
-                if (currentCutoff < 30) sb.append(" (accelerated - stalled population)");
-                else if (currentCutoff > 120) sb.append(" (extended - steady improvement)");
-                sb.append("\n");
+                sb.append("  \u23F1 Next in ").append(currentCutoff).append("s");
+                if (currentCutoff <= 10) sb.append(" (machine gun)");
+                else if (currentCutoff < 30) sb.append(" (fast)");
+                else if (currentCutoff > 120) sb.append(" (extended)");
+                sb.append('\n');
             }
 
             return sb.toString();

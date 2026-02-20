@@ -1,6 +1,7 @@
 package com.rndmodgames.evolver;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -10,11 +11,14 @@ import java.util.List;
  * Uses a configurable sliding window so that recent performance is
  * weighted over lifetime averages. This is critical for fairly evaluating
  * newcomers against established contestants in the evolutionary tournament.
+ *
+ * Thread-safe: all snapshot access is synchronized via Collections.synchronizedList,
+ * and compound operations use explicit synchronization on the list monitor.
  */
 public class FitnessTracker {
 
-    private final List<Snapshot> snapshots = new ArrayList<>();
-    private int velocityWindowMs = 30_000;
+    private final List<Snapshot> snapshots = Collections.synchronizedList(new ArrayList<>());
+    private volatile int velocityWindowMs = 30_000;
     private static final int MAX_SNAPSHOTS = 2000;
     private static final int PRUNE_TO = 1000;
 
@@ -30,19 +34,24 @@ public class FitnessTracker {
 
     /** Records a fitness observation at the current time. */
     public void addSnapshot(double fitness, long totalIterations) {
-        snapshots.add(new Snapshot(System.currentTimeMillis(), fitness, totalIterations));
-        pruneIfNeeded();
+        synchronized (snapshots) {
+            snapshots.add(new Snapshot(System.currentTimeMillis(), fitness, totalIterations));
+            pruneIfNeeded();
+        }
     }
 
     /** Records a fitness observation at a specific timestamp. */
     public void addSnapshot(long timestampMs, double fitness, long totalIterations) {
-        snapshots.add(new Snapshot(timestampMs, fitness, totalIterations));
-        pruneIfNeeded();
+        synchronized (snapshots) {
+            snapshots.add(new Snapshot(timestampMs, fitness, totalIterations));
+            pruneIfNeeded();
+        }
     }
 
     /**
      * Keeps recent snapshots and downsamples older ones to prevent unbounded growth.
      * Retains recent window at full resolution, older data at reduced resolution.
+     * Must be called while holding the snapshots lock.
      */
     private void pruneIfNeeded() {
         if (snapshots.size() <= MAX_SNAPSHOTS) return;
@@ -70,8 +79,10 @@ public class FitnessTracker {
     }
 
     public double getLatestFitness() {
-        if (snapshots.isEmpty()) return 0;
-        return snapshots.get(snapshots.size() - 1).fitness;
+        synchronized (snapshots) {
+            if (snapshots.isEmpty()) return 0;
+            return snapshots.get(snapshots.size() - 1).fitness;
+        }
     }
 
     /**
@@ -79,7 +90,9 @@ public class FitnessTracker {
      * Returns 0 if insufficient data or time span.
      */
     public double getVelocity() {
-        return getVelocityOverWindow(velocityWindowMs);
+        synchronized (snapshots) {
+            return getVelocityOverWindow(velocityWindowMs);
+        }
     }
 
     /**
@@ -88,64 +101,72 @@ public class FitnessTracker {
      * to the velocity of the second half.
      */
     public double getAcceleration() {
-        if (snapshots.size() < 4) return 0;
+        synchronized (snapshots) {
+            if (snapshots.size() < 4) return 0;
 
-        long now = snapshots.get(snapshots.size() - 1).timestampMs;
-        long windowStart = now - velocityWindowMs;
-        int midIdx = -1;
-        long midTime = windowStart + velocityWindowMs / 2;
+            long now = snapshots.get(snapshots.size() - 1).timestampMs;
+            long windowStart = now - velocityWindowMs;
+            int midIdx = -1;
+            long midTime = windowStart + velocityWindowMs / 2;
 
-        for (int i = snapshots.size() - 1; i >= 0; i--) {
-            if (snapshots.get(i).timestampMs <= midTime) {
-                midIdx = i;
-                break;
+            for (int i = snapshots.size() - 1; i >= 0; i--) {
+                if (snapshots.get(i).timestampMs <= midTime) {
+                    midIdx = i;
+                    break;
+                }
             }
+
+            if (midIdx < 1) return 0;
+
+            double v1 = velocityBetween(findFirst(windowStart), midIdx);
+            double v2 = velocityBetween(midIdx, snapshots.size() - 1);
+
+            long dt1 = snapshots.get(midIdx).timestampMs - snapshots.get(findFirst(windowStart)).timestampMs;
+            long dt2 = snapshots.get(snapshots.size() - 1).timestampMs - snapshots.get(midIdx).timestampMs;
+
+            if (dt1 == 0 || dt2 == 0) return 0;
+            double timeMidpoint = (dt1 + dt2) / 2000.0;
+            if (timeMidpoint == 0) return 0;
+            return (v2 - v1) / timeMidpoint;
         }
-
-        if (midIdx < 1) return 0;
-
-        double v1 = velocityBetween(findFirst(windowStart), midIdx);
-        double v2 = velocityBetween(midIdx, snapshots.size() - 1);
-
-        long dt1 = snapshots.get(midIdx).timestampMs - snapshots.get(findFirst(windowStart)).timestampMs;
-        long dt2 = snapshots.get(snapshots.size() - 1).timestampMs - snapshots.get(midIdx).timestampMs;
-
-        if (dt1 == 0 || dt2 == 0) return 0;
-        double timeMidpoint = (dt1 + dt2) / 2000.0;
-        if (timeMidpoint == 0) return 0;
-        return (v2 - v1) / timeMidpoint;
     }
 
     /**
      * Projects fitness forward by the given number of seconds using current velocity.
      */
     public double getProjectedFitness(double secondsAhead) {
-        double vel = getVelocity();
-        double current = getLatestFitness();
-        return current + vel * secondsAhead;
+        synchronized (snapshots) {
+            double vel = getVelocityOverWindow(velocityWindowMs);
+            double current = snapshots.isEmpty() ? 0 : snapshots.get(snapshots.size() - 1).fitness;
+            return current + vel * secondsAhead;
+        }
     }
 
     /**
      * Average iterations per second over the full runtime.
      */
     public double getIterationsPerSecond() {
-        if (snapshots.size() < 2) return 0;
-        Snapshot first = snapshots.get(0);
-        Snapshot last = snapshots.get(snapshots.size() - 1);
-        long dtMs = last.timestampMs - first.timestampMs;
-        if (dtMs <= 0) return 0;
-        return (last.totalIterations - first.totalIterations) / (dtMs / 1000.0);
+        synchronized (snapshots) {
+            if (snapshots.size() < 2) return 0;
+            Snapshot first = snapshots.get(0);
+            Snapshot last = snapshots.get(snapshots.size() - 1);
+            long dtMs = last.timestampMs - first.timestampMs;
+            if (dtMs <= 0) return 0;
+            return (last.totalIterations - first.totalIterations) / (dtMs / 1000.0);
+        }
     }
 
     /**
      * Peak fitness ever recorded.
      */
     public double getPeakFitness() {
-        double peak = 0;
-        for (Snapshot s : snapshots) {
-            if (s.fitness > peak) peak = s.fitness;
+        synchronized (snapshots) {
+            double peak = 0;
+            for (Snapshot s : snapshots) {
+                if (s.fitness > peak) peak = s.fitness;
+            }
+            return peak;
         }
-        return peak;
     }
 
     /**
@@ -153,24 +174,28 @@ public class FitnessTracker {
      * Computed by scanning through the history with overlapping windows.
      */
     public double getPeakVelocity() {
-        if (snapshots.size() < 2) return 0;
-        double peak = 0;
-        for (int i = 1; i < snapshots.size(); i++) {
-            long dt = snapshots.get(i).timestampMs - snapshots.get(i - 1).timestampMs;
-            if (dt <= 0) continue;
-            double v = (snapshots.get(i).fitness - snapshots.get(i - 1).fitness) / (dt / 1000.0);
-            if (v > peak) peak = v;
+        synchronized (snapshots) {
+            if (snapshots.size() < 2) return 0;
+            double peak = 0;
+            for (int i = 1; i < snapshots.size(); i++) {
+                long dt = snapshots.get(i).timestampMs - snapshots.get(i - 1).timestampMs;
+                if (dt <= 0) continue;
+                double v = (snapshots.get(i).fitness - snapshots.get(i - 1).fitness) / (dt / 1000.0);
+                if (v > peak) peak = v;
+            }
+            return peak;
         }
-        return peak;
     }
 
     /** Elapsed seconds since the first snapshot. */
     public double getElapsedSeconds() {
-        if (snapshots.size() < 2) return 0;
-        return (snapshots.get(snapshots.size() - 1).timestampMs - snapshots.get(0).timestampMs) / 1000.0;
+        synchronized (snapshots) {
+            if (snapshots.size() < 2) return 0;
+            return (snapshots.get(snapshots.size() - 1).timestampMs - snapshots.get(0).timestampMs) / 1000.0;
+        }
     }
 
-    // --- Internal ---
+    // --- Internal (caller must hold snapshots lock) ---
 
     private double getVelocityOverWindow(long windowMs) {
         if (snapshots.size() < 2) return 0;

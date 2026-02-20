@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.0] - 2026-02-20 (develop branch)
 
+### Fixed — Evolution History Panel & Tournament Speed
+
+- **History panel only showed Generation 1**: The update check compared `txtHistory.getLineCount()` 
+  against `records.size()`, but since `toNarrative()` produces ~10 lines per record, after Gen 1
+  the line count always exceeded the record count. Fixed by tracking record count directly
+- **Smart announcer live status block**: The history panel now shows a live-updating status block 
+  at the top with a mini-leaderboard, per-contestant velocity/promise indicators, spread analysis,
+  and countdown to next cycle. Updates between generations without replacing history
+- **Promise indicators**: Each contestant shows velocity arrows (up/down/flat), promise tags 
+  (FAST, rising, fading, at risk), grace period markers, and uptime
+- **Enhanced generation narratives**: `toNarrative()` now shows score deltas between generations,
+  stall warnings, contestant birth generation, and cycle speed annotations (machine gun/fast/extended)
+- **Prehistoric mode history counter**: Fixed era history using fragile text-search check, now uses
+  proper record counter
+- **FitnessTracker thread safety**: All snapshot access is now synchronized to prevent 
+  `ConcurrentModificationException` when the live status block reads while evolvers write.
+  `velocityWindowMs` is now `volatile`
+
+### Enhanced — Tournament Speed (Machine Gun Start)
+
+- **Default cutoff reduced from 60s to 10s**: Tournament cycles start fast for rapid churn
+- **Adaptive cutoff min reduced from 15s to 5s**: Allows very rapid cycling when stalled
+- **Autopilot machine-gun start**: When autopilot creates the evolutionary tournament, it starts
+  at the adaptive minimum (5s), ramping up as contestants differentiate
+- **Smarter adaptive algorithm**: Starts fast, ramps UP as contestants improve (giving them more
+  time), drops FAST when stalled (2/3 of current interval when stalled 5+ gens). Early generations
+  ramp up in larger increments (+10s when under 30s, +5s after)
+- **Grace period default increased to 2 ticks**: Gives newcomers more time with the faster cycles
+- **Settings UI allows 5s minimum**: Cutoff interval spinner now starts at 5s with 5s step
+
 ### Fixed — Autopilot CPU Saturation & Contestant Initialization
 - **Contestants no longer stuck at "initializing"**: `TournamentContestant.initializeWithImage()`
   now renders an initial best image immediately after triangle initialization, so the UI

@@ -175,14 +175,19 @@ between iterations is better than 60, or maybe 300. The answer depends on:
 - Current phase of evolution (early = lots of easy gains, late = diminishing returns)
 - Hardware (more cores = faster score accumulation = shorter intervals make sense)
 
-### Adaptive Cutoff
+### Adaptive Cutoff (Machine Gun Start)
 
-Instead of guessing, we let the system find its own pace:
-- When stalled (3+ generations without improvement), **shorten** the interval
-  (faster turnover to try more parameter combinations)
-- When improving, **lengthen** the interval (give good contestants more time to
-  differentiate themselves)
-- Bounded by configurable min/max (default 15s-300s)
+The tournament uses a "machine gun start" strategy — begin cycling fast (5-10s)
+for rapid initial churn through parameter combinations, then dynamically adapt:
+
+- **Default cutoff**: 10 seconds (was 60s), giving immediate feedback
+- **Autopilot fast-start**: Begins at the adaptive minimum (5s)
+- When stalled (2+ generations), **shorten** the interval — aggressively at 2/3
+  of current when stalled 5+ generations
+- When improving, **lengthen** the interval — +10s/tick when under 30s, +5s/tick
+  above 30s, giving good contestants time to differentiate
+- Bounded by configurable min/max (default 5s-300s)
+- **Grace period default**: 2 ticks (increased from 1 to compensate for faster cycles)
 
 ### Multi-Spawn
 
@@ -298,13 +303,25 @@ One-click autonomous tournament management with gradual resource ramp-up:
 - `mvn test -Pfull` profile overrides to run everything
 - Development cycle: ~15s (9 fast tests) vs ~210s (27 all tests)
 
-### Narrative Logs
+### Smart Announcer — Live Status & Narrative Logs
 
-`GenerationRecord.toNarrative()` produces multi-line human-readable history:
+The evolution history panel acts as a "smart announcer" with two components:
+
+**Live Status Block** (top of panel, updates every refresh cycle):
+- Mini-leaderboard with rank, score, velocity arrows, and promise indicators
+- Promise tags per contestant: FAST (high velocity), rising (positive acceleration),
+  fading (negative velocity + acceleration), at risk (low score + stalled)
+- Grace period markers for protected newcomers
+- Uptime per contestant, average fitness, score spread (leader - trailer)
+- Countdown to next cycle with interval info
+
+**Generation Narratives** (appended after each cycle):
+- Score deltas between generations (average fitness change)
+- Stall/convergence warnings with generation count
+- Culling stories: contestant's fitness, velocity trend, birth generation
+- Cycle speed annotations: machine gun (≤10s), fast (<30s), extended (>120s)
 - Timestamped generation events with population counts
 - Leader identification with fitness and velocity
-- Convergence warnings
-- Culling details with composite scores and reasons
 - Breeding lineage (parents, ancestral crossover, grace period)
 - Adaptive cutoff state
 - Prehistoric mode era descriptions with capability unlocks

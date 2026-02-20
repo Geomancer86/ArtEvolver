@@ -221,14 +221,17 @@ public class PrehistoricMode {
     }
 
     private void spawnEra6Contestants() {
-        int availableThreads = maxThreadsBudget;
         int aliveCount = (int) contestants.stream().filter(c -> !c.isEliminated()).count();
-        int threadsUsed = aliveCount * threadsPerContestant;
-        int remaining = availableThreads - threadsUsed;
+        int threadsUsed = contestants.stream()
+                .filter(c -> !c.isEliminated() && c.isRunning())
+                .mapToInt(c -> c.getConfig() != null ? c.getConfig().threads : 1)
+                .sum();
+        int remaining = maxThreadsBudget - threadsUsed;
 
-        threadsPerContestant = Math.max(2, availableThreads / (aliveCount + 4));
+        threadsPerContestant = Math.max(2, maxThreadsBudget / Math.max(1, aliveCount + 2));
 
-        int toSpawn = Math.min(3, remaining / Math.max(1, threadsPerContestant));
+        // Only spawn 1 contestant if resources are tight
+        int toSpawn = Math.min(2, remaining / Math.max(1, threadsPerContestant));
         toSpawn = Math.max(1, toSpawn);
 
         for (int i = 0; i < toSpawn; i++) {
@@ -240,6 +243,8 @@ public class PrehistoricMode {
             }
             spawnAndStart(cfg);
         }
+        System.out.println("[Prehistoric] Era 6: spawned " + toSpawn + " (threads: "
+                + (threadsUsed + toSpawn * threadsPerContestant) + "/" + maxThreadsBudget + ")");
     }
 
     private void activateIntelligenceEra() {
@@ -275,10 +280,20 @@ public class PrehistoricMode {
     /**
      * Adds a new contestant using the next preset strategy from the pool.
      * Applies the current era's capabilities as constraints.
-     * @return name of the new contestant, or null if no image loaded
+     * @return name of the new contestant, or null if no image loaded or budget exceeded
      */
     public String addPresetContestant() {
         if (!active || artEvolver.getResizedOriginal() == null) return null;
+
+        int threadsUsed = contestants.stream()
+                .filter(c -> !c.isEliminated() && c.isRunning())
+                .mapToInt(c -> c.getConfig() != null ? c.getConfig().threads : 1)
+                .sum();
+        if (threadsUsed + threadsPerContestant > maxThreadsBudget) {
+            System.out.println("[Prehistoric] Cannot add preset: thread budget exhausted ("
+                    + threadsUsed + "/" + maxThreadsBudget + ")");
+            return null;
+        }
 
         EvolutionConfig base = createConfigForCurrentEra();
         base.threads = threadsPerContestant;
@@ -491,10 +506,29 @@ public class PrehistoricMode {
             autoAdvanceTimer = null;
         }
         if (autoAdvance && currentEra < ERA_COUNT - 1) {
-            autoAdvanceTimer = new Timer(eraDurationSeconds * 1000, e -> advanceEra());
+            autoAdvanceTimer = new Timer(eraDurationSeconds * 1000, e -> tryAutoAdvance());
             autoAdvanceTimer.setRepeats(false);
             autoAdvanceTimer.start();
         }
+    }
+
+    /** Attempts to advance era; defers if CPU is too high. */
+    private void tryAutoAdvance() {
+        int totalThreadsUsed = contestants.stream()
+                .filter(c -> !c.isEliminated() && c.isRunning())
+                .mapToInt(c -> c.getConfig() != null ? c.getConfig().threads : 1)
+                .sum();
+
+        // Don't advance if already using most of the thread budget
+        if (totalThreadsUsed >= maxThreadsBudget * 0.85) {
+            System.out.println("[Prehistoric] Deferring era advance: " + totalThreadsUsed
+                    + "/" + maxThreadsBudget + " threads in use — waiting 15s");
+            autoAdvanceTimer = new Timer(15000, ev -> tryAutoAdvance());
+            autoAdvanceTimer.setRepeats(false);
+            autoAdvanceTimer.start();
+            return;
+        }
+        advanceEra();
     }
 
     // ════════════════════════════════════════════════════════════════

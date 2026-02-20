@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.0] - 2026-02-20 (develop branch)
 
+### Fixed — Autopilot CPU Saturation & Contestant Initialization
+- **Contestants no longer stuck at "initializing"**: `TournamentContestant.initializeWithImage()`
+  now renders an initial best image immediately after triangle initialization, so the UI
+  always shows the starting state instead of a blank placeholder
+- **CPU saturation fixed**: Autopilot was spawning contestants every refresh tick (~1s) without
+  any cooldown. Now enforces a 10-second cooldown between spawns, tracks actual thread counts
+  against a hard budget (75% of cores * CPU limit), and checks both process AND system CPU
+- **Gradual resource ramp-up**: Instead of filling all available CPU immediately, the autopilot
+  starts conservatively (60% thread budget initially) and only adds new contestants when both
+  the cooldown has passed AND resources are genuinely available
+- **Prehistoric mode era advance gating**: Auto-advance now checks thread utilization before
+  advancing to the next era; defers if >=85% of thread budget is in use
+- **Era 6 spawning capped**: Uses actual thread count tracking instead of naive estimate,
+  limiting multi-contestant spawns to what the budget actually allows
+- **PrehistoricMode.addPresetContestant()**: Now checks thread budget before adding, preventing
+  over-commitment even when called by autopilot
+- **SystemMonitor.canAddWork()**: Now checks system-wide CPU (not just process) and applies a
+  10% safety margin below the limit to account for JMX measurement lag
+- **ImageEvolver.renderTrianglesToNewImage()**: Changed from private to package-private for
+  initial image rendering in TournamentContestant
+
 ### Added — Evolution Clicker (Cookie Clicker Mode)
 - **Full idle/clicker game** integrated into the genetic algorithm, inspired by
   Cookie Clicker, designed channeling Carmack, Will Wright, Sid Meier, Miyamoto,

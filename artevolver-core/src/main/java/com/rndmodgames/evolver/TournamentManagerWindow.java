@@ -45,6 +45,9 @@ public class TournamentManagerWindow extends JFrame {
     private double maxCpuPercent = 80;
     private double maxRamPercent = 85;
     private double maxHeapPercent = 80;
+    private long lastSpawnMs = 0;
+    private static final long SPAWN_COOLDOWN_MS = 10000; // 10 seconds between spawns
+    private static final int MAX_TOTAL_THREADS = Runtime.getRuntime().availableProcessors();
 
     // Prehistoric Mode UI
     private JPanel prehistoricPanel;
@@ -347,10 +350,17 @@ public class TournamentManagerWindow extends JFrame {
         JPanel info = new JPanel();
         info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
         info.setBorder(new EmptyBorder(8, 0, 0, 0));
+        int totalThreadsUsed = contestants.stream()
+                .filter(c -> !c.isEliminated() && c.isRunning())
+                .mapToInt(c -> c.getConfig() != null ? c.getConfig().threads : 1)
+                .sum();
+        int threadBudget = (int) (MAX_TOTAL_THREADS * (maxCpuPercent / 100.0) * 0.75);
         JTextArea txtInfo = new JTextArea(
                 "Autopilot monitors system resources and automatically:\n"
-                + " - Spawns new contestants when CPU/RAM headroom allows\n"
-                + " - Pauses spawning when limits are approached\n"
+                + " - Spawns ONE new contestant every 10+ seconds (cooldown)\n"
+                + " - Pauses spawning when CPU/RAM limits are approached\n"
+                + " - Thread budget: " + totalThreadsUsed + "/" + threadBudget
+                + " (" + MAX_TOTAL_THREADS + " cores available)\n"
                 + " - Uses Prehistoric Mode (Genesis) or Quick Setup based on state\n"
                 + " - Activates evolutionary tournament when enough contestants exist\n\n"
                 + "Current system:\n" + sysMonitor.toString());
@@ -393,21 +403,23 @@ public class TournamentManagerWindow extends JFrame {
             return;
         }
 
-        // If no contestants and prehistoric mode not active, start genesis
+        // Conservative thread budget: use at most 60% of cores initially
+        int threadBudget = (int) (MAX_TOTAL_THREADS * 0.6);
+
         if (contestants.isEmpty() && (prehistoricMode == null || !prehistoricMode.isActive())) {
             prehistoricMode = new PrehistoricMode(artEvolver, contestants);
-            prehistoricMode.setMaxThreadsBudget(sysMonitor.getAvailableProcessors());
+            prehistoricMode.setMaxThreadsBudget(threadBudget);
             prehistoricMode.setAutoAdvance(true);
-            prehistoricMode.setEraDurationSeconds(45);
+            prehistoricMode.setEraDurationSeconds(60);
             if (prehistoricMode.start()) {
                 prehistoricPanel.setVisible(true);
                 btnStartPrehistoric.setText("\u25A0 Stop Prehistoric");
                 btnStartPrehistoric.setBackground(new Color(178, 34, 34));
                 chkAutoAdvance.setSelected(true);
-                System.out.println("[Autopilot] Started Genesis Mode (auto-advance 45s)");
+                System.out.println("[Autopilot] Started Genesis Mode (budget: "
+                        + threadBudget + "/" + MAX_TOTAL_THREADS + " threads, 60s eras)");
             }
         } else if (!contestants.isEmpty()) {
-            // Already have contestants, just make sure they're running
             boolean anyNotRunning = contestants.stream()
                     .anyMatch(c -> !c.isEliminated() && !c.isRunning());
             if (anyNotRunning) {
@@ -415,32 +427,51 @@ public class TournamentManagerWindow extends JFrame {
                 if (chkAutoEvolve.isSelected()) autoStartEvolving();
             }
         }
+        lastSpawnMs = System.currentTimeMillis();
     }
 
     /** Called every refresh cycle when autopilot is active. */
     private void autopilotTick() {
         if (!autopilotActive) return;
 
-        sysMonitor.poll();
-        boolean canAdd = sysMonitor.canAddWork(maxCpuPercent, maxRamPercent, maxHeapPercent);
+        long now = System.currentTimeMillis();
         int aliveCount = (int) contestants.stream().filter(c -> !c.isEliminated()).count();
+        int totalThreadsUsed = contestants.stream()
+                .filter(c -> !c.isEliminated() && c.isRunning())
+                .mapToInt(c -> c.getConfig() != null ? c.getConfig().threads : 1)
+                .sum();
 
-        // If prehistoric mode is active, let it manage progression
+        // Hard ceiling: never exceed 75% of available cores with evolution threads
+        int threadBudget = (int) (MAX_TOTAL_THREADS * (maxCpuPercent / 100.0) * 0.75);
+        boolean threadBudgetAvailable = totalThreadsUsed < threadBudget;
+
+        // CPU/RAM check with actual readings
+        boolean resourcesAvailable = sysMonitor.canAddWork(maxCpuPercent, maxRamPercent, maxHeapPercent);
+
+        // Enforce cooldown between spawns — let existing contestants stabilize
+        boolean cooldownPassed = (now - lastSpawnMs) > SPAWN_COOLDOWN_MS;
+
+        boolean canSpawn = threadBudgetAvailable && resourcesAvailable && cooldownPassed;
+
+        // If prehistoric mode is active, let it manage progression (but respect limits)
         if (prehistoricMode != null && prehistoricMode.isActive()) {
-            if (canAdd && aliveCount < sysMonitor.getAvailableProcessors()
+            if (canSpawn && aliveCount < Math.max(3, threadBudget / 2)
                     && !prehistoricMode.isAtFinalEra()) {
                 prehistoricMode.addPresetContestant();
+                lastSpawnMs = now;
                 refreshTable();
+                System.out.println("[Autopilot] Spawned prehistoric contestant ("
+                        + (totalThreadsUsed) + "/" + threadBudget + " threads used)");
             }
             return;
         }
 
-        // Otherwise manage the regular tournament
-        if (aliveCount < 3 && canAdd) {
+        // Regular tournament: spawn cautiously, one at a time
+        if (aliveCount < 3 && canSpawn) {
+            int threadsForNew = Math.max(1, Math.min(2, threadBudget - totalThreadsUsed));
             EvolutionConfig cfg = new EvolutionConfig();
             artEvolver.populateConfigFromUI(cfg);
-            int freeThreads = sysMonitor.estimateFreeThreads(maxCpuPercent);
-            cfg.threads = Math.max(1, Math.min(freeThreads / 2, 4));
+            cfg.threads = threadsForNew;
             cfg.name = "Auto-" + nextId;
             TournamentContestant c = new TournamentContestant("a" + nextId++, cfg.name);
             c.setConfig(cfg);
@@ -449,7 +480,7 @@ public class TournamentManagerWindow extends JFrame {
             refreshTable();
             artEvolver.refreshContestantCombo();
 
-            if (!c.isRunning() && artEvolver.getResizedOriginal() != null) {
+            if (artEvolver.getResizedOriginal() != null) {
                 try {
                     c.createEvolvers(artEvolver.getPallete(),
                             artEvolver.getTriangleWidth(), artEvolver.getTriangleHeight(),
@@ -458,22 +489,31 @@ public class TournamentManagerWindow extends JFrame {
                     c.initializeWithImage(artEvolver.getResizedOriginal());
                     c.start();
                 } catch (Exception ex) {
-                    System.err.println("[Autopilot] Failed to start " + cfg.name);
+                    System.err.println("[Autopilot] Failed to start " + cfg.name + ": " + ex);
                 }
                 if (!artEvolver.isRunning()) {
                     artEvolver.setTournamentMode(true);
                     artEvolver.startProcessTimer();
                 }
             }
+            lastSpawnMs = now;
+            System.out.println("[Autopilot] Spawned " + cfg.name + " (" + threadsForNew
+                    + "T, " + (totalThreadsUsed + threadsForNew) + "/" + threadBudget + " budget)");
         }
 
-        // Auto-start evolutionary tournament if enough contestants and not running
+        // Auto-start evolutionary tournament if enough running contestants
         if (aliveCount >= 3 && (evoTournament == null || !evoTournament.isRunning())) {
-            createEvoTournament();
-            if (evoTournament != null && !evoTournament.isRunning()) {
-                evoTournament.setAdaptiveCutoff(true);
-                evoTournament.start();
-                System.out.println("[Autopilot] Auto-started evolutionary tournament");
+            // Only start tournament if contestants have had time to produce scores
+            boolean anyHaveScores = contestants.stream()
+                    .anyMatch(c -> !c.isEliminated() && c.getBestScore() > 0);
+            if (anyHaveScores) {
+                createEvoTournament();
+                if (evoTournament != null && !evoTournament.isRunning()) {
+                    evoTournament.setAdaptiveCutoff(true);
+                    evoTournament.start();
+                    System.out.println("[Autopilot] Started evolutionary tournament"
+                            + " (" + aliveCount + " contestants active)");
+                }
             }
         }
     }

@@ -139,9 +139,12 @@ public class SystemMonitor {
     /**
      * Returns true if adding more work is safe given the specified limits.
      * Any limit <= 0 means "unlimited" for that resource.
+     * Uses a 10% safety margin below the limit because JMX readings lag.
      */
     public boolean canAddWork(double maxCpuPercent, double maxRamPercent, double maxHeapPercent) {
-        if (maxCpuPercent > 0 && cpuLoadProcess >= 0 && cpuLoadProcess > maxCpuPercent) return false;
+        double cpuMargin = maxCpuPercent * 0.9;
+        if (maxCpuPercent > 0 && cpuLoadProcess >= 0 && cpuLoadProcess > cpuMargin) return false;
+        if (maxCpuPercent > 0 && cpuLoadSystem >= 0 && cpuLoadSystem > cpuMargin) return false;
         if (maxRamPercent > 0 && getRamUsagePercent() >= 0 && getRamUsagePercent() > maxRamPercent) return false;
         if (maxHeapPercent > 0 && getHeapUsagePercent() > maxHeapPercent) return false;
         return true;

@@ -276,15 +276,20 @@ both raw values and formatted strings for UI display.
 
 ### Autopilot Mode
 
-One-click autonomous tournament management:
+One-click autonomous tournament management with gradual resource ramp-up:
 
 1. **Resource Limits**: User configures max CPU %, max RAM %, max Heap %
-2. **canAddWork()**: Before spawning, checks all limits against current readings
-3. **estimateFreeThreads()**: Calculates how many cores are available for new work
-4. **Auto-progression**: If no contestants exist, starts Prehistoric Mode (Genesis)
-   with auto-advance enabled. If contestants exist, ensures they're running.
-5. **Tournament activation**: When 3+ contestants are active and resources allow,
-   automatically creates and starts the Evolutionary Tournament with adaptive cutoff.
+2. **Thread Budget**: Hard ceiling at 75% of cores * CPU limit, tracked per-contestant
+3. **Spawn Cooldown**: Minimum 10 seconds between spawns to let existing contestants
+   stabilize and produce initial images before adding more load
+4. **canAddWork()**: Before spawning, checks both process AND system CPU against
+   90% of the configured limit (safety margin for JMX lag), plus RAM and Heap
+5. **Auto-progression**: If no contestants exist, starts Prehistoric Mode with
+   conservative 60% initial thread budget. If contestants exist, ensures running.
+6. **Era Advance Gating**: Prehistoric mode defers era advancement when thread
+   utilization exceeds 85% of budget, retrying every 15 seconds
+7. **Tournament activation**: When 3+ contestants are active AND at least one has
+   produced a score, automatically creates the Evolutionary Tournament
 
 ### Smart Test Profiles
 

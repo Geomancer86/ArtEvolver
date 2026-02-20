@@ -89,6 +89,7 @@ public class TournamentContestant {
 
     /**
      * Initializes all evolvers with the source image (triangles + delta engine).
+     * Renders an initial best image immediately so the UI never shows a blank.
      */
     public void initializeWithImage(BufferedImage resizedOriginal) {
         ImageEvolver.INITIALIZATION_METHOD = config.initializationMethod;
@@ -98,6 +99,18 @@ public class TournamentContestant {
             ev.setResizedOriginal(resizedOriginal);
             ev.initializeIsosceles();
             ev.initDeltaEngine();
+        }
+
+        // Render an initial image from the first evolver's best population
+        if (!evolvers.isEmpty()) {
+            ImageEvolver first = evolvers.get(0);
+            TriangleList<Triangle> initPop = first.getBestPop();
+            if (initPop != null) {
+                bestImage = first.renderTrianglesToNewImage(initPop);
+                bestScore = initPop.getScore();
+                bestPop = initPop;
+                first.setDirty(true);
+            }
         }
     }
 

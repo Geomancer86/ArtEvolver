@@ -1017,7 +1017,7 @@ public class ImageEvolver extends AbstractEvolver {
 	 * Each call allocates a fresh image so the EDT can safely read the previous
 	 * bestImage while evolver threads produce the next one.
 	 */
-	private BufferedImage renderTrianglesToNewImage(TriangleList<Triangle> triangles) {
+	BufferedImage renderTrianglesToNewImage(TriangleList<Triangle> triangles) {
 		int w = resizedOriginal.getWidth();
 		int h = resizedOriginal.getHeight();
 		BufferedImage snapshot = new BufferedImage(w, h, ArtEvolver.IMAGE_TYPE);

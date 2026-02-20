@@ -1,0 +1,9 @@
+Tune tournament parameters for faster convergence and stronger selection pressure
+
+Lifespan 60s->30s, stale threshold 15s->8s, velocity window 30s->12s,
+parent selection top-half->top-third, adaptive cutoff capped to lifespan
+(max 30s), spawns/tick 1->2, mutation rate 0.3->0.4, strength 0.2->0.25,
+preset injection 3->5, AUTO transition 10->5 gens, grace 2->1 tick,
+composite weights rebalanced (fitness+accel up, velocity+lineage down),
+elitism for best-alive soft-kill immunity, HOPELESS check from 10s->6s,
+lifespan enforcer polling 5s->3s.

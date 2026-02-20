@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] (3.2.0-SNAPSHOT)
 
+### Changed — Tournament Convergence Tuning (Faster Evolution Cycle)
+
+- **Default lifespan 60s → 30s**: Halved contestant lifespan for faster population turnover.
+  Contestants cycle twice as fast, doubling the rate of genetic exploration per minute.
+- **Stale threshold 15s → 8s**: Flat-line contestants are killed much earlier, freeing
+  resources for promising new competitors. With a 30s lifespan, 15s was half the life wasted.
+- **Velocity window 30s → 12s**: FitnessTracker now reacts to recent trends much faster,
+  improving detection accuracy for stale, declining, and hopeless checks.
+- **Parent selection: top half → top third**: Only the top-ranked third of the breeding pool
+  can be selected as parents. This dramatically increases selection pressure — mediocre
+  contestants no longer reproduce, accelerating convergence toward better configurations.
+- **Adaptive cutoff capped to lifespan**: The adaptive cutoff timer can never exceed
+  `maxLifespanSeconds`. Previously it could grow to 300s, making the generation tick
+  irrelevant and starving the system of competitive culling. Ramp-up increments reduced
+  from 5-10s to 2-3s per generation for gentler growth.
+- **Initial cutoff 10s → 8s**: Faster first-generation cycles for quicker early evaluation.
+- **Grace period 2 ticks → 1 tick**: With short lifespans, 2 ticks of grace meant children
+  could never be competitively culled before their lifespan expired. Single tick gives
+  children one generation of protection while still allowing culling if needed.
+- **Spawns per tick 1 → 2**: The bottom 2 contestants are now culled and replaced per
+  generation tick, doubling population turnover speed.
+- **Mutation rate 0.3 → 0.4**: More genes are mutated per child, increasing exploration
+  of the configuration space and reducing convergence to local optima.
+- **Mutation strength 0.2 → 0.25**: Mutations apply larger deltas, enabling children to
+  explore further from parent configurations.
+- **Preset injection interval 3 → 5**: Presets are injected every 5th spawn instead of 3rd,
+  reducing dilution of genetic progress (from 33% presets to 20%).
+- **AUTO ranking transition 10 → 5 generations**: Faster shift from velocity-weighted to
+  fitness-weighted ranking. The system focuses on absolute performance sooner.
+- **Composite weights rebalanced**: Fitness weight 0.35→0.40, velocity 0.40→0.35,
+  acceleration 0.05→0.10, lineage 0.20→0.15. Stronger emphasis on actual performance
+  and acceleration (second derivative), reduced ancestry bias.
+- **Elitism in soft kills**: The best-scoring alive contestant is now immune from
+  stale/declining/hopeless soft kills. It will still be retired by the hard lifespan cap,
+  but won't be prematurely terminated during a brief stall.
+- **HOPELESS check 10s → 6s data requirement**: Projected-fitness early kill now fires
+  after 6s of data instead of 10s, catching hopeless competitors earlier in their lifespan.
+- **Lifespan enforcer polling 5s → 3s**: More frequent checks for faster reaction to
+  expired, stale, declining, or hopeless contestants.
+
 ### Fixed — Declining Fitness Detection & Breeding Fairness
 
 - **DECLINING detection**: New check in `enforceLifespanCap()` that fires BEFORE the

@@ -1369,7 +1369,7 @@ public class TournamentManagerWindow extends JFrame {
 
         form.add(new JLabel("Adaptive Max (seconds):"));
         JSpinner spnAdaptMax = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getAdaptiveCutoffMax(), 30, 600, 10));
+                evoTournament.getAdaptiveCutoffMax(), 5, 600, 5));
         form.add(spnAdaptMax);
 
         // --- Lifespan Cap ---
@@ -1378,7 +1378,7 @@ public class TournamentManagerWindow extends JFrame {
         form.add(new JLabel("Max Lifespan (seconds, 0=off):"));
         JSpinner spnLifespan = new JSpinner(new SpinnerNumberModel(
                 evoTournament.getMaxLifespanSeconds(), 0, 3600, 5));
-        spnLifespan.setToolTipText("Promote and replace after N seconds. Default 60s for fast iteration.");
+        spnLifespan.setToolTipText("Promote and replace after N seconds. Default 30s for fast iteration.");
         form.add(spnLifespan);
 
         form.add(new JLabel("Stale Detection (seconds, 0=off):"));

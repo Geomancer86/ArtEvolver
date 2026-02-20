@@ -29,51 +29,51 @@ public class EvolutionaryTournament {
     private int nextId = 100;
 
     // --- Core timing ---
-    private int cutoffSeconds = 10;
+    private int cutoffSeconds = 8;
     private long lastTickMs = 0;
 
     // --- Breeding ---
-    private float mutationRate = 0.3f;
-    private float mutationStrength = 0.2f;
+    private float mutationRate = 0.4f;
+    private float mutationStrength = 0.25f;
     private int minContestants = 3;
 
     // --- Grace period ---
-    private int gracePeriodTicks = 2;
+    private int gracePeriodTicks = 1;
 
     // --- Dynamic tournament ---
-    private int spawnsPerTick = 1;
+    private int spawnsPerTick = 2;
     private boolean adaptiveCutoff = true;
     private int adaptiveCutoffMin = 5;
-    private int adaptiveCutoffMax = 300;
+    private int adaptiveCutoffMax = 30;
 
     // --- Contestant lifespan cap (0 = disabled) ---
-    private int maxLifespanSeconds = 60;
+    private int maxLifespanSeconds = 30;
 
     // --- Stale detection: kill flat-line contestants early ---
-    private int staleThresholdSeconds = 15;
+    private int staleThresholdSeconds = 8;
     private static final double STALE_VELOCITY_THRESHOLD = 0.000001;
 
     // --- Promoted pool (hall of fame) ---
     private int maxPromoted = 10;
-    private int presetInjectionInterval = 3;
+    private int presetInjectionInterval = 5;
     private int spawnsSinceLastPreset = 0;
 
     // --- Ranking strategy ---
     public enum RankingStrategy { BALANCED, VELOCITY_FIRST, FITNESS_FIRST, AUTO }
     private RankingStrategy rankingStrategy = RankingStrategy.AUTO;
-    private int autoTransitionGen = 10;
+    private int autoTransitionGen = 5;
 
     // --- Composite ranking base weights (used by BALANCED, modified by other strategies) ---
-    private float fitnessWeight = 0.35f;
-    private float velocityWeight = 0.40f;
-    private float accelerationWeight = 0.05f;
-    private float lineageWeight = 0.20f;
+    private float fitnessWeight = 0.40f;
+    private float velocityWeight = 0.35f;
+    private float accelerationWeight = 0.10f;
+    private float lineageWeight = 0.15f;
 
     // --- Lineage / ancestry ---
     private double lineageDecay = 0.7;
     private int ancestryDepth = 3;
     private boolean useAncestralCrossover = true;
-    private int velocityWindowSeconds = 30;
+    private int velocityWindowSeconds = 12;
 
     // --- Best-ever tracking ---
     private double bestEverScore = 0;
@@ -162,7 +162,7 @@ public class EvolutionaryTournament {
      */
     private void startLifespanEnforcer() {
         if (lifespanTimer != null) { lifespanTimer.stop(); }
-        lifespanTimer = new Timer(5_000, e -> enforceLifespanCap());
+        lifespanTimer = new Timer(3_000, e -> enforceLifespanCap());
         lifespanTimer.setRepeats(true);
         lifespanTimer.start();
     }
@@ -172,11 +172,16 @@ public class EvolutionaryTournament {
         long now = System.currentTimeMillis();
         List<TournamentContestant> killed = new ArrayList<>();
 
-        // Compute the worst alive score for projected-fitness early kill
+        // Compute worst alive score for projected-fitness early kill and
+        // identify best alive contestant for elitism (soft-kill immunity).
         double worstAliveScore = Double.MAX_VALUE;
+        TournamentContestant bestAlive = null;
         for (TournamentContestant c : contestants) {
             if (!c.isFinished() && c.getBestScore() > 0) {
                 worstAliveScore = Math.min(worstAliveScore, c.getBestScore());
+                if (bestAlive == null || c.getBestScore() > bestAlive.getBestScore()) {
+                    bestAlive = c;
+                }
             }
         }
         if (worstAliveScore == Double.MAX_VALUE) worstAliveScore = 0;
@@ -199,6 +204,10 @@ public class EvolutionaryTournament {
 
             // Skip remaining soft checks for grace-protected contestants
             if (c.isProtected()) continue;
+
+            // Elitism: best alive contestant is immune from soft kills (stale/hopeless/declining).
+            // It will still be retired by the hard lifespan cap above, ensuring turnover.
+            if (c == bestAlive) continue;
 
             // Declining detection: negative velocity = actively regressing, worse than stale.
             // Must fire BEFORE the stale check. Minimum 5s of data to avoid false positives.
@@ -251,11 +260,11 @@ public class EvolutionaryTournament {
 
             // Projected-fitness early kill — only on last stage for multi-stage competitors.
             // Earlier stages get the benefit of the doubt (next gear may accelerate them).
-            if (ageSec >= 10 && maxLifespanSeconds > 0 && worstAliveScore > 0
+            if (ageSec >= 6 && maxLifespanSeconds > 0 && worstAliveScore > 0
                     && c.isOnLastStage()) {
                 FitnessTracker ft = c.getFitnessTracker();
                 double elapsed = ft.getElapsedSeconds();
-                if (elapsed >= 10 && c.getBestScore() > 0) {
+                if (elapsed >= 6 && c.getBestScore() > 0) {
                     long remainSec = maxLifespanSeconds - ageSec;
                     if (remainSec > 0) {
                         double projected = ft.getProjectedFitness(remainSec);
@@ -749,17 +758,19 @@ public class EvolutionaryTournament {
     private void adaptCutoffInterval() {
         int newCutoff = cutoffSeconds;
 
+        // Never let adaptive cutoff exceed the lifespan — the generation tick must
+        // fire at least once per contestant life so competitive culling stays relevant.
+        int effectiveMax = maxLifespanSeconds > 0
+                ? Math.min(adaptiveCutoffMax, maxLifespanSeconds)
+                : adaptiveCutoffMax;
+
         if (stalledGenerations >= 5) {
-            // Heavily stalled: drop fast to flush out the pool
             newCutoff = Math.max(adaptiveCutoffMin, cutoffSeconds * 2 / 3);
         } else if (stalledGenerations >= 2) {
-            // Mildly stalled: gentle decrease
-            newCutoff = Math.max(adaptiveCutoffMin, cutoffSeconds - 5);
+            newCutoff = Math.max(adaptiveCutoffMin, cutoffSeconds - 2);
         } else if (stalledGenerations == 0 && generation > 1) {
-            // Improving: give contestants more time to differentiate
-            // Ramp up faster in early generations, slower once established
-            int increment = (cutoffSeconds < 30) ? 10 : 5;
-            newCutoff = Math.min(adaptiveCutoffMax, cutoffSeconds + increment);
+            int increment = (cutoffSeconds < 15) ? 3 : 2;
+            newCutoff = Math.min(effectiveMax, cutoffSeconds + increment);
         }
 
         if (newCutoff != cutoffSeconds) {
@@ -941,10 +952,10 @@ public class EvolutionaryTournament {
 
     private TournamentContestant selectParent(List<ScoredContestant> ranked,
                                               TournamentContestant exclude) {
-        int topHalf = Math.max(2, ranked.size() / 2);
+        int topSlice = Math.max(2, ranked.size() / 3);
         for (int i = 0; i < 20; i++) {
-            ScoredContestant a = ranked.get(RNG.nextInt(topHalf));
-            ScoredContestant b = ranked.get(RNG.nextInt(topHalf));
+            ScoredContestant a = ranked.get(RNG.nextInt(topSlice));
+            ScoredContestant b = ranked.get(RNG.nextInt(topSlice));
             ScoredContestant pick = (a.compositeScore >= b.compositeScore) ? a : b;
             if (pick.contestant != exclude) return pick.contestant;
         }

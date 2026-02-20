@@ -258,23 +258,29 @@ table (new "Parentage" and "Breed" columns) and in the dashboard JSON/HTML.
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `gracePeriodTicks` | 2 | Ticks of immunity for new contestants |
-| `velocityWindowSeconds` | 30 | Window for velocity/acceleration calculation |
-| `fitnessWeight` | 0.35 | Base weight of absolute fitness in composite score |
-| `velocityWeight` | 0.40 | Base weight of improvement speed |
-| `accelerationWeight` | 0.05 | Base weight of improvement acceleration |
-| `lineageWeight` | 0.20 | Weight of ancestry performance |
+| `cutoffSeconds` | 8 | Initial generation tick interval (seconds) |
+| `gracePeriodTicks` | 1 | Ticks of immunity for new contestants |
+| `spawnsPerTick` | 2 | Bottom N culled and replaced per generation tick |
+| `velocityWindowSeconds` | 12 | Window for velocity/acceleration calculation |
+| `fitnessWeight` | 0.40 | Base weight of absolute fitness in composite score |
+| `velocityWeight` | 0.35 | Base weight of improvement speed |
+| `accelerationWeight` | 0.10 | Base weight of improvement acceleration |
+| `lineageWeight` | 0.15 | Weight of ancestry performance |
 | `lineageDecay` | 0.7 | How much each generation back reduces weight |
 | `ancestryDepth` | 3 | Max generations back for breeding/lineage |
-| `maxLifespanSeconds` | 60 | Hard cap age — applies even during grace (0 = disabled) |
-| `staleThresholdSeconds` | 15 | Kill flat-line contestants after N seconds of zero improvement (0 = off) |
+| `mutationRate` | 0.4 | Probability each gene is mutated in a child |
+| `mutationStrength` | 0.25 | Size of mutation delta (fraction of gene range) |
+| `maxLifespanSeconds` | 30 | Hard cap age — applies even during grace (0 = disabled) |
+| `staleThresholdSeconds` | 8 | Kill flat-line contestants after N seconds of zero improvement (0 = off) |
 | *(declining kill)* | 5s min | Immediate termination if velocity is negative (worse than stale) |
-| *(hopeless kill)* | 10s min | Projected-fitness early kill if can't beat worst alive |
+| *(hopeless kill)* | 6s min | Projected-fitness early kill if can't beat worst alive |
 | `maxPromoted` | 10 | Max contestants in the hall of fame |
-| `presetInjectionInterval` | 3 | Every Nth spawn inject untried preset (0 = off) |
+| `presetInjectionInterval` | 5 | Every Nth spawn inject untried preset (0 = off) |
+| `adaptiveCutoffMax` | 30 | Adaptive cutoff ceiling (capped to lifespan) |
 | `rankingStrategy` | AUTO | BALANCED, VELOCITY_FIRST, FITNESS_FIRST, AUTO |
-| `autoTransitionGen` | 10 | Generations for AUTO to fully shift to fitness-first |
+| `autoTransitionGen` | 5 | Generations for AUTO to fully shift to fitness-first |
 | `useAncestralCrossover` | true | Blend in grandparent genes during breeding |
+| *(elitism)* | on | Best alive contestant immune from soft kills (stale/hopeless/declining) |
 
 ## Implementation Plan
 

@@ -172,13 +172,23 @@ public class EvolutionaryTournament {
         long now = System.currentTimeMillis();
         List<TournamentContestant> killed = new ArrayList<>();
 
+        // Compute the worst alive score for projected-fitness early kill
+        double worstAliveScore = Double.MAX_VALUE;
+        for (TournamentContestant c : contestants) {
+            if (!c.isFinished() && c.getBestScore() > 0) {
+                worstAliveScore = Math.min(worstAliveScore, c.getBestScore());
+            }
+        }
+        if (worstAliveScore == Double.MAX_VALUE) worstAliveScore = 0;
+
         for (TournamentContestant c : new ArrayList<>(contestants)) {
-            if (c.isFinished() || c.isProtected()) continue;
+            if (c.isFinished()) continue;
             long startMs = c.getStartTimeMs();
             if (startMs <= 0) continue;
             long ageSec = (now - startMs) / 1000;
 
-            // Hard lifespan cap
+            // Hard lifespan cap — applies unconditionally, even during grace period.
+            // Grace only protects from competitive culling in onCutoffTick, not from age.
             if (maxLifespanSeconds > 0 && ageSec >= maxLifespanSeconds) {
                 System.out.println("[EvoTournament] HARD CAP: " + c.getName()
                         + " finished after " + ageSec + "s (limit " + maxLifespanSeconds + "s)");
@@ -186,6 +196,9 @@ public class EvolutionaryTournament {
                 killed.add(c);
                 continue;
             }
+
+            // Skip remaining soft checks for grace-protected contestants
+            if (c.isProtected()) continue;
 
             // Stale detection: flat fitness for staleThresholdSeconds = early termination
             if (staleThresholdSeconds > 0 && ageSec >= staleThresholdSeconds) {
@@ -198,6 +211,28 @@ public class EvolutionaryTournament {
                             + "%/s) — terminating early");
                     c.eliminate(generation);
                     killed.add(c);
+                    continue;
+                }
+            }
+
+            // Projected-fitness early kill: if even at current velocity for the full
+            // remaining lifespan, this contestant can't catch the worst alive, cut it loose
+            if (ageSec >= 10 && maxLifespanSeconds > 0 && worstAliveScore > 0) {
+                FitnessTracker ft = c.getFitnessTracker();
+                double elapsed = ft.getElapsedSeconds();
+                if (elapsed >= 10 && c.getBestScore() > 0) {
+                    long remainSec = maxLifespanSeconds - ageSec;
+                    if (remainSec > 0) {
+                        double projected = ft.getProjectedFitness(remainSec);
+                        if (projected > 0 && projected < worstAliveScore) {
+                            System.out.println("[EvoTournament] HOPELESS: " + c.getName()
+                                    + " projected=" + DF2.format(projected * 100)
+                                    + "% < worst alive=" + DF2.format(worstAliveScore * 100)
+                                    + "% with " + remainSec + "s remaining — terminating");
+                            c.eliminate(generation);
+                            killed.add(c);
+                        }
+                    }
                 }
             }
         }
@@ -280,11 +315,14 @@ public class EvolutionaryTournament {
         return alive;
     }
 
-    /** Promoted contestants available for breeding (hall of fame). */
+    /**
+     * Currently promoted contestants (hall of fame). Excludes any that were
+     * subsequently demoted (eliminated after being promoted).
+     */
     private List<TournamentContestant> getPromoted() {
         List<TournamentContestant> promoted = new ArrayList<>();
         for (TournamentContestant c : contestants) {
-            if (c.isPromoted()) promoted.add(c);
+            if (c.isPromoted() && !c.isEliminated()) promoted.add(c);
         }
         return promoted;
     }

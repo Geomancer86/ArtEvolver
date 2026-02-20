@@ -1463,7 +1463,7 @@ public class TournamentManagerWindow extends JFrame {
 
         List<TournamentContestant> alive = contestants.stream()
                 .filter(c -> !c.isFinished()).collect(java.util.stream.Collectors.toList());
-        long promotedCount = contestants.stream().filter(TournamentContestant::isPromoted).count();
+        long promotedCount = contestants.stream().filter(c -> c.isPromoted() && !c.isEliminated()).count();
         long eliminatedCount = contestants.stream().filter(TournamentContestant::isEliminated).count();
 
         sb.append("═══ LIVE TOURNAMENT STATUS ═══\n");

@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.0] - 2026-02-20 (develop branch)
 
+### Fixed — Lifespan Enforcement, Promoted Ghost Bug & Hopeless Early Kill
+
+- **Lifespan hard cap ignores grace period**: The 60s lifespan cap now fires unconditionally,
+  even for grace-protected contestants. Previously, grace ticks (decremented only in
+  onCutoffTick, which can be 60-300s apart via adaptive cutoff) shielded contestants from
+  the lifespan enforcer. A child with 2 grace ticks + 60s cutoff = 120s of immunity. Now
+  the hard cap applies regardless — grace only protects from competitive culling.
+- **Promoted ghost bug (39 promoted with maxPromoted=10)**: When a promoted contestant was
+  displaced from the hall of fame via `eliminate()`, the `promoted` flag remained `true`.
+  `getPromoted()` counted both active-promoted and demoted-promoted, so the pool appeared to
+  grow without bound. Fixed by clearing `promoted=false` in `eliminate()` and adding a
+  `!isEliminated()` guard to `getPromoted()`.
+- **Projected-fitness early kill (HOPELESS detection)**: After 10 seconds, if a contestant's
+  projected fitness at end-of-life (`current + velocity * remainingSeconds`) can't even beat
+  the worst alive competitor, it's terminated immediately. This catches contestants that are
+  improving but far too slowly to ever be competitive, freeing their slot for a new child.
+- **Stale and hopeless contestants are eliminated, not promoted**: Flat-liners and hopeless
+  contestants get `eliminate()` (not `finishContestant()`), preventing worthless configs
+  from polluting the breeding pool.
+
 ### Fixed — Population Control, Promotion Quality & Consistency
 
 - **Population cap**: Autopilot now derives a `maxAliveContestants` from the thread budget

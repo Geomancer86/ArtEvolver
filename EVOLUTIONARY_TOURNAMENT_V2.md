@@ -215,6 +215,28 @@ produced no meaningful improvement worth preserving in the breeding pool.
 This dramatically increases tournament throughput by recycling dead-weight contestants
 into fresh breeding opportunities 4x faster than waiting for the lifespan cap.
 
+### G2b. Projected-Fitness Early Kill (HOPELESS Detection)
+
+**Problem**: A contestant may be improving (non-zero velocity) but so slowly that even
+at its current rate for the entire remaining lifespan, it cannot catch up to the worst
+alive competitor. It's still "evolving" but hopelessly behind.
+
+**Solution**: After 10 seconds of data, the enforcer computes:
+`projected = currentFitness + velocity × remainingSeconds`. If `projected < worstAliveScore`,
+the contestant is terminated immediately with an "HOPELESS" tag. This is more aggressive
+than stale detection (which only catches zero velocity) and catches slow-starters before
+they waste a full 60 seconds.
+
+**Important**: HOPELESS and STALE contestants are always **eliminated**, never promoted,
+since their configs demonstrated no competitive value.
+
+### G2c. Lifespan Cap vs Grace Period
+
+The hard lifespan cap applies **unconditionally** — even during grace period. Grace ticks
+only protect contestants from competitive culling in `onCutoffTick()`, not from age-based
+termination. This prevents the pathological case where adaptive cutoff (e.g. 60s between
+ticks) combined with 2 grace ticks = 120+ seconds of effective immunity from lifespan enforcement.
+
 ### G3. Rich Child Naming & Lineage Tracking
 
 **Problem**: Generic names like `G5a-AlpxBet` give little insight into breeding method.
@@ -244,8 +266,9 @@ table (new "Parentage" and "Breed" columns) and in the dashboard JSON/HTML.
 | `lineageWeight` | 0.20 | Weight of ancestry performance |
 | `lineageDecay` | 0.7 | How much each generation back reduces weight |
 | `ancestryDepth` | 3 | Max generations back for breeding/lineage |
-| `maxLifespanSeconds` | 60 | Max age before promotion (0 = disabled) |
+| `maxLifespanSeconds` | 60 | Hard cap age — applies even during grace (0 = disabled) |
 | `staleThresholdSeconds` | 15 | Kill flat-line contestants after N seconds of zero improvement (0 = off) |
+| *(hopeless kill)* | 10s min | Projected-fitness early kill if can't beat worst alive |
 | `maxPromoted` | 10 | Max contestants in the hall of fame |
 | `presetInjectionInterval` | 3 | Every Nth spawn inject untried preset (0 = off) |
 | `rankingStrategy` | AUTO | BALANCED, VELOCITY_FIRST, FITNESS_FIRST, AUTO |

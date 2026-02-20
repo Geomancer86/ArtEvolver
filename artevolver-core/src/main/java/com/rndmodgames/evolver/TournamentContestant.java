@@ -232,8 +232,9 @@ public class TournamentContestant {
     /** Marks this contestant as eliminated (poor performance). Frees resources. */
     public void eliminate(int atGeneration) {
         this.eliminated = true;
+        this.promoted = false; // Clear promoted flag if demoted from hall of fame
         this.eliminatedAtGeneration = atGeneration;
-        this.finalScore = bestScore;
+        if (this.finalScore <= 0) this.finalScore = bestScore;
         if (lineageNode != null) {
             lineageNode.setEliminated(true);
             lineageNode.setPeakFitness(fitnessTracker.getPeakFitness());

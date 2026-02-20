@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.0] - 2026-02-20 (develop branch)
 
+### Added — Stale Detection, Rich Naming & Expanded Presets
+
+- **Stale detection (early kill)**: Contestants with flat-line fitness (near-zero velocity)
+  for a configurable `staleThresholdSeconds` (default 15s) are immediately eliminated.
+  No more wasting 60 seconds on a contestant that stopped improving after 15s. Stale
+  contestants are eliminated (not promoted) since they produced no meaningful improvement.
+  Configurable via Evo Settings dialog (0 = disabled)
+- **Rich child naming**: Bred children now include parent abbreviations, crossover type
+  (BLX = standard, ANC = ancestral), and mutation count in their name.
+  Example: `G5·Alpha×Beta·BLX·M3` means generation 5, bred from Alpha and Beta via
+  BLX-alpha crossover with 3 gene mutations. Preset children show as `G5·P·GridRef`.
+  This makes the leaderboard and tournament table much more informative
+- **Parentage & Breed columns**: Tournament manager table now includes "Parentage" and
+  "Breed" columns showing full parent names and breeding method. Dashboard JSON also
+  exports `breedType` for the web leaderboard
+- **8 new preset strategies (16 total)**: Micro Surgeon, Chaos Engine, Gradient Chaser,
+  Population Boom, Sniper, Blitz, Deep Grid, and Hybrid Adaptive. This doubles the
+  diversity of preset injection, leading to faster discovery of effective algorithm combos
+
 ### Added — Promoted Pool, Preset Injection & Fast Lifespan
 
 - **Promoted status (Hall of Fame)**: Contestants that expire due to lifespan cap are now

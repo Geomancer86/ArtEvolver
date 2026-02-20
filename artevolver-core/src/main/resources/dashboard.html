@@ -646,7 +646,7 @@ function buildContestantCard(c, idx) {
         ${escapeHtml(c.name)}
       </div>
       <div class="contestant-tags">${tags}</div>
-      ${c.parentage ? '<div class="contestant-parentage">' + escapeHtml(c.parentage) + '</div>' : ''}
+      ${c.parentage ? '<div class="contestant-parentage">\u{1F9EC} ' + escapeHtml(c.parentage) + (c.breedType ? ' \u00b7 <em>' + escapeHtml(c.breedType) + '</em>' : '') + '</div>' : ''}
       <div class="contestant-config">${configLine}</div>
       <div class="contestant-config">${formatNumber(c.totalIterations)} iters | ${formatUptime(c.uptimeSeconds)}</div>
     </div>

@@ -49,6 +49,10 @@ public class EvolutionaryTournament {
     // --- Contestant lifespan cap (0 = disabled) ---
     private int maxLifespanSeconds = 60;
 
+    // --- Stale detection: kill flat-line contestants early ---
+    private int staleThresholdSeconds = 15;
+    private static final double STALE_VELOCITY_THRESHOLD = 0.000001;
+
     // --- Promoted pool (hall of fame) ---
     private int maxPromoted = 10;
     private int presetInjectionInterval = 3;
@@ -122,7 +126,7 @@ public class EvolutionaryTournament {
         cullTimer.setRepeats(true);
         cullTimer.start();
 
-        if (maxLifespanSeconds > 0) {
+        if (maxLifespanSeconds > 0 || staleThresholdSeconds > 0) {
             startLifespanEnforcer();
         }
         System.out.println("[EvoTournament] Started — cutoff every " + cutoffSeconds
@@ -131,6 +135,7 @@ public class EvolutionaryTournament {
                 + ", adaptive=" + (adaptiveCutoff ? "ON [" + adaptiveCutoffMin + "-" + adaptiveCutoffMax + "s]" : "OFF")
                 + ", ranking=" + rankingStrategy
                 + (maxLifespanSeconds > 0 ? ", lifespan=" + maxLifespanSeconds + "s" : "")
+                + (staleThresholdSeconds > 0 ? ", staleKill=" + staleThresholdSeconds + "s" : "")
                 + ", maxPromoted=" + maxPromoted
                 + (presetInjectionInterval > 0 ? ", presetInject=every " + presetInjectionInterval + " spawns" : "")
                 + (rankingStrategy == RankingStrategy.AUTO ? ", autoTransition=" + autoTransitionGen + " gens" : ""));
@@ -163,17 +168,33 @@ public class EvolutionaryTournament {
     }
 
     private void enforceLifespanCap() {
-        if (!running || maxLifespanSeconds <= 0) return;
+        if (!running) return;
         long now = System.currentTimeMillis();
         for (TournamentContestant c : new ArrayList<>(contestants)) {
-            if (c.isFinished()) continue;
+            if (c.isFinished() || c.isProtected()) continue;
             long startMs = c.getStartTimeMs();
             if (startMs <= 0) continue;
             long ageSec = (now - startMs) / 1000;
-            if (ageSec >= maxLifespanSeconds) {
+
+            // Hard lifespan cap
+            if (maxLifespanSeconds > 0 && ageSec >= maxLifespanSeconds) {
                 System.out.println("[EvoTournament] HARD CAP: " + c.getName()
                         + " finished after " + ageSec + "s (limit " + maxLifespanSeconds + "s)");
                 finishContestant(c);
+                continue;
+            }
+
+            // Stale detection: flat fitness for staleThresholdSeconds = early termination
+            if (staleThresholdSeconds > 0 && ageSec >= staleThresholdSeconds) {
+                FitnessTracker ft = c.getFitnessTracker();
+                double vel = ft.getVelocity();
+                double elapsed = ft.getElapsedSeconds();
+                if (elapsed >= staleThresholdSeconds && Math.abs(vel) < STALE_VELOCITY_THRESHOLD) {
+                    System.out.println("[EvoTournament] STALE: " + c.getName()
+                            + " flat for " + (int) elapsed + "s (vel=" + DF2.format(vel * 100)
+                            + "%/s) — terminating early");
+                    c.eliminate(generation);
+                }
             }
         }
     }
@@ -343,30 +364,40 @@ public class EvolutionaryTournament {
 
             // Preset injection: periodically introduce an untried preset strategy
             EvolutionConfig presetConfig = tryGetUntriedPreset();
+            String breedTag;
             if (presetConfig != null && presetInjectionInterval > 0
                     && spawnsSinceLastPreset >= presetInjectionInterval) {
                 childConfig = presetConfig;
                 childConfig.threads = worst.getConfig().threads;
+                String presetShort = childConfig.name.length() > 8
+                        ? childConfig.name.substring(0, 8) : childConfig.name;
                 childName = "G" + generation
-                        + (maxCulls > 1 ? (char)('a' + spawn) : "")
-                        + "-P-" + childConfig.name.substring(0, Math.min(6, childConfig.name.length()));
+                        + (maxCulls > 1 ? String.valueOf((char)('a' + spawn)) : "")
+                        + "\u00b7P\u00b7" + presetShort;
+                breedTag = "Preset:" + childConfig.name;
                 spawnsSinceLastPreset = 0;
                 lastParentA = "[preset]";
                 lastParentB = childConfig.name;
             } else {
-                // Normal breeding from the pool
-                if (useAncestralCrossover && parentA.getLineageNode() != null
-                        && parentB.getLineageNode() != null) {
+                boolean ancestral = useAncestralCrossover
+                        && parentA.getLineageNode() != null
+                        && parentB.getLineageNode() != null;
+                if (ancestral) {
                     childConfig = breedWithAncestry(parentA, parentB);
                 } else {
                     childConfig = breedConfigs(parentA.getConfig(), parentB.getConfig());
                 }
                 childConfig.threads = worst.getConfig().threads;
+                int mutations = lastMutationCount;
+                String pa = abbreviate(parentA.getName(), 5);
+                String pb = abbreviate(parentB.getName(), 5);
+                String crossType = ancestral ? "ANC" : "BLX";
+                String mutTag = mutations > 0 ? "\u00b7M" + mutations : "";
                 childName = "G" + generation
-                        + (maxCulls > 1 ? (char)('a' + spawn) : "") + "-"
-                        + parentA.getName().substring(0, Math.min(3, parentA.getName().length()))
-                        + "x"
-                        + parentB.getName().substring(0, Math.min(3, parentB.getName().length()));
+                        + (maxCulls > 1 ? String.valueOf((char)('a' + spawn)) : "")
+                        + "\u00b7" + pa + "\u00d7" + pb
+                        + "\u00b7" + crossType + mutTag;
+                breedTag = crossType + (mutations > 0 ? "+" + mutations + "mut" : "");
                 lastParentA = parentA.getName();
                 lastParentB = parentB.getName();
             }
@@ -375,7 +406,7 @@ public class EvolutionaryTournament {
             finishContestant(worst);
             lastCulledWasPromoted = worst.isPromoted();
 
-            spawnChild(childName, childConfig, parentA, parentB);
+            spawnChild(childName, childConfig, parentA, parentB, breedTag);
 
             lastChildName = childName;
             lastChildParams = childConfig.toSummary();
@@ -531,12 +562,20 @@ public class EvolutionaryTournament {
     private TournamentContestant spawnChild(String childName, EvolutionConfig childConfig,
                                              TournamentContestant parentA,
                                              TournamentContestant parentB) {
+        return spawnChild(childName, childConfig, parentA, parentB, "");
+    }
+
+    private TournamentContestant spawnChild(String childName, EvolutionConfig childConfig,
+                                             TournamentContestant parentA,
+                                             TournamentContestant parentB,
+                                             String breedTag) {
         TournamentContestant child = new TournamentContestant("evo" + nextId++, childName);
         child.setConfig(childConfig);
         childConfig.name = childName;
         childConfig.chartColor = child.getChartColor();
         child.setGeneration(generation);
-        child.setParentage(parentA.getName() + " x " + parentB.getName());
+        child.setParentage(parentA.getName() + " \u00d7 " + parentB.getName());
+        child.setBreedType(breedTag != null ? breedTag : "");
         child.setGraceTicks(gracePeriodTicks);
         child.getFitnessTracker().setVelocityWindowSeconds(velocityWindowSeconds);
 
@@ -854,17 +893,31 @@ public class EvolutionaryTournament {
         return child;
     }
 
+    private int lastMutationCount;
+
     private float[] mutate(float[] genes) {
         float[] min = EvolutionConfig.getGeneMin();
         float[] max = EvolutionConfig.getGeneMax();
+        int count = 0;
         for (int i = 0; i < genes.length; i++) {
             if (RNG.nextFloat() < mutationRate) {
                 float range = max[i] - min[i];
                 float delta = (float) (RNG.nextGaussian() * mutationStrength * range);
                 genes[i] = Math.max(min[i], Math.min(max[i], genes[i] + delta));
+                count++;
             }
         }
+        lastMutationCount = count;
         return genes;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  HELPERS
+    // ═══════════════════════════════════════════════════════════
+
+    private static String abbreviate(String name, int maxLen) {
+        if (name == null) return "?";
+        return name.length() <= maxLen ? name : name.substring(0, maxLen);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -951,6 +1004,8 @@ public class EvolutionaryTournament {
             lifespanTimer = null;
         }
     }
+    public int getStaleThresholdSeconds() { return staleThresholdSeconds; }
+    public void setStaleThresholdSeconds(int s) { this.staleThresholdSeconds = Math.max(0, s); }
     public int getMaxPromoted() { return maxPromoted; }
     public void setMaxPromoted(int n) { this.maxPromoted = Math.max(1, n); }
     public int getPresetInjectionInterval() { return presetInjectionInterval; }

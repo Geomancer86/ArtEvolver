@@ -189,11 +189,45 @@ explore radically different approaches.
 breeding from two parents, the system injects a fresh preset strategy configuration
 that hasn't been tried by any contestant (active, promoted, or eliminated).
 
-Available presets: Balanced, Aggressive Explorer, Grid Refiner, Targeted Precision,
-Heavy Random, Close Mutation Focus, Fast Convergence, Wide Search.
+Available presets (16 total): Balanced, Aggressive Explorer, Grid Refiner, Targeted
+Precision, Heavy Random, Close Mutation Focus, Fast Convergence, Wide Search, Micro
+Surgeon, Chaos Engine, Gradient Chaser, Population Boom, Sniper, Blitz, Deep Grid,
+Hybrid Adaptive.
 
 Once all presets have been injected at least once, breeding resumes normally. The
 narrative log indicates preset injections with a dice icon and "[untried strategy]" tag.
+
+### G2. Stale Detection (Early Kill)
+
+**Problem**: Some contestants produce zero fitness improvement after their initial
+evaluation. These flat-liners waste their entire lifespan (e.g. 60 seconds) doing
+nothing useful, blocking a slot that a new, potentially better contestant could use.
+
+**Solution**: `staleThresholdSeconds` (default 15). The lifespan enforcer (polling
+every 5 seconds) checks each active contestant's velocity from the FitnessTracker.
+If a contestant has been running for at least `staleThresholdSeconds` and its velocity
+is near-zero (< 0.000001), it is immediately eliminated — NOT promoted, since it
+produced no meaningful improvement worth preserving in the breeding pool.
+
+This dramatically increases tournament throughput by recycling dead-weight contestants
+into fresh breeding opportunities 4x faster than waiting for the lifespan cap.
+
+### G3. Rich Child Naming & Lineage Tracking
+
+**Problem**: Generic names like `G5a-AlpxBet` give little insight into breeding method.
+
+**Solution**: Children now carry descriptive names encoding:
+- **Generation**: `G5` = generation 5
+- **Parents**: `Alpha×Beta` (abbreviated to 5 chars)
+- **Crossover type**: `BLX` (standard BLX-alpha) or `ANC` (multi-generational ancestral)
+- **Mutation count**: `M3` = 3 genes mutated
+
+Example: `G5·Alpha×Beta·BLX·M3`
+Presets: `G5·P·GridRef`
+
+Each contestant also stores `breedType` (e.g., "BLX+3mut", "Preset:Grid Refiner")
+and `parentage` (full parent names). Both are displayed in the Tournament Manager
+table (new "Parentage" and "Breed" columns) and in the dashboard JSON/HTML.
 
 ### H. Configurable Parameters (all future meta-optimizable)
 
@@ -208,6 +242,7 @@ narrative log indicates preset injections with a dice icon and "[untried strateg
 | `lineageDecay` | 0.7 | How much each generation back reduces weight |
 | `ancestryDepth` | 3 | Max generations back for breeding/lineage |
 | `maxLifespanSeconds` | 60 | Max age before promotion (0 = disabled) |
+| `staleThresholdSeconds` | 15 | Kill flat-line contestants after N seconds of zero improvement (0 = off) |
 | `maxPromoted` | 10 | Max contestants in the hall of fame |
 | `presetInjectionInterval` | 3 | Every Nth spawn inject untried preset (0 = off) |
 | `rankingStrategy` | AUTO | BALANCED, VELOCITY_FIRST, FITNESS_FIRST, AUTO |

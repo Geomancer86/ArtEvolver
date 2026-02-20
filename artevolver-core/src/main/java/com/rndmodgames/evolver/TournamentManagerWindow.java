@@ -93,7 +93,9 @@ public class TournamentManagerWindow extends JFrame {
         table.getColumnModel().getColumn(4).setPreferredWidth(100);
         table.getColumnModel().getColumn(5).setPreferredWidth(60);
         table.getColumnModel().getColumn(6).setMaxWidth(40);
-        table.getColumnModel().getColumn(7).setPreferredWidth(200);
+        table.getColumnModel().getColumn(7).setPreferredWidth(150);
+        table.getColumnModel().getColumn(8).setPreferredWidth(90);
+        table.getColumnModel().getColumn(9).setPreferredWidth(200);
 
         table.getColumnModel().getColumn(1).setCellRenderer(new ColorCellRenderer());
 
@@ -837,6 +839,14 @@ public class TournamentManagerWindow extends JFrame {
         "Close Mutation Focus",
         "Fast Convergence",
         "Wide Search",
+        "Micro Surgeon",
+        "Chaos Engine",
+        "Gradient Chaser",
+        "Population Boom",
+        "Sniper",
+        "Blitz",
+        "Deep Grid",
+        "Hybrid Adaptive",
     };
 
     public int getStrategyCount() { return STRATEGY_NAMES.length; }
@@ -900,7 +910,71 @@ public class TournamentManagerWindow extends JFrame {
                 cfg.population = Math.max(cfg.population, 4);
                 cfg.gridMutationChances = cfg.gridMutationChances * 2;
                 cfg.randomMutationChances = cfg.randomMutationChances * 2;
+                break;
+            case 8: // Micro Surgeon — extreme close mutation, tiny percent, very local
+                cfg.name = STRATEGY_NAMES[8];
+                cfg.closeMutationChances = cfg.closeMutationChances * 10;
+                cfg.closeMutationPercent = Math.min(0.01f, cfg.closeMutationPercent * 8);
+                cfg.gridMutationChances = Math.max(2, cfg.gridMutationChances / 4);
+                cfg.randomMutationChances = Math.max(5, cfg.randomMutationChances / 8);
+                cfg.targetedSwapAttempts = cfg.targetedSwapAttempts * 3;
+                break;
+            case 9: // Chaos Engine — max everything, brute-force diversity bomb
+                cfg.name = STRATEGY_NAMES[9];
+                cfg.gridMutationChances = cfg.gridMutationChances * 4;
+                cfg.randomMutationChances = cfg.randomMutationChances * 6;
+                cfg.randomMutationPercent = Math.min(1f, cfg.randomMutationPercent * 6);
+                cfg.closeMutationChances = cfg.closeMutationChances * 4;
+                cfg.targetedSwapAttempts = cfg.targetedSwapAttempts * 4;
+                break;
+            case 10: // Gradient Chaser — targeted + grid, minimal random noise
+                cfg.name = STRATEGY_NAMES[10];
+                cfg.targetedSwapAttempts = cfg.targetedSwapAttempts * 6;
+                cfg.gridMutationChances = cfg.gridMutationChances * 3;
+                cfg.gridMutationDecay = cfg.gridMutationDecay * 0.3f;
+                cfg.randomMutationChances = Math.max(5, cfg.randomMutationChances / 6);
+                cfg.closeMutationChances = cfg.closeMutationChances * 3;
+                break;
+            case 11: // Population Boom — large population with crossover focus
+                cfg.name = STRATEGY_NAMES[11];
+                cfg.population = Math.max(6, cfg.population * 3);
+                cfg.crossoverMax = Math.max(4, cfg.crossoverMax * 2);
+                cfg.blockCrossoverEnabled = true;
+                cfg.gridMutationChances = cfg.gridMutationChances * 2;
+                cfg.targetedSwapAttempts = cfg.targetedSwapAttempts * 2;
+                break;
+            case 12: // Sniper — very high targeted, minimal noise
+                cfg.name = STRATEGY_NAMES[12];
+                cfg.targetedSwapAttempts = cfg.targetedSwapAttempts * 8;
+                cfg.gridMutationChances = 0;
+                cfg.randomMutationChances = Math.max(5, cfg.randomMutationChances / 10);
+                cfg.closeMutationChances = Math.max(2, cfg.closeMutationChances / 2);
+                break;
+            case 13: // Blitz — fast iterations, low mutation per step, high throughput
+                cfg.name = STRATEGY_NAMES[13];
+                cfg.randomMutationChances = cfg.randomMutationChances * 3;
+                cfg.randomMutationPercent = Math.max(0.0001f, cfg.randomMutationPercent / 4);
+                cfg.gridMutationChances = cfg.gridMutationChances * 2;
+                cfg.gridMutationPercent = Math.max(0.01f, cfg.gridMutationPercent / 2);
+                cfg.closeMutationChances = cfg.closeMutationChances * 2;
+                cfg.closeMutationPercent = Math.max(0.00001f, cfg.closeMutationPercent / 2);
+                break;
+            case 14: // Deep Grid — extreme grid with slow decay
+                cfg.name = STRATEGY_NAMES[14];
+                cfg.gridMutationChances = cfg.gridMutationChances * 8;
+                cfg.gridMutationDecay = cfg.gridMutationDecay * 0.2f;
+                cfg.gridMutationPercent = Math.min(1f, cfg.gridMutationPercent * 2);
+                cfg.randomMutationChances = Math.max(10, cfg.randomMutationChances / 2);
                 cfg.targetedSwapAttempts = cfg.targetedSwapAttempts;
+                break;
+            case 15: // Hybrid Adaptive — balanced high all with moderate population
+                cfg.name = STRATEGY_NAMES[15];
+                cfg.gridMutationChances = cfg.gridMutationChances * 3;
+                cfg.randomMutationChances = cfg.randomMutationChances * 3;
+                cfg.closeMutationChances = cfg.closeMutationChances * 3;
+                cfg.targetedSwapAttempts = cfg.targetedSwapAttempts * 3;
+                cfg.population = Math.max(3, cfg.population * 2);
+                cfg.crossoverMax = Math.max(3, cfg.crossoverMax * 2);
                 break;
         }
         return cfg;
@@ -1143,6 +1217,12 @@ public class TournamentManagerWindow extends JFrame {
         spnLifespan.setToolTipText("Promote and replace after N seconds. Default 60s for fast iteration.");
         form.add(spnLifespan);
 
+        form.add(new JLabel("Stale Detection (seconds, 0=off):"));
+        JSpinner spnStale = new JSpinner(new SpinnerNumberModel(
+                evoTournament.getStaleThresholdSeconds(), 0, 120, 5));
+        spnStale.setToolTipText("Eliminate flat-line contestants after N seconds of zero improvement.");
+        form.add(spnStale);
+
         form.add(new JLabel("Max Promoted (hall of fame):"));
         JSpinner spnMaxPromoted = new JSpinner(new SpinnerNumberModel(
                 evoTournament.getMaxPromoted(), 1, 50, 1));
@@ -1257,6 +1337,7 @@ public class TournamentManagerWindow extends JFrame {
             evoTournament.setAdaptiveCutoffMin((int) spnAdaptMin.getValue());
             evoTournament.setAdaptiveCutoffMax((int) spnAdaptMax.getValue());
             evoTournament.setMaxLifespanSeconds((int) spnLifespan.getValue());
+            evoTournament.setStaleThresholdSeconds((int) spnStale.getValue());
             evoTournament.setMaxPromoted((int) spnMaxPromoted.getValue());
             evoTournament.setPresetInjectionInterval((int) spnPresetInject.getValue());
             evoTournament.setRankingStrategy(
@@ -1797,7 +1878,7 @@ public class TournamentManagerWindow extends JFrame {
     }
 
     private class ContestantTableModel extends AbstractTableModel {
-        private final String[] COLS = {"#", "", "Name", "Score", "Velocity", "Status", "Gen", "Parameters"};
+        private final String[] COLS = {"#", "", "Name", "Score", "Velocity", "Status", "Gen", "Parentage", "Breed", "Parameters"};
 
         @Override public int getRowCount() { return contestants.size(); }
         @Override public int getColumnCount() { return COLS.length; }
@@ -1836,7 +1917,9 @@ public class TournamentManagerWindow extends JFrame {
                     return c.isRunning() ? "Running" : "Stopped";
                 }
                 case 6: return c.getGeneration();
-                case 7: return c.getConfig().toSummary();
+                case 7: return c.getParentage();
+                case 8: return c.getBreedType();
+                case 9: return c.getConfig().toSummary();
                 default: return "";
             }
         }

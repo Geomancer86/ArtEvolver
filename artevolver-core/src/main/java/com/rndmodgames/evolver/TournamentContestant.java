@@ -29,6 +29,7 @@ public class TournamentContestant {
     private long startTimeMs;
     private int generation;
     private String parentage = "initial";
+    private String breedType = "";
     private boolean eliminated = false;
     private boolean promoted = false;
     private int eliminatedAtGeneration = -1;
@@ -211,6 +212,8 @@ public class TournamentContestant {
     public void setGeneration(int generation) { this.generation = generation; }
     public String getParentage() { return parentage; }
     public void setParentage(String parentage) { this.parentage = parentage; }
+    public String getBreedType() { return breedType; }
+    public void setBreedType(String breedType) { this.breedType = breedType; }
     public boolean isEliminated() { return eliminated; }
     public boolean isPromoted() { return promoted; }
     public boolean isFinished() { return eliminated || promoted; }

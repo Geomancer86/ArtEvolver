@@ -226,3 +226,35 @@ With these changes, the evolutionary tournament becomes a proper meta-optimizer:
 - Dynamic pacing adapts to the problem's characteristics automatically
 - Multi-spawn enables faster exploration on high-core hardware
 - All parameters are exposed for future meta-meta-optimization
+
+## Prehistoric Mode — Progressive Evolution Tournament
+
+A gamified tournament mode that starts from absolute zero and progressively unlocks
+capabilities through 8 geological eras. This serves as both an educational tool
+(watching the fitness curve inflect when delta evolution unlocks in Era 3 is dramatic)
+and a proper ablation study.
+
+### Implementation
+
+- `PrehistoricMode.java` — Controller managing era progression, contestant spawning,
+  auto-advance timer, capability constraints, and preset pool tracking
+- `EvolutionConfig.createPrimordial()` through `createEra7()` — Era-specific factory
+  methods producing stripped-down configs
+- `TournamentManagerWindow` — Prehistoric Mode UI panel with era display, progress
+  bar, advance button, capability badges, and manual contestant controls
+
+### Era Progression
+
+| Era | Name               | Key Unlocks                    | Approx Speed  |
+|-----|--------------------|--------------------------------|---------------|
+| 0   | Primordial Soup    | Random init, random swaps only | ~90 iter/sec  |
+| 1   | Single Cell        | Grid + close mutations         | ~90 iter/sec  |
+| 2   | Multicellular      | Smart init, crossover, pop=2   | ~90 iter/sec  |
+| 3   | Cambrian Explosion | Delta evolution + targeted      | ~4500 iter/sec|
+| 4   | Age of Fish        | 2 threads                      | ~9000 iter/sec|
+| 5   | Age of Reptiles    | Scaling threads, presets        | Varies        |
+| 6   | Age of Mammals     | Full threads, all strategies    | Varies        |
+| 7   | Age of Intelligence| Evolutionary tournament (meta)  | Full system   |
+
+The Era 3 inflection point (legacy -> delta evolution) is the most visually dramatic
+moment: iteration throughput jumps ~50x and the fitness curve visibly bends upward.

@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.0] - 2026-02-20 (develop branch)
 
+### Added — Prehistoric Mode (Progressive Evolution Tournament)
+- **New gamified tournament mode** that starts from the most primitive possible
+  configuration and progressively unlocks capabilities through geological "eras"
+- **8 Eras** from Primordial Soup (1 thread, random init, legacy evolve, random
+  swaps only) to Age of Intelligence (full evolutionary tournament with meta-GA)
+- **Era 0 — Primordial Soup**: Pure brute-force random walk (~90 iter/sec)
+- **Era 1 — Single Cell**: Adds grid swaps and close mutations
+- **Era 2 — Multicellular**: Smart init, population=2, crossover enabled
+- **Era 3 — Cambrian Explosion**: Delta evolution + targeted swaps (~4500 iter/sec)
+- **Era 4 — Age of Fish**: 2 threads, full mutation suite
+- **Era 5 — Age of Reptiles**: Scaling threads, preset strategies introduced
+- **Era 6 — Age of Mammals**: Full thread allocation, all 8 strategies deployed
+- **Era 7 — Age of Intelligence**: Evolutionary tournament activates automatically
+- **Manual or Auto-Advance**: Toggle between manual era progression (click Advance)
+  and automatic progression (configurable duration per era, default 60s)
+- **+1 Thread button**: Manually add a thread to the thread budget at any time
+- **Add Preset Contestant**: Draws from 8 preset strategies, constrained to current
+  era capabilities; shows remaining count
+- **Add Evolved Contestant**: Breeds from top 2 performers via BLX-alpha crossover
+  with Gaussian mutation; available once presets are exhausted or 2+ contestants exist
+- **Capability badges**: Shows which features are unlocked at the current era
+- **Era progress bar and countdown**: Visual feedback for auto-advance timing
+- **New `EvolutionConfig` factories**: `createPrimordial()`, `createEra1()` through
+  `createEra7()` for era-specific stripped-down configurations
+- **New `PrehistoricMode.java` controller**: Manages era progression, contestant
+  spawning, auto-advance timer, capability constraints, and preset pool tracking
+
 ### Improved — Dynamic Tournament, Performance, Draw All Sorting
 - **Draw All sorted** — the "Draw All" view now renders contestants sorted by best
   score (highest first), with eliminated contestants at the bottom. No more hunting

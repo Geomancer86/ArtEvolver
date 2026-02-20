@@ -26,6 +26,7 @@ public class TournamentManagerWindow extends JFrame {
     private int nextId = 1;
 
     private EvolutionaryTournament evoTournament;
+    private PrehistoricMode prehistoricMode;
     private JLabel lblGeneration;
     private JLabel lblCountdown;
     private JLabel lblBestEver;
@@ -35,6 +36,20 @@ public class TournamentManagerWindow extends JFrame {
     private JButton btnStartAllRef;
     private JButton btnStopAllRef;
     private JCheckBox chkAutoEvolve;
+
+    // Prehistoric Mode UI
+    private JPanel prehistoricPanel;
+    private JLabel lblEra;
+    private JLabel lblEraDesc;
+    private JLabel lblEraCountdown;
+    private JLabel lblCapabilities;
+    private JButton btnAdvanceEra;
+    private JButton btnAddThread;
+    private JButton btnAddPreset;
+    private JButton btnAddEvolved;
+    private JButton btnStartPrehistoric;
+    private JCheckBox chkAutoAdvance;
+    private JProgressBar eraProgress;
 
     private static final Color BG = new Color(240, 240, 244);
     private static final Color HEADER_BG = new Color(50, 55, 70);
@@ -120,7 +135,13 @@ public class TournamentManagerWindow extends JFrame {
         btnStopAllRef.setForeground(Color.WHITE);
         btnStopAllRef.addActionListener(e -> artEvolver.stopTournament());
 
+        btnStartPrehistoric = makeBtn("\uD83E\uDDB4 Prehistoric Mode");
+        btnStartPrehistoric.setBackground(new Color(121, 85, 72));
+        btnStartPrehistoric.setForeground(Color.WHITE);
+        btnStartPrehistoric.addActionListener(e -> togglePrehistoricMode());
+
         buttonBar.add(btnQuickSetupRef);
+        buttonBar.add(btnStartPrehistoric);
         buttonBar.add(Box.createHorizontalStrut(8));
         buttonBar.add(btnAdd);
         buttonBar.add(btnDuplicate);
@@ -167,11 +188,16 @@ public class TournamentManagerWindow extends JFrame {
         lblBestEver.setForeground(new Color(76, 175, 80));
         evoBar.add(lblBestEver);
 
+        // ═══ Prehistoric Mode panel ═══
+        prehistoricPanel = buildPrehistoricPanel();
+        prehistoricPanel.setVisible(false);
+
         JPanel allBars = new JPanel();
         allBars.setLayout(new BoxLayout(allBars, BoxLayout.Y_AXIS));
         allBars.setOpaque(false);
         allBars.add(buttonBar);
         allBars.add(evoBar);
+        allBars.add(prehistoricPanel);
 
         detailPanel = new JPanel();
         detailPanel.setLayout(new BoxLayout(detailPanel, BoxLayout.Y_AXIS));
@@ -236,6 +262,262 @@ public class TournamentManagerWindow extends JFrame {
         btn.setFocusPainted(false);
         return btn;
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  PREHISTORIC MODE UI
+    // ═══════════════════════════════════════════════════════════════
+
+    private JPanel buildPrehistoricPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 1, 0, new Color(121, 85, 72)),
+                new EmptyBorder(4, 8, 4, 8)));
+        panel.setBackground(new Color(62, 44, 36));
+
+        // Row 1: Era info + progress + advance
+        JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 2));
+        row1.setOpaque(false);
+
+        lblEra = new JLabel("ERA 0: Primordial Soup");
+        lblEra.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
+        lblEra.setForeground(new Color(255, 183, 77));
+        row1.add(lblEra);
+
+        eraProgress = new JProgressBar(0, 100);
+        eraProgress.setPreferredSize(new Dimension(120, 18));
+        eraProgress.setStringPainted(true);
+        eraProgress.setString("--");
+        row1.add(eraProgress);
+
+        lblEraCountdown = new JLabel("");
+        lblEraCountdown.setFont(new Font(Font.MONOSPACED, Font.BOLD, 12));
+        lblEraCountdown.setForeground(new Color(255, 152, 0));
+        row1.add(lblEraCountdown);
+
+        btnAdvanceEra = makeBtn("Advance Era \u00BB");
+        btnAdvanceEra.setBackground(new Color(255, 152, 0));
+        btnAdvanceEra.setForeground(Color.BLACK);
+        btnAdvanceEra.addActionListener(e -> {
+            if (prehistoricMode != null && prehistoricMode.isActive()) {
+                prehistoricMode.advanceEra();
+                refreshPrehistoricState();
+            }
+        });
+        row1.add(btnAdvanceEra);
+
+        chkAutoAdvance = new JCheckBox("Auto-Advance", false);
+        chkAutoAdvance.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 11));
+        chkAutoAdvance.setOpaque(false);
+        chkAutoAdvance.setForeground(new Color(200, 200, 210));
+        chkAutoAdvance.addActionListener(e -> {
+            if (prehistoricMode != null) {
+                prehistoricMode.setAutoAdvance(chkAutoAdvance.isSelected());
+            }
+        });
+        row1.add(chkAutoAdvance);
+
+        panel.add(row1);
+
+        // Row 2: Action buttons + capabilities
+        JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 2));
+        row2.setOpaque(false);
+
+        btnAddThread = makeBtn("+1 Thread");
+        btnAddThread.addActionListener(e -> {
+            if (prehistoricMode != null && prehistoricMode.isActive()) {
+                int threads = prehistoricMode.addThread();
+                refreshPrehistoricState();
+                JOptionPane.showMessageDialog(this,
+                        "Threads per contestant: " + threads,
+                        "+1 Thread", JOptionPane.INFORMATION_MESSAGE);
+            }
+        });
+        row2.add(btnAddThread);
+
+        btnAddPreset = makeBtn("+ Add Preset Contestant");
+        btnAddPreset.setBackground(new Color(33, 150, 243));
+        btnAddPreset.setForeground(Color.WHITE);
+        btnAddPreset.addActionListener(e -> {
+            if (prehistoricMode != null && prehistoricMode.isActive()) {
+                String name = prehistoricMode.addPresetContestant();
+                if (name != null) {
+                    refreshTable();
+                    refreshPrehistoricState();
+                }
+            }
+        });
+        row2.add(btnAddPreset);
+
+        btnAddEvolved = makeBtn("+ Add Evolved Contestant");
+        btnAddEvolved.setBackground(new Color(156, 39, 176));
+        btnAddEvolved.setForeground(Color.WHITE);
+        btnAddEvolved.addActionListener(e -> {
+            if (prehistoricMode != null && prehistoricMode.isActive()) {
+                String name = prehistoricMode.addEvolvedContestant();
+                if (name != null) {
+                    refreshTable();
+                    refreshPrehistoricState();
+                } else {
+                    JOptionPane.showMessageDialog(this,
+                            "Need at least 2 contestants with scores to breed.",
+                            "Cannot Breed", JOptionPane.WARNING_MESSAGE);
+                }
+            }
+        });
+        row2.add(btnAddEvolved);
+
+        row2.add(Box.createHorizontalStrut(8));
+
+        lblCapabilities = new JLabel("");
+        lblCapabilities.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 11));
+        lblCapabilities.setForeground(new Color(178, 223, 138));
+        row2.add(lblCapabilities);
+
+        panel.add(row2);
+
+        // Row 3: Era description
+        JPanel row3 = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        row3.setOpaque(false);
+
+        lblEraDesc = new JLabel("");
+        lblEraDesc.setFont(new Font(Font.SANS_SERIF, Font.ITALIC, 11));
+        lblEraDesc.setForeground(new Color(180, 180, 190));
+        row3.add(lblEraDesc);
+
+        panel.add(row3);
+
+        return panel;
+    }
+
+    private void togglePrehistoricMode() {
+        if (prehistoricMode != null && prehistoricMode.isActive()) {
+            int opt = JOptionPane.showConfirmDialog(this,
+                    "Stop Prehistoric Mode? All contestants will be preserved.",
+                    "Stop Prehistoric Mode", JOptionPane.YES_NO_OPTION);
+            if (opt != JOptionPane.YES_OPTION) return;
+            prehistoricMode.stop();
+            prehistoricPanel.setVisible(false);
+            btnStartPrehistoric.setText("\uD83E\uDDB4 Prehistoric Mode");
+            btnStartPrehistoric.setBackground(new Color(121, 85, 72));
+            setEvoLockButtons(false);
+            return;
+        }
+
+        if (artEvolver.getResizedOriginal() == null) {
+            JOptionPane.showMessageDialog(this,
+                    "Load an image first before starting Prehistoric Mode.",
+                    "No Image", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Confirm clearing existing contestants
+        if (!contestants.isEmpty()) {
+            int opt = JOptionPane.showConfirmDialog(this,
+                    "Prehistoric Mode clears existing contestants and starts from scratch.\n\nContinue?",
+                    "Start Prehistoric Mode", JOptionPane.OK_CANCEL_OPTION);
+            if (opt != JOptionPane.OK_OPTION) return;
+        }
+
+        // Show era duration config
+        JPanel form = new JPanel(new GridLayout(0, 2, 8, 4));
+        form.setBorder(new EmptyBorder(8, 8, 8, 8));
+
+        form.add(new JLabel("Era Duration (seconds):"));
+        JSpinner spnDuration = new JSpinner(new SpinnerNumberModel(60, 10, 600, 10));
+        form.add(spnDuration);
+
+        form.add(new JLabel("Max Thread Budget:"));
+        int avail = Runtime.getRuntime().availableProcessors();
+        JSpinner spnThreads = new JSpinner(new SpinnerNumberModel(
+                Math.max(2, avail - 2), 2, avail * 2, 1));
+        form.add(spnThreads);
+
+        form.add(new JLabel("Auto-Advance:"));
+        JCheckBox chkAuto = new JCheckBox("Automatically progress through eras", false);
+        form.add(chkAuto);
+
+        int result = JOptionPane.showConfirmDialog(this, form,
+                "Prehistoric Mode Setup", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) return;
+
+        prehistoricMode = new PrehistoricMode(artEvolver, contestants);
+        prehistoricMode.setEraDurationSeconds((int) spnDuration.getValue());
+        prehistoricMode.setMaxThreadsBudget((int) spnThreads.getValue());
+        prehistoricMode.setAutoAdvance(chkAuto.isSelected());
+        chkAutoAdvance.setSelected(chkAuto.isSelected());
+
+        if (!prehistoricMode.start()) {
+            JOptionPane.showMessageDialog(this,
+                    "Failed to start Prehistoric Mode. Make sure an image is loaded.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        prehistoricPanel.setVisible(true);
+        btnStartPrehistoric.setText("\u25A0 Stop Prehistoric");
+        btnStartPrehistoric.setBackground(new Color(178, 34, 34));
+
+        refreshPrehistoricState();
+        refreshTable();
+    }
+
+    /** Updates the Prehistoric Mode UI panel with current era state. */
+    public void refreshPrehistoricState() {
+        if (prehistoricMode == null || !prehistoricMode.isActive()) return;
+
+        int era = prehistoricMode.getCurrentEra();
+        lblEra.setText("ERA " + era + ": " + prehistoricMode.getCurrentEraName());
+        lblEraDesc.setText(prehistoricMode.getCurrentEraDescription());
+
+        String[] caps = prehistoricMode.getCurrentCapabilities();
+        StringBuilder capStr = new StringBuilder();
+        for (int i = 0; i < caps.length; i++) {
+            if (i > 0) capStr.append(" | ");
+            capStr.append(caps[i]);
+        }
+        lblCapabilities.setText(capStr.toString());
+
+        boolean atFinal = prehistoricMode.isAtFinalEra();
+        btnAdvanceEra.setEnabled(!atFinal);
+        btnAddPreset.setEnabled(true);
+        btnAddEvolved.setEnabled(prehistoricMode.arePresetsExhausted()
+                || contestants.stream().filter(c -> !c.isEliminated() && c.getBestScore() > 0).count() >= 2);
+
+        if (prehistoricMode.arePresetsExhausted()) {
+            btnAddPreset.setText("+ Add Preset (recycled)");
+        } else {
+            btnAddPreset.setText("+ Add Preset (" + (PrehistoricMode.PRESET_STRATEGIES.length - prehistoricMode.getNextPresetIndex()) + " left)");
+        }
+
+        int secondsLeft = prehistoricMode.getSecondsUntilNextEra();
+        if (secondsLeft >= 0) {
+            int pct = (int) (100.0 * (1.0 - (double) secondsLeft / prehistoricMode.getEraDurationSeconds()));
+            eraProgress.setValue(pct);
+            eraProgress.setString(secondsLeft + "s");
+            lblEraCountdown.setText("Next era: " + secondsLeft + "s");
+        } else {
+            eraProgress.setValue(atFinal ? 100 : 0);
+            eraProgress.setString(atFinal ? "FINAL ERA" : "Manual");
+            lblEraCountdown.setText(atFinal ? "Final Era Reached" : "");
+        }
+
+        // Update era history in the main history area
+        java.util.List<PrehistoricMode.EraRecord> records = prehistoricMode.getHistory();
+        if (!records.isEmpty()) {
+            PrehistoricMode.EraRecord latest = records.get(records.size() - 1);
+            if (txtHistory.getText().isEmpty() || !txtHistory.getText().contains("Era " + latest.era)) {
+                StringBuilder sb = new StringBuilder();
+                for (PrehistoricMode.EraRecord rec : records) {
+                    sb.append("[Prehistoric] ").append(rec.toString()).append('\n');
+                }
+                txtHistory.setText(sb.toString());
+                txtHistory.setCaretPosition(txtHistory.getDocument().getLength());
+            }
+        }
+    }
+
+    public PrehistoricMode getPrehistoricMode() { return prehistoricMode; }
 
     // --- Strategy presets for Quick Setup ---
 
@@ -638,6 +920,9 @@ public class TournamentManagerWindow extends JFrame {
 
     /** Called periodically to update generation, countdown, best-ever, history. */
     public void refreshEvolutionaryState() {
+        if (prehistoricMode != null && prehistoricMode.isActive()) {
+            refreshPrehistoricState();
+        }
         if (evoTournament == null) return;
 
         lblGeneration.setText("Gen: " + evoTournament.getGeneration());
@@ -695,6 +980,13 @@ public class TournamentManagerWindow extends JFrame {
     }
 
     public EvolutionaryTournament getEvoTournament() { return evoTournament; }
+
+    /** Creates the EvolutionaryTournament if not already present, for programmatic use. */
+    public void createEvoTournament() {
+        if (evoTournament == null) {
+            evoTournament = new EvolutionaryTournament(artEvolver, contestants);
+        }
+    }
 
     private void notifyContestantsChanged() {
         tableModel.fireTableDataChanged();

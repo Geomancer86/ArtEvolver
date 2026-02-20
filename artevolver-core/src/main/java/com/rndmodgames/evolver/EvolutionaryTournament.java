@@ -528,7 +528,7 @@ public class EvolutionaryTournament {
     //  BREEDING — standard and multi-generational
     // ═══════════════════════════════════════════════════════════
 
-    private EvolutionConfig breedConfigs(EvolutionConfig cfgA, EvolutionConfig cfgB) {
+    EvolutionConfig breedConfigs(EvolutionConfig cfgA, EvolutionConfig cfgB) {
         float[] genesA = cfgA.toGeneArray();
         float[] genesB = cfgB.toGeneArray();
         float[] childGenes = crossover(genesA, genesB);

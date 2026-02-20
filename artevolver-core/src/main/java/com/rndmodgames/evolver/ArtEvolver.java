@@ -2398,6 +2398,19 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     public int[] getJumpDistances() { return RANDOM_JUMP_MAX_DISTANCES; }
     public FitnessChartWindow getFitnessChartWindow() { return fitnessChartWindow; }
     public TournamentManagerWindow getTournamentManagerWindow() { return tournamentManagerWindow; }
+    public boolean isRunning() { return isRunning; }
+    public void setTournamentMode(boolean mode) { this.tournamentMode = mode; }
+    public void startProcessTimer() {
+        if (!isRunning) {
+            evolveStartTimeMs = System.currentTimeMillis();
+            processTimer.start();
+            isRunning = true;
+        }
+        if (fitnessChartWindow == null) {
+            fitnessChartWindow = new FitnessChartWindow();
+        }
+        fitnessChartWindow.setVisible(true);
+    }
 
     // Returns the average of a stream of numbers
     static float streamAvg(float [] array, int n) {

@@ -51,6 +51,125 @@ public class EvolutionConfig implements Cloneable {
 
     public EvolutionConfig() {}
 
+    // ════════════════════════════════════════════════════════════════
+    //  Prehistoric Mode — Era-specific config factories
+    // ════════════════════════════════════════════════════════════════
+
+    /**
+     * Era 0 — Primordial Soup: the absolute minimum. Random init, legacy evolve,
+     * only random swaps, no crossover, no intelligence. Pure brute-force random walk.
+     */
+    public static EvolutionConfig createPrimordial() {
+        EvolutionConfig cfg = new EvolutionConfig();
+        cfg.name = "Primordial";
+        cfg.threads = 1;
+        cfg.population = 1;
+        cfg.crossoverMax = 1;
+        cfg.useDeltaEvolution = false;
+        cfg.initializationMethod = 0;
+        cfg.blockCrossoverEnabled = false;
+        cfg.gridMutationChances = 0;
+        cfg.gridMutationPercent = 0;
+        cfg.gridMutationDecay = 0;
+        cfg.closeMutationChances = 0;
+        cfg.closeMutationPercent = 0;
+        cfg.randomGridMutationChances = 0;
+        cfg.randomGridMutationPercent = 0;
+        cfg.targetedSwapAttempts = 0;
+        cfg.randomMutationChances = 1000;
+        cfg.randomMutationPercent = 0.01f;
+        cfg.evolveIterations = 1;
+        cfg.validatePermutation = true;
+        return cfg;
+    }
+
+    /**
+     * Era 1 — Single Cell: adds grid swaps and close mutations on top of primordial.
+     */
+    public static EvolutionConfig createEra1() {
+        EvolutionConfig cfg = createPrimordial();
+        cfg.name = "Single Cell";
+        cfg.gridMutationChances = 16;
+        cfg.gridMutationPercent = 1.0f;
+        cfg.gridMutationDecay = 0.1f;
+        cfg.closeMutationChances = 10;
+        cfg.closeMutationPercent = 0.0001f;
+        return cfg;
+    }
+
+    /**
+     * Era 2 — Multicellular: smart init, population=2, crossover enabled.
+     */
+    public static EvolutionConfig createEra2() {
+        EvolutionConfig cfg = createEra1();
+        cfg.name = "Multicellular";
+        cfg.initializationMethod = 1;
+        cfg.population = 2;
+        cfg.crossoverMax = 2;
+        cfg.blockCrossoverEnabled = true;
+        cfg.evolveIterations = 2;
+        return cfg;
+    }
+
+    /**
+     * Era 3 — Cambrian Explosion: delta evolution + targeted swaps. Major inflection.
+     */
+    public static EvolutionConfig createEra3() {
+        EvolutionConfig cfg = createEra2();
+        cfg.name = "Cambrian";
+        cfg.useDeltaEvolution = true;
+        cfg.targetedSwapAttempts = 8;
+        cfg.randomGridMutationChances = 5;
+        cfg.randomGridMutationPercent = 0.0001f;
+        return cfg;
+    }
+
+    /**
+     * Era 4 — Age of Fish: 2 threads, full mutation suite.
+     */
+    public static EvolutionConfig createEra4() {
+        EvolutionConfig cfg = createEra3();
+        cfg.name = "Age of Fish";
+        cfg.threads = 2;
+        cfg.gridMutationChances = 32;
+        cfg.randomMutationChances = 1000;
+        cfg.randomMutationPercent = 0.001f;
+        cfg.closeMutationChances = 20;
+        cfg.closeMutationPercent = 0.0001f;
+        cfg.targetedSwapAttempts = 12;
+        cfg.randomGridMutationChances = 10;
+        cfg.randomGridMutationPercent = 0.0001f;
+        return cfg;
+    }
+
+    /**
+     * Era 5+ — Age of Reptiles: thread count scales, preset strategies appear.
+     */
+    public static EvolutionConfig createEra5(int threadCount) {
+        EvolutionConfig cfg = createEra4();
+        cfg.name = "Age of Reptiles";
+        cfg.threads = Math.max(2, threadCount);
+        return cfg;
+    }
+
+    /**
+     * Era 6 — Age of Mammals: full thread allocation, all strategies deployed.
+     */
+    public static EvolutionConfig createEra6(int threadCount) {
+        EvolutionConfig cfg = createEra5(threadCount);
+        cfg.name = "Age of Mammals";
+        return cfg;
+    }
+
+    /**
+     * Era 7 — Age of Intelligence: fully evolved, evolutionary tournament activates.
+     */
+    public static EvolutionConfig createEra7(int threadCount) {
+        EvolutionConfig cfg = createEra6(threadCount);
+        cfg.name = "Intelligence";
+        return cfg;
+    }
+
     /**
      * Creates a config populated from the current static/global settings.
      */

@@ -11,12 +11,14 @@ import java.net.URISyntaxException;
 
 import javax.imageio.ImageIO;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.rndmodgames.evolver.CrossOver;
 import com.rndmodgames.evolver.ImageEvolver;
 import com.rndmodgames.evolver.Palette;
 
+@Tag("slow")
 class CrossOverTest {
 
     @Test

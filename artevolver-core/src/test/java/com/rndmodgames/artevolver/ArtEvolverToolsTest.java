@@ -7,11 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.net.URISyntaxException;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.rndmodgames.evolver.ArtEvolverTools;
 import com.rndmodgames.evolver.ImageEvolver;
 
+@Tag("slow")
 class ArtEvolverToolsTest {
 
     @Test

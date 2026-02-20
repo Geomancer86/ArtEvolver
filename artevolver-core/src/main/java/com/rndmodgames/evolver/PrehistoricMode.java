@@ -554,5 +554,37 @@ public class PrehistoricMode {
             return "Era " + era + ": " + eraName
                     + " (" + aliveCount + " -> " + aliveCountAfter + " contestants)";
         }
+
+        public String toNarrative() {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm:ss");
+            StringBuilder sb = new StringBuilder();
+            sb.append("=== Era ").append(era).append(": ").append(eraName).append(" ===\n");
+            sb.append("  Time: ").append(sdf.format(new java.util.Date(timestamp))).append("\n");
+
+            if (era < ERA_COUNT) {
+                sb.append("  Unlocked: ").append(ERA_CAPABILITIES[era]).append("\n");
+            }
+
+            if (era == 0) {
+                sb.append("  Life begins. A single organism struggles with random mutations.\n");
+            } else if (era == 1) {
+                sb.append("  Grid awareness emerges. Close mutations improve local patterns.\n");
+            } else if (era == 2) {
+                sb.append("  Sexual reproduction unlocked. Population grows, crossover begins.\n");
+            } else if (era == 3) {
+                sb.append("  Delta evolution discovered. Rapid acceleration expected.\n");
+            } else if (era == 4) {
+                sb.append("  Parallel processing. Two threads working simultaneously.\n");
+            } else if (era == 5) {
+                sb.append("  Diversification era. Preset strategies compete.\n");
+            } else if (era == 6) {
+                sb.append("  Full power. All algorithms, all threads deployed.\n");
+            } else if (era == 7) {
+                sb.append("  Intelligence awakens. Meta-evolution begins.\n");
+            }
+
+            sb.append("  Competitors: ").append(aliveCount).append(" -> ").append(aliveCountAfter).append("\n");
+            return sb.toString();
+        }
     }
 }

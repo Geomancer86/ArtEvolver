@@ -778,6 +778,81 @@ public class EvolutionaryTournament {
                     + "  Alive: " + aliveCount + cutoffStr;
         }
 
+        /**
+         * Returns a multi-line, human-readable narrative of this generation's events.
+         */
+        public String toNarrative() {
+            StringBuilder sb = new StringBuilder();
+            String divider = "--- Generation " + generation + " ---\n";
+            sb.append(divider);
+
+            if (skipped) {
+                sb.append("  Tournament paused: ").append(skipReason).append("\n");
+                return sb.toString();
+            }
+
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm:ss");
+            sb.append("  Time: ").append(sdf.format(new java.util.Date(timestamp))).append("\n");
+            sb.append("  Population: ").append(aliveCount).append(" active competitors\n");
+
+            // Best performer
+            sb.append("  Leader: ").append(bestName)
+              .append(" at ").append(DF2_STATIC.format(bestScore * 100)).append("% fitness");
+            if (bestVelocity > 0) {
+                sb.append(", gaining ").append(DF4_STATIC.format(bestVelocity * 100)).append("%/s");
+            }
+            sb.append("\n");
+
+            // Average
+            sb.append("  Average fitness: ").append(DF2_STATIC.format(avgScore * 100)).append("%\n");
+
+            // Convergence
+            if (converged) {
+                sb.append("  \u26A0 Population has converged - competitors are performing similarly\n");
+            }
+
+            // Culling
+            sb.append("\n");
+            if (spawnsThisTick > 1) {
+                sb.append("  \u2694 ").append(spawnsThisTick).append(" competitors eliminated this cycle:\n");
+                sb.append("    Weakest: ").append(culledName)
+                  .append(" (").append(DF2_STATIC.format(culledScore * 100)).append("% fitness");
+                sb.append(", composite rank ").append(DF2_STATIC.format(culledComposite)).append(")\n");
+            } else {
+                sb.append("  \u2694 Eliminated: ").append(culledName)
+                  .append(" (").append(DF2_STATIC.format(culledScore * 100)).append("% fitness");
+                if (culledVelocity != 0) {
+                    sb.append(", velocity ").append(DF4_STATIC.format(culledVelocity * 100)).append("%/s");
+                }
+                sb.append(")\n");
+            }
+
+            // Breeding
+            sb.append("  \u2728 New competitor: ").append(childName).append("\n");
+            sb.append("    Parents: ").append(parentA).append(" x ").append(parentB);
+            if (ancestralCrossover) {
+                sb.append(" (with ancestral genes)");
+            }
+            sb.append("\n");
+            sb.append("    Grace period: ").append(childGraceTicks).append(" cycles to prove itself\n");
+
+            // Best ever
+            if (bestEverScore > 0) {
+                sb.append("  \u2B50 All-time best: ").append(bestEverName)
+                  .append(" at ").append(DF2_STATIC.format(bestEverScore * 100)).append("%\n");
+            }
+
+            // Adaptive cutoff
+            if (currentCutoff > 0) {
+                sb.append("  Next cycle in ").append(currentCutoff).append(" seconds");
+                if (currentCutoff < 30) sb.append(" (accelerated - stalled population)");
+                else if (currentCutoff > 120) sb.append(" (extended - steady improvement)");
+                sb.append("\n");
+            }
+
+            return sb.toString();
+        }
+
         private static final DecimalFormat DF2_STATIC = new DecimalFormat("0.00");
         private static final DecimalFormat DF4_STATIC = new DecimalFormat("0.0000");
     }

@@ -258,3 +258,48 @@ and a proper ablation study.
 
 The Era 3 inflection point (legacy -> delta evolution) is the most visually dramatic
 moment: iteration throughput jumps ~50x and the fitness curve visibly bends upward.
+
+---
+
+## System Monitor & Autopilot Mode
+
+### SystemMonitor.java
+
+A dedicated JMX-based system resource monitor providing:
+- **CPU**: Process + system-wide load via `com.sun.management.OperatingSystemMXBean`
+- **Memory**: JVM heap usage + physical RAM (total/free) on supported JVMs
+- **Disk**: Workspace drive total/free via `java.io.File`
+- **Threads**: Active JVM thread count and peak, plus available processors
+
+All metrics are polled periodically (every refresh cycle, ~2-5s) and available as
+both raw values and formatted strings for UI display.
+
+### Autopilot Mode
+
+One-click autonomous tournament management:
+
+1. **Resource Limits**: User configures max CPU %, max RAM %, max Heap %
+2. **canAddWork()**: Before spawning, checks all limits against current readings
+3. **estimateFreeThreads()**: Calculates how many cores are available for new work
+4. **Auto-progression**: If no contestants exist, starts Prehistoric Mode (Genesis)
+   with auto-advance enabled. If contestants exist, ensures they're running.
+5. **Tournament activation**: When 3+ contestants are active and resources allow,
+   automatically creates and starts the Evolutionary Tournament with adaptive cutoff.
+
+### Smart Test Profiles
+
+- `@Tag("slow")` on BenchmarkTest, ArtEvolverToolsTest, CrossOverTest
+- Surefire default: `<excludedGroups>slow</excludedGroups>`
+- `mvn test -Pfull` profile overrides to run everything
+- Development cycle: ~15s (9 fast tests) vs ~210s (27 all tests)
+
+### Narrative Logs
+
+`GenerationRecord.toNarrative()` produces multi-line human-readable history:
+- Timestamped generation events with population counts
+- Leader identification with fitness and velocity
+- Convergence warnings
+- Culling details with composite scores and reasons
+- Breeding lineage (parents, ancestral crossover, grace period)
+- Adaptive cutoff state
+- Prehistoric mode era descriptions with capability unlocks

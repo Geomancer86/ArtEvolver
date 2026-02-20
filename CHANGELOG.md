@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.0] - 2026-02-20 (develop branch)
 
+### Added — System Monitor, Autopilot & Smart Test Profiles
+
+- **SystemMonitor.java**: Real-time CPU, RAM (heap + physical), disk, and thread
+  monitoring using JMX and `java.lang.management`. All metrics exposed as percentages
+  and formatted strings for both programmatic and UI use.
+- **Autopilot Mode**: One-click fully automated tournament mode accessible from
+  the new `Autopilot...` button on the system status bar:
+  - Configurable resource limits: max CPU %, max RAM %, max JVM Heap %
+  - Automatically starts Genesis/Prehistoric Mode if no contestants exist
+  - Spawns contestants when resource headroom allows
+  - Activates evolutionary tournament when 3+ contestants are running
+  - Pauses spawning when CPU/RAM limits are approached
+- **System Status Bar**: Live CPU / Heap / RAM / Thread display at the bottom
+  of the Tournament Manager, color-coded by load (green/yellow/red)
+- **Smart Test Profiles**: Slow tests (BenchmarkTest, ArtEvolverToolsTest,
+  CrossOverTest) tagged with `@Tag("slow")` and excluded by default:
+  - `mvn test` — runs only fast tests (~15s vs ~210s)
+  - `mvn test -Pfull` — runs all tests including slow benchmarks
+  - No tests removed, only deferred for development speed
+- **Narrative Evolution Logs**: Tournament history panel now shows rich,
+  human-readable multi-line narratives for each generation:
+  - Timestamps, population count, leader and velocity
+  - Convergence warnings, culling details with reasons
+  - Breeding info with parent lineage and grace periods
+  - Adaptive cutoff status (accelerated/extended)
+  - Prehistoric mode eras show capability unlocks and thematic descriptions
+
 ### Added — Prehistoric Mode (Progressive Evolution Tournament)
 - **New gamified tournament mode** that starts from the most primitive possible
   configuration and progressively unlocks capabilities through geological "eras"

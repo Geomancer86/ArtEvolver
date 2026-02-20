@@ -37,6 +37,14 @@ public class TournamentManagerWindow extends JFrame {
     private JButton btnStopAllRef;
     private JCheckBox chkAutoEvolve;
 
+    // System Monitor + Autopilot
+    private final SystemMonitor sysMonitor = new SystemMonitor();
+    private JLabel lblSysStatus;
+    private boolean autopilotActive = false;
+    private double maxCpuPercent = 80;
+    private double maxRamPercent = 85;
+    private double maxHeapPercent = 80;
+
     // Prehistoric Mode UI
     private JPanel prehistoricPanel;
     private JLabel lblEra;
@@ -239,6 +247,21 @@ public class TournamentManagerWindow extends JFrame {
         split.setResizeWeight(0.55);
         add(split, BorderLayout.CENTER);
 
+        // System status bar
+        JPanel statusBar = new JPanel(new BorderLayout());
+        statusBar.setBackground(new Color(30, 30, 38));
+        statusBar.setBorder(new EmptyBorder(3, 8, 3, 8));
+        lblSysStatus = new JLabel(sysMonitor.formatCompact());
+        lblSysStatus.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 11));
+        lblSysStatus.setForeground(new Color(130, 200, 130));
+        statusBar.add(lblSysStatus, BorderLayout.WEST);
+
+        JButton btnAutopilot = makeBtn("\u2699 Autopilot...");
+        btnAutopilot.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 10));
+        btnAutopilot.addActionListener(e -> showAutopilotSettings());
+        statusBar.add(btnAutopilot, BorderLayout.EAST);
+        add(statusBar, BorderLayout.SOUTH);
+
         pack();
         sizeToScreen();
     }
@@ -262,6 +285,189 @@ public class TournamentManagerWindow extends JFrame {
         btn.setFocusPainted(false);
         return btn;
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  SYSTEM MONITOR + AUTOPILOT
+    // ═══════════════════════════════════════════════════════════════
+
+    /** Refreshes system resource display. Called from refreshEvolutionaryState(). */
+    private void refreshSystemStatus() {
+        sysMonitor.poll();
+        String status = sysMonitor.formatCompact();
+        if (autopilotActive) status = "\u2699 AUTOPILOT  " + status;
+        lblSysStatus.setText(status);
+
+        double cpu = sysMonitor.getCpuUsagePercent();
+        if (cpu >= 0 && cpu > 90) {
+            lblSysStatus.setForeground(new Color(244, 67, 54));
+        } else if (cpu >= 0 && cpu > 70) {
+            lblSysStatus.setForeground(new Color(255, 193, 7));
+        } else {
+            lblSysStatus.setForeground(new Color(130, 200, 130));
+        }
+
+        if (autopilotActive) {
+            autopilotTick();
+        }
+    }
+
+    private void showAutopilotSettings() {
+        JPanel form = new JPanel(new GridLayout(0, 2, 8, 4));
+        form.setBorder(new EmptyBorder(8, 8, 8, 8));
+
+        form.add(new JLabel("Max CPU Usage (%):"));
+        JSpinner spnCpu = new JSpinner(new SpinnerNumberModel(maxCpuPercent, 10.0, 100.0, 5.0));
+        form.add(spnCpu);
+
+        form.add(new JLabel("Max RAM Usage (%):"));
+        JSpinner spnRam = new JSpinner(new SpinnerNumberModel(maxRamPercent, 20.0, 100.0, 5.0));
+        form.add(spnRam);
+
+        form.add(new JLabel("Max JVM Heap (%):"));
+        JSpinner spnHeap = new JSpinner(new SpinnerNumberModel(maxHeapPercent, 20.0, 100.0, 5.0));
+        form.add(spnHeap);
+
+        form.add(new JLabel(""));
+        JCheckBox chkEnable = new JCheckBox("Enable Autopilot", autopilotActive);
+        chkEnable.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
+        form.add(chkEnable);
+
+        JPanel info = new JPanel();
+        info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
+        info.setBorder(new EmptyBorder(8, 0, 0, 0));
+        JTextArea txtInfo = new JTextArea(
+                "Autopilot monitors system resources and automatically:\n"
+                + " - Spawns new contestants when CPU/RAM headroom allows\n"
+                + " - Pauses spawning when limits are approached\n"
+                + " - Uses Prehistoric Mode (Genesis) or Quick Setup based on state\n"
+                + " - Activates evolutionary tournament when enough contestants exist\n\n"
+                + "Current system:\n" + sysMonitor.toString());
+        txtInfo.setEditable(false);
+        txtInfo.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 11));
+        txtInfo.setBackground(new Color(245, 245, 250));
+        info.add(txtInfo);
+
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.add(form, BorderLayout.NORTH);
+        wrapper.add(info, BorderLayout.CENTER);
+
+        int result = JOptionPane.showConfirmDialog(this, wrapper,
+                "Autopilot & Resource Limits", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            maxCpuPercent = ((Number) spnCpu.getValue()).doubleValue();
+            maxRamPercent = ((Number) spnRam.getValue()).doubleValue();
+            maxHeapPercent = ((Number) spnHeap.getValue()).doubleValue();
+            boolean wasActive = autopilotActive;
+            autopilotActive = chkEnable.isSelected();
+
+            if (autopilotActive && !wasActive) {
+                System.out.println("[Autopilot] Enabled — limits: CPU "
+                        + (int) maxCpuPercent + "%, RAM " + (int) maxRamPercent
+                        + "%, Heap " + (int) maxHeapPercent + "%");
+                startAutopilot();
+            } else if (!autopilotActive && wasActive) {
+                System.out.println("[Autopilot] Disabled");
+            }
+        }
+    }
+
+    private void startAutopilot() {
+        if (artEvolver.getResizedOriginal() == null) {
+            JOptionPane.showMessageDialog(this,
+                    "Load an image first before enabling Autopilot.",
+                    "No Image", JOptionPane.WARNING_MESSAGE);
+            autopilotActive = false;
+            return;
+        }
+
+        // If no contestants and prehistoric mode not active, start genesis
+        if (contestants.isEmpty() && (prehistoricMode == null || !prehistoricMode.isActive())) {
+            prehistoricMode = new PrehistoricMode(artEvolver, contestants);
+            prehistoricMode.setMaxThreadsBudget(sysMonitor.getAvailableProcessors());
+            prehistoricMode.setAutoAdvance(true);
+            prehistoricMode.setEraDurationSeconds(45);
+            if (prehistoricMode.start()) {
+                prehistoricPanel.setVisible(true);
+                btnStartPrehistoric.setText("\u25A0 Stop Prehistoric");
+                btnStartPrehistoric.setBackground(new Color(178, 34, 34));
+                chkAutoAdvance.setSelected(true);
+                System.out.println("[Autopilot] Started Genesis Mode (auto-advance 45s)");
+            }
+        } else if (!contestants.isEmpty()) {
+            // Already have contestants, just make sure they're running
+            boolean anyNotRunning = contestants.stream()
+                    .anyMatch(c -> !c.isEliminated() && !c.isRunning());
+            if (anyNotRunning) {
+                artEvolver.startTournament();
+                if (chkAutoEvolve.isSelected()) autoStartEvolving();
+            }
+        }
+    }
+
+    /** Called every refresh cycle when autopilot is active. */
+    private void autopilotTick() {
+        if (!autopilotActive) return;
+
+        sysMonitor.poll();
+        boolean canAdd = sysMonitor.canAddWork(maxCpuPercent, maxRamPercent, maxHeapPercent);
+        int aliveCount = (int) contestants.stream().filter(c -> !c.isEliminated()).count();
+
+        // If prehistoric mode is active, let it manage progression
+        if (prehistoricMode != null && prehistoricMode.isActive()) {
+            if (canAdd && aliveCount < sysMonitor.getAvailableProcessors()
+                    && !prehistoricMode.isAtFinalEra()) {
+                prehistoricMode.addPresetContestant();
+                refreshTable();
+            }
+            return;
+        }
+
+        // Otherwise manage the regular tournament
+        if (aliveCount < 3 && canAdd) {
+            EvolutionConfig cfg = new EvolutionConfig();
+            artEvolver.populateConfigFromUI(cfg);
+            int freeThreads = sysMonitor.estimateFreeThreads(maxCpuPercent);
+            cfg.threads = Math.max(1, Math.min(freeThreads / 2, 4));
+            cfg.name = "Auto-" + nextId;
+            TournamentContestant c = new TournamentContestant("a" + nextId++, cfg.name);
+            c.setConfig(cfg);
+            cfg.chartColor = c.getChartColor();
+            contestants.add(c);
+            refreshTable();
+            artEvolver.refreshContestantCombo();
+
+            if (!c.isRunning() && artEvolver.getResizedOriginal() != null) {
+                try {
+                    c.createEvolvers(artEvolver.getPallete(),
+                            artEvolver.getTriangleWidth(), artEvolver.getTriangleHeight(),
+                            artEvolver.getWidthTriangles(), artEvolver.getHeightTriangles(),
+                            artEvolver.getTriangleScaleHeight(), artEvolver.getJumpDistances());
+                    c.initializeWithImage(artEvolver.getResizedOriginal());
+                    c.start();
+                } catch (Exception ex) {
+                    System.err.println("[Autopilot] Failed to start " + cfg.name);
+                }
+                if (!artEvolver.isRunning()) {
+                    artEvolver.setTournamentMode(true);
+                    artEvolver.startProcessTimer();
+                }
+            }
+        }
+
+        // Auto-start evolutionary tournament if enough contestants and not running
+        if (aliveCount >= 3 && (evoTournament == null || !evoTournament.isRunning())) {
+            createEvoTournament();
+            if (evoTournament != null && !evoTournament.isRunning()) {
+                evoTournament.setAdaptiveCutoff(true);
+                evoTournament.start();
+                System.out.println("[Autopilot] Auto-started evolutionary tournament");
+            }
+        }
+    }
+
+    public SystemMonitor getSystemMonitor() { return sysMonitor; }
+    public boolean isAutopilotActive() { return autopilotActive; }
 
     // ═══════════════════════════════════════════════════════════════
     //  PREHISTORIC MODE UI
@@ -509,7 +715,7 @@ public class TournamentManagerWindow extends JFrame {
             if (txtHistory.getText().isEmpty() || !txtHistory.getText().contains("Era " + latest.era)) {
                 StringBuilder sb = new StringBuilder();
                 for (PrehistoricMode.EraRecord rec : records) {
-                    sb.append("[Prehistoric] ").append(rec.toString()).append('\n');
+                    sb.append(rec.toNarrative()).append('\n');
                 }
                 txtHistory.setText(sb.toString());
                 txtHistory.setCaretPosition(txtHistory.getDocument().getLength());
@@ -920,6 +1126,7 @@ public class TournamentManagerWindow extends JFrame {
 
     /** Called periodically to update generation, countdown, best-ever, history. */
     public void refreshEvolutionaryState() {
+        refreshSystemStatus();
         if (prehistoricMode != null && prehistoricMode.isActive()) {
             refreshPrehistoricState();
         }
@@ -972,7 +1179,7 @@ public class TournamentManagerWindow extends JFrame {
         if (historyLines < records.size()) {
             StringBuilder sb = new StringBuilder();
             for (EvolutionaryTournament.GenerationRecord rec : records) {
-                sb.append(rec.toString()).append('\n');
+                sb.append(rec.toNarrative()).append('\n');
             }
             txtHistory.setText(sb.toString());
             txtHistory.setCaretPosition(txtHistory.getDocument().getLength());

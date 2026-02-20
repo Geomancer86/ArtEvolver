@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.rndmodgames.evolver.ArtEvolverTools;
@@ -28,6 +29,7 @@ import com.rndmodgames.evolver.benchmark.BenchmarkRunner;
  *
  * Results are written to benchmarks/ as timestamped CSV files and printed to stdout.
  */
+@Tag("slow")
 class BenchmarkTest {
 
     private static final String TEST_IMAGE = "./src/test/resources/000_zeldathumb-1920-789452.jpg";

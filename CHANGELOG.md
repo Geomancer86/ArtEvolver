@@ -5,6 +5,55 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] (3.2.0-SNAPSHOT)
+
+### Added — Multi-Stage (Geared) Competitors
+
+- **Multi-stage evolution engine**: Competitors can now have configurable "gear" stages
+  (e.g., Start / Mid / Endgame) with different mutation parameters per stage. Each stage
+  has a trigger condition (TIME, STALE, or FITNESS) that determines when to advance.
+  Gear shifts are zero-cost — evolvers read config fields by reference, so changing the
+  mutation parameters takes effect on the very next batch with no thread restart.
+- **Stage transition engine** in `TournamentContestant`: `checkStageTransition()` is
+  called from the ArtEvolver process timer (~50ms). `applyStage()` hot-swaps mutation
+  parameters into the live config. `advanceStage()` increments the stage index, resets
+  the stale detection window, and logs the shift. Trigger types: TIME (contestant age),
+  STALE (velocity below threshold), FITNESS (score above threshold).
+- **Multi-stage breeding**: `EvolutionaryTournament.breedConfigs()` detects if either
+  parent is multi-stage and promotes single-stage configs to 3 identical stages for
+  crossover. Gene arrays are variable-length (9 genes for single-stage, 30 for 3-stage).
+  `crossover()` now uses `a.length` instead of hardcoded `GENE_COUNT`. New
+  `mutateMultiStage()` uses dynamic min/max bounds per stage. Ancestral crossover pads
+  short gene arrays to match the target length.
+- **Stale detection auto-shifts gear**: If a multi-stage contestant goes stale and has
+  more gears available, `enforceLifespanCap()` calls `advanceStage()` instead of killing.
+  The fitness tracker window is reset so stale detection restarts fresh after the shift.
+  Only kills if stale on the **last** gear.
+- **HOPELESS detection restricted to last stage**: Projected-fitness early kill only
+  applies when the contestant is on its final gear. Earlier stages get the benefit of
+  the doubt — the next gear's parameters may accelerate improvement.
+- **5 multi-stage preset strategies** (21 total presets):
+  - "MS: 3-Gear Classic" — Chaos -> Balanced -> Sniper (TIME 15s/35s)
+  - "MS: Stale Shifter" — aggressive shifts triggered by stale velocity
+  - "MS: Fitness Ladder" — advances by reaching fitness thresholds (30%/60%)
+  - "MS: Sprint to Precision" — fast start then precision tuning (TIME 10s/25s)
+  - "MS: Adaptive Cascade" — chaos start with stale-triggered cascade
+- **Gear column in tournament table**: Shows "2/3 Mid" for multi-stage contestants
+  or "1/1" for single-stage. Dashboard JSON includes `multiStage`, `currentStage`,
+  `totalStages`, and `stageName` fields.
+- **MS tag in child names**: Multi-stage children show `·MS3` suffix (3 stages) in
+  their names. Breed tag includes `+MS3` for clear identification.
+- **Gear indicator in live status**: Per-contestant mini-leaderboard shows ⚙2/3 for
+  multi-stage contestants. Dashboard cards show gear info.
+- **`EvolutionConfig` multi-stage helpers**: `toBreedableGeneArray(targetStageCount)`,
+  `getMultiStageGeneMin(stageCount)`, `getMultiStageGeneMax(stageCount)` for breeding.
+- **`FitnessTracker.resetWindow()`**: Clears old snapshots on gear shift so stale
+  detection restarts from the current state.
+- **Full backward compatibility**: Single-stage competitors (`stages == null`) work
+  identically to before. `isOnLastStage()` returns `true` for single-stage (HOPELESS
+  still applies). `checkStageTransition()` returns `false` immediately for single-stage.
+  All existing breeding, culling, and promotion logic unchanged for single-stage configs.
+
 ## [3.1.0] - 2026-02-18
 
 ### Fixed — Lifespan Enforcement, Promoted Ghost Bug & Hopeless Early Kill

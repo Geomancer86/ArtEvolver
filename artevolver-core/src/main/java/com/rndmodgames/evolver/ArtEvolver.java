@@ -802,6 +802,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				        if (c.getBestScore() > 0) {
 				            c.getFitnessTracker().addSnapshot(c.getBestScore(), c.getTotalIterations());
 				        }
+				        c.checkStageTransition();
 				        tTotalIter += c.getTotalIterations();
 				        tGoodIter += c.getGoodIterations();
 				        if (bestContestant == null || c.getBestScore() > bestContestant.getBestScore()) {

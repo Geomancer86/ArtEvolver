@@ -93,10 +93,11 @@ public class TournamentManagerWindow extends JFrame {
         table.getColumnModel().getColumn(3).setPreferredWidth(100);
         table.getColumnModel().getColumn(4).setPreferredWidth(100);
         table.getColumnModel().getColumn(5).setPreferredWidth(60);
-        table.getColumnModel().getColumn(6).setMaxWidth(40);
-        table.getColumnModel().getColumn(7).setPreferredWidth(150);
-        table.getColumnModel().getColumn(8).setPreferredWidth(90);
-        table.getColumnModel().getColumn(9).setPreferredWidth(200);
+        table.getColumnModel().getColumn(6).setPreferredWidth(80);  // Gear
+        table.getColumnModel().getColumn(7).setMaxWidth(40);        // Gen
+        table.getColumnModel().getColumn(8).setPreferredWidth(150); // Parentage
+        table.getColumnModel().getColumn(9).setPreferredWidth(90);  // Breed
+        table.getColumnModel().getColumn(10).setPreferredWidth(200); // Parameters
 
         table.getColumnModel().getColumn(1).setCellRenderer(new ColorCellRenderer());
 
@@ -863,6 +864,12 @@ public class TournamentManagerWindow extends JFrame {
         "Blitz",
         "Deep Grid",
         "Hybrid Adaptive",
+        // Multi-stage (geared) presets
+        "MS: 3-Gear Classic",
+        "MS: Stale Shifter",
+        "MS: Fitness Ladder",
+        "MS: Sprint to Precision",
+        "MS: Adaptive Cascade",
     };
 
     public int getStrategyCount() { return STRATEGY_NAMES.length; }
@@ -992,8 +999,153 @@ public class TournamentManagerWindow extends JFrame {
                 cfg.population = Math.max(3, cfg.population * 2);
                 cfg.crossoverMax = Math.max(3, cfg.crossoverMax * 2);
                 break;
+
+            // ═══════ Multi-Stage (Geared) Presets ═══════
+
+            case 16: // MS: 3-Gear Classic — Chaos -> Balanced -> Sniper (TIME triggers)
+                cfg.name = STRATEGY_NAMES[16];
+                cfg.setStages(java.util.Arrays.asList(
+                    buildStage("Start", cfg, c -> {
+                        c.gridMutationChances *= 4; c.randomMutationChances *= 6;
+                        c.randomMutationPercent = Math.min(1f, c.randomMutationPercent * 6);
+                        c.closeMutationChances *= 4; c.targetedSwapAttempts *= 4;
+                    }, EvolutionStage.TriggerType.TIME, 15),
+                    buildStage("Mid", cfg, c -> { /* balanced defaults */ },
+                        EvolutionStage.TriggerType.TIME, 35),
+                    buildStage("Endgame", cfg, c -> {
+                        c.targetedSwapAttempts *= 8; c.gridMutationChances = 0;
+                        c.randomMutationChances = Math.max(5, c.randomMutationChances / 10);
+                        c.closeMutationChances = Math.max(2, c.closeMutationChances / 2);
+                    }, EvolutionStage.TriggerType.TIME, 999999)
+                ));
+                applyStage0(cfg);
+                break;
+
+            case 17: // MS: Stale Shifter — shifts gear when stale detected
+                cfg.name = STRATEGY_NAMES[17];
+                cfg.setStages(java.util.Arrays.asList(
+                    buildStage("Start", cfg, c -> {
+                        c.gridMutationChances *= 4; c.randomMutationChances *= 4;
+                        c.randomMutationPercent = Math.min(1f, c.randomMutationPercent * 4);
+                        c.targetedSwapAttempts = Math.max(2, c.targetedSwapAttempts / 2);
+                    }, EvolutionStage.TriggerType.STALE, 0.0001),
+                    buildStage("Mid", cfg, c -> {
+                        c.gridMutationChances *= 4; c.gridMutationDecay *= 0.5f;
+                        c.randomMutationChances = Math.max(10, c.randomMutationChances / 4);
+                        c.targetedSwapAttempts *= 2;
+                    }, EvolutionStage.TriggerType.STALE, 0.00001),
+                    buildStage("Endgame", cfg, c -> {
+                        c.closeMutationChances *= 10;
+                        c.closeMutationPercent = Math.min(0.01f, c.closeMutationPercent * 8);
+                        c.gridMutationChances = Math.max(2, c.gridMutationChances / 4);
+                        c.randomMutationChances = Math.max(5, c.randomMutationChances / 8);
+                        c.targetedSwapAttempts *= 3;
+                    }, EvolutionStage.TriggerType.TIME, 999999)
+                ));
+                applyStage0(cfg);
+                break;
+
+            case 18: // MS: Fitness Ladder — advances by reaching fitness thresholds
+                cfg.name = STRATEGY_NAMES[18];
+                cfg.setStages(java.util.Arrays.asList(
+                    buildStage("Start", cfg, c -> {
+                        c.population = Math.max(cfg.population, 4);
+                        c.gridMutationChances *= 2; c.randomMutationChances *= 2;
+                    }, EvolutionStage.TriggerType.FITNESS, 0.30),
+                    buildStage("Mid", cfg, c -> {
+                        c.targetedSwapAttempts *= 6; c.gridMutationChances *= 3;
+                        c.gridMutationDecay *= 0.3f;
+                        c.randomMutationChances = Math.max(5, c.randomMutationChances / 6);
+                        c.closeMutationChances *= 3;
+                    }, EvolutionStage.TriggerType.FITNESS, 0.60),
+                    buildStage("Endgame", cfg, c -> {
+                        c.closeMutationChances *= 6; c.closeMutationPercent = Math.min(1f, c.closeMutationPercent * 4);
+                        c.gridMutationChances = Math.max(4, c.gridMutationChances / 2);
+                        c.randomMutationChances = Math.max(10, c.randomMutationChances / 4);
+                        c.targetedSwapAttempts *= 2;
+                    }, EvolutionStage.TriggerType.TIME, 999999)
+                ));
+                applyStage0(cfg);
+                break;
+
+            case 19: // MS: Sprint to Precision — fast start, then precision tuning
+                cfg.name = STRATEGY_NAMES[19];
+                cfg.setStages(java.util.Arrays.asList(
+                    buildStage("Start", cfg, c -> {
+                        c.randomMutationChances *= 3; c.randomMutationPercent = Math.max(0.0001f, c.randomMutationPercent / 4);
+                        c.gridMutationChances *= 2; c.gridMutationPercent = Math.max(0.01f, c.gridMutationPercent / 2);
+                        c.closeMutationChances *= 2;
+                    }, EvolutionStage.TriggerType.TIME, 10),
+                    buildStage("Mid", cfg, c -> {
+                        c.targetedSwapAttempts *= 4; c.gridMutationChances = Math.max(4, c.gridMutationChances / 2);
+                        c.randomMutationChances = Math.max(10, c.randomMutationChances / 2);
+                        c.closeMutationChances *= 2;
+                    }, EvolutionStage.TriggerType.TIME, 25),
+                    buildStage("Endgame", cfg, c -> {
+                        c.closeMutationChances *= 10;
+                        c.closeMutationPercent = Math.min(0.01f, c.closeMutationPercent * 8);
+                        c.gridMutationChances = Math.max(2, c.gridMutationChances / 4);
+                        c.randomMutationChances = Math.max(5, c.randomMutationChances / 8);
+                        c.targetedSwapAttempts *= 3;
+                    }, EvolutionStage.TriggerType.TIME, 999999)
+                ));
+                applyStage0(cfg);
+                break;
+
+            case 20: // MS: Adaptive Cascade — chaos start, stale-trigger shifts
+                cfg.name = STRATEGY_NAMES[20];
+                cfg.setStages(java.util.Arrays.asList(
+                    buildStage("Start", cfg, c -> {
+                        c.gridMutationChances *= 4; c.randomMutationChances *= 6;
+                        c.randomMutationPercent = Math.min(1f, c.randomMutationPercent * 6);
+                        c.closeMutationChances *= 4; c.targetedSwapAttempts *= 4;
+                    }, EvolutionStage.TriggerType.STALE, 0.001),
+                    buildStage("Mid", cfg, c -> {
+                        c.gridMutationChances *= 3; c.randomMutationChances *= 3;
+                        c.closeMutationChances *= 3; c.targetedSwapAttempts *= 3;
+                        c.population = Math.max(3, c.population * 2);
+                    }, EvolutionStage.TriggerType.STALE, 0.0001),
+                    buildStage("Endgame", cfg, c -> {
+                        c.targetedSwapAttempts *= 8; c.gridMutationChances = 0;
+                        c.randomMutationChances = Math.max(5, c.randomMutationChances / 10);
+                        c.closeMutationChances = Math.max(2, c.closeMutationChances / 2);
+                    }, EvolutionStage.TriggerType.TIME, 999999)
+                ));
+                applyStage0(cfg);
+                break;
         }
         return cfg;
+    }
+
+    /**
+     * Builds an EvolutionStage by cloning the base config and applying a mutator.
+     */
+    private EvolutionStage buildStage(String name, EvolutionConfig base,
+            java.util.function.Consumer<EvolutionConfig> mutator,
+            EvolutionStage.TriggerType triggerType, double triggerValue) {
+        EvolutionConfig stageConfig = base.clone();
+        stageConfig.setStages(null);
+        mutator.accept(stageConfig);
+        return new EvolutionStage(name, stageConfig, triggerType, triggerValue);
+    }
+
+    /**
+     * Applies stage 0's mutation parameters to the root config (the live config evolvers read).
+     */
+    private void applyStage0(EvolutionConfig cfg) {
+        if (cfg.getStages() != null && !cfg.getStages().isEmpty()) {
+            EvolutionConfig s0 = cfg.getStages().get(0).getConfig();
+            cfg.gridMutationChances = s0.gridMutationChances;
+            cfg.gridMutationPercent = s0.gridMutationPercent;
+            cfg.gridMutationDecay = s0.gridMutationDecay;
+            cfg.randomMutationChances = s0.randomMutationChances;
+            cfg.randomMutationPercent = s0.randomMutationPercent;
+            cfg.closeMutationChances = s0.closeMutationChances;
+            cfg.closeMutationPercent = s0.closeMutationPercent;
+            cfg.randomGridMutationChances = s0.randomGridMutationChances;
+            cfg.randomGridMutationPercent = s0.randomGridMutationPercent;
+            cfg.targetedSwapAttempts = s0.targetedSwapAttempts;
+        }
     }
 
     private void showQuickSetup() {
@@ -1525,6 +1677,12 @@ public class TournamentManagerWindow extends JFrame {
             else if (uptimeSec > 30 && score < leader.getBestScore() * 0.95 && vel <= 0)
                 sb.append("  \u26A0 at risk");
 
+            // Multi-stage gear indicator
+            if (c.isMultiStage()) {
+                sb.append("  \u2699").append(c.getCurrentStageIndex() + 1)
+                  .append("/").append(c.getTotalStages());
+            }
+
             // Grace period
             if (c.isProtected()) sb.append("  \u2B50");
 
@@ -1890,7 +2048,7 @@ public class TournamentManagerWindow extends JFrame {
     }
 
     private class ContestantTableModel extends AbstractTableModel {
-        private final String[] COLS = {"#", "", "Name", "Score", "Velocity", "Status", "Gen", "Parentage", "Breed", "Parameters"};
+        private final String[] COLS = {"#", "", "Name", "Score", "Velocity", "Status", "Gear", "Gen", "Parentage", "Breed", "Parameters"};
 
         @Override public int getRowCount() { return contestants.size(); }
         @Override public int getColumnCount() { return COLS.length; }
@@ -1928,10 +2086,15 @@ public class TournamentManagerWindow extends JFrame {
                     if (c.isEliminated()) return "Eliminated (Gen " + c.getEliminatedAtGeneration() + ")";
                     return c.isRunning() ? "Running" : "Stopped";
                 }
-                case 6: return c.getGeneration();
-                case 7: return c.getParentage();
-                case 8: return c.getBreedType();
-                case 9: return c.getConfig().toSummary();
+                case 6: {
+                    if (!c.isMultiStage()) return "1/1";
+                    return (c.getCurrentStageIndex() + 1) + "/" + c.getTotalStages()
+                            + " " + c.getCurrentStageName();
+                }
+                case 7: return c.getGeneration();
+                case 8: return c.getParentage();
+                case 9: return c.getBreedType();
+                case 10: return c.getConfig().toSummary();
                 default: return "";
             }
         }

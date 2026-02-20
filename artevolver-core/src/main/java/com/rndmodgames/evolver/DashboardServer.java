@@ -382,6 +382,10 @@ public class DashboardServer {
             sb.append("      \"generation\": ").append(c.getGeneration()).append(",\n");
             sb.append("      \"parentage\": ").append(jsonStr(c.getParentage())).append(",\n");
             sb.append("      \"breedType\": ").append(jsonStr(c.getBreedType())).append(",\n");
+            sb.append("      \"multiStage\": ").append(c.isMultiStage()).append(",\n");
+            sb.append("      \"currentStage\": ").append(c.getCurrentStageIndex() + 1).append(",\n");
+            sb.append("      \"totalStages\": ").append(c.getTotalStages()).append(",\n");
+            sb.append("      \"stageName\": ").append(jsonStr(c.getCurrentStageName())).append(",\n");
             sb.append("      \"eliminatedAtGen\": ").append(c.getEliminatedAtGeneration()).append(",\n");
             sb.append("      \"color\": \"").append(String.format("#%02x%02x%02x", col.getRed(), col.getGreen(), col.getBlue())).append("\",\n");
             sb.append("      \"hasImage\": ").append(c.getBestImage() != null).append(",\n");

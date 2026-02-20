@@ -271,15 +271,18 @@ public class EvolutionConfig implements Cloneable {
             stageList.add(EvolutionStage.fromGeneArray(stageGenes, template, tt, sname));
         }
         cfg.setStages(stageList);
-        // Apply stage 0 config as the active config
+        // Apply stage 0 config as the active (live) config
         if (!stageList.isEmpty()) {
             EvolutionConfig s0 = stageList.get(0).getConfig();
             cfg.gridMutationChances = s0.gridMutationChances;
+            cfg.gridMutationPercent = s0.gridMutationPercent;
             cfg.gridMutationDecay = s0.gridMutationDecay;
             cfg.randomMutationChances = s0.randomMutationChances;
             cfg.randomMutationPercent = s0.randomMutationPercent;
             cfg.closeMutationChances = s0.closeMutationChances;
             cfg.closeMutationPercent = s0.closeMutationPercent;
+            cfg.randomGridMutationChances = s0.randomGridMutationChances;
+            cfg.randomGridMutationPercent = s0.randomGridMutationPercent;
             cfg.targetedSwapAttempts = s0.targetedSwapAttempts;
         }
         return cfg;
@@ -315,6 +318,59 @@ public class EvolutionConfig implements Cloneable {
 
     public static float[] getGeneMin() { return GENE_MIN.clone(); }
     public static float[] getGeneMax() { return GENE_MAX.clone(); }
+
+    private static final float TRIGGER_MIN = 0f;
+    private static final float TRIGGER_MAX = 120f;
+
+    /**
+     * Returns min bounds for a multi-stage gene array (stageCount * GENES_PER_STAGE).
+     * Each stage block: [9 config gene mins, triggerMin].
+     */
+    public static float[] getMultiStageGeneMin(int stageCount) {
+        float[] result = new float[stageCount * EvolutionStage.GENES_PER_STAGE];
+        for (int s = 0; s < stageCount; s++) {
+            int off = s * EvolutionStage.GENES_PER_STAGE;
+            System.arraycopy(GENE_MIN, 0, result, off, GENE_COUNT);
+            result[off + GENE_COUNT] = TRIGGER_MIN;
+        }
+        return result;
+    }
+
+    /**
+     * Returns max bounds for a multi-stage gene array (stageCount * GENES_PER_STAGE).
+     */
+    public static float[] getMultiStageGeneMax(int stageCount) {
+        float[] result = new float[stageCount * EvolutionStage.GENES_PER_STAGE];
+        for (int s = 0; s < stageCount; s++) {
+            int off = s * EvolutionStage.GENES_PER_STAGE;
+            System.arraycopy(GENE_MAX, 0, result, off, GENE_COUNT);
+            result[off + GENE_COUNT] = TRIGGER_MAX;
+        }
+        return result;
+    }
+
+    /**
+     * Returns a gene array suitable for breeding. If this config is multi-stage,
+     * returns the full multi-stage array. If single-stage and targetStageCount > 1,
+     * replicates the single config into all stages.
+     */
+    public float[] toBreedableGeneArray(int targetStageCount) {
+        if (isMultiStage() && stages.size() == targetStageCount) {
+            return toMultiStageGeneArray();
+        }
+        if (targetStageCount <= 1) {
+            return toGeneArray();
+        }
+        float[] single = toGeneArray();
+        float[] result = new float[targetStageCount * EvolutionStage.GENES_PER_STAGE];
+        for (int s = 0; s < targetStageCount; s++) {
+            int off = s * EvolutionStage.GENES_PER_STAGE;
+            System.arraycopy(single, 0, result, off, single.length);
+            result[off + GENE_COUNT] = (s < targetStageCount - 1)
+                    ? (float)(20.0 * (s + 1)) : 999999f;
+        }
+        return result;
+    }
 
     public float[] toGeneArray() {
         return new float[] {

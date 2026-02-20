@@ -582,3 +582,56 @@ With 52 upgrades × avg 100 levels × prestige multipliers × 120 achievements �
 5. **Prestige 5+**: Compound growth, faster cycles, deeper upgrades
 6. **Prestige 25+**: All achievement tiers, event optimization
 7. **Prestige 100+**: Effectively infinite scaling — numbers in the trillions
+
+## Multi-Stage (Geared) Competitors
+
+### Overview
+
+Multi-stage competitors add a new dimension to the evolutionary tournament: each
+competitor can have multiple "gears" (evolution stages) with different mutation
+parameters, transitioning between them based on configurable triggers.
+
+### Design
+
+- **Fixed 3-stage model**: All multi-stage competitors use 3 stages (Start / Mid / Endgame).
+  Gene arrays are 30 floats (3 × 10: 9 config genes + 1 trigger value per stage).
+- **Zero-cost gear shifts**: Evolvers read mutation parameters by reference from the live
+  `EvolutionConfig`. `applyStage()` hot-swaps the mutation fields — the next evolution
+  batch immediately uses the new parameters with no thread restart.
+- **Trigger types**: TIME (advance after N seconds), STALE (advance when velocity drops
+  below threshold), FITNESS (advance when fitness exceeds threshold).
+- **Backward compatible**: Single-stage competitors (`stages == null`) are unchanged.
+  `isOnLastStage()` returns `true` for single-stage. Breeding between single-stage and
+  multi-stage promotes the single-stage config into 3 identical stages.
+
+### Lifecycle Integration
+
+- **STALE detection**: If stale and has more gears → auto-shift instead of kill. Resets
+  the fitness tracker window. Only kills if stale on the last gear.
+- **HOPELESS detection**: Only applies on the last stage. Earlier stages get a pass.
+- **Lifespan cap**: Unchanged — hard cap fires regardless of stage.
+
+### Presets
+
+5 multi-stage presets added (indices 16-20):
+1. **MS: 3-Gear Classic** — Chaos→Balanced→Sniper (TIME 15s/35s)
+2. **MS: Stale Shifter** — shifts gear when stale velocity detected
+3. **MS: Fitness Ladder** — advances at fitness thresholds (30%/60%)
+4. **MS: Sprint to Precision** — fast start then precision tuning (TIME 10s/25s)
+5. **MS: Adaptive Cascade** — chaos start with stale-triggered cascade
+
+### Breeding
+
+- If either parent is multi-stage, both parents are promoted to 3-stage gene arrays.
+- `crossover()` handles variable-length arrays via `Math.min(a.length, b.length)`.
+- `mutateMultiStage()` uses dynamic min/max bounds per stage.
+- Trigger types are inherited from the multi-stage parent (or default to TIME).
+- Ancestral crossover pads short gene arrays to match the target length.
+
+### UI
+
+- **Gear column** in tournament table: "2/3 Mid" or "1/1"
+- **MS tag** in child names: `G5·Alpha×Beta·BLX·M3·MS3`
+- **Dashboard JSON**: `multiStage`, `currentStage`, `totalStages`, `stageName`
+- **Live status**: ⚙2/3 indicator in per-contestant mini-leaderboard
+- **Console logging**: `[Stage] ContestantName shifted to gear 2/3: Mid`

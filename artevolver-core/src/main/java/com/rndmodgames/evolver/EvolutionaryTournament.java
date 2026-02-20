@@ -201,23 +201,33 @@ public class EvolutionaryTournament {
             if (c.isProtected()) continue;
 
             // Stale detection: flat fitness for staleThresholdSeconds = early termination
+            // Multi-stage: auto-shift gear instead of killing if more stages available
             if (staleThresholdSeconds > 0 && ageSec >= staleThresholdSeconds) {
                 FitnessTracker ft = c.getFitnessTracker();
                 double vel = ft.getVelocity();
                 double elapsed = ft.getElapsedSeconds();
                 if (elapsed >= staleThresholdSeconds && Math.abs(vel) < STALE_VELOCITY_THRESHOLD) {
-                    System.out.println("[EvoTournament] STALE: " + c.getName()
-                            + " flat for " + (int) elapsed + "s (vel=" + DF2.format(vel * 100)
-                            + "%/s) — terminating early");
-                    c.eliminate(generation);
-                    killed.add(c);
+                    if (c.hasMoreStages()) {
+                        System.out.println("[EvoTournament] STALE-SHIFT: " + c.getName()
+                                + " flat for " + (int) elapsed + "s — shifting to gear "
+                                + (c.getCurrentStageIndex() + 2) + "/" + c.getTotalStages());
+                        c.advanceStage();
+                        c.getFitnessTracker().resetWindow();
+                    } else {
+                        System.out.println("[EvoTournament] STALE: " + c.getName()
+                                + " flat for " + (int) elapsed + "s (vel=" + DF2.format(vel * 100)
+                                + "%/s) on last gear — terminating early");
+                        c.eliminate(generation);
+                        killed.add(c);
+                    }
                     continue;
                 }
             }
 
-            // Projected-fitness early kill: if even at current velocity for the full
-            // remaining lifespan, this contestant can't catch the worst alive, cut it loose
-            if (ageSec >= 10 && maxLifespanSeconds > 0 && worstAliveScore > 0) {
+            // Projected-fitness early kill — only on last stage for multi-stage competitors.
+            // Earlier stages get the benefit of the doubt (next gear may accelerate them).
+            if (ageSec >= 10 && maxLifespanSeconds > 0 && worstAliveScore > 0
+                    && c.isOnLastStage()) {
                 FitnessTracker ft = c.getFitnessTracker();
                 double elapsed = ft.getElapsedSeconds();
                 if (elapsed >= 10 && c.getBestScore() > 0) {
@@ -275,9 +285,12 @@ public class EvolutionaryTournament {
                         String pb = abbreviate(parentB.getName(), 5);
                         String crossType = ancestral ? "ANC" : "BLX";
                         String mutTag = mutations > 0 ? "\u00b7M" + mutations : "";
+                        String msTag = childConfig.isMultiStage()
+                                ? "\u00b7MS" + childConfig.getStageCount() : "";
                         String childName = "R" + generation + "\u00b7" + pa + "\u00d7" + pb
-                                + "\u00b7" + crossType + mutTag;
-                        breedTag = crossType + (mutations > 0 ? "+" + mutations + "mut" : "");
+                                + "\u00b7" + crossType + mutTag + msTag;
+                        breedTag = crossType + (mutations > 0 ? "+" + mutations + "mut" : "")
+                                + (childConfig.isMultiStage() ? "+MS" + childConfig.getStageCount() : "");
                         spawnChild(childName, childConfig, parentA, parentB, breedTag);
                     }
                 }
@@ -482,11 +495,14 @@ public class EvolutionaryTournament {
                 String pb = abbreviate(parentB.getName(), 5);
                 String crossType = ancestral ? "ANC" : "BLX";
                 String mutTag = mutations > 0 ? "\u00b7M" + mutations : "";
+                String msTag = childConfig.isMultiStage()
+                        ? "\u00b7MS" + childConfig.getStageCount() : "";
                 childName = "G" + generation
                         + (maxCulls > 1 ? String.valueOf((char)('a' + spawn)) : "")
                         + "\u00b7" + pa + "\u00d7" + pb
-                        + "\u00b7" + crossType + mutTag;
-                breedTag = crossType + (mutations > 0 ? "+" + mutations + "mut" : "");
+                        + "\u00b7" + crossType + mutTag + msTag;
+                breedTag = crossType + (mutations > 0 ? "+" + mutations + "mut" : "")
+                        + (childConfig.isMultiStage() ? "+MS" + childConfig.getStageCount() : "");
                 lastParentA = parentA.getName();
                 lastParentB = parentB.getName();
             }
@@ -917,7 +933,18 @@ public class EvolutionaryTournament {
     //  BREEDING — standard and multi-generational
     // ═══════════════════════════════════════════════════════════
 
+    private static final int MULTI_STAGE_COUNT = 3;
+
     EvolutionConfig breedConfigs(EvolutionConfig cfgA, EvolutionConfig cfgB) {
+        boolean eitherMulti = cfgA.isMultiStage() || cfgB.isMultiStage();
+        if (eitherMulti) {
+            float[] genesA = cfgA.toBreedableGeneArray(MULTI_STAGE_COUNT);
+            float[] genesB = cfgB.toBreedableGeneArray(MULTI_STAGE_COUNT);
+            float[] childGenes = crossover(genesA, genesB);
+            childGenes = mutateMultiStage(childGenes, MULTI_STAGE_COUNT);
+            EvolutionStage.TriggerType[] triggers = inferTriggerTypes(cfgA, cfgB, MULTI_STAGE_COUNT);
+            return EvolutionConfig.fromMultiStageGeneArray(childGenes, MULTI_STAGE_COUNT, triggers, cfgA);
+        }
         float[] genesA = cfgA.toGeneArray();
         float[] genesB = cfgB.toGeneArray();
         float[] childGenes = crossover(genesA, genesB);
@@ -926,19 +953,68 @@ public class EvolutionaryTournament {
     }
 
     /**
+     * Infers trigger types for breeding. If a parent has stages, use those triggers;
+     * otherwise default to TIME for non-terminal stages.
+     */
+    private EvolutionStage.TriggerType[] inferTriggerTypes(EvolutionConfig cfgA,
+            EvolutionConfig cfgB, int stageCount) {
+        EvolutionStage.TriggerType[] result = new EvolutionStage.TriggerType[stageCount];
+        EvolutionConfig donor = cfgA.isMultiStage() ? cfgA : (cfgB.isMultiStage() ? cfgB : null);
+        for (int i = 0; i < stageCount; i++) {
+            if (donor != null && donor.getStages() != null && i < donor.getStages().size()) {
+                result[i] = donor.getStages().get(i).getTriggerType();
+            } else {
+                result[i] = EvolutionStage.TriggerType.TIME;
+            }
+        }
+        return result;
+    }
+
+    /**
      * Multi-generational breeding: collects genes from ancestors of both parents
      * with decaying weights, then performs weighted-average crossover + mutation.
      */
     private EvolutionConfig breedWithAncestry(TournamentContestant parentA,
                                                TournamentContestant parentB) {
+        boolean eitherMulti = parentA.getConfig().isMultiStage() || parentB.getConfig().isMultiStage();
+
         List<LineageNode.WeightedGenes> genesA =
                 parentA.getLineageNode().getAncestralGenes(lineageDecay, ancestryDepth);
         List<LineageNode.WeightedGenes> genesB =
                 parentB.getLineageNode().getAncestralGenes(lineageDecay, ancestryDepth);
 
-        float[] blended = blendAncestralGenes(genesA, genesB);
+        if (eitherMulti) {
+            int targetLen = MULTI_STAGE_COUNT * EvolutionStage.GENES_PER_STAGE;
+            padAncestralGenes(genesA, targetLen, parentA.getConfig());
+            padAncestralGenes(genesB, targetLen, parentB.getConfig());
+            float[] blended = blendAncestralGenes(genesA, genesB, targetLen);
+            blended = mutateMultiStage(blended, MULTI_STAGE_COUNT);
+            EvolutionStage.TriggerType[] triggers = inferTriggerTypes(
+                    parentA.getConfig(), parentB.getConfig(), MULTI_STAGE_COUNT);
+            return EvolutionConfig.fromMultiStageGeneArray(blended, MULTI_STAGE_COUNT,
+                    triggers, parentA.getConfig());
+        }
+
+        float[] blended = blendAncestralGenes(genesA, genesB, EvolutionConfig.GENE_COUNT);
         blended = mutate(blended);
         return EvolutionConfig.fromGeneArray(blended, parentA.getConfig());
+    }
+
+    /**
+     * Pads ancestral gene arrays to the target length for multi-stage breeding.
+     * Short (single-stage 9-gene) arrays are expanded by replicating into all stages.
+     */
+    private void padAncestralGenes(List<LineageNode.WeightedGenes> geneList,
+                                    int targetLen, EvolutionConfig cfg) {
+        for (int i = 0; i < geneList.size(); i++) {
+            LineageNode.WeightedGenes wg = geneList.get(i);
+            if (wg.genes.length < targetLen) {
+                float[] padded = cfg.toBreedableGeneArray(MULTI_STAGE_COUNT);
+                System.arraycopy(wg.genes, 0, padded, 0,
+                        Math.min(wg.genes.length, padded.length));
+                geneList.set(i, new LineageNode.WeightedGenes(padded, wg.weight));
+            }
+        }
     }
 
     /**
@@ -947,10 +1023,11 @@ public class EvolutionaryTournament {
      * grandparents/great-grandparents still contribute.
      */
     private float[] blendAncestralGenes(List<LineageNode.WeightedGenes> lineA,
-                                        List<LineageNode.WeightedGenes> lineB) {
-        float[] result = new float[EvolutionConfig.GENE_COUNT];
+                                        List<LineageNode.WeightedGenes> lineB,
+                                        int geneCount) {
+        float[] result = new float[geneCount];
 
-        for (int g = 0; g < EvolutionConfig.GENE_COUNT; g++) {
+        for (int g = 0; g < geneCount; g++) {
             double totalWeight = 0;
             double weightedSum = 0;
 
@@ -969,9 +1046,8 @@ public class EvolutionaryTournament {
 
             float base = (totalWeight > 0) ? (float) (weightedSum / totalWeight) : 0;
 
-            // Add BLX-alpha exploration around the ancestral centroid
-            float[] parentA = lineA.isEmpty() ? new float[EvolutionConfig.GENE_COUNT] : lineA.get(0).genes;
-            float[] parentB = lineB.isEmpty() ? new float[EvolutionConfig.GENE_COUNT] : lineB.get(0).genes;
+            float[] parentA = lineA.isEmpty() ? new float[geneCount] : lineA.get(0).genes;
+            float[] parentB = lineB.isEmpty() ? new float[geneCount] : lineB.get(0).genes;
             float lo = Math.min(parentA.length > g ? parentA[g] : base, parentB.length > g ? parentB[g] : base);
             float hi = Math.max(parentA.length > g ? parentA[g] : base, parentB.length > g ? parentB[g] : base);
             float d = hi - lo;
@@ -984,8 +1060,9 @@ public class EvolutionaryTournament {
     }
 
     private float[] crossover(float[] a, float[] b) {
-        float[] child = new float[EvolutionConfig.GENE_COUNT];
-        for (int i = 0; i < child.length; i++) {
+        int len = Math.min(a.length, b.length);
+        float[] child = new float[len];
+        for (int i = 0; i < len; i++) {
             float lo = Math.min(a[i], b[i]);
             float hi = Math.max(a[i], b[i]);
             float d = hi - lo;
@@ -1003,6 +1080,22 @@ public class EvolutionaryTournament {
         float[] max = EvolutionConfig.getGeneMax();
         int count = 0;
         for (int i = 0; i < genes.length; i++) {
+            if (RNG.nextFloat() < mutationRate) {
+                float range = max[i] - min[i];
+                float delta = (float) (RNG.nextGaussian() * mutationStrength * range);
+                genes[i] = Math.max(min[i], Math.min(max[i], genes[i] + delta));
+                count++;
+            }
+        }
+        lastMutationCount = count;
+        return genes;
+    }
+
+    private float[] mutateMultiStage(float[] genes, int stageCount) {
+        float[] min = EvolutionConfig.getMultiStageGeneMin(stageCount);
+        float[] max = EvolutionConfig.getMultiStageGeneMax(stageCount);
+        int count = 0;
+        for (int i = 0; i < genes.length && i < min.length; i++) {
             if (RNG.nextFloat() < mutationRate) {
                 float range = max[i] - min[i];
                 float delta = (float) (RNG.nextGaussian() * mutationStrength * range);

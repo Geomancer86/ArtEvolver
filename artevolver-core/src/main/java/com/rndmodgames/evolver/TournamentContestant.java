@@ -42,6 +42,7 @@ public class TournamentContestant {
     // --- Multi-stage (geared) evolution ---
     private int currentStageIndex = 0;
     private long lastStageChangeMs = 0;
+    private int totalStageShifts = 0;
 
     private static final Color[] PRESET_COLORS = {
         new Color(80, 200, 120),   // green
@@ -125,6 +126,7 @@ public class TournamentContestant {
     public void start() {
         running = true;
         startTimeMs = System.currentTimeMillis();
+        if (lastStageChangeMs == 0) lastStageChangeMs = startTimeMs;
         for (ImageEvolver ev : evolvers) {
             if (!ev.isStarted) {
                 Thread t = new Thread(ev);
@@ -232,6 +234,98 @@ public class TournamentContestant {
     public FitnessTracker getFitnessTracker() { return fitnessTracker; }
     public LineageNode getLineageNode() { return lineageNode; }
     public void setLineageNode(LineageNode node) { this.lineageNode = node; }
+
+    // ═══════════════════════════════════════════════════════════
+    //  MULTI-STAGE (GEAR) TRANSITION ENGINE
+    // ═══════════════════════════════════════════════════════════
+
+    public boolean isMultiStage() { return config != null && config.isMultiStage(); }
+    public int getCurrentStageIndex() { return currentStageIndex; }
+    public int getTotalStages() { return config != null ? config.getStageCount() : 1; }
+    public boolean hasMoreStages() {
+        return isMultiStage() && currentStageIndex < config.getStages().size() - 1;
+    }
+    public boolean isOnLastStage() { return !hasMoreStages(); }
+
+    public String getCurrentStageName() {
+        if (!isMultiStage()) return "";
+        java.util.List<EvolutionStage> stages = config.getStages();
+        if (currentStageIndex < stages.size()) return stages.get(currentStageIndex).getName();
+        return "";
+    }
+
+    /**
+     * Checks if the current stage's trigger condition is met and advances if so.
+     * Called from the ArtEvolver process timer alongside updateBest().
+     * @return true if a stage transition occurred
+     */
+    public boolean checkStageTransition() {
+        if (!isMultiStage() || !running || isFinished()) return false;
+        java.util.List<EvolutionStage> stages = config.getStages();
+        if (currentStageIndex >= stages.size() - 1) return false;
+
+        EvolutionStage current = stages.get(currentStageIndex);
+        boolean shouldAdvance = false;
+
+        switch (current.getTriggerType()) {
+            case TIME:
+                long ageSec = (System.currentTimeMillis() - startTimeMs) / 1000;
+                shouldAdvance = ageSec >= current.getTriggerValue();
+                break;
+            case STALE:
+                double vel = fitnessTracker.getVelocity();
+                double elapsed = fitnessTracker.getElapsedSeconds();
+                shouldAdvance = elapsed >= 5 && Math.abs(vel) < current.getTriggerValue();
+                break;
+            case FITNESS:
+                shouldAdvance = bestScore >= current.getTriggerValue();
+                break;
+        }
+
+        if (shouldAdvance) {
+            advanceStage();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Forces advancement to the next stage. Hot-swaps mutation parameters on
+     * the live config object — evolvers pick up the new values immediately.
+     */
+    public void advanceStage() {
+        if (!hasMoreStages()) return;
+        currentStageIndex++;
+        lastStageChangeMs = System.currentTimeMillis();
+        totalStageShifts++;
+        EvolutionStage next = config.getStages().get(currentStageIndex);
+        applyStage(next);
+        System.out.println("[Stage] " + name + " shifted to gear "
+                + (currentStageIndex + 1) + "/" + config.getStages().size()
+                + ": " + next.getName());
+    }
+
+    /**
+     * Copies stage mutation parameters into the live config. Evolvers read these
+     * fields by reference every batch, so the change takes effect immediately.
+     * Thread/population/crossover settings are NOT changed (would require restart).
+     */
+    private void applyStage(EvolutionStage stage) {
+        EvolutionConfig sc = stage.getConfig();
+        config.gridMutationChances = sc.gridMutationChances;
+        config.gridMutationDecay = sc.gridMutationDecay;
+        config.gridMutationPercent = sc.gridMutationPercent;
+        config.randomMutationChances = sc.randomMutationChances;
+        config.randomMutationPercent = sc.randomMutationPercent;
+        config.closeMutationChances = sc.closeMutationChances;
+        config.closeMutationPercent = sc.closeMutationPercent;
+        config.randomGridMutationChances = sc.randomGridMutationChances;
+        config.randomGridMutationPercent = sc.randomGridMutationPercent;
+        config.targetedSwapAttempts = sc.targetedSwapAttempts;
+    }
+
+    public long getLastStageChangeMs() { return lastStageChangeMs; }
+    public int getTotalStageShifts() { return totalStageShifts; }
 
     /** Marks this contestant as eliminated (poor performance). Frees resources. */
     public void eliminate(int atGeneration) {

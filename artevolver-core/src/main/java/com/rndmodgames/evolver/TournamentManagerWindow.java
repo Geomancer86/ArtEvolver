@@ -37,8 +37,9 @@ public class TournamentManagerWindow extends JFrame {
     private JButton btnStopAllRef;
     private JCheckBox chkAutoEvolve;
 
-    // System Monitor + Autopilot
+    // System Monitor + Autopilot + Dashboard
     private final SystemMonitor sysMonitor = new SystemMonitor();
+    private DashboardServer dashboardServer;
     private JLabel lblSysStatus;
     private boolean autopilotActive = false;
     private double maxCpuPercent = 80;
@@ -256,10 +257,17 @@ public class TournamentManagerWindow extends JFrame {
         lblSysStatus.setForeground(new Color(130, 200, 130));
         statusBar.add(lblSysStatus, BorderLayout.WEST);
 
+        JPanel statusBtnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+        statusBtnPanel.setOpaque(false);
+        JButton btnDashboard = makeBtn("\uD83C\uDF10 Dashboard");
+        btnDashboard.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 10));
+        btnDashboard.addActionListener(e -> openDashboard());
+        statusBtnPanel.add(btnDashboard);
         JButton btnAutopilot = makeBtn("\u2699 Autopilot...");
         btnAutopilot.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 10));
         btnAutopilot.addActionListener(e -> showAutopilotSettings());
-        statusBar.add(btnAutopilot, BorderLayout.EAST);
+        statusBtnPanel.add(btnAutopilot);
+        statusBar.add(statusBtnPanel, BorderLayout.EAST);
         add(statusBar, BorderLayout.SOUTH);
 
         pack();
@@ -468,6 +476,24 @@ public class TournamentManagerWindow extends JFrame {
 
     public SystemMonitor getSystemMonitor() { return sysMonitor; }
     public boolean isAutopilotActive() { return autopilotActive; }
+
+    private void openDashboard() {
+        if (dashboardServer != null) {
+            dashboardServer.openInBrowser();
+            return;
+        }
+        try {
+            dashboardServer = new DashboardServer(artEvolver, contestants, this);
+            dashboardServer.start();
+            dashboardServer.openInBrowser();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Failed to start dashboard server:\n" + ex.getMessage(),
+                    "Dashboard Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    public DashboardServer getDashboardServer() { return dashboardServer; }
 
     // ═══════════════════════════════════════════════════════════════
     //  PREHISTORIC MODE UI

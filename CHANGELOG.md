@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.0] - 2026-02-20 (develop branch)
 
+### Added — Browser Dashboard (Real-Time Leaderboard)
+- **Embedded HTTP server** (`DashboardServer.java`) using Java's built-in
+  `com.sun.net.httpserver.HttpServer` — zero external dependencies, auto-selects
+  a free port, opens the default browser automatically
+- **REST API endpoints**:
+  - `GET /` — serves the dashboard HTML page from classpath resources
+  - `GET /api/state` — full tournament state as JSON (system metrics, contestants,
+    tournament params, evolution history, prehistoric mode status)
+  - `GET /api/image/{id}` — PNG thumbnail (300px) of contestant's current best image
+  - `GET /api/export/{id}` — full-resolution PNG download with proper filename
+- **Modern dark-themed dashboard** (`dashboard.html`) featuring:
+  - Live system metrics bar (CPU, Heap, RAM, Threads, Disk) with color-coded gauges
+  - Tournament status (generation, countdown, best-ever, adaptive cutoff state)
+  - Status badges: LIVE, AUTOPILOT, ERA (Prehistoric Mode)
+  - Ranked leaderboard cards with image thumbnails, color dots matching chart series,
+    fitness/velocity/acceleration/peak stats, config summaries, uptime, iterations
+  - Eliminated contestants shown faded with skull icons and export buttons
+  - One-click high-quality PNG export for any contestant (especially eliminated ones)
+  - Evolution history log with syntax-highlighted narratives (newest first)
+  - Summary panel: active/eliminated/total counts, average fitness
+  - Auto-refreshes every 2 seconds
+  - Fully responsive layout
+- **Dashboard button** on Tournament Manager status bar — launches the browser dashboard
+
 ### Added — System Monitor, Autopilot & Smart Test Profiles
 
 - **SystemMonitor.java**: Real-time CPU, RAM (heap + physical), disk, and thread

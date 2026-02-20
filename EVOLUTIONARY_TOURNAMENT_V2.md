@@ -303,3 +303,41 @@ One-click autonomous tournament management:
 - Breeding lineage (parents, ancestral crossover, grace period)
 - Adaptive cutoff state
 - Prehistoric mode era descriptions with capability unlocks
+
+---
+
+## Browser Dashboard — Real-Time Leaderboard
+
+### Architecture
+
+```
+Java App (Swing)
+  └── DashboardServer.java
+        ├── com.sun.net.httpserver.HttpServer (port auto-selected)
+        ├── GET /            → dashboard.html (classpath resource)
+        ├── GET /api/state   → JSON (full tournament state, polled every 2s)
+        ├── GET /api/image/{id}  → 300px PNG thumbnail
+        └── GET /api/export/{id} → Full-res PNG download
+```
+
+### JSON State Schema (`/api/state`)
+
+- `system` — CPU (process + system), heap, RAM, disk, threads, cores
+- `tournament` — generation, countdown, cutoff, adaptive state, best-ever
+- `prehistoric` — era number, name, auto-advance status
+- `autopilot` — enabled flag
+- `contestants[]` — id, name, rank, score, velocity, acceleration, peak,
+  iterations, status flags, generation, parentage, config, color, uptime
+- `history[]` — narrative log strings (pre-formatted)
+
+### Dashboard Features
+
+- Dark theme with GitHub-inspired design
+- System metrics bar with animated gauge fills (color: green/yellow/red)
+- Leaderboard cards: rank, image thumbnail, fitness stats, config summary
+- Eliminated contestants: faded, skull rank icon, export download button
+- Evolution history: syntax-highlighted log with newest entries first
+- Tournament summary sidebar: active/eliminated/total counts, average fitness
+- Status badges: LIVE (pulsing), AUTOPILOT, ERA (prehistoric mode)
+- Auto-refresh every 2 seconds, graceful reconnection on network errors
+- Fully responsive: collapses sidebar below leaderboard on narrow screens

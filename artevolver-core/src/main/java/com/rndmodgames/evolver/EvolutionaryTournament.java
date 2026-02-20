@@ -106,12 +106,12 @@ public class EvolutionaryTournament {
         TournamentContestant best = ranked.get(0);
         TournamentContestant worst = ranked.get(ranked.size() - 1);
 
-        if (best.getBestScore() > 0 && best.getBestScore() == worst.getBestScore()) {
-            worst = ranked.get(ranked.size() - 1);
-            for (int i = ranked.size() - 1; i > 0; i--) {
-                if (ranked.get(i).getGeneration() <= worst.getGeneration()) {
-                    worst = ranked.get(i);
-                }
+        double worstScore = worst.getBestScore();
+        for (int i = ranked.size() - 2; i >= 1; i--) {
+            TournamentContestant c = ranked.get(i);
+            if (c.getBestScore() > worstScore) break;
+            if (c.getGeneration() < worst.getGeneration()) {
+                worst = c;
             }
         }
 
@@ -137,11 +137,11 @@ public class EvolutionaryTournament {
         double culledScore = worst.getBestScore();
         int culledGen = worst.getGeneration();
 
-        TournamentContestant parentA = selectParent(ranked);
-        TournamentContestant parentB = selectParent(ranked);
+        TournamentContestant parentA = selectParent(ranked, worst);
+        TournamentContestant parentB = selectParent(ranked, worst);
         int attempts = 0;
         while (parentB == parentA && ranked.size() > 2 && attempts < 10) {
-            parentB = selectParent(ranked);
+            parentB = selectParent(ranked, worst);
             attempts++;
         }
 
@@ -235,11 +235,18 @@ public class EvolutionaryTournament {
         return sb.toString();
     }
 
-    private TournamentContestant selectParent(List<TournamentContestant> ranked) {
+    private TournamentContestant selectParent(List<TournamentContestant> ranked, TournamentContestant exclude) {
         int topHalf = Math.max(2, ranked.size() / 2);
-        TournamentContestant a = ranked.get(RNG.nextInt(topHalf));
-        TournamentContestant b = ranked.get(RNG.nextInt(topHalf));
-        return (a.getBestScore() >= b.getBestScore()) ? a : b;
+        for (int i = 0; i < 20; i++) {
+            TournamentContestant a = ranked.get(RNG.nextInt(topHalf));
+            TournamentContestant b = ranked.get(RNG.nextInt(topHalf));
+            TournamentContestant pick = (a.getBestScore() >= b.getBestScore()) ? a : b;
+            if (pick != exclude) return pick;
+        }
+        for (TournamentContestant c : ranked) {
+            if (c != exclude) return c;
+        }
+        return ranked.get(0);
     }
 
     private EvolutionConfig breedConfigs(EvolutionConfig cfgA, EvolutionConfig cfgB) {

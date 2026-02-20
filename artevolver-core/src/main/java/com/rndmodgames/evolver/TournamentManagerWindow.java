@@ -407,6 +407,17 @@ public class TournamentManagerWindow extends JFrame {
         btnQuickSetupRef.setEnabled(!evolving);
     }
 
+    /** Resets the evolving button to its idle state (called by ArtEvolver.stopTournament). */
+    public void resetEvolveButton() {
+        if (evoTournament != null && evoTournament.isRunning()) {
+            evoTournament.stop();
+        }
+        btnEvolve.setText("\u2B50 Start Evolving");
+        btnEvolve.setBackground(new Color(156, 39, 176));
+        lblCountdown.setText("");
+        setEvoLockButtons(false);
+    }
+
     private void showEvoSettings() {
         if (evoTournament == null) {
             evoTournament = new EvolutionaryTournament(artEvolver, contestants);

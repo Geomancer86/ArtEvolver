@@ -40,6 +40,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`TournamentContestant.dispose()`** — full cleanup: stop + interrupt threads + clear evolvers
 - **`TournamentContestant` generation/parentage tracking** for evolutionary lineage
 
+### Added — Tournament Display Modes
+- **Display Mode** combo box in the Tournament section of the sidebar with three options:
+  - **Draw Selected** — shows the contestant currently picked in the combo box (default)
+  - **Draw Best** — always shows the highest-scoring contestant in real-time
+  - **Draw All** — grid of all contestants rendered simultaneously in the main panel, each with
+    name, chart color, score overlay, gold border on the best, and colored border on selected
+- "Draw All" mode automatically lowers the rendering frame rate to reduce CPU usage
+- Grid layout auto-calculates optimal rows/columns based on contestant count
+- Each cell scales images with bilinear interpolation to fit; shows "initializing..." placeholder
+  for contestants that haven't produced an image yet
+
+### Fixed — Evolutionary Tournament Review
+- **Parent selection now explicitly excludes the worst contestant** being culled, preventing it
+  from being selected as a parent even in edge cases with tied scores
+- **Tied-score tiebreaker improved** — when multiple contestants share the worst score, the
+  system now prefers to cull the older one (lower generation number) across all ties, not just
+  when all scores are identical
+- **Stop All resets the Evolve button** — pressing "Stop All" now properly resets the "Stop
+  Evolving" button back to "Start Evolving" and clears the countdown display
+
 ### Fixed — Flickering Black Triangles
 - **`renderTrianglesToNewImage()` returned a shared mutable buffer**: The EDT was reading
   `bestImage` while evolver threads cleared and redrew `bestImageBuffer`, causing black/empty

@@ -316,7 +316,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private TournamentContestant selectedContestant;
 	private TournamentManagerWindow tournamentManagerWindow;
 	private JComboBox<String> cmbContestant;
+	private JComboBox<String> cmbDrawMode;
 	private boolean tournamentMode = false;
+	private int tournamentDrawMode = 0; // 0=Selected, 1=Best, 2=All
 
 	// Timer
 	public Timer processTimer;
@@ -793,24 +795,38 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				if (tournamentMode && !contestants.isEmpty()) {
 				    long tTotalIter = 0;
 				    long tGoodIter = 0;
+				    TournamentContestant bestContestant = null;
 				    for (TournamentContestant c : contestants) {
 				        c.updateBest();
 				        tTotalIter += c.getTotalIterations();
 				        tGoodIter += c.getGoodIterations();
-
-				        // display the selected contestant's image
-				        if (c == selectedContestant || (selectedContestant == null && c.getBestScore() > bestScore)) {
-				            if (c.getBestScore() > bestScore || c == selectedContestant) {
-				                bestScore = Math.max(bestScore, c.getBestScore());
-				                if (c.getBestImage() != null) {
-				                    bestImage = c.getBestImage();
-				                    isDirty = true;
-				                }
-				            }
+				        if (bestContestant == null || c.getBestScore() > bestContestant.getBestScore()) {
+				            bestContestant = c;
 				        }
 				    }
 				    totalIterations += tTotalIter;
 				    goodIterations += tGoodIter;
+
+				    if (tournamentDrawMode == 2) {
+				        // Draw All: just mark dirty to trigger full grid repaint
+				        isDirty = true;
+				        if (bestContestant != null) bestScore = bestContestant.getBestScore();
+				    } else if (tournamentDrawMode == 1) {
+				        // Draw Best: always show the highest-scoring contestant
+				        if (bestContestant != null && bestContestant.getBestImage() != null) {
+				            bestScore = bestContestant.getBestScore();
+				            bestImage = bestContestant.getBestImage();
+				            isDirty = true;
+				        }
+				    } else {
+				        // Draw Selected: show selected or fallback to best
+				        TournamentContestant target = (selectedContestant != null) ? selectedContestant : bestContestant;
+				        if (target != null && target.getBestImage() != null) {
+				            bestScore = Math.max(bestScore, target.getBestScore());
+				            bestImage = target.getBestImage();
+				            isDirty = true;
+				        }
+				    }
 				}
 				
 				// draw bestImage to panel
@@ -818,6 +834,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				    showSource();
 				} else {
 				    int guiFrameSkip = Math.max(1, FPS / GUI_FPS);
+				    if (tournamentMode && tournamentDrawMode == 2) {
+				        guiFrameSkip = Math.max(guiFrameSkip, 3);
+				    }
 				    if (currentFrame % guiFrameSkip == 0 && isDirty) {
 	                    isDirty = false;
 	                    imagePanel.repaint();
@@ -1061,7 +1080,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             @Override
 	        protected void paintComponent(Graphics g) {
 	            super.paintComponent(g);
-	            if (bestImage != null) {
+	            if (tournamentMode && tournamentDrawMode == 2 && !contestants.isEmpty()) {
+	                paintAllContestants((Graphics2D) g, getWidth(), getHeight());
+	            } else if (bestImage != null) {
 	                g.drawImage(bestImage, 16, 16, null);
 	            }
 	        }
@@ -1595,6 +1616,20 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    styleCombo(cmbContestant);
 	    cmbContestant.addActionListener(e -> onContestantSelected());
 	    sb.add(cmbContestant);
+	    sb.add(Box.createVerticalStrut(4));
+
+	    addFieldLabel(sb, "Display Mode:");
+	    cmbDrawMode = new JComboBox<>(new String[]{"Draw Selected", "Draw Best", "Draw All"});
+	    cmbDrawMode.setToolTipText("<html>How to render contestants on the main panel:<br>" +
+	        "<b>Draw Selected</b> — shows the contestant picked above<br>" +
+	        "<b>Draw Best</b> — always shows the highest-scoring contestant<br>" +
+	        "<b>Draw All</b> — grid of all contestants (lower frame rate)</html>");
+	    styleCombo(cmbDrawMode);
+	    cmbDrawMode.addActionListener(e -> {
+	        tournamentDrawMode = cmbDrawMode.getSelectedIndex();
+	        isDirty = true;
+	    });
+	    sb.add(cmbDrawMode);
 
 	    addSeparator(sb);
 
@@ -2088,6 +2123,82 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	}
 
 	/**
+	 * Renders all tournament contestants in a grid layout on the main image panel.
+	 * Each cell shows the contestant's image scaled to fit, with name and score overlay.
+	 */
+	private void paintAllContestants(Graphics2D g, int panelW, int panelH) {
+	    int n = contestants.size();
+	    if (n == 0) return;
+
+	    g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+	        java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+
+	    int cols = (int) Math.ceil(Math.sqrt(n));
+	    int rows = (int) Math.ceil((double) n / cols);
+
+	    int pad = 4;
+	    int cellW = (panelW - pad) / cols;
+	    int cellH = (panelH - pad) / rows;
+
+	    DecimalFormat df = new DecimalFormat("0.00");
+	    Font nameFont = new Font(Font.SANS_SERIF, Font.BOLD, Math.max(9, Math.min(12, cellW / 14)));
+	    Font scoreFont = new Font(Font.MONOSPACED, Font.BOLD, Math.max(9, Math.min(11, cellW / 16)));
+
+	    double bestScoreInTournament = contestants.stream()
+	        .mapToDouble(TournamentContestant::getBestScore).max().orElse(0);
+
+	    for (int i = 0; i < n; i++) {
+	        TournamentContestant c = contestants.get(i);
+	        int col = i % cols;
+	        int row = i / cols;
+	        int cx = pad + col * cellW;
+	        int cy = pad + row * cellH;
+
+	        BufferedImage img = c.getBestImage();
+	        if (img != null) {
+	            int imgW = img.getWidth();
+	            int imgH = img.getHeight();
+	            int availW = cellW - pad * 2;
+	            int availH = cellH - pad * 2 - 18;
+	            double scale = Math.min((double) availW / imgW, (double) availH / imgH);
+	            int drawW = (int) (imgW * scale);
+	            int drawH = (int) (imgH * scale);
+	            int dx = cx + (cellW - drawW) / 2;
+	            int dy = cy + pad;
+	            g.drawImage(img, dx, dy, drawW, drawH, null);
+	        } else {
+	            g.setColor(new java.awt.Color(60, 60, 70));
+	            g.fillRect(cx + pad, cy + pad, cellW - pad * 2, cellH - pad * 2 - 18);
+	            g.setColor(java.awt.Color.GRAY);
+	            g.setFont(nameFont);
+	            g.drawString("initializing...", cx + pad + 4, cy + cellH / 2);
+	        }
+
+	        boolean isBest = (c.getBestScore() > 0 && c.getBestScore() >= bestScoreInTournament);
+	        boolean isSelected = (c == selectedContestant);
+
+	        if (isBest || isSelected) {
+	            g.setStroke(new java.awt.BasicStroke(isBest ? 3f : 2f));
+	            g.setColor(isBest ? new java.awt.Color(255, 215, 0) : c.getChartColor());
+	            g.drawRect(cx + 1, cy + 1, cellW - 3, cellH - 3);
+	        }
+
+	        int labelY = cy + cellH - 6;
+	        g.setColor(new java.awt.Color(0, 0, 0, 160));
+	        g.fillRect(cx, labelY - 13, cellW, 16);
+	        g.setFont(nameFont);
+	        g.setColor(c.getChartColor());
+	        g.drawString(c.getName(), cx + 3, labelY);
+
+	        String scoreStr = c.getBestScore() > 0 ? df.format(c.getBestScore() * 100) + "%" : "--";
+	        g.setFont(scoreFont);
+	        g.setColor(java.awt.Color.WHITE);
+	        int scoreW = g.getFontMetrics().stringWidth(scoreStr);
+	        g.drawString(scoreStr, cx + cellW - scoreW - 4, labelY);
+	    }
+	}
+
+	/**
 	 * Populates an EvolutionConfig from the current UI control values.
 	 * Used by TournamentManagerWindow when creating new contestants.
 	 */
@@ -2162,8 +2273,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	/** Stops all tournament contestants (threads remain alive but idle). */
 	public void stopTournament() {
 	    if (tournamentManagerWindow != null) {
-	        EvolutionaryTournament evo = tournamentManagerWindow.getEvoTournament();
-	        if (evo != null && evo.isRunning()) evo.stop();
+	        tournamentManagerWindow.resetEvolveButton();
 	    }
 	    for (TournamentContestant c : contestants) {
 	        c.stop();

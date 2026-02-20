@@ -15,27 +15,40 @@ public class Triangle extends Polygon{
 	private int [] xPoly;
 	private int [] yPoly;
 	private int lenght;
-	
-	public Triangle(int [] xPoly, int [] yPoly, int lenght, Color color, PalleteColor palleteColor){
-	    
+
+	public Triangle(int [] xPoly, int [] yPoly, int lenght, Color color){
 		super(xPoly, yPoly, lenght);
-		
+		this.color = color;
+		this.xPoly = xPoly;
+		this.yPoly = yPoly;
+		this.lenght = lenght;
+	}
+
+	public Triangle(int [] xPoly, int [] yPoly, int lenght, Color color, PalleteColor palleteColor){
+		super(xPoly, yPoly, lenght);
 		this.color = color;
 		this.palleteColor = palleteColor;
+		this.xPoly = xPoly;
+		this.yPoly = yPoly;
+		this.lenght = lenght;
+	}
+
+	public Triangle(int[] xPoly, int[] yPoly, int lenght, Long colorId, Color color) {
+		super(xPoly, yPoly, lenght);
 		
+		this.colorId = colorId;
+		this.color = color;
 		this.xPoly = xPoly;
 		this.yPoly = yPoly;
 		this.lenght = lenght;
 	}
 
 	public Triangle(int[] xPoly, int[] yPoly, int lenght, Long colorId, Color color, PalleteColor palleteColor) {
-	    
 		super(xPoly, yPoly, lenght);
 		
 		this.colorId = colorId;
 		this.color = color;
 		this.palleteColor = palleteColor;
-		
 		this.xPoly = xPoly;
 		this.yPoly = yPoly;
 		this.lenght = lenght;
@@ -47,6 +60,14 @@ public class Triangle extends Polygon{
 
 	public void setColor(Color color) {
 		this.color = color;
+	}
+
+	public PalleteColor getPalleteColor() {
+		return palleteColor;
+	}
+
+	public void setPalleteColor(PalleteColor palleteColor) {
+		this.palleteColor = palleteColor;
 	}
 
 	public int[] getxPoly() {
@@ -102,12 +123,4 @@ public class Triangle extends Polygon{
 	public String toString() {
 		return Arrays.toString(xPoly) + "," + Arrays.toString(yPoly) + ",[" + color.getRed() + ", " + color.getGreen() + ", " + color.getBlue() + "]";
 	}
-
-    public PalleteColor getPalleteColor() {
-        return palleteColor;
-    }
-
-    public void setPalleteColor(PalleteColor palleteColor) {
-        this.palleteColor = palleteColor;
-    }
 }

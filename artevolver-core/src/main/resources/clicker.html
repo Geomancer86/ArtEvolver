@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evolution Clicker - ArtEvolver</title>
+<style>
+:root {
+  --bg: #0a0e17;
+  --surface: #111827;
+  --surface2: #1a2236;
+  --surface3: #222d44;
+  --border: #2a3550;
+  --text: #e2e8f0;
+  --text-dim: #64748b;
+  --ep-color: #22d3ee;
+  --mc-color: #f472b6;
+  --gf-color: #fbbf24;
+  --green: #34d399;
+  --red: #f87171;
+  --blue: #60a5fa;
+  --purple: #a78bfa;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; font-size:13px; overflow:hidden; height:100vh; }
+
+/* LAYOUT */
+.app { display:grid; grid-template-columns:320px 1fr 360px; grid-template-rows:auto 1fr auto; height:100vh; }
+.header { grid-column:1/-1; background:linear-gradient(135deg,#0f172a,#1e1b4b); border-bottom:1px solid var(--border); padding:8px 16px; display:flex; align-items:center; gap:12px; }
+.header h1 { font-size:16px; color:#fff; white-space:nowrap; }
+.header h1 em { font-style:normal; color:var(--ep-color); }
+.currency-bar { display:flex; gap:16px; margin-left:auto; }
+.curr { display:flex; align-items:center; gap:4px; padding:4px 12px; border-radius:8px; background:rgba(255,255,255,0.05); }
+.curr-icon { font-size:16px; }
+.curr-val { font-size:16px; font-weight:800; font-family:'Cascadia Mono',monospace; }
+.curr-ep .curr-val { color:var(--ep-color); }
+.curr-mc .curr-val { color:var(--mc-color); }
+.curr-gf .curr-val { color:var(--gf-color); }
+.curr-rate { font-size:10px; color:var(--text-dim); }
+
+/* LEFT: UPGRADE STORE */
+.store { grid-column:1; background:var(--surface); border-right:1px solid var(--border); overflow-y:auto; }
+.store-tabs { display:flex; flex-wrap:wrap; gap:2px; padding:6px; background:var(--surface2); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:5; }
+.store-tab { padding:3px 8px; font-size:10px; border-radius:4px; cursor:pointer; background:transparent; border:1px solid var(--border); color:var(--text-dim); transition:all 0.2s; }
+.store-tab:hover { background:var(--surface3); color:var(--text); }
+.store-tab.active { background:var(--ep-color); color:#000; border-color:var(--ep-color); font-weight:700; }
+.store-list { padding:6px; }
+.upgrade-card { padding:8px 10px; margin-bottom:4px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); cursor:pointer; transition:all 0.15s; }
+.upgrade-card:hover { border-color:var(--ep-color); background:var(--surface3); transform:translateX(2px); }
+.upgrade-card.cant-afford { opacity:0.4; }
+.upgrade-card.maxed { opacity:0.5; border-color:var(--green); }
+.upgrade-card.hidden { display:none; }
+.upg-header { display:flex; justify-content:space-between; align-items:center; }
+.upg-name { font-size:12px; font-weight:700; }
+.upg-level { font-size:10px; color:var(--text-dim); font-family:monospace; }
+.upg-desc { font-size:10px; color:var(--text-dim); margin-top:2px; line-height:1.3; }
+.upg-cost { display:flex; align-items:center; gap:4px; margin-top:4px; font-size:11px; font-weight:700; }
+.upg-cost.ep { color:var(--ep-color); }
+.upg-cost.mc { color:var(--mc-color); }
+.upg-cost.gf { color:var(--gf-color); }
+
+/* CENTER: CLICK AREA */
+.center { grid-column:2; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+.click-zone { position:relative; width:280px; height:280px; border-radius:50%; background:radial-gradient(circle,#1e3a5f,#0a0e17); border:3px solid var(--border); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-direction:column; transition:transform 0.1s,box-shadow 0.2s; user-select:none; }
+.click-zone:hover { box-shadow:0 0 40px rgba(34,211,238,0.15); }
+.click-zone:active { transform:scale(0.96); }
+.click-zone .big-fitness { font-size:42px; font-weight:900; background:linear-gradient(135deg,var(--ep-color),var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-align:center; }
+.click-zone .label { font-size:11px; color:var(--text-dim); margin-top:4px; }
+.click-zone .click-label { font-size:10px; color:var(--ep-color); margin-top:8px; opacity:0.7; }
+.ep-popup { position:absolute; pointer-events:none; font-weight:900; font-size:18px; color:var(--ep-color); text-shadow:0 0 8px rgba(34,211,238,0.5); animation:epFloat 1s ease-out forwards; z-index:10; }
+@keyframes epFloat { 0%{opacity:1;transform:translateY(0) scale(1)} 100%{opacity:0;transform:translateY(-60px) scale(1.3)} }
+.crit-popup { color:var(--gf-color)!important; font-size:28px!important; text-shadow:0 0 16px rgba(251,191,36,0.8)!important; }
+
+/* Stats below click zone */
+.stats-row { display:flex; gap:12px; margin-top:16px; flex-wrap:wrap; justify-content:center; }
+.stat-box { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:6px 12px; text-align:center; min-width:80px; }
+.stat-box .val { font-size:14px; font-weight:800; font-family:monospace; color:var(--ep-color); }
+.stat-box .lbl { font-size:9px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px; }
+
+/* Events bar */
+.events-bar { position:absolute; top:8px; left:8px; right:8px; display:flex; gap:4px; flex-wrap:wrap; }
+.event-pill { padding:3px 10px; border-radius:12px; font-size:10px; font-weight:700; background:rgba(251,191,36,0.15); border:1px solid rgba(251,191,36,0.3); color:var(--gf-color); animation:eventGlow 2s infinite; }
+@keyframes eventGlow { 0%,100%{box-shadow:0 0 4px rgba(251,191,36,0.2)} 50%{box-shadow:0 0 12px rgba(251,191,36,0.4)} }
+
+/* Prestige bar */
+.prestige-bar { position:absolute; bottom:8px; left:16px; right:16px; }
+.prestige-btn { width:100%; padding:8px; border:1px solid rgba(251,191,36,0.3); border-radius:8px; background:rgba(251,191,36,0.05); color:var(--gf-color); font-size:11px; font-weight:700; cursor:pointer; text-align:center; transition:all 0.2s; }
+.prestige-btn:hover { background:rgba(251,191,36,0.15); box-shadow:0 0 20px rgba(251,191,36,0.2); }
+.prestige-btn.disabled { opacity:0.3; cursor:not-allowed; }
+
+/* RIGHT: ACHIEVEMENTS */
+.sidebar { grid-column:3; background:var(--surface); border-left:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+.sidebar-header { padding:8px 12px; background:var(--surface2); border-bottom:1px solid var(--border); font-size:12px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; }
+.achievements-grid { flex:1; overflow-y:auto; padding:8px; display:grid; grid-template-columns:repeat(auto-fill,minmax(48px,1fr)); gap:4px; align-content:start; }
+.ach { width:48px; height:48px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:22px; background:var(--surface2); border:1px solid var(--border); cursor:default; position:relative; transition:all 0.2s; }
+.ach.locked { filter:grayscale(1) brightness(0.3); }
+.ach.unlocked { border-color:var(--gf-color); box-shadow:0 0 8px rgba(251,191,36,0.2); }
+.ach:hover .ach-tooltip { display:block; }
+.ach-tooltip { display:none; position:absolute; bottom:54px; left:50%; transform:translateX(-50%); background:var(--surface3); border:1px solid var(--border); border-radius:6px; padding:6px 8px; white-space:nowrap; z-index:50; font-size:10px; min-width:120px; text-align:center; }
+.ach-tooltip .ach-t-name { font-weight:700; }
+.ach-tooltip .ach-t-desc { color:var(--text-dim); }
+
+/* Notification log */
+.notif-log { height:160px; border-top:1px solid var(--border); overflow-y:auto; padding:8px; font-size:10px; font-family:monospace; color:var(--text-dim); }
+.notif-entry { padding:2px 0; border-bottom:1px solid rgba(42,53,80,0.5); }
+.notif-entry.achievement { color:var(--gf-color); }
+.notif-entry.event { color:var(--green); }
+.notif-entry.event-end { color:var(--red); opacity:0.7; }
+
+/* FOOTER */
+.footer { grid-column:1/-1; padding:4px 16px; background:var(--surface2); border-top:1px solid var(--border); font-size:10px; color:var(--text-dim); display:flex; justify-content:space-between; align-items:center; }
+.footer a { color:var(--ep-color); text-decoration:none; }
+
+/* Achievement popup animation */
+.ach-popup { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--surface3); border:2px solid var(--gf-color); border-radius:16px; padding:24px 40px; text-align:center; z-index:1000; box-shadow:0 0 60px rgba(251,191,36,0.3); animation:achPop 0.4s ease-out; }
+.ach-popup .ach-popup-icon { font-size:48px; }
+.ach-popup .ach-popup-title { font-size:18px; font-weight:900; color:var(--gf-color); margin-top:8px; }
+.ach-popup .ach-popup-desc { font-size:12px; color:var(--text-dim); margin-top:4px; }
+@keyframes achPop { 0%{transform:translate(-50%,-50%) scale(0.5); opacity:0} 100%{transform:translate(-50%,-50%) scale(1); opacity:1} }
+
+/* Scrollbar */
+::-webkit-scrollbar { width:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+@media(max-width:1100px) {
+  .app { grid-template-columns:280px 1fr; }
+  .sidebar { display:none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<div class="header">
+  <h1><em>Evolution</em> Clicker</h1>
+  <div class="currency-bar">
+    <div class="curr curr-ep">
+      <span class="curr-icon">&#x26A1;</span>
+      <span class="curr-val" id="epVal">0</span>
+      <span class="curr-rate" id="epRate">0/s</span>
+    </div>
+    <div class="curr curr-mc">
+      <span class="curr-icon">&#x1F48E;</span>
+      <span class="curr-val" id="mcVal">0</span>
+    </div>
+    <div class="curr curr-gf" id="gfCurr" style="display:none">
+      <span class="curr-icon">&#x1F31F;</span>
+      <span class="curr-val" id="gfVal">0</span>
+    </div>
+  </div>
+</div>
+
+<!-- LEFT STORE -->
+<div class="store">
+  <div class="store-tabs" id="storeTabs"></div>
+  <div class="store-list" id="storeList"></div>
+</div>
+
+<!-- CENTER CLICK ZONE -->
+<div class="center" id="centerArea">
+  <div class="events-bar" id="eventsBar"></div>
+  <div class="click-zone" id="clickZone">
+    <div class="big-fitness" id="bigFitness">0.00%</div>
+    <div class="label">Best Fitness</div>
+    <div class="click-label">Click to Evolve!</div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-box"><div class="val" id="sClicks">0</div><div class="lbl">Clicks</div></div>
+    <div class="stat-box"><div class="val" id="sEpClick">1</div><div class="lbl">EP/Click</div></div>
+    <div class="stat-box"><div class="val" id="sUpgrades">0</div><div class="lbl">Upgrades</div></div>
+    <div class="stat-box"><div class="val" id="sAch">0/0</div><div class="lbl">Achievements</div></div>
+    <div class="stat-box"><div class="val" id="sTime">0:00</div><div class="lbl">Play Time</div></div>
+  </div>
+  <div class="prestige-bar" id="prestigeBar">
+    <button class="prestige-btn disabled" id="btnPrestige" onclick="doPrestige()">
+      &#x1F31F; ASCEND (earn 0 Genome Fragments)
+    </button>
+  </div>
+</div>
+
+<!-- RIGHT SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-header">Achievements (<span id="achCount">0</span>/<span id="achTotal">0</span>)</div>
+  <div class="achievements-grid" id="achGrid"></div>
+  <div class="sidebar-header">Activity Log</div>
+  <div class="notif-log" id="notifLog"></div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <span>ArtEvolver v3.1 | <a href="/">Dashboard</a> | <a href="/clicker">Clicker</a></span>
+  <span id="footerInfo">Refresh: 1s</span>
+</div>
+</div>
+
+<!-- Achievement popup overlay -->
+<div id="achPopupOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:999" onclick="dismissAchPopup()"></div>
+<div id="achPopup" class="ach-popup" style="display:none"></div>
+
+<script>
+const TICK_MS = 1000;
+let state = null;
+let selectedTab = 'All';
+let achPopupQueue = [];
+let showingPopup = false;
+
+// ─── FORMAT HELPERS ───
+function fmt(n) {
+  if (n >= 1e15) return (n/1e15).toFixed(2)+'Q';
+  if (n >= 1e12) return (n/1e12).toFixed(2)+'T';
+  if (n >= 1e9) return (n/1e9).toFixed(2)+'B';
+  if (n >= 1e6) return (n/1e6).toFixed(2)+'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1)+'K';
+  if (n >= 100) return Math.floor(n).toString();
+  if (n >= 1) return n.toFixed(1);
+  return n.toFixed(2);
+}
+function fmtTime(ms) {
+  const s = Math.floor(ms/1000);
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60);
+  const sec = s%60;
+  if (h > 0) return h+'h '+m+'m';
+  return m+':'+String(sec).padStart(2,'0');
+}
+
+// ─── CLICK HANDLER ───
+document.getElementById('clickZone').addEventListener('click', async (e) => {
+  const res = await fetch('/api/clicker/click');
+  const data = await res.json();
+  spawnEpPopup(e.clientX, e.clientY, data.earned);
+});
+
+function spawnEpPopup(x, y, amount) {
+  const el = document.createElement('div');
+  el.className = 'ep-popup' + (amount > 50 ? ' crit-popup' : '');
+  el.textContent = '+' + fmt(amount);
+  el.style.left = (x + (Math.random()-0.5)*40) + 'px';
+  el.style.top = (y - 10) + 'px';
+  document.getElementById('centerArea').appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+// ─── STORE ───
+function buildTabs(upgrades) {
+  const cats = ['All', ...new Set(upgrades.map(u => u.cat))];
+  const container = document.getElementById('storeTabs');
+  container.innerHTML = '';
+  cats.forEach(cat => {
+    const btn = document.createElement('div');
+    btn.className = 'store-tab' + (cat === selectedTab ? ' active' : '');
+    btn.textContent = cat;
+    btn.onclick = () => { selectedTab = cat; renderStore(); };
+    container.appendChild(btn);
+  });
+}
+
+function renderStore() {
+  if (!state) return;
+  const container = document.getElementById('storeList');
+  const tabs = document.getElementById('storeTabs');
+
+  // Update tab active state
+  tabs.querySelectorAll('.store-tab').forEach(t => {
+    t.className = 'store-tab' + (t.textContent === selectedTab ? ' active' : '');
+  });
+
+  container.innerHTML = '';
+  state.upgrades.forEach(u => {
+    if (!u.visible) return;
+    if (selectedTab !== 'All' && u.cat !== selectedTab) return;
+
+    const maxed = u.max > 0 && u.level >= u.max;
+    const card = document.createElement('div');
+    card.className = 'upgrade-card' + (!u.affordable && !maxed ? ' cant-afford' : '') + (maxed ? ' maxed' : '');
+
+    const costStr = maxed ? 'MAXED' : fmt(u.cost);
+    const currClass = u.currency;
+    const currSymbol = u.currency === 'ep' ? '\u26A1' : u.currency === 'mc' ? '\uD83D\uDC8E' : '\uD83C\uDF1F';
+
+    card.innerHTML = `
+      <div class="upg-header">
+        <span class="upg-name">${u.name}</span>
+        <span class="upg-level">${u.level}${u.max > 0 ? '/' + u.max : ''}</span>
+      </div>
+      <div class="upg-desc">${u.desc}</div>
+      <div class="upg-cost ${currClass}">${currSymbol} ${costStr}</div>
+    `;
+
+    if (!maxed) {
+      card.onclick = async () => {
+        await fetch('/api/clicker/buy?id=' + u.id);
+        refresh();
+      };
+      card.oncontextmenu = async (e) => {
+        e.preventDefault();
+        await fetch('/api/clicker/buy?id=' + u.id + '&max');
+        refresh();
+      };
+    }
+    container.appendChild(card);
+  });
+}
+
+// ─── ACHIEVEMENTS ───
+function renderAchievements() {
+  if (!state) return;
+  const grid = document.getElementById('achGrid');
+  grid.innerHTML = '';
+  state.achievements.forEach(a => {
+    if (!a.visible && !a.unlocked) return;
+    const el = document.createElement('div');
+    el.className = 'ach ' + (a.unlocked ? 'unlocked' : 'locked');
+    el.innerHTML = `<span>${a.unlocked ? a.icon : '?'}</span>
+      <div class="ach-tooltip">
+        <div class="ach-t-name">${a.unlocked ? a.name : '???'}</div>
+        <div class="ach-t-desc">${a.unlocked ? a.desc : 'Hidden achievement'}</div>
+      </div>`;
+    grid.appendChild(el);
+  });
+}
+
+// ─── ACHIEVEMENT POPUPS ───
+function showAchPopup(popup) {
+  showingPopup = true;
+  const el = document.getElementById('achPopup');
+  const overlay = document.getElementById('achPopupOverlay');
+  el.innerHTML = `<div class="ach-popup-icon">${popup.icon}</div>
+    <div class="ach-popup-title">${popup.name}</div>
+    <div class="ach-popup-desc">${popup.desc}</div>`;
+  el.style.display = 'block';
+  overlay.style.display = 'block';
+  setTimeout(dismissAchPopup, 3000);
+}
+
+function dismissAchPopup() {
+  document.getElementById('achPopup').style.display = 'none';
+  document.getElementById('achPopupOverlay').style.display = 'none';
+  showingPopup = false;
+  if (achPopupQueue.length > 0) {
+    setTimeout(() => showAchPopup(achPopupQueue.shift()), 300);
+  }
+}
+
+// ─── NOTIFICATIONS ───
+function addNotification(text, type) {
+  const log = document.getElementById('notifLog');
+  const entry = document.createElement('div');
+  entry.className = 'notif-entry ' + type;
+  const time = new Date().toLocaleTimeString();
+  entry.textContent = '[' + time + '] ' + text;
+  log.insertBefore(entry, log.firstChild);
+  while (log.children.length > 100) log.removeChild(log.lastChild);
+}
+
+// ─── EVENTS BAR ───
+function renderEvents() {
+  if (!state) return;
+  const bar = document.getElementById('eventsBar');
+  bar.innerHTML = '';
+  state.events.forEach(ev => {
+    const pill = document.createElement('div');
+    pill.className = 'event-pill';
+    pill.textContent = ev.icon + ' ' + ev.name + ' (' + ev.remainSec + 's)';
+    bar.appendChild(pill);
+  });
+}
+
+// ─── PRESTIGE ───
+async function doPrestige() {
+  if (!state || state.prestigeReward < 1) return;
+  if (!confirm('ASCEND?\n\nYou will reset all progress except achievements and prestige upgrades.\nYou will earn ' + fmt(state.prestigeReward) + ' Genome Fragments.\n\nAre you sure?')) return;
+  await fetch('/api/clicker/prestige');
+  refresh();
+  addNotification('ASCENDED! Earned Genome Fragments.', 'achievement');
+}
+
+// ─── MAIN UPDATE ───
+async function refresh() {
+  try {
+    const res = await fetch('/api/clicker/state');
+    state = await res.json();
+  } catch(e) { return; }
+
+  // Currencies
+  document.getElementById('epVal').textContent = fmt(state.ep);
+  document.getElementById('epRate').textContent = fmt(state.epPerSecond) + '/s';
+  document.getElementById('mcVal').textContent = fmt(state.mc);
+  if (state.ascensionCount > 0 || state.gf > 0) {
+    document.getElementById('gfCurr').style.display = '';
+    document.getElementById('gfVal').textContent = fmt(state.gf);
+  }
+
+  // Big fitness
+  document.getElementById('bigFitness').textContent = state.highestFitness > 0
+    ? (state.highestFitness * 100).toFixed(2) + '%' : '0.00%';
+
+  // Stats
+  document.getElementById('sClicks').textContent = fmt(state.totalClicks);
+  document.getElementById('sEpClick').textContent = fmt(state.epPerClick);
+  document.getElementById('sUpgrades').textContent = state.totalUpgrades;
+  document.getElementById('sAch').textContent = state.achievementsUnlocked + '/' + state.achievementsTotal;
+  document.getElementById('sTime').textContent = fmtTime(state.playTimeMs);
+  document.getElementById('achCount').textContent = state.achievementsUnlocked;
+  document.getElementById('achTotal').textContent = state.achievementsTotal;
+
+  // Prestige
+  const btn = document.getElementById('btnPrestige');
+  if (state.prestigeReward >= 1) {
+    btn.className = 'prestige-btn';
+    btn.innerHTML = '\uD83C\uDF1F ASCEND (earn ' + fmt(state.prestigeReward) + ' Genome Fragments)';
+  } else {
+    btn.className = 'prestige-btn disabled';
+    btn.innerHTML = '\uD83C\uDF1F ASCEND (need more EP to earn fragments)';
+  }
+
+  // Store
+  if (!document.getElementById('storeTabs').children.length) buildTabs(state.upgrades);
+  renderStore();
+  renderAchievements();
+  renderEvents();
+
+  // Achievement popups
+  if (state.achievementPopups && state.achievementPopups.length > 0) {
+    state.achievementPopups.forEach(p => {
+      addNotification(p.icon + ' ' + p.name + ' - ' + p.desc, 'achievement');
+      achPopupQueue.push(p);
+    });
+    if (!showingPopup && achPopupQueue.length > 0) {
+      showAchPopup(achPopupQueue.shift());
+    }
+  }
+}
+
+refresh();
+setInterval(refresh, TICK_MS);
+</script>
+</body>
+</html>

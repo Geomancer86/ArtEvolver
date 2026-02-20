@@ -17,12 +17,31 @@ import javax.imageio.ImageIO;
  */
 public class ArtEvolverTools {
 
-    public static ImageEvolver getImageEvolver(int palettes,
+    public static ImageEvolver getDefaultEvolver(String imageName) {
+        
+        return getDefaultImageEvolver(1, 2, 2, 2, imageName, false);
+    }
+    
+    public static ImageEvolver getDefaultImageEvolver(int palettes,
                                                int population,
                                                int randomJumpMaxDistance,
                                                int crossoverMax,
                                                String imageName,
                                                boolean shufflePopulation) {
+
+        return getDefaultImageEvolver(palettes, population, randomJumpMaxDistance,
+            crossoverMax, imageName, shufflePopulation, 80, 53, 3f);
+    }
+
+    public static ImageEvolver getDefaultImageEvolver(int palettes,
+                                               int population,
+                                               int randomJumpMaxDistance,
+                                               int crossoverMax,
+                                               String imageName,
+                                               boolean shufflePopulation,
+                                               int widthTriangles,
+                                               int heightTriangles,
+                                               float triangleScale) {
         
         Palette pallete = null;
         
@@ -36,19 +55,13 @@ public class ArtEvolverTools {
             e.printStackTrace();
         }
 
-        // FAST SPEED
-        float triangleScaleHeight = 1f;
-        float width = 1f;
-        float height = 1f;
-        
-        // REGULAR MODE
-        int widthTriangles = 80;
-        int heightTriangles = 53;
+        float width = 3.0f * triangleScale;
+        float height = 3.0f * triangleScale;
         
         ImageEvolver evolver = new ImageEvolver(population, 
                                                 randomJumpMaxDistance,
                                                 crossoverMax,
-                                                triangleScaleHeight,
+                                                triangleScale,
                                                 pallete,
                                                 width,
                                                 height,

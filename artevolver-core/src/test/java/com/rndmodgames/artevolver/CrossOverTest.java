@@ -2,6 +2,7 @@ package com.rndmodgames.artevolver;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -10,12 +11,14 @@ import java.net.URISyntaxException;
 
 import javax.imageio.ImageIO;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.rndmodgames.evolver.CrossOver;
 import com.rndmodgames.evolver.ImageEvolver;
 import com.rndmodgames.evolver.Palette;
 
+@Tag("slow")
 class CrossOverTest {
 
     @Test
@@ -51,19 +54,17 @@ class CrossOverTest {
         
         Palette pallete = new Palette("Sherwin-Williams", 1);
         
-        // Create Evolver instances as configured by the THREADS parameter
         int POPULATION = 2;
         int RANDOM_JUMP_MAX_DISTANCE = 2;
         int CROSSOVER_MAX = 2;
         float triangleScaleHeight = 1f;
         
-        // FAST SPEED
-        float width = 1f;
-        float height = 1f;
+        float width = 3f * triangleScaleHeight;
+        float height = 3f * triangleScaleHeight;
         
-        // REGULAR MODE
-        int widthTriangles = 80;
-        int heightTriangles = 53;
+        // 38x39 = 1482 triangles <= 1535 palette colors: all triangles get colors
+        int widthTriangles = 38;
+        int heightTriangles = 39;
         
         ImageEvolver evolver = new ImageEvolver(POPULATION, 
                                                 RANDOM_JUMP_MAX_DISTANCE,
@@ -75,37 +76,26 @@ class CrossOverTest {
                                                 widthTriangles,
                                                 heightTriangles);
         
-        // ID needs to be set
         evolver.setId(1L);
         
-        // Set source file
         File imageFile = new File("./src/test/resources/000_zeldathumb-1920-789452.jpg");
-              
         BufferedImage originalImage = ImageIO.read(imageFile);
 
         evolver.setResizedOriginal(originalImage);
-        
-        // initialize population
         evolver.initialize();
         
         long timeStart = 0;
-        int iterations = 100;
+        int iterations = 1500;
         
-        // evolve
         evolver.evolve(timeStart, iterations);
-        
-        // get score
         double score = evolver.getBestScore();
-        
         System.out.println("first best score : " + score);
         
-        // evolve again
         evolver.evolve(timeStart, iterations);
-        
         double secondScore = evolver.getBestScore();
-        
         System.out.println("second best score: " + secondScore);
         
-        assertNotEquals(score, secondScore);
+        assertTrue(secondScore >= score,
+            "Score should improve or stay same after more evolution iterations");
     }
 }

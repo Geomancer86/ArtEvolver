@@ -7,18 +7,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.net.URISyntaxException;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.rndmodgames.evolver.ArtEvolverTools;
 import com.rndmodgames.evolver.ImageEvolver;
 
+@Tag("slow")
 class ArtEvolverToolsTest {
 
     @Test
     void getImageEvolverTest() throws IOException, URISyntaxException {
         
         // 
-        ImageEvolver evolver = ArtEvolverTools.getImageEvolver(1, 2, 2, 2, null, false);
+        ImageEvolver evolver = ArtEvolverTools.getDefaultImageEvolver(1, 2, 2, 2, null, false);
         
         long timeStart = 0;
         int iterations = 100;
@@ -45,10 +47,10 @@ class ArtEvolverToolsTest {
     void shufflePopulationTest() {
         
         // 
-        ImageEvolver evolver = ArtEvolverTools.getImageEvolver(1, 8, 8, 2, null, false);
-        ImageEvolver evolver2 = ArtEvolverTools.getImageEvolver(1, 8, 8, 2, null, false);
-        ImageEvolver evolverShuffled = ArtEvolverTools.getImageEvolver(1, 8, 8, 2, null, true);
-        ImageEvolver evolverShuffled2 = ArtEvolverTools.getImageEvolver(1, 8, 8, 2, null, true);
+        ImageEvolver evolver = ArtEvolverTools.getDefaultImageEvolver(1, 8, 8, 2, null, false);
+        ImageEvolver evolver2 = ArtEvolverTools.getDefaultImageEvolver(1, 8, 8, 2, null, false);
+        ImageEvolver evolverShuffled = ArtEvolverTools.getDefaultImageEvolver(1, 8, 8, 2, null, true);
+        ImageEvolver evolverShuffled2 = ArtEvolverTools.getDefaultImageEvolver(1, 8, 8, 2, null, true);
         
         long timeStart = 0;
         int iterations = 100; 
@@ -74,8 +76,8 @@ class ArtEvolverToolsTest {
         int evolveIterations = 10;
         
         // First baseline run:
-        ImageEvolver evolver = ArtEvolverTools.getImageEvolver(1, 2, 1, 1, null, false);
-        ImageEvolver evolver2 = ArtEvolverTools.getImageEvolver(1, 2, 1000, 1, null, false);
+        ImageEvolver evolver = ArtEvolverTools.getDefaultImageEvolver(1, 2, 1, 1, null, false);
+        ImageEvolver evolver2 = ArtEvolverTools.getDefaultImageEvolver(1, 2, 1000, 1, null, false);
         
         evolver.evolve(0, evolveIterations);
         evolver2.evolve(0, evolveIterations);
@@ -109,7 +111,7 @@ class ArtEvolverToolsTest {
     void imageEvolverMediumTest() {
         
         // 
-        ImageEvolver evolver = ArtEvolverTools.getImageEvolver(1, 8, 8, 2, null, false);
+        ImageEvolver evolver = ArtEvolverTools.getDefaultImageEvolver(1, 8, 8, 2, null, false);
         
         long timeStart = 0;
         int iterations = 200;
@@ -141,7 +143,7 @@ class ArtEvolverToolsTest {
     void getImageEvolverQuickTest() throws IOException, URISyntaxException {
         
         // 
-        ImageEvolver evolver = ArtEvolverTools.getImageEvolver(1, 2, 2, 2, null, false);
+        ImageEvolver evolver = ArtEvolverTools.getDefaultImageEvolver(1, 2, 2, 2, null, false);
         
         long timeStart = 0;
         int iterations = 20;

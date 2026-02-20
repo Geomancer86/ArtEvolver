@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArtEvolver — Tournament Dashboard</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #1c2333;
+  --border: #30363d;
+  --text: #c9d1d9;
+  --text-dim: #8b949e;
+  --accent: #58a6ff;
+  --green: #3fb950;
+  --red: #f85149;
+  --orange: #d29922;
+  --purple: #bc8cff;
+  --gold: #f0c040;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+/* ─── HEADER ─── */
+.header {
+  background: linear-gradient(135deg, #1a1e2e 0%, #0d1117 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header h1 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+}
+.header h1 span { color: var(--accent); }
+.header-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.badge-live { background: var(--green); color: #000; animation: pulse 2s infinite; }
+.badge-autopilot { background: var(--purple); color: #fff; }
+.badge-prehistoric { background: var(--orange); color: #000; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* ─── SYSTEM METRICS BAR ─── */
+.metrics-bar {
+  display: flex;
+  gap: 12px;
+  padding: 10px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.metric {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  min-width: 140px;
+  flex: 1;
+}
+.metric-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  margin-bottom: 2px;
+}
+.metric-value {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Mono', Consolas, monospace;
+}
+.metric-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+.metric-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease, background-color 0.5s ease;
+}
+
+/* ─── TOURNAMENT STATUS ─── */
+.tournament-bar {
+  display: flex;
+  gap: 16px;
+  padding: 12px 24px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.tournament-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.tournament-stat .label { color: var(--text-dim); }
+.tournament-stat .value { font-weight: 600; color: var(--accent); font-family: monospace; }
+.countdown {
+  font-size: 16px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: rgba(88,166,255,0.1);
+  border: 1px solid rgba(88,166,255,0.3);
+}
+.countdown.urgent { background: rgba(248,81,73,0.15); border-color: rgba(248,81,73,0.4); color: var(--red); }
+
+/* ─── MAIN LAYOUT ─── */
+.main {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 0;
+  min-height: calc(100vh - 200px);
+}
+
+/* ─── LEADERBOARD ─── */
+.leaderboard {
+  padding: 16px 24px;
+  overflow-y: auto;
+}
+.leaderboard h2 {
+  font-size: 16px;
+  margin-bottom: 12px;
+  color: var(--text-dim);
+}
+
+.contestant-card {
+  display: grid;
+  grid-template-columns: 48px 120px 1fr 180px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.contestant-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 20px rgba(88,166,255,0.08);
+}
+.contestant-card.eliminated {
+  opacity: 0.55;
+  border-left: 3px solid var(--red);
+}
+.contestant-card.protected {
+  border-left: 3px solid var(--gold);
+}
+.contestant-card.leader {
+  border: 1px solid var(--gold);
+  box-shadow: 0 0 20px rgba(240,192,64,0.1);
+}
+
+.rank {
+  font-size: 22px;
+  font-weight: 800;
+  text-align: center;
+  font-family: monospace;
+}
+.rank-1 { color: var(--gold); }
+.rank-2 { color: #c0c0c0; }
+.rank-3 { color: #cd7f32; }
+
+.contestant-image {
+  width: 120px;
+  height: 80px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.contestant-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.contestant-image .no-img {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.export-btn {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  background: rgba(0,0,0,0.7);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 10px;
+  padding: 2px 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.contestant-image:hover .export-btn { opacity: 1; }
+
+.contestant-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.contestant-name {
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.contestant-name .color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.contestant-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.tag {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(88,166,255,0.1);
+  color: var(--accent);
+  border: 1px solid rgba(88,166,255,0.2);
+}
+.tag-elim { background: rgba(248,81,73,0.1); color: var(--red); border-color: rgba(248,81,73,0.2); }
+.tag-prot { background: rgba(240,192,64,0.1); color: var(--gold); border-color: rgba(240,192,64,0.2); }
+.tag-gen { background: rgba(63,185,80,0.1); color: var(--green); border-color: rgba(63,185,80,0.2); }
+
+.contestant-parentage {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.contestant-config {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: monospace;
+}
+
+.contestant-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.stat {
+  text-align: right;
+}
+.stat-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.stat-value {
+  font-size: 14px;
+  font-weight: 600;
+  font-family: monospace;
+}
+.stat-value.positive { color: var(--green); }
+.stat-value.negative { color: var(--red); }
+
+/* ─── RIGHT SIDEBAR ─── */
+.sidebar {
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+}
+.sidebar-section {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-section h3 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.log-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+  font-family: 'SF Mono', 'Cascadia Mono', Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.log-entry {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(48,54,61,0.5);
+}
+.log-entry:last-child { border-bottom: none; }
+.log-generation { color: var(--accent); font-weight: 600; }
+.log-culled { color: var(--red); }
+.log-bred { color: var(--green); }
+.log-era { color: var(--orange); font-weight: 700; }
+.log-warning { color: var(--orange); }
+.log-best { color: var(--gold); }
+
+/* ─── SUMMARY CARDS ─── */
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.summary-card {
+  background: var(--surface2);
+  border-radius: 6px;
+  padding: 8px 10px;
+  text-align: center;
+}
+.summary-card .num {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: monospace;
+}
+.summary-card .lbl {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+/* ─── FOOTER ─── */
+.footer {
+  padding: 8px 24px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-dim);
+  display: flex;
+  justify-content: space-between;
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 1000px) {
+  .main { grid-template-columns: 1fr; }
+  .sidebar { border-left: none; border-top: 1px solid var(--border); max-height: 400px; }
+  .contestant-card { grid-template-columns: 36px 90px 1fr 140px; }
+}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <h1><span>ArtEvolver</span> Tournament Dashboard</h1>
+  <span id="badgeLive" class="header-badge badge-live">LIVE</span>
+  <span id="badgeAutopilot" class="header-badge badge-autopilot" style="display:none">AUTOPILOT</span>
+  <span id="badgePrehistoric" class="header-badge badge-prehistoric" style="display:none">ERA 0</span>
+  <div style="flex:1"></div>
+  <span id="lastUpdate" style="font-size:12px;color:var(--text-dim)">Connecting...</span>
+</div>
+
+<!-- SYSTEM METRICS -->
+<div class="metrics-bar" id="metricsBar">
+  <div class="metric">
+    <div class="metric-label">CPU (Process)</div>
+    <div class="metric-value" id="mCpu">--</div>
+    <div class="metric-bar"><div class="metric-bar-fill" id="mCpuBar" style="width:0"></div></div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">JVM Heap</div>
+    <div class="metric-value" id="mHeap">--</div>
+    <div class="metric-bar"><div class="metric-bar-fill" id="mHeapBar" style="width:0"></div></div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">System RAM</div>
+    <div class="metric-value" id="mRam">--</div>
+    <div class="metric-bar"><div class="metric-bar-fill" id="mRamBar" style="width:0"></div></div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Threads</div>
+    <div class="metric-value" id="mThreads">--</div>
+    <div class="metric-bar"><div class="metric-bar-fill" id="mThreadsBar" style="width:0"></div></div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Disk</div>
+    <div class="metric-value" id="mDisk">--</div>
+    <div class="metric-bar"><div class="metric-bar-fill" id="mDiskBar" style="width:0"></div></div>
+  </div>
+</div>
+
+<!-- TOURNAMENT STATUS -->
+<div class="tournament-bar" id="tournamentBar">
+  <div class="tournament-stat">
+    <span class="label">Generation:</span>
+    <span class="value" id="tGen">--</span>
+  </div>
+  <div class="tournament-stat">
+    <span class="label">Best Ever:</span>
+    <span class="value" id="tBestEver">--</span>
+  </div>
+  <div class="tournament-stat">
+    <span class="label">Cutoff:</span>
+    <span class="value" id="tCutoff">--</span>
+  </div>
+  <div class="tournament-stat">
+    <span class="label">Spawns/Tick:</span>
+    <span class="value" id="tSpawns">--</span>
+  </div>
+  <div id="tCountdown" class="countdown">--:--</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- LEADERBOARD -->
+  <div class="leaderboard" id="leaderboard">
+    <h2>Leaderboard</h2>
+    <div id="contestantList"></div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <h3>Tournament Summary</h3>
+      <div class="summary-grid" id="summaryGrid">
+        <div class="summary-card"><div class="num" id="sAlive">0</div><div class="lbl">Active</div></div>
+        <div class="summary-card"><div class="num" id="sElim">0</div><div class="lbl">Eliminated</div></div>
+        <div class="summary-card"><div class="num" id="sTotal">0</div><div class="lbl">Total</div></div>
+        <div class="summary-card"><div class="num" id="sAvgScore">--</div><div class="lbl">Avg Fitness</div></div>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <h3>Evolution History</h3>
+    </div>
+    <div class="log-container" id="logContainer">
+      <div style="color:var(--text-dim)">Waiting for first tournament cycle...</div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <span>ArtEvolver v3.1 — Genetic Art Tournament</span>
+  <span id="refreshRate">Refresh: 2s</span>
+</div>
+
+<script>
+const REFRESH_MS = 2000;
+let imageVersions = {};
+let previousContestantIds = new Set();
+
+async function fetchState() {
+  try {
+    const res = await fetch('/api/state');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  } catch (e) {
+    document.getElementById('lastUpdate').textContent = 'Connection lost — retrying...';
+    document.getElementById('lastUpdate').style.color = '#f85149';
+    return null;
+  }
+}
+
+function barColor(pct) {
+  if (pct > 90) return '#f85149';
+  if (pct > 70) return '#d29922';
+  return '#3fb950';
+}
+
+function formatUptime(seconds) {
+  if (seconds < 60) return seconds + 's';
+  if (seconds < 3600) return Math.floor(seconds/60) + 'm ' + (seconds%60) + 's';
+  return Math.floor(seconds/3600) + 'h ' + Math.floor((seconds%3600)/60) + 'm';
+}
+
+function formatNumber(n) {
+  if (n >= 1e9) return (n/1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return n.toString();
+}
+
+function updateMetrics(sys) {
+  const cpu = parseFloat(sys.cpuProcess);
+  const heap = parseFloat(sys.heapPercent);
+  const ram = parseFloat(sys.ramPercent);
+  const diskPct = parseFloat(sys.diskPercent);
+  const thrPct = Math.min(100, (sys.threads / sys.cores) * 100);
+
+  document.getElementById('mCpu').textContent = cpu >= 0 ? cpu.toFixed(1) + '%' : 'N/A';
+  document.getElementById('mCpuBar').style.width = Math.max(0, cpu) + '%';
+  document.getElementById('mCpuBar').style.background = barColor(cpu);
+
+  document.getElementById('mHeap').textContent = sys.heapUsedMB + ' / ' + sys.heapMaxMB + ' MB';
+  document.getElementById('mHeapBar').style.width = heap + '%';
+  document.getElementById('mHeapBar').style.background = barColor(heap);
+
+  const ramStr = ram >= 0 ? ram.toFixed(1) + '% of ' + Math.round(sys.ramTotalMB/1024) + ' GB' : 'N/A';
+  document.getElementById('mRam').textContent = ramStr;
+  document.getElementById('mRamBar').style.width = Math.max(0, ram) + '%';
+  document.getElementById('mRamBar').style.background = barColor(ram);
+
+  document.getElementById('mThreads').textContent = sys.threads + ' / ' + sys.cores + ' cores';
+  document.getElementById('mThreadsBar').style.width = Math.min(100, thrPct) + '%';
+  document.getElementById('mThreadsBar').style.background = barColor(thrPct);
+
+  document.getElementById('mDisk').textContent = Math.round(sys.diskFreeMB/1024) + ' GB free';
+  document.getElementById('mDiskBar').style.width = diskPct + '%';
+  document.getElementById('mDiskBar').style.background = barColor(diskPct);
+}
+
+function updateTournament(t) {
+  if (t.active) {
+    document.getElementById('tGen').textContent = t.generation;
+    const beScore = parseFloat(t.bestEverScore);
+    document.getElementById('tBestEver').textContent =
+      (t.bestEverName || '--') + ' ' + (beScore > 0 ? beScore.toFixed(2) + '%' : '');
+    document.getElementById('tCutoff').textContent =
+      t.cutoffSeconds + 's' + (t.adaptiveCutoff ? ' (adaptive)' : '');
+    document.getElementById('tSpawns').textContent = t.spawnsPerTick;
+
+    const sec = t.secondsUntilNext;
+    if (sec >= 0) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      const cd = document.getElementById('tCountdown');
+      cd.textContent = m > 0 ? m + ':' + String(s).padStart(2,'0') : s + 's';
+      cd.className = 'countdown' + (sec <= 10 ? ' urgent' : '');
+    }
+  } else {
+    document.getElementById('tGen').textContent = '--';
+    document.getElementById('tBestEver').textContent = '--';
+    document.getElementById('tCutoff').textContent = '--';
+    document.getElementById('tSpawns').textContent = '--';
+    document.getElementById('tCountdown').textContent = 'Idle';
+  }
+}
+
+function updateBadges(state) {
+  document.getElementById('badgeAutopilot').style.display = state.autopilot ? '' : 'none';
+  const pm = state.prehistoric;
+  const pbadge = document.getElementById('badgePrehistoric');
+  if (pm && pm.active) {
+    pbadge.style.display = '';
+    pbadge.textContent = 'ERA ' + pm.era + ': ' + pm.eraName;
+  } else {
+    pbadge.style.display = 'none';
+  }
+}
+
+function buildContestantCard(c, idx) {
+  const score = parseFloat(c.score);
+  const vel = parseFloat(c.velocity);
+  const accel = parseFloat(c.acceleration);
+  const peak = parseFloat(c.peakFitness);
+  const isLeader = idx === 0 && !c.eliminated;
+
+  let classes = 'contestant-card';
+  if (c.eliminated) classes += ' eliminated';
+  if (c.protected) classes += ' protected';
+  if (isLeader) classes += ' leader';
+
+  let rankClass = '';
+  if (idx === 0) rankClass = ' rank-1';
+  else if (idx === 1) rankClass = ' rank-2';
+  else if (idx === 2) rankClass = ' rank-3';
+
+  // Build image cache-buster: only update src when score changes significantly
+  const imgKey = c.id;
+  const version = Math.floor(score * 100);
+  if (!imageVersions[imgKey] || imageVersions[imgKey] !== version) {
+    imageVersions[imgKey] = version;
+  }
+
+  let tags = '';
+  if (c.eliminated) tags += '<span class="tag tag-elim">ELIMINATED</span>';
+  if (c.protected) tags += '<span class="tag tag-prot">PROTECTED (' + c.graceTicks + ')</span>';
+  if (c.running) tags += '<span class="tag tag-gen">RUNNING</span>';
+  if (c.generation > 0) tags += '<span class="tag">Gen ' + c.generation + '</span>';
+  if (c.config) tags += '<span class="tag">' + c.config.threads + 'T/' + c.config.population + 'P</span>';
+
+  let configLine = '';
+  if (c.config) {
+    const parts = [];
+    if (c.config.deltaEvolution) parts.push('Delta');
+    else parts.push('Legacy');
+    if (c.config.crossover) parts.push('Crossover');
+    parts.push(c.config.initMethod);
+    configLine = parts.join(' | ');
+  }
+
+  const exportUrl = '/api/export/' + encodeURIComponent(c.id);
+
+  return `<div class="${classes}" data-id="${c.id}">
+    <div class="rank${rankClass}">${c.eliminated ? '\u2620' : '#' + c.rank}</div>
+    <div class="contestant-image">
+      ${c.hasImage
+        ? '<img src="/api/image/' + encodeURIComponent(c.id) + '?v=' + imageVersions[imgKey] + '" loading="lazy" alt="' + c.name + '">'
+            + '<a href="' + exportUrl + '" class="export-btn" title="Download high-quality PNG">\u2B07 Export</a>'
+        : '<span class="no-img">No image yet</span>'}
+    </div>
+    <div class="contestant-info">
+      <div class="contestant-name">
+        <span class="color-dot" style="background:${c.color}"></span>
+        ${escapeHtml(c.name)}
+      </div>
+      <div class="contestant-tags">${tags}</div>
+      ${c.parentage ? '<div class="contestant-parentage">\u{1F9EC} ' + escapeHtml(c.parentage) + (c.breedType ? ' \u00b7 <em>' + escapeHtml(c.breedType) + '</em>' : '') + '</div>' : ''}
+      <div class="contestant-config">${configLine}</div>
+      <div class="contestant-config">${formatNumber(c.totalIterations)} iters | ${formatUptime(c.uptimeSeconds)}</div>
+    </div>
+    <div class="contestant-stats">
+      <div class="stat">
+        <div class="stat-label">Fitness</div>
+        <div class="stat-value">${score.toFixed(2)}%</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Peak</div>
+        <div class="stat-value">${peak.toFixed(2)}%</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Velocity</div>
+        <div class="stat-value ${vel > 0 ? 'positive' : vel < 0 ? 'negative' : ''}">${vel >= 0 ? '+' : ''}${vel.toFixed(4)}%/s</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Accel</div>
+        <div class="stat-value ${accel > 0 ? 'positive' : accel < 0 ? 'negative' : ''}">${accel >= 0 ? '+' : ''}${accel.toFixed(4)}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function updateContestants(contestants) {
+  const container = document.getElementById('contestantList');
+  let html = '';
+  let alive = 0, elim = 0, totalScore = 0, aliveScores = 0;
+
+  contestants.forEach((c, i) => {
+    html += buildContestantCard(c, i);
+    if (c.eliminated) elim++;
+    else {
+      alive++;
+      totalScore += parseFloat(c.score);
+      aliveScores++;
+    }
+  });
+
+  container.innerHTML = html;
+
+  document.getElementById('sAlive').textContent = alive;
+  document.getElementById('sElim').textContent = elim;
+  document.getElementById('sTotal').textContent = contestants.length;
+  document.getElementById('sAvgScore').textContent =
+    aliveScores > 0 ? (totalScore / aliveScores).toFixed(2) + '%' : '--';
+}
+
+function highlightLog(text) {
+  return text
+    .replace(/(--- Generation \d+ ---)/g, '<span class="log-generation">$1</span>')
+    .replace(/(=== Era \d+:.*===)/g, '<span class="log-era">$1</span>')
+    .replace(/(\u2694.*)/g, '<span class="log-culled">$1</span>')
+    .replace(/(\u2728.*)/g, '<span class="log-bred">$1</span>')
+    .replace(/(\u2B50.*)/g, '<span class="log-best">$1</span>')
+    .replace(/(\u26A0.*)/g, '<span class="log-warning">$1</span>');
+}
+
+function updateHistory(history) {
+  const container = document.getElementById('logContainer');
+  if (!history || history.length === 0) {
+    container.innerHTML = '<div style="color:var(--text-dim)">Waiting for first tournament cycle...</div>';
+    return;
+  }
+
+  let html = '';
+  // Show newest first
+  for (let i = history.length - 1; i >= 0; i--) {
+    html += '<div class="log-entry">' + highlightLog(escapeHtml(history[i])) + '</div>';
+  }
+  container.innerHTML = html;
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── MAIN LOOP ───
+async function refresh() {
+  const state = await fetchState();
+  if (!state) return;
+
+  // Update connection status
+  const now = new Date();
+  document.getElementById('lastUpdate').textContent =
+    'Updated ' + now.toLocaleTimeString();
+  document.getElementById('lastUpdate').style.color = 'var(--text-dim)';
+
+  updateMetrics(state.system);
+  updateTournament(state.tournament);
+  updateBadges(state);
+  updateContestants(state.contestants);
+  updateHistory(state.history);
+}
+
+// Initial load + interval
+refresh();
+setInterval(refresh, REFRESH_MS);
+</script>
+</body>
+</html>

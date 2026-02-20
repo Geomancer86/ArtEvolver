@@ -1,5 +1,8 @@
 package com.rndmodgames.evolver;
 
+import java.awt.Color;
+import java.util.concurrent.ThreadLocalRandom;
+
 public class CrossOver {
 	
     // keep track of the evolver to update parameters live
@@ -17,21 +20,21 @@ public class CrossOver {
      * 
      * MAIN
      */
-    public static float GRID_MUTATION_CHANCES = 32; // default is 32
+    public static volatile float GRID_MUTATION_CHANCES = 32; // default is 32
     public static float GRID_MUTATION_PERCENT = 1f; // default is 1
     public static float GRID_MUTATION_DECAY  =  1f / 10; // default is 1
 	
     /**
      * Fully Random Crossover
      */
-    public static int RANDOM_MUTATION_CHANCES =  1000; // default is 1000
+    public static volatile int RANDOM_MUTATION_CHANCES =  1000; // default is 1000
     public static float RANDOM_MUTATION_PERCENT = 1f / 1000f; // default is 1 each 100
     public static float RANDOM_MUTATION_CHANCES_SUBSTRACT =  1f / 100f; // default is 1 each 100
     
 	/**
 	 * Random Close Crossover
 	 */
-	public static int RANDOM_CLOSE_MUTATION_CHANCES =  20; // default is 1 each 1000
+	public static volatile int RANDOM_CLOSE_MUTATION_CHANCES =  20; // default is 1 each 1000
 	public static float RANDOM_CLOSE_MUTATION_PERCENT = 1f / 10000; // default is 1 each 10000
 
 	/**
@@ -40,7 +43,10 @@ public class CrossOver {
 	public static int RANDOM_GRID_MUTATION_CHANCES = 10; // default is 1
     public static float RANDOM_GRID_MUTATION_PERCENT = 1f / 10000; // default is 1
 	
-	public static       int   TOTAL_GRIDS                   =  24; // NEEDS TO BE == THREADS
+	public static int TARGETED_SWAP_ATTEMPTS = 12;
+	public static boolean CROSSOVER_BLOCK_ENABLED = true;
+
+	public static       int   TOTAL_GRIDS                   =  8; // NEEDS TO BE == THREADS
 	public static       int   DEFAULT_GRID_SIZE             = 256; // default is 4260
 	public static       int   MINIMUM_GRID_SIZE             =   2; // default is 4260
 	
@@ -71,36 +77,30 @@ public class CrossOver {
 		
 		// keep track
 		this.evolverInstance = evolverInstance;
-		
-		// set grid size dynamically defaults to false
-		boolean dynamicGridSize = true;
-		
-		/**
-		 * TODO: this needs to be the number of triangles or colors
-		 */
-		if (dynamicGridSize) {
-//		    DEFAULT_GRID_SIZE = (ArtEvolver.heightTriangles * ArtEvolver.widthTriangles) / TOTAL_GRIDS;
-//		    DEFAULT_GRID_SIZE = 6048 / TOTAL_GRIDS;
-//		    DEFAULT_GRID_SIZE = 23868 / TOTAL_GRIDS;
-//		    DEFAULT_GRID_SIZE = 6006 / TOTAL_GRIDS;
-//		    DEFAULT_GRID_SIZE = 6048 / TOTAL_GRIDS;
-//		    DEFAULT_GRID_SIZE = (102*57) / TOTAL_GRIDS;
-		    
-//		    DEFAULT_GRID_SIZE = (38*39) / TOTAL_GRIDS; // 1 palette
-//		    DEFAULT_GRID_SIZE = (54*55) / TOTAL_GRIDS; // 2 palettes
-//		    DEFAULT_GRID_SIZE = (66*67) / TOTAL_GRIDS; // 3 palettes
-//		    DEFAULT_GRID_SIZE = (76*77) / TOTAL_GRIDS; // 4 palettes
-//		    DEFAULT_GRID_SIZE = (86*87) / TOTAL_GRIDS; // 5 palettes
-//		    DEFAULT_GRID_SIZE = (94*95) / TOTAL_GRIDS; // 6 palettes
-//		    DEFAULT_GRID_SIZE = (110*111) / TOTAL_GRIDS; // 8 palettes
-//		    DEFAULT_GRID_SIZE = (156*157) / TOTAL_GRIDS; // 16 palettes
-		    
-		    // RECTANGULAR
-		    DEFAULT_GRID_SIZE = (80*53) / TOTAL_GRIDS; // 1 palettes
-//		    DEFAULT_GRID_SIZE = (66*45) / TOTAL_GRIDS; // 2 palettes
-//		    DEFAULT_GRID_SIZE = (96*63) / TOTAL_GRIDS; // 4 palettes
+
+		if (evolverInstance != null) {
+			int totalTriangles = evolverInstance.getTriangleWidth() * evolverInstance.getTriangleHeight();
+			if (totalTriangles > 0 && TOTAL_GRIDS > 0) {
+				DEFAULT_GRID_SIZE = Math.max(2, totalTriangles / TOTAL_GRIDS);
+			}
 		}
 	}
+
+	/** Returns the contestant's config, or null if running in legacy/test mode. */
+	private EvolutionConfig cfg() {
+		return (evolverInstance != null) ? evolverInstance.getConfig() : null;
+	}
+
+	private float cfgGridMutationChances()      { EvolutionConfig c = cfg(); return c != null ? c.gridMutationChances      : GRID_MUTATION_CHANCES; }
+	private float cfgGridMutationPercent()       { EvolutionConfig c = cfg(); return c != null ? c.gridMutationPercent       : GRID_MUTATION_PERCENT; }
+	private int   cfgRandomMutationChances()     { EvolutionConfig c = cfg(); return c != null ? c.randomMutationChances     : RANDOM_MUTATION_CHANCES; }
+	private float cfgRandomMutationPercent()     { EvolutionConfig c = cfg(); return c != null ? c.randomMutationPercent     : RANDOM_MUTATION_PERCENT; }
+	private int   cfgCloseMutationChances()      { EvolutionConfig c = cfg(); return c != null ? c.closeMutationChances      : RANDOM_CLOSE_MUTATION_CHANCES; }
+	private float cfgCloseMutationPercent()      { EvolutionConfig c = cfg(); return c != null ? c.closeMutationPercent      : RANDOM_CLOSE_MUTATION_PERCENT; }
+	private int   cfgRandomGridMutationChances() { EvolutionConfig c = cfg(); return c != null ? c.randomGridMutationChances : RANDOM_GRID_MUTATION_CHANCES; }
+	private float cfgRandomGridMutationPercent() { EvolutionConfig c = cfg(); return c != null ? c.randomGridMutationPercent : RANDOM_GRID_MUTATION_PERCENT; }
+	private int   cfgTargetedSwapAttempts()      { EvolutionConfig c = cfg(); return c != null ? c.targetedSwapAttempts      : TARGETED_SWAP_ATTEMPTS; }
+	private boolean cfgBlockCrossoverEnabled()   { EvolutionConfig c = cfg(); return c != null ? c.blockCrossoverEnabled     : CROSSOVER_BLOCK_ENABLED; }
 	
 	public void halveParameters() {
 	    
@@ -148,6 +148,7 @@ public class CrossOver {
 			if (sideA) {
 				child.set(a, parentA.get(a));
 				child.get(a).setColor(parentA.get(a).getColor());
+				child.get(a).setPalleteColor(parentA.get(a).getPalleteColor());
 			}
 			
 			// switch sides
@@ -167,6 +168,7 @@ public class CrossOver {
 					
 					child.set(a, parentB.get(a));
 					child.get(a).setColor(parentB.get(a).getColor());
+					child.get(a).setPalleteColor(parentB.get(a).getPalleteColor());
 
 				} else {
 					// add to unused colors
@@ -195,6 +197,7 @@ public class CrossOver {
 				
 				child.set(a, parentA.get(a));
 				child.get(a).setColor(unusedColors.get(currentUnusedColor).getColor());
+				child.get(a).setPalleteColor(unusedColors.get(currentUnusedColor).getPalleteColor());
 				
 				unusedColors.remove(currentUnusedColor);
 				
@@ -213,22 +216,8 @@ public class CrossOver {
 	public TriangleList<Triangle> mutate(TriangleList<Triangle> parent){
 
 		TriangleList<Triangle> child = new TriangleList<Triangle>();
-		
-		for (Triangle triangle : parent){
-			
-			if (triangle == null) {
-				System.out.println("NULL TRIANGLE!");
-				System.exit(0);
-			}
-			
-			if (triangle.getColor() == null) {
-				System.out.println("NULL COLOR!");
-				System.exit(0);
-			}
-			
-			Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor(), triangle.getPalleteColor());
-			child.add(copy);
-			
+		for (Triangle triangle : parent) {
+			child.add(new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor(), triangle.getPalleteColor()));
 		}
 		
 		ImageEvolver.switchCloseColor(child, getRandomJumpDistance());
@@ -237,76 +226,104 @@ public class CrossOver {
 	}
 
 	/**
-	 * Creates a Child Drawing between two Parent Drawings
+	 * Creates a Child Drawing between two Parent Drawings using spatial block crossover.
+	 * Copies primary parent's colors onto the shared geometry template, then injects a 
+	 * spatial region from the secondary parent, swapping colors to maintain the permutation.
 	 */
 	public TriangleList<Triangle> getChild(TriangleList<Triangle> parentA, TriangleList<Triangle> parentB, int evolverId) {
 		
-		// TODO static or pool
-		TriangleList<Triangle> child = new TriangleList<Triangle>();
+		ThreadLocalRandom r = ThreadLocalRandom.current();
+		int n = parentA.size();
 
-		// base parent chance 50/50
-		boolean isParentA = ImageEvolver.random.nextBoolean();
-		
-		if (isParentA){
-			for (Triangle triangle : parentA){
-				Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor(), triangle.getPalleteColor());
-				child.add(copy);
+		boolean isParentA = r.nextBoolean();
+		TriangleList<Triangle> primary = isParentA ? parentA : parentB;
+		TriangleList<Triangle> secondary = isParentA ? parentB : parentA;
+
+		TriangleList<Triangle> child = new TriangleList<Triangle>();
+		for (int i = 0; i < n; i++) {
+			Triangle t = primary.get(i);
+			child.add(new Triangle(t.getxPoly(), t.getyPoly(), t.getLenght(), t.getColor(), t.getPalleteColor()));
+		}
+
+		if (n > 4 && cfgBlockCrossoverEnabled()) {
+			int blockSize = Math.max(2, n / r.nextInt(4, 12));
+			int blockStart = r.nextInt(n);
+
+			java.util.HashMap<Integer, Integer> colorIndex = new java.util.HashMap<>(n * 2);
+			for (int i = 0; i < n; i++) {
+				Color c = child.get(i).getColor();
+				if (c != null) {
+					colorIndex.put(c.getRGB(), i);
+				}
 			}
-		}else{
-			for (Triangle triangle : parentB){
-				Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor(), triangle.getPalleteColor());
-				child.add(copy);
+
+			for (int k = 0; k < blockSize; k++) {
+				int idx = (blockStart + k) % n;
+				Color wantColor = secondary.get(idx).getColor();
+				if (wantColor == null) continue;
+
+				Color currentColor = child.get(idx).getColor();
+				if (currentColor != null && currentColor.getRGB() == wantColor.getRGB()) continue;
+
+				Integer holderIdx = colorIndex.get(wantColor.getRGB());
+				if (holderIdx == null) continue;
+
+				Triangle holderTri = child.get(holderIdx.intValue());
+				Triangle targetTri = child.get(idx);
+
+				holderTri.setColor(currentColor);
+				holderTri.setPalleteColor(targetTri.getPalleteColor());
+				targetTri.setColor(wantColor);
+				targetTri.setPalleteColor(secondary.get(idx).getPalleteColor());
+
+				if (currentColor != null) {
+					colorIndex.put(currentColor.getRGB(), holderIdx);
+				}
+				colorIndex.put(wantColor.getRGB(), idx);
 			}
 		}
 
 		/**
-		 * Random Close Crossover
+		 * Grid Crossovers: localized swaps within evolver's grid section
 		 */
-        for (int a = 0; a < RANDOM_CLOSE_MUTATION_CHANCES; a++) {
+        int gridCount = (int) cfgGridMutationChances();
+        for (int a = 0; a < gridCount; a++) {
+            if (r.nextFloat() < cfgGridMutationPercent()) {
+                ImageEvolver.switchGridColor(child, evolverId, DEFAULT_GRID_SIZE);
+            }
+        }
 
-            if (ImageEvolver.random.nextFloat() < RANDOM_CLOSE_MUTATION_PERCENT) {
+        float expectedSwaps = cfgRandomMutationChances() * cfgRandomMutationPercent();
+        int randomSwapCount = 0;
+        if (expectedSwaps >= 1f) {
+            randomSwapCount = (int) expectedSwaps;
+        } else if (r.nextFloat() < expectedSwaps) {
+            randomSwapCount = 1;
+        }
+        for (int a = 0; a < randomSwapCount; a++) {
+            ImageEvolver.switchRandomColor(child);
+        }
 
-                for (int b = 0; b < CLOSE_MUTATIONS_PER_CHILD; b++) {
-                    ImageEvolver.switchCloseColor(child, this.randomJumpDistance);
+        if (CLOSE_MUTATIONS_PER_CHILD > 0 && cfgCloseMutationPercent() > 0.001f) {
+            for (int a = 0; a < cfgCloseMutationChances(); a++) {
+                if (r.nextFloat() < cfgCloseMutationPercent()) {
+                    for (int b = 0; b < CLOSE_MUTATIONS_PER_CHILD; b++) {
+                        ImageEvolver.switchCloseColor(child, this.randomJumpDistance);
+                    }
                 }
             }
         }
 
-		/**
-		 * Fully Random Crossovers
-		 */
-	    for (int a = 0; a < RANDOM_MUTATION_CHANCES; a++) {
-            
-	        //
-            if (ImageEvolver.random.nextFloat() < RANDOM_MUTATION_PERCENT) {
-    
-                ImageEvolver.switchRandomColor(child);
-
-            }
-	    }
-		
-		/**
-		 * Grid Crossovers
-		 */
-        for (int a = 0; a < GRID_MUTATION_CHANCES; a++) {
-
-            if (ImageEvolver.random.nextFloat() < GRID_MUTATION_PERCENT) {
-
-                //
-                ImageEvolver.switchGridColor(child, evolverId, DEFAULT_GRID_SIZE);
+        if (cfgRandomGridMutationPercent() > 0.001f) {
+            for (int a = 0; a < cfgRandomGridMutationChances(); a++) {
+                if (r.nextFloat() < cfgRandomGridMutationPercent()) {
+                    ImageEvolver.switchGridColor(child, ImageEvolver.roll(TOTAL_GRIDS), DEFAULT_GRID_SIZE);
+                }
             }
         }
-        
-        /**
-         * Random Grid Crossovers
-         */
-        for (int a = 0; a < RANDOM_GRID_MUTATION_CHANCES; a++) {
 
-            if (ImageEvolver.random.nextFloat() < RANDOM_GRID_MUTATION_PERCENT) {
-
-                //
-                ImageEvolver.switchGridColor(child, ImageEvolver.roll(TOTAL_GRIDS), DEFAULT_GRID_SIZE);
-            }
+        if (evolverInstance != null && evolverInstance.getResizedOriginal() != null) {
+            ImageEvolver.targetedSwap(child, evolverInstance.getResizedOriginal(), cfgTargetedSwapAttempts());
         }
 
 		return child;
@@ -314,10 +331,8 @@ public class CrossOver {
 
 	public TriangleList<Triangle> getSecuentialChild(TriangleList<Triangle> parent, int startTriangle, int targetTriangle) {
 		TriangleList<Triangle> child = new TriangleList<Triangle>();
-		
-		for (Triangle triangle : parent){
-			Triangle copy = new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor(), triangle.getPalleteColor());
-			child.add(copy);
+		for (Triangle triangle : parent) {
+			child.add(new Triangle(triangle.getxPoly(), triangle.getyPoly(), triangle.getLenght(), triangle.getColor(), triangle.getPalleteColor()));
 		}
 		
 		ImageEvolver.switchColor(child, startTriangle, targetTriangle);
@@ -336,7 +351,7 @@ public class CrossOver {
 	/**
 	 * 
 	 */
-    public static void halveGridSize() {
+    public static synchronized void halveGridSize() {
 
         RANDOM_MUTATION_CHANCES -= RANDOM_MUTATION_CHANCES_SUBSTRACT;
         

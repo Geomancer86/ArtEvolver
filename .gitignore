@@ -21,3 +21,5 @@ artevolver-desktop/target/
 *.project
 *.classpath
 bin/
+benchmarks/
+.vscode/

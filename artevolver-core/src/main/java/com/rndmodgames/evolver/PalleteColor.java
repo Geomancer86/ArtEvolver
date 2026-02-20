@@ -22,31 +22,36 @@ public class PalleteColor {
 		return color;
 	}
 
-	public Palette getPallete() {
-        return pallete;
-    }
-
-    public void setPallete(Palette pallete) {
-        this.pallete = pallete;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public void setColor(Color color) {
+	public void setColor(Color color) {
 		this.color = color;
 	}
 
-    public String getName() {
-        return name;
-    }
+	public Palette getPallete() {
+		return pallete;
+	}
 
-    public void setName(String name) {
-        this.name = name;
-    }
+	public void setPallete(Palette pallete) {
+		this.pallete = pallete;
+	}
+
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	@Override
+	public String toString() {
+		return name + " [" + id + "] (" + color.getRed() + "," + color.getGreen() + "," + color.getBlue() + ")";
+	}
 }

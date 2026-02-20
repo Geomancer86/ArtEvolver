@@ -30,7 +30,9 @@ public class TournamentContestant {
     private int generation;
     private String parentage = "initial";
     private boolean eliminated = false;
+    private boolean promoted = false;
     private int eliminatedAtGeneration = -1;
+    private int promotedAtGeneration = -1;
     private double finalScore = 0;
     private int graceTicks = 0;
     private final FitnessTracker fitnessTracker = new FitnessTracker();
@@ -210,7 +212,10 @@ public class TournamentContestant {
     public String getParentage() { return parentage; }
     public void setParentage(String parentage) { this.parentage = parentage; }
     public boolean isEliminated() { return eliminated; }
+    public boolean isPromoted() { return promoted; }
+    public boolean isFinished() { return eliminated || promoted; }
     public int getEliminatedAtGeneration() { return eliminatedAtGeneration; }
+    public int getPromotedAtGeneration() { return promotedAtGeneration; }
     public double getFinalScore() { return finalScore; }
 
     public int getGraceTicks() { return graceTicks; }
@@ -221,13 +226,29 @@ public class TournamentContestant {
     public LineageNode getLineageNode() { return lineageNode; }
     public void setLineageNode(LineageNode node) { this.lineageNode = node; }
 
-    /** Marks this contestant as eliminated. Preserves the last best image/score for display. */
+    /** Marks this contestant as eliminated (poor performance). Frees resources. */
     public void eliminate(int atGeneration) {
         this.eliminated = true;
         this.eliminatedAtGeneration = atGeneration;
         this.finalScore = bestScore;
         if (lineageNode != null) {
             lineageNode.setEliminated(true);
+            lineageNode.setPeakFitness(fitnessTracker.getPeakFitness());
+            lineageNode.setPeakVelocity(fitnessTracker.getPeakVelocity());
+        }
+        dispose();
+    }
+
+    /**
+     * Promotes this contestant to the hall of fame. Frees compute resources but
+     * keeps config and score available for breeding. Promoted contestants can
+     * be selected as parents for future generations.
+     */
+    public void promote(int atGeneration) {
+        this.promoted = true;
+        this.promotedAtGeneration = atGeneration;
+        this.finalScore = bestScore;
+        if (lineageNode != null) {
             lineageNode.setPeakFitness(fitnessTracker.getPeakFitness());
             lineageNode.setPeakVelocity(fitnessTracker.getPeakVelocity());
         }

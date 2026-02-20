@@ -7,10 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.0] - 2026-02-20 (develop branch)
 
+### Added — Promoted Pool, Preset Injection & Fast Lifespan
+
+- **Promoted status (Hall of Fame)**: Contestants that expire due to lifespan cap are now
+  "promoted" instead of eliminated. Promoted contestants:
+  - Stop running (free compute resources) but remain available as breeding parents
+  - Display with gold medal badge in UI, chart, draw-all, and dashboard
+  - Are sorted between active and eliminated in all views (active > promoted > eliminated)
+  - Rotate: a configurable `maxPromoted` cap (default 10) keeps the hall of fame from growing
+    unbounded. When exceeded, the worst-performing promoted contestant is retired
+- **Preset strategy injection**: During evolutionary breeding, every Nth spawn (configurable
+  `presetInjectionInterval`, default 3) the system injects an untried preset strategy
+  (Balanced, Aggressive Explorer, Grid Refiner, etc.) into the gene pool. This ensures all
+  algorithm modes get tested and prevents premature convergence on a single approach.
+  Once all presets have been tried, breeding resumes normally
+- **Breeding pool includes promoted**: Parent selection now draws from both active contestants
+  AND promoted ones. Promoted configs carry proven parameters that enrich future offspring
+- **Lifespan default changed to 60 seconds**: The `maxLifespanSeconds` now defaults to 60
+  instead of 0 (disabled), enabling fast tournament iteration out of the box
+
 ### Added — Contestant Lifespan Cap & Ranking Strategies
 
-- **Max Lifespan Cap**: New `maxLifespanSeconds` parameter (default 0 = disabled). When set,
-  any contestant exceeding this age is prioritized for culling regardless of score. Prevents
+- **Max Lifespan Cap**: `maxLifespanSeconds` parameter (default 60s). When set,
+  any contestant exceeding this age is promoted to the hall of fame. Prevents
   the leader from dominating forever with marginal gains. Forces genetic turnover where the
   leader's genes live on through children. The chart looks much cleaner when all contestants
   have similar time spans (especially with time-based X-axis)

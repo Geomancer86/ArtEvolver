@@ -152,23 +152,44 @@ When selecting parents for a new contestant:
 3. **Inbreeding prevention**: If both parents share a recent common ancestor
    (within `ancestryDepth` generations), prefer a different partner.
 
-### F. Contestant Lifespan Cap
+### F. Contestant Lifespan Cap & Promotion
 
 **Problem**: The leading contestant accumulates marginal gains forever, dominating the
 tournament and the chart. Even with good velocity tracking, eventually the leader's
 velocity drops near zero but their absolute score keeps them at the top indefinitely.
 
-**Solution**: `maxLifespanSeconds` (default 0 = disabled). When set:
-1. Any contestant exceeding this age is automatically the first candidate for culling
-2. Even the top performer gets replaced — their genes live on through children
-3. Forces continuous genetic turnover and exploration
-4. The fitness chart looks clean: all contestants have similar time spans
-5. The oldest expired contestant is culled first (fairness)
+**Solution**: `maxLifespanSeconds` (default 60s). When a contestant exceeds this age:
+1. It is **promoted** to the Hall of Fame — not eliminated
+2. Promoted contestants stop running (free compute) but stay as breeding candidates
+3. Even the top performer gets replaced — their genes live on through children
+4. Forces continuous genetic turnover and exploration
+5. The fitness chart looks clean: all contestants have similar time spans
+6. The oldest expired contestant is promoted first (fairness)
 
-This is especially effective with the time-based X-axis on the fitness chart — all
-lines span roughly the same horizontal distance, making comparison easy.
+**Promoted Pool (Hall of Fame)**:
+- Promoted contestants retain their config and final score
+- They are available as **parent candidates** when breeding new offspring
+- A `maxPromoted` cap (default 10) prevents unbounded growth — worst promoted rotate out
+- UI shows promoted with gold medal badge, between active and eliminated in sort order
+- Dashboard JSON includes `"promoted": true` field
 
-### G. Configurable Parameters (all future meta-optimizable)
+### G. Preset Strategy Injection
+
+**Problem**: Breeding from existing contestants can converge on a local optimum. If the
+initial pool only contains a subset of possible strategies, the tournament may never
+explore radically different approaches.
+
+**Solution**: `presetInjectionInterval` (default 3). Every Nth spawn cycle, instead of
+breeding from two parents, the system injects a fresh preset strategy configuration
+that hasn't been tried by any contestant (active, promoted, or eliminated).
+
+Available presets: Balanced, Aggressive Explorer, Grid Refiner, Targeted Precision,
+Heavy Random, Close Mutation Focus, Fast Convergence, Wide Search.
+
+Once all presets have been injected at least once, breeding resumes normally. The
+narrative log indicates preset injections with a dice icon and "[untried strategy]" tag.
+
+### H. Configurable Parameters (all future meta-optimizable)
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -180,7 +201,9 @@ lines span roughly the same horizontal distance, making comparison easy.
 | `lineageWeight` | 0.20 | Weight of ancestry performance |
 | `lineageDecay` | 0.7 | How much each generation back reduces weight |
 | `ancestryDepth` | 3 | Max generations back for breeding/lineage |
-| `maxLifespanSeconds` | 0 | Max age before forced culling (0 = disabled) |
+| `maxLifespanSeconds` | 60 | Max age before promotion (0 = disabled) |
+| `maxPromoted` | 10 | Max contestants in the hall of fame |
+| `presetInjectionInterval` | 3 | Every Nth spawn inject untried preset (0 = off) |
 | `rankingStrategy` | AUTO | BALANCED, VELOCITY_FIRST, FITNESS_FIRST, AUTO |
 | `autoTransitionGen` | 10 | Generations for AUTO to fully shift to fitness-first |
 | `useAncestralCrossover` | true | Blend in grandparent genes during breeding |

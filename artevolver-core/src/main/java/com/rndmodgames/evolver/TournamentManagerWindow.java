@@ -352,7 +352,7 @@ public class TournamentManagerWindow extends JFrame {
         info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
         info.setBorder(new EmptyBorder(8, 0, 0, 0));
         int totalThreadsUsed = contestants.stream()
-                .filter(c -> !c.isEliminated() && c.isRunning())
+                .filter(c -> !c.isFinished() && c.isRunning())
                 .mapToInt(c -> c.getConfig() != null ? c.getConfig().threads : 1)
                 .sum();
         int threadBudget = Math.max(2, (int) (MAX_TOTAL_THREADS / 2.0 * (maxCpuPercent / 100.0)));
@@ -425,7 +425,7 @@ public class TournamentManagerWindow extends JFrame {
             }
         } else if (!contestants.isEmpty()) {
             boolean anyNotRunning = contestants.stream()
-                    .anyMatch(c -> !c.isEliminated() && !c.isRunning());
+                    .anyMatch(c -> !c.isFinished() && !c.isRunning());
             if (anyNotRunning) {
                 artEvolver.startTournament();
                 if (chkAutoEvolve.isSelected()) autoStartEvolving();
@@ -439,9 +439,9 @@ public class TournamentManagerWindow extends JFrame {
         if (!autopilotActive) return;
 
         long now = System.currentTimeMillis();
-        int aliveCount = (int) contestants.stream().filter(c -> !c.isEliminated()).count();
+        int aliveCount = (int) contestants.stream().filter(c -> !c.isFinished()).count();
         int totalThreadsUsed = contestants.stream()
-                .filter(c -> !c.isEliminated() && c.isRunning())
+                .filter(c -> !c.isFinished() && c.isRunning())
                 .mapToInt(c -> c.getConfig() != null ? c.getConfig().threads : 1)
                 .sum();
 
@@ -510,7 +510,7 @@ public class TournamentManagerWindow extends JFrame {
         // Auto-start evolutionary tournament if enough running contestants
         if (aliveCount >= 3 && (evoTournament == null || !evoTournament.isRunning())) {
             boolean anyHaveScores = contestants.stream()
-                    .anyMatch(c -> !c.isEliminated() && c.getBestScore() > 0);
+                    .anyMatch(c -> !c.isFinished() && c.getBestScore() > 0);
             if (anyHaveScores) {
                 createEvoTournament();
                 if (evoTournament != null && !evoTournament.isRunning()) {
@@ -785,7 +785,7 @@ public class TournamentManagerWindow extends JFrame {
         btnAdvanceEra.setEnabled(!atFinal);
         btnAddPreset.setEnabled(true);
         btnAddEvolved.setEnabled(prehistoricMode.arePresetsExhausted()
-                || contestants.stream().filter(c -> !c.isEliminated() && c.getBestScore() > 0).count() >= 2);
+                || contestants.stream().filter(c -> !c.isFinished() && c.getBestScore() > 0).count() >= 2);
 
         if (prehistoricMode.arePresetsExhausted()) {
             btnAddPreset.setText("+ Add Preset (recycled)");
@@ -832,6 +832,12 @@ public class TournamentManagerWindow extends JFrame {
         "Fast Convergence",
         "Wide Search",
     };
+
+    public int getStrategyCount() { return STRATEGY_NAMES.length; }
+    public String getStrategyName(int index) { return STRATEGY_NAMES[index % STRATEGY_NAMES.length]; }
+    public EvolutionConfig applyStrategyPublic(EvolutionConfig base, int index) {
+        return applyStrategy(base, index);
+    }
 
     private EvolutionConfig applyStrategy(EvolutionConfig base, int strategyIndex) {
         EvolutionConfig cfg = base.clone();
@@ -1047,7 +1053,7 @@ public class TournamentManagerWindow extends JFrame {
         }
         if (evoTournament.isRunning()) return;
 
-        long alive = contestants.stream().filter(c -> !c.isEliminated()).count();
+        long alive = contestants.stream().filter(c -> !c.isFinished()).count();
         if (alive < evoTournament.getMinContestants()) return;
 
         if (evoTournament.start()) {
@@ -1127,9 +1133,21 @@ public class TournamentManagerWindow extends JFrame {
 
         form.add(new JLabel("Max Lifespan (seconds, 0=off):"));
         JSpinner spnLifespan = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getMaxLifespanSeconds(), 0, 3600, 10));
-        spnLifespan.setToolTipText("Force replacement after N seconds. Prevents leader stagnation.");
+                evoTournament.getMaxLifespanSeconds(), 0, 3600, 5));
+        spnLifespan.setToolTipText("Promote and replace after N seconds. Default 60s for fast iteration.");
         form.add(spnLifespan);
+
+        form.add(new JLabel("Max Promoted (hall of fame):"));
+        JSpinner spnMaxPromoted = new JSpinner(new SpinnerNumberModel(
+                evoTournament.getMaxPromoted(), 1, 50, 1));
+        spnMaxPromoted.setToolTipText("Max promoted contestants kept for breeding. Oldest/worst rotate out.");
+        form.add(spnMaxPromoted);
+
+        form.add(new JLabel("Preset Injection Interval:"));
+        JSpinner spnPresetInject = new JSpinner(new SpinnerNumberModel(
+                evoTournament.getPresetInjectionInterval(), 0, 20, 1));
+        spnPresetInject.setToolTipText("Every Nth spawn, inject an untried preset strategy (0=off).");
+        form.add(spnPresetInject);
 
         // --- Ranking Strategy ---
         addSectionLabel(form, "RANKING STRATEGY");
@@ -1209,7 +1227,8 @@ public class TournamentManagerWindow extends JFrame {
 
         JLabel hint = new JLabel("<html><i>Settings can be changed while evolving is running.<br>"
                 + "Grace period protects newcomers from immediate culling.<br>"
-                + "Lifespan cap forces genetic turnover even for the leader.<br>"
+                + "Lifespan cap promotes contestants to Hall of Fame (breeding pool).<br>"
+                + "Preset injection introduces untried strategies into the gene pool.<br>"
                 + "AUTO ranking starts velocity-heavy and shifts to fitness.</i></html>");
         hint.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
         hint.setForeground(Color.GRAY);
@@ -1217,7 +1236,7 @@ public class TournamentManagerWindow extends JFrame {
         form.add(new JLabel(""));
 
         JScrollPane scroll = new JScrollPane(form);
-        scroll.setPreferredSize(new Dimension(480, 600));
+        scroll.setPreferredSize(new Dimension(500, 660));
         scroll.getVerticalScrollBar().setUnitIncrement(12);
 
         int result = JOptionPane.showConfirmDialog(this, scroll,
@@ -1232,6 +1251,8 @@ public class TournamentManagerWindow extends JFrame {
             evoTournament.setAdaptiveCutoffMin((int) spnAdaptMin.getValue());
             evoTournament.setAdaptiveCutoffMax((int) spnAdaptMax.getValue());
             evoTournament.setMaxLifespanSeconds((int) spnLifespan.getValue());
+            evoTournament.setMaxPromoted((int) spnMaxPromoted.getValue());
+            evoTournament.setPresetInjectionInterval((int) spnPresetInject.getValue());
             evoTournament.setRankingStrategy(
                     (EvolutionaryTournament.RankingStrategy) cmbStrategy.getSelectedItem());
             evoTournament.setAutoTransitionGen((int) spnAutoTransGen.getValue());
@@ -1300,7 +1321,7 @@ public class TournamentManagerWindow extends JFrame {
             } else {
                 lblBestEver.setForeground(new Color(76, 175, 80));
             }
-            long protectedCount = contestants.stream().filter(c -> !c.isEliminated() && c.isProtected()).count();
+            long protectedCount = contestants.stream().filter(c -> !c.isFinished() && c.isProtected()).count();
             if (protectedCount > 0) {
                 bestText += "  \u2B50" + protectedCount + " protected";
             }
@@ -1342,8 +1363,9 @@ public class TournamentManagerWindow extends JFrame {
         java.text.DecimalFormat df4 = new java.text.DecimalFormat("0.0000");
 
         List<TournamentContestant> alive = contestants.stream()
-                .filter(c -> !c.isEliminated()).collect(java.util.stream.Collectors.toList());
-        long eliminated = contestants.size() - alive.size();
+                .filter(c -> !c.isFinished()).collect(java.util.stream.Collectors.toList());
+        long promotedCount = contestants.stream().filter(TournamentContestant::isPromoted).count();
+        long eliminatedCount = contestants.stream().filter(TournamentContestant::isEliminated).count();
 
         sb.append("═══ LIVE TOURNAMENT STATUS ═══\n");
 
@@ -1352,15 +1374,15 @@ public class TournamentManagerWindow extends JFrame {
             return sb.toString();
         }
 
-        // Sort by score descending
         alive.sort((a, b) -> Double.compare(b.getBestScore(), a.getBestScore()));
 
         TournamentContestant leader = alive.get(0);
         TournamentContestant trailer = alive.get(alive.size() - 1);
 
-        sb.append("  Active: ").append(alive.size())
-          .append("  |  Eliminated: ").append(eliminated)
-          .append("  |  Gen: ").append(evoTournament != null ? evoTournament.getGeneration() : 0)
+        sb.append("  Active: ").append(alive.size());
+        if (promotedCount > 0) sb.append("  |  \uD83C\uDFC5 Promoted: ").append(promotedCount);
+        if (eliminatedCount > 0) sb.append("  |  Eliminated: ").append(eliminatedCount);
+        sb.append("  |  Gen: ").append(evoTournament != null ? evoTournament.getGeneration() : 0)
           .append('\n');
 
         // Leader info
@@ -1547,8 +1569,8 @@ public class TournamentManagerWindow extends JFrame {
         int row = getModelRow();
         if (row < 0 || row >= contestants.size()) return;
         TournamentContestant c = contestants.get(row);
-        if (c.isRunning() || c.isEliminated()) {
-            JOptionPane.showMessageDialog(this, "Cannot edit a running or eliminated contestant.", "Cannot Edit", JOptionPane.WARNING_MESSAGE);
+        if (c.isRunning() || c.isFinished()) {
+            JOptionPane.showMessageDialog(this, "Cannot edit a running or finished contestant.", "Cannot Edit", JOptionPane.WARNING_MESSAGE);
             return;
         }
         showParamEditor(c);
@@ -1574,7 +1596,10 @@ public class TournamentManagerWindow extends JFrame {
             addDetail("Grace Period", c.getGraceTicks() + " ticks remaining \u2B50");
         }
 
-        if (c.isEliminated()) {
+        if (c.isPromoted()) {
+            addDetail("Status", "\uD83C\uDFC5 PROMOTED at Gen " + c.getPromotedAtGeneration());
+            addDetail("Final Score", new DecimalFormat("0.0000").format(c.getFinalScore() * 100) + "%");
+        } else if (c.isEliminated()) {
             addDetail("Status", "ELIMINATED at Gen " + c.getEliminatedAtGeneration());
             addDetail("Final Score", new DecimalFormat("0.0000").format(c.getFinalScore() * 100) + "%");
         }
@@ -1779,23 +1804,28 @@ public class TournamentManagerWindow extends JFrame {
             DecimalFormat df = new DecimalFormat("0.0000");
             switch (col) {
                 case 0: return row + 1;
-                case 1: return c.isEliminated() ? Color.DARK_GRAY : c.getChartColor();
+                case 1: return c.isEliminated() ? Color.DARK_GRAY
+                              : c.isPromoted() ? new Color(255, 193, 7) : c.getChartColor();
                 case 2: {
-                    String n = c.isEliminated() ? "\u2620 " + c.getName() : c.getName();
+                    String n;
+                    if (c.isPromoted()) n = "\uD83C\uDFC5 " + c.getName();
+                    else if (c.isEliminated()) n = "\u2620 " + c.getName();
+                    else n = c.getName();
                     if (c.isProtected()) n += " \u2B50";
                     return n;
                 }
                 case 3: {
-                    double score = c.isEliminated() ? c.getFinalScore() : c.getBestScore();
+                    double score = c.isFinished() ? c.getFinalScore() : c.getBestScore();
                     return score > 0 ? df.format(score * 100) + "%" : "--";
                 }
                 case 4: {
-                    if (c.isEliminated()) return "--";
+                    if (c.isFinished()) return "--";
                     double vel = c.getFitnessTracker().getVelocity();
                     if (vel <= 0) return "--";
                     return new DecimalFormat("0.000000").format(vel * 100) + "/s";
                 }
                 case 5: {
+                    if (c.isPromoted()) return "\uD83C\uDFC5 Promoted (Gen " + c.getPromotedAtGeneration() + ")";
                     if (c.isEliminated()) return "Eliminated (Gen " + c.getEliminatedAtGeneration() + ")";
                     return c.isRunning() ? "Running" : "Stopped";
                 }

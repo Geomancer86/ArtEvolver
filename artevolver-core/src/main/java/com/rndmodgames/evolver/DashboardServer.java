@@ -164,8 +164,8 @@ public class DashboardServer {
         ImageIO.write(img, "png", baos);
         byte[] data = baos.toByteArray();
 
-        String filename = tc.getName().replaceAll("[^a-zA-Z0-9_-]", "_")
-                + (tc.isEliminated() ? "_eliminated" : "_best") + ".png";
+        String status = tc.isPromoted() ? "_promoted" : tc.isEliminated() ? "_eliminated" : "_best";
+        String filename = tc.getName().replaceAll("[^a-zA-Z0-9_-]", "_") + status + ".png";
         ex.getResponseHeaders().set("Content-Type", "image/png");
         ex.getResponseHeaders().set("Content-Disposition", "attachment; filename=\"" + filename + "\"");
         ex.sendResponseHeaders(200, data.length);
@@ -201,7 +201,7 @@ public class DashboardServer {
         long iterPerSec = 0;
         int generation = 0;
         for (TournamentContestant c : contestants) {
-            if (!c.isEliminated()) {
+            if (!c.isFinished()) {
                 fitness = Math.max(fitness, c.getBestScore());
                 long elapsed = System.currentTimeMillis() - c.getStartTimeMs();
                 if (elapsed > 0) iterPerSec += c.getTotalIterations() * 1000 / elapsed;
@@ -345,9 +345,11 @@ public class DashboardServer {
         sb.append("  \"contestants\": [\n");
         List<TournamentContestant> sorted = new ArrayList<>(contestants);
         sorted.sort((a, b) -> {
-            if (a.isEliminated() != b.isEliminated()) return a.isEliminated() ? 1 : -1;
-            double sa = a.isEliminated() ? a.getFinalScore() : a.getBestScore();
-            double sb2 = b.isEliminated() ? b.getFinalScore() : b.getBestScore();
+            int statusA = a.isEliminated() ? 2 : a.isPromoted() ? 1 : 0;
+            int statusB = b.isEliminated() ? 2 : b.isPromoted() ? 1 : 0;
+            if (statusA != statusB) return statusA - statusB;
+            double sa = a.isFinished() ? a.getFinalScore() : a.getBestScore();
+            double sb2 = b.isFinished() ? b.getFinalScore() : b.getBestScore();
             return Double.compare(sb2, sa);
         });
 
@@ -357,7 +359,7 @@ public class DashboardServer {
             FitnessTracker ft = c.getFitnessTracker();
             Color col = c.getChartColor();
 
-            double score = c.isEliminated() ? c.getFinalScore() : c.getBestScore();
+            double score = c.isFinished() ? c.getFinalScore() : c.getBestScore();
             double velocity = ft != null ? ft.getVelocity() : 0;
             double acceleration = ft != null ? ft.getAcceleration() : 0;
             double peakFitness = ft != null ? ft.getPeakFitness() : 0;
@@ -373,6 +375,7 @@ public class DashboardServer {
             sb.append("      \"totalIterations\": ").append(c.getTotalIterations()).append(",\n");
             sb.append("      \"goodIterations\": ").append(c.getGoodIterations()).append(",\n");
             sb.append("      \"eliminated\": ").append(c.isEliminated()).append(",\n");
+            sb.append("      \"promoted\": ").append(c.isPromoted()).append(",\n");
             sb.append("      \"running\": ").append(c.isRunning()).append(",\n");
             sb.append("      \"protected\": ").append(c.isProtected()).append(",\n");
             sb.append("      \"graceTicks\": ").append(c.getGraceTicks()).append(",\n");

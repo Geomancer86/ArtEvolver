@@ -46,7 +46,12 @@ public class EvolutionaryTournament {
     private int adaptiveCutoffMax = 300;
 
     // --- Contestant lifespan cap (0 = disabled) ---
-    private int maxLifespanSeconds = 0;
+    private int maxLifespanSeconds = 60;
+
+    // --- Promoted pool (hall of fame) ---
+    private int maxPromoted = 10;
+    private int presetInjectionInterval = 3;
+    private int spawnsSinceLastPreset = 0;
 
     // --- Ranking strategy ---
     public enum RankingStrategy { BALANCED, VELOCITY_FIRST, FITNESS_FIRST, AUTO }
@@ -121,6 +126,8 @@ public class EvolutionaryTournament {
                 + ", adaptive=" + (adaptiveCutoff ? "ON [" + adaptiveCutoffMin + "-" + adaptiveCutoffMax + "s]" : "OFF")
                 + ", ranking=" + rankingStrategy
                 + (maxLifespanSeconds > 0 ? ", lifespan=" + maxLifespanSeconds + "s" : "")
+                + ", maxPromoted=" + maxPromoted
+                + (presetInjectionInterval > 0 ? ", presetInject=every " + presetInjectionInterval + " spawns" : "")
                 + (rankingStrategy == RankingStrategy.AUTO ? ", autoTransition=" + autoTransitionGen + " gens" : ""));
         return true;
     }
@@ -155,12 +162,31 @@ public class EvolutionaryTournament {
         }
     }
 
+    /** Active contestants: not eliminated and not promoted. */
     private List<TournamentContestant> getAlive() {
         List<TournamentContestant> alive = new ArrayList<>();
         for (TournamentContestant c : contestants) {
-            if (!c.isEliminated()) alive.add(c);
+            if (!c.isFinished()) alive.add(c);
         }
         return alive;
+    }
+
+    /** Promoted contestants available for breeding (hall of fame). */
+    private List<TournamentContestant> getPromoted() {
+        List<TournamentContestant> promoted = new ArrayList<>();
+        for (TournamentContestant c : contestants) {
+            if (c.isPromoted()) promoted.add(c);
+        }
+        return promoted;
+    }
+
+    /** All potential parents: alive + promoted. */
+    private List<TournamentContestant> getBreedingPool() {
+        List<TournamentContestant> pool = new ArrayList<>();
+        for (TournamentContestant c : contestants) {
+            if (!c.isEliminated()) pool.add(c);
+        }
+        return pool;
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -248,7 +274,6 @@ public class EvolutionaryTournament {
         String lastChildParams = null;
 
         for (int spawn = 0; spawn < maxCulls; spawn++) {
-            // Re-rank alive (non-eliminated) after each cull
             List<TournamentContestant> currentAlive = getAlive();
             if (currentAlive.size() <= minContestants) break;
 
@@ -266,30 +291,58 @@ public class EvolutionaryTournament {
             lastCulledGen = worst.getGeneration();
             lastCulledByLifespan = isExpired(worst);
 
-            TournamentContestant parentA = selectParent(currentScored, worst);
-            TournamentContestant parentB = selectParentDiverse(currentScored, worst, parentA);
+            // Use full breeding pool (alive + promoted) for parent selection
+            List<TournamentContestant> breedingPool = getBreedingPool();
+            List<ScoredContestant> breedPoolScored = computeCompositeScores(breedingPool);
+            breedPoolScored.sort((a, b) -> Double.compare(b.compositeScore, a.compositeScore));
+
+            TournamentContestant parentA = selectParent(breedPoolScored, worst);
+            TournamentContestant parentB = selectParentDiverse(breedPoolScored, worst, parentA);
 
             EvolutionConfig childConfig;
-            if (useAncestralCrossover && parentA.getLineageNode() != null
-                    && parentB.getLineageNode() != null) {
-                childConfig = breedWithAncestry(parentA, parentB);
+            String childName;
+            spawnsSinceLastPreset++;
+
+            // Preset injection: periodically introduce an untried preset strategy
+            EvolutionConfig presetConfig = tryGetUntriedPreset();
+            if (presetConfig != null && presetInjectionInterval > 0
+                    && spawnsSinceLastPreset >= presetInjectionInterval) {
+                childConfig = presetConfig;
+                childConfig.threads = worst.getConfig().threads;
+                childName = "G" + generation
+                        + (maxCulls > 1 ? (char)('a' + spawn) : "")
+                        + "-P-" + childConfig.name.substring(0, Math.min(6, childConfig.name.length()));
+                spawnsSinceLastPreset = 0;
+                lastParentA = "[preset]";
+                lastParentB = childConfig.name;
             } else {
-                childConfig = breedConfigs(parentA.getConfig(), parentB.getConfig());
+                // Normal breeding from the pool
+                if (useAncestralCrossover && parentA.getLineageNode() != null
+                        && parentB.getLineageNode() != null) {
+                    childConfig = breedWithAncestry(parentA, parentB);
+                } else {
+                    childConfig = breedConfigs(parentA.getConfig(), parentB.getConfig());
+                }
+                childConfig.threads = worst.getConfig().threads;
+                childName = "G" + generation
+                        + (maxCulls > 1 ? (char)('a' + spawn) : "") + "-"
+                        + parentA.getName().substring(0, Math.min(3, parentA.getName().length()))
+                        + "x"
+                        + parentB.getName().substring(0, Math.min(3, parentB.getName().length()));
+                lastParentA = parentA.getName();
+                lastParentB = parentB.getName();
             }
-            childConfig.threads = worst.getConfig().threads;
 
-            String childName = "G" + generation
-                    + (maxCulls > 1 ? (char)('a' + spawn) : "") + "-"
-                    + parentA.getName().substring(0, Math.min(3, parentA.getName().length()))
-                    + "x"
-                    + parentB.getName().substring(0, Math.min(3, parentB.getName().length()));
-
-            worst.eliminate(generation);
+            // Lifespan-expired: promote (hall of fame). Poor performance: eliminate.
+            if (lastCulledByLifespan) {
+                worst.promote(generation);
+                rotatePromotedPool();
+            } else {
+                worst.eliminate(generation);
+            }
 
             spawnChild(childName, childConfig, parentA, parentB);
 
-            lastParentA = parentA.getName();
-            lastParentB = parentB.getName();
             lastChildName = childName;
             lastChildParams = childConfig.toSummary();
 
@@ -333,8 +386,10 @@ public class EvolutionaryTournament {
         rec.ancestralCrossover = useAncestralCrossover;
         rec.currentCutoff = cutoffSeconds;
         rec.culledByLifespan = lastCulledByLifespan;
+        rec.presetInjected = (lastParentA != null && lastParentA.equals("[preset]"));
         rec.rankingMode = rankingStrategy.name();
         rec.effectiveWeights = getEffectiveWeights();
+        rec.promotedCount = getPromoted().size();
         // Track previous generation's average for delta comparison
         if (!history.isEmpty()) {
             GenerationRecord prev = history.get(history.size() - 1);
@@ -509,6 +564,55 @@ public class EvolutionaryTournament {
             System.out.println("[EvoTournament] Adaptive cutoff: " + old + "s -> " + newCutoff + "s"
                     + (stalledGenerations > 0 ? " (stalled " + stalledGenerations + " gens)" : " (improving)"));
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  PROMOTED POOL & PRESET INJECTION
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Keeps the promoted pool at maxPromoted size by removing the worst promoted.
+     */
+    private void rotatePromotedPool() {
+        List<TournamentContestant> promoted = getPromoted();
+        if (promoted.size() <= maxPromoted) return;
+
+        promoted.sort((a, b) -> Double.compare(a.getFinalScore(), b.getFinalScore()));
+        while (promoted.size() > maxPromoted) {
+            TournamentContestant worst = promoted.remove(0);
+            worst.eliminate(generation);
+            System.out.println("[EvoTournament] Promoted pool rotation: " + worst.getName()
+                    + " retired (score " + DF2.format(worst.getFinalScore() * 100) + "%)");
+        }
+    }
+
+    /**
+     * Checks all preset strategies against existing contestants.
+     * Returns a fresh preset config for a strategy that hasn't been used yet,
+     * or null if all presets have been tried.
+     */
+    private EvolutionConfig tryGetUntriedPreset() {
+        if (artEvolver.getTournamentManagerWindow() == null) return null;
+
+        java.util.Set<String> usedStrategies = new java.util.HashSet<>();
+        for (TournamentContestant c : contestants) {
+            if (c.getConfig() != null && c.getConfig().name != null) {
+                usedStrategies.add(c.getConfig().name);
+            }
+        }
+
+        TournamentManagerWindow tmw = artEvolver.getTournamentManagerWindow();
+        for (int i = 0; i < tmw.getStrategyCount(); i++) {
+            String stratName = tmw.getStrategyName(i);
+            if (!usedStrategies.contains(stratName)) {
+                EvolutionConfig base = EvolutionConfig.fromCurrentSettings();
+                artEvolver.populateConfigFromUI(base);
+                EvolutionConfig preset = tmw.applyStrategyPublic(base, i);
+                System.out.println("[EvoTournament] Injecting untried preset: " + stratName);
+                return preset;
+            }
+        }
+        return null;
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -785,6 +889,10 @@ public class EvolutionaryTournament {
     public void setAdaptiveCutoffMax(int s) { this.adaptiveCutoffMax = Math.max(30, s); }
     public int getMaxLifespanSeconds() { return maxLifespanSeconds; }
     public void setMaxLifespanSeconds(int s) { this.maxLifespanSeconds = Math.max(0, s); }
+    public int getMaxPromoted() { return maxPromoted; }
+    public void setMaxPromoted(int n) { this.maxPromoted = Math.max(1, n); }
+    public int getPresetInjectionInterval() { return presetInjectionInterval; }
+    public void setPresetInjectionInterval(int n) { this.presetInjectionInterval = Math.max(0, n); }
     public RankingStrategy getRankingStrategy() { return rankingStrategy; }
     public void setRankingStrategy(RankingStrategy s) { this.rankingStrategy = s; }
     public int getAutoTransitionGen() { return autoTransitionGen; }
@@ -852,8 +960,10 @@ public class EvolutionaryTournament {
         public int spawnsThisTick = 1;
         public int currentCutoff;
         public boolean culledByLifespan;
+        public boolean presetInjected;
         public String rankingMode;
         public float[] effectiveWeights;
+        public int promotedCount;
 
         GenerationRecord(int gen) {
             this.generation = gen;
@@ -928,25 +1038,36 @@ public class EvolutionaryTournament {
             }
 
             // Culling with story
-            sb.append("  \u2694 ");
-            if (spawnsThisTick > 1) {
-                sb.append(spawnsThisTick).append(" eliminated: ").append(culledName);
+            if (culledByLifespan) {
+                sb.append("  \uD83C\uDFC5 Promoted ").append(culledName)
+                  .append(" (").append(DF2_STATIC.format(culledScore * 100)).append("%, time served)");
+                if (promotedCount > 0) sb.append("  [").append(promotedCount).append(" in hall of fame]");
+                sb.append("\n");
             } else {
-                sb.append("Eliminated ").append(culledName);
+                sb.append("  \u2694 ");
+                if (spawnsThisTick > 1) {
+                    sb.append(spawnsThisTick).append(" eliminated: ").append(culledName);
+                } else {
+                    sb.append("Eliminated ").append(culledName);
+                }
+                sb.append(" (").append(DF2_STATIC.format(culledScore * 100)).append("%");
+                if (culledVelocity > 0) sb.append(", was still improving");
+                else if (culledVelocity < -0.0001) sb.append(", declining");
+                else sb.append(", stagnant");
+                if (culledGeneration > 0) sb.append(", born Gen ").append(culledGeneration);
+                sb.append(")\n");
             }
-            sb.append(" (").append(DF2_STATIC.format(culledScore * 100)).append("%");
-            if (culledByLifespan) sb.append(", LIFESPAN EXPIRED");
-            else if (culledVelocity > 0) sb.append(", was still improving");
-            else if (culledVelocity < -0.0001) sb.append(", declining");
-            else sb.append(", stagnant");
-            if (culledGeneration > 0) sb.append(", born Gen ").append(culledGeneration);
-            sb.append(")\n");
 
-            // Breeding
-            sb.append("  \u2728 ").append(childName);
-            sb.append(" = ").append(parentA).append(" x ").append(parentB);
-            if (ancestralCrossover) sb.append(" +ancestry");
-            sb.append(" (").append(childGraceTicks).append(" grace)\n");
+            // Breeding / replacement
+            if (presetInjected) {
+                sb.append("  \uD83C\uDFB2 Injected preset: ").append(childName)
+                  .append(" [untried strategy]\n");
+            } else {
+                sb.append("  \u2728 ").append(childName);
+                sb.append(" = ").append(parentA).append(" x ").append(parentB);
+                if (ancestralCrossover) sb.append(" +ancestry");
+                sb.append(" (").append(childGraceTicks).append(" grace)\n");
+            }
 
             // Best ever tracker
             if (bestEverScore > bestScore * 1.001) {

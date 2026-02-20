@@ -145,7 +145,7 @@ public class PrehistoricMode {
 
         EraRecord rec = new EraRecord(era, ERA_NAMES[era]);
         rec.timestamp = System.currentTimeMillis();
-        rec.aliveCount = (int) contestants.stream().filter(c -> !c.isEliminated()).count();
+        rec.aliveCount = (int) contestants.stream().filter(c -> !c.isFinished()).count();
 
         switch (era) {
             case 0: spawnPrimordialContestant(); break;
@@ -158,7 +158,7 @@ public class PrehistoricMode {
             case 7: activateIntelligenceEra(); break;
         }
 
-        rec.aliveCountAfter = (int) contestants.stream().filter(c -> !c.isEliminated()).count();
+        rec.aliveCountAfter = (int) contestants.stream().filter(c -> !c.isFinished()).count();
         history.add(rec);
 
         // Restart auto-advance timer if enabled
@@ -222,9 +222,9 @@ public class PrehistoricMode {
     }
 
     private void spawnEra6Contestants() {
-        int aliveCount = (int) contestants.stream().filter(c -> !c.isEliminated()).count();
+        int aliveCount = (int) contestants.stream().filter(c -> !c.isFinished()).count();
         int threadsUsed = contestants.stream()
-                .filter(c -> !c.isEliminated() && c.isRunning())
+                .filter(c -> !c.isFinished() && c.isRunning())
                 .mapToInt(c -> c.getConfig() != null ? c.getConfig().threads : 1)
                 .sum();
         int remaining = maxThreadsBudget - threadsUsed;
@@ -287,7 +287,7 @@ public class PrehistoricMode {
         if (!active || artEvolver.getResizedOriginal() == null) return null;
 
         int threadsUsed = contestants.stream()
-                .filter(c -> !c.isEliminated() && c.isRunning())
+                .filter(c -> !c.isFinished() && c.isRunning())
                 .mapToInt(c -> c.getConfig() != null ? c.getConfig().threads : 1)
                 .sum();
         if (threadsUsed + threadsPerContestant > maxThreadsBudget) {
@@ -320,7 +320,7 @@ public class PrehistoricMode {
 
         List<TournamentContestant> alive = new ArrayList<>();
         for (TournamentContestant c : contestants) {
-            if (!c.isEliminated() && c.getBestScore() > 0) alive.add(c);
+            if (!c.isFinished() && c.getBestScore() > 0) alive.add(c);
         }
         if (alive.size() < 2) return null;
 
@@ -358,7 +358,7 @@ public class PrehistoricMode {
      */
     private boolean spawnAndStart(EvolutionConfig cfg) {
         int threadsUsed = contestants.stream()
-                .filter(c -> !c.isEliminated() && c.isRunning())
+                .filter(c -> !c.isFinished() && c.isRunning())
                 .mapToInt(c -> c.getConfig() != null ? c.getConfig().threads : 1)
                 .sum();
         if (threadsUsed + cfg.threads > maxThreadsBudget) {
@@ -532,7 +532,7 @@ public class PrehistoricMode {
     /** Attempts to advance era; defers if CPU is too high. */
     private void tryAutoAdvance() {
         int totalThreadsUsed = contestants.stream()
-                .filter(c -> !c.isEliminated() && c.isRunning())
+                .filter(c -> !c.isFinished() && c.isRunning())
                 .mapToInt(c -> c.getConfig() != null ? c.getConfig().threads : 1)
                 .sum();
 

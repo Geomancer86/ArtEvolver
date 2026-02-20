@@ -797,7 +797,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				    long tGoodIter = 0;
 				    TournamentContestant bestContestant = null;
 				    for (TournamentContestant c : contestants) {
-				        if (c.isEliminated()) continue;
+				        if (c.isFinished()) continue;
 				        c.updateBest();
 				        if (c.getBestScore() > 0) {
 				            c.getFitnessTracker().addSnapshot(c.getBestScore(), c.getTotalIterations());
@@ -926,7 +926,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                     if (fitnessChartWindow != null && fitnessChartWindow.isVisible()) {
                         if (tournamentMode && !contestants.isEmpty()) {
                             for (TournamentContestant c : contestants) {
-                                if (c.isEliminated()) continue;
+                                if (c.isFinished()) continue;
                                 if (c.getBestScore() > 0) {
                                     fitnessChartWindow.addDataPoint(c.getId(), c.getName(),
                                         c.getTotalIterations(), c.getBestScore(), c.getChartColor());
@@ -2115,7 +2115,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	        } else {
 	            DecimalFormat df = new DecimalFormat("0.00");
 	            for (TournamentContestant c : contestants) {
-	                if (c.isEliminated()) {
+	                if (c.isPromoted()) {
+	                    cmbContestant.addItem("\uD83C\uDFC5 " + c.getName() + " (" + df.format(c.getFinalScore() * 100) + "%) PROMOTED");
+	                } else if (c.isEliminated()) {
 	                    cmbContestant.addItem("\u2620 " + c.getName() + " (" + df.format(c.getFinalScore() * 100) + "%) ELIMINATED");
 	                } else {
 	                    cmbContestant.addItem(c.getName() + " (" + df.format(
@@ -2145,9 +2147,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    // Sort: alive by best score descending, then eliminated at bottom
 	    List<TournamentContestant> sorted = new java.util.ArrayList<>(contestants);
 	    sorted.sort((a, b) -> {
-	        if (a.isEliminated() != b.isEliminated()) return a.isEliminated() ? 1 : -1;
-	        double sa = a.isEliminated() ? a.getFinalScore() : a.getBestScore();
-	        double sb = b.isEliminated() ? b.getFinalScore() : b.getBestScore();
+	        // Active first, then promoted, then eliminated
+	        int statusA = a.isEliminated() ? 2 : a.isPromoted() ? 1 : 0;
+	        int statusB = b.isEliminated() ? 2 : b.isPromoted() ? 1 : 0;
+	        if (statusA != statusB) return statusA - statusB;
+	        double sa = a.isFinished() ? a.getFinalScore() : a.getBestScore();
+	        double sb = b.isFinished() ? b.getFinalScore() : b.getBestScore();
 	        return Double.compare(sb, sa);
 	    });
 
@@ -2164,7 +2169,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    Font elimFont = new Font(Font.SANS_SERIF, Font.BOLD, Math.max(10, Math.min(14, cellW / 10)));
 
 	    double bestScoreInTournament = contestants.stream()
-	        .filter(c -> !c.isEliminated())
+	        .filter(c -> !c.isFinished())
 	        .mapToDouble(TournamentContestant::getBestScore).max().orElse(0);
 
 	    for (int i = 0; i < n; i++) {
@@ -2174,6 +2179,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	        int cx = pad + col * cellW;
 	        int cy = pad + row * cellH;
 	        boolean dead = c.isEliminated();
+	        boolean prom = c.isPromoted();
+	        boolean finished = dead || prom;
 
 	        BufferedImage img = c.getBestImage();
 	        if (img != null) {
@@ -2186,9 +2193,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	            int drawH = (int) (imgH * scale);
 	            int dx = cx + (cellW - drawW) / 2;
 	            int dy = cy + pad;
-	            if (dead) {
+	            if (finished) {
 	                java.awt.Composite origComp = g.getComposite();
-	                g.setComposite(java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, 0.35f));
+	                g.setComposite(java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, prom ? 0.6f : 0.35f));
 	                g.drawImage(img, dx, dy, drawW, drawH, null);
 	                g.setComposite(origComp);
 	            } else {
@@ -2202,7 +2209,16 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	            g.drawString("initializing...", cx + pad + 4, cy + cellH / 2);
 	        }
 
-	        if (dead) {
+	        if (prom) {
+	            g.setStroke(new java.awt.BasicStroke(2f));
+	            g.setColor(new java.awt.Color(255, 193, 7, 180));
+	            g.drawRect(cx + 1, cy + 1, cellW - 3, cellH - 3);
+	            g.setFont(elimFont);
+	            g.setColor(new java.awt.Color(255, 193, 7));
+	            String promTxt = "\uD83C\uDFC5 PROMOTED";
+	            int pw = g.getFontMetrics().stringWidth(promTxt);
+	            g.drawString(promTxt, cx + (cellW - pw) / 2, cy + cellH / 2 + 5);
+	        } else if (dead) {
 	            g.setStroke(new java.awt.BasicStroke(2f));
 	            g.setColor(new java.awt.Color(178, 34, 34, 180));
 	            g.drawRect(cx + 1, cy + 1, cellW - 3, cellH - 3);
@@ -2225,13 +2241,13 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	        g.setColor(new java.awt.Color(0, 0, 0, 160));
 	        g.fillRect(cx, labelY - 13, cellW, 16);
 	        g.setFont(nameFont);
-	        g.setColor(dead ? java.awt.Color.GRAY : c.getChartColor());
+	        g.setColor(prom ? new java.awt.Color(255, 193, 7) : dead ? java.awt.Color.GRAY : c.getChartColor());
 	        g.drawString(c.getName(), cx + 3, labelY);
 
-	        double displayScore = dead ? c.getFinalScore() : c.getBestScore();
+	        double displayScore = finished ? c.getFinalScore() : c.getBestScore();
 	        String scoreStr = displayScore > 0 ? df.format(displayScore * 100) + "%" : "--";
 	        g.setFont(scoreFont);
-	        g.setColor(dead ? java.awt.Color.DARK_GRAY : java.awt.Color.WHITE);
+	        g.setColor(prom ? new java.awt.Color(255, 193, 7) : dead ? java.awt.Color.DARK_GRAY : java.awt.Color.WHITE);
 	        int scoreW = g.getFontMetrics().stringWidth(scoreStr);
 	        g.drawString(scoreStr, cx + cellW - scoreW - 4, labelY);
 	    }
@@ -2283,7 +2299,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    fitnessChartWindow.setVisible(true);
 
 	    for (TournamentContestant c : contestants) {
-	        if (c.isEliminated()) continue;
+	        if (c.isFinished()) continue;
 	        if (!c.isRunning()) {
 	            try {
 	                if (c.getEvolvers().isEmpty()) {
@@ -2316,7 +2332,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	        tournamentManagerWindow.resetEvolveButton();
 	    }
 	    for (TournamentContestant c : contestants) {
-	        if (!c.isEliminated()) c.stop();
+	        if (!c.isFinished()) c.stop();
 	    }
 	    if (tournamentManagerWindow != null) tournamentManagerWindow.refreshTable();
 	    refreshContestantCombo();

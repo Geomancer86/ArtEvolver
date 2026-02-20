@@ -1,7 +1,0 @@
-Hide eliminated contestants in Draw All grid to prevent UI slowdown
-
-With 500+ total participants, rendering every eliminated drawing in the
-grid caused severe performance issues. Eliminated contestants are now
-hidden by default (checkbox "Hide eliminated in grid"). When unchecked,
-at most 5 recent eliminated are shown. Grid size is computed only from
-visible contestants, keeping cells large and rendering fast.

@@ -1,6 +1,8 @@
 package com.rndmodgames.evolver;
 
 import java.awt.Color;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Encapsulates all tunable evolution parameters for a single contestant.
@@ -49,7 +51,15 @@ public class EvolutionConfig implements Cloneable {
     public int initializationMethod = 1; // 0=Random, 1=Smart, 2=LAP
     public boolean validatePermutation = true;
 
+    // --- Multi-stage (geared) evolution ---
+    private List<EvolutionStage> stages = null;
+
     public EvolutionConfig() {}
+
+    public boolean isMultiStage() { return stages != null && stages.size() > 1; }
+    public List<EvolutionStage> getStages() { return stages; }
+    public void setStages(List<EvolutionStage> stages) { this.stages = stages; }
+    public int getStageCount() { return stages != null ? stages.size() : 1; }
 
     // ════════════════════════════════════════════════════════════════
     //  Prehistoric Mode — Era-specific config factories
@@ -209,12 +219,70 @@ public class EvolutionConfig implements Cloneable {
     }
 
     public String toSummary() {
-        return "Grid=" + (int) gridMutationChances
+        String base = "Grid=" + (int) gridMutationChances
                 + " Rnd=" + randomMutationChances
                 + " Close=" + closeMutationChances
                 + " Tgt=" + targetedSwapAttempts
                 + " Pop=" + population
                 + " Thr=" + threads;
+        if (isMultiStage()) {
+            base += " [" + stages.size() + " gears]";
+        }
+        return base;
+    }
+
+    /**
+     * Returns the full gene array for multi-stage configs.
+     * Format: [stage0 genes(9) + trigger(1), stage1 genes + trigger, ...]
+     * For single-stage, returns the standard 9-gene array.
+     */
+    public float[] toMultiStageGeneArray() {
+        if (!isMultiStage()) return toGeneArray();
+        float[] result = new float[stages.size() * EvolutionStage.GENES_PER_STAGE];
+        int offset = 0;
+        for (EvolutionStage stage : stages) {
+            float[] sg = stage.toGeneArray();
+            System.arraycopy(sg, 0, result, offset, sg.length);
+            offset += EvolutionStage.GENES_PER_STAGE;
+        }
+        return result;
+    }
+
+    /**
+     * Creates a multi-stage config from a flat gene array.
+     * @param stageCount number of stages to decode
+     * @param triggerTypes trigger type for each stage
+     */
+    public static EvolutionConfig fromMultiStageGeneArray(float[] genes, int stageCount,
+            EvolutionStage.TriggerType[] triggerTypes, EvolutionConfig template) {
+        EvolutionConfig cfg = template.clone();
+        List<EvolutionStage> stageList = new ArrayList<>(stageCount);
+        int offset = 0;
+        String[] defaultNames = {"Start", "Mid", "Endgame", "Stage 4", "Stage 5",
+                                  "Stage 6", "Stage 7", "Stage 8"};
+        for (int i = 0; i < stageCount; i++) {
+            float[] stageGenes = new float[EvolutionStage.GENES_PER_STAGE];
+            System.arraycopy(genes, offset, stageGenes, 0,
+                    Math.min(stageGenes.length, genes.length - offset));
+            offset += EvolutionStage.GENES_PER_STAGE;
+            String sname = i < defaultNames.length ? defaultNames[i] : "Stage " + (i + 1);
+            EvolutionStage.TriggerType tt = (triggerTypes != null && i < triggerTypes.length)
+                    ? triggerTypes[i] : EvolutionStage.TriggerType.TIME;
+            stageList.add(EvolutionStage.fromGeneArray(stageGenes, template, tt, sname));
+        }
+        cfg.setStages(stageList);
+        // Apply stage 0 config as the active config
+        if (!stageList.isEmpty()) {
+            EvolutionConfig s0 = stageList.get(0).getConfig();
+            cfg.gridMutationChances = s0.gridMutationChances;
+            cfg.gridMutationDecay = s0.gridMutationDecay;
+            cfg.randomMutationChances = s0.randomMutationChances;
+            cfg.randomMutationPercent = s0.randomMutationPercent;
+            cfg.closeMutationChances = s0.closeMutationChances;
+            cfg.closeMutationPercent = s0.closeMutationPercent;
+            cfg.targetedSwapAttempts = s0.targetedSwapAttempts;
+        }
+        return cfg;
     }
 
     // --- Gene array support for evolutionary parameter breeding ---
@@ -286,7 +354,14 @@ public class EvolutionConfig implements Cloneable {
     @Override
     public EvolutionConfig clone() {
         try {
-            return (EvolutionConfig) super.clone();
+            EvolutionConfig copy = (EvolutionConfig) super.clone();
+            if (stages != null) {
+                copy.stages = new ArrayList<>(stages.size());
+                for (EvolutionStage s : stages) {
+                    copy.stages.add(s.clone());
+                }
+            }
+            return copy;
         } catch (CloneNotSupportedException e) {
             throw new RuntimeException(e);
         }

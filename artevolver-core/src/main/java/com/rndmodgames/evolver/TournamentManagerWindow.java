@@ -67,6 +67,18 @@ public class TournamentManagerWindow extends JFrame {
 
         table.getColumnModel().getColumn(1).setCellRenderer(new ColorCellRenderer());
 
+        javax.swing.table.TableRowSorter<ContestantTableModel> sorter = new javax.swing.table.TableRowSorter<>(tableModel);
+        sorter.setComparator(3, (Object a, Object b) -> {
+            double sa = parseScore(a);
+            double sb = parseScore(b);
+            return Double.compare(sa, sb);
+        });
+        table.setRowSorter(sorter);
+        sorter.setSortKeys(java.util.Arrays.asList(
+            new javax.swing.RowSorter.SortKey(4, javax.swing.SortOrder.ASCENDING),
+            new javax.swing.RowSorter.SortKey(3, javax.swing.SortOrder.DESCENDING)
+        ));
+
         JScrollPane tableScroll = new JScrollPane(table);
         tableScroll.setPreferredSize(new Dimension(600, 200));
 
@@ -396,7 +408,14 @@ public class TournamentManagerWindow extends JFrame {
                 }
             }
 
-            evoTournament.start();
+            boolean started = evoTournament.start();
+            if (!started) {
+                JOptionPane.showMessageDialog(this,
+                        "Failed to start evolution. Check that you have at least "
+                                + evoTournament.getMinContestants() + " contestants and they are running.",
+                        "Evolution Not Started", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
             btnEvolve.setText("\u25A0 Stop Evolving");
             btnEvolve.setBackground(new Color(178, 34, 34));
             setEvoLockButtons(true);
@@ -521,6 +540,14 @@ public class TournamentManagerWindow extends JFrame {
         artEvolver.refreshContestantCombo();
     }
 
+    private int getModelRow() {
+        int viewRow = table.getSelectedRow();
+        if (viewRow < 0) return -1;
+        try {
+            return table.convertRowIndexToModel(viewRow);
+        } catch (IndexOutOfBoundsException e) { return -1; }
+    }
+
     private void addContestant() {
         String name = JOptionPane.showInputDialog(this, "Contestant name:", "Contestant #" + nextId);
         if (name == null || name.trim().isEmpty()) return;
@@ -533,11 +560,10 @@ public class TournamentManagerWindow extends JFrame {
         c.getConfig().chartColor = c.getChartColor();
         contestants.add(c);
         notifyContestantsChanged();
-        table.setRowSelectionInterval(contestants.size() - 1, contestants.size() - 1);
     }
 
     private void duplicateSelected() {
-        int row = table.getSelectedRow();
+        int row = getModelRow();
         if (row < 0 || row >= contestants.size()) return;
 
         TournamentContestant src = contestants.get(row);
@@ -551,11 +577,10 @@ public class TournamentManagerWindow extends JFrame {
         cfg.chartColor = c.getChartColor();
         contestants.add(c);
         notifyContestantsChanged();
-        table.setRowSelectionInterval(contestants.size() - 1, contestants.size() - 1);
     }
 
     private void removeSelected() {
-        int row = table.getSelectedRow();
+        int row = getModelRow();
         if (row < 0 || row >= contestants.size()) return;
         TournamentContestant c = contestants.get(row);
         if (c.isRunning()) {
@@ -570,18 +595,18 @@ public class TournamentManagerWindow extends JFrame {
     }
 
     private void editSelected() {
-        int row = table.getSelectedRow();
+        int row = getModelRow();
         if (row < 0 || row >= contestants.size()) return;
         TournamentContestant c = contestants.get(row);
-        if (c.isRunning()) {
-            JOptionPane.showMessageDialog(this, "Stop the contestant before editing.", "Cannot Edit", JOptionPane.WARNING_MESSAGE);
+        if (c.isRunning() || c.isEliminated()) {
+            JOptionPane.showMessageDialog(this, "Cannot edit a running or eliminated contestant.", "Cannot Edit", JOptionPane.WARNING_MESSAGE);
             return;
         }
         showParamEditor(c);
     }
 
     private void showSelectedDetail() {
-        int row = table.getSelectedRow();
+        int row = getModelRow();
         detailPanel.removeAll();
         if (row < 0 || row >= contestants.size()) {
             detailPanel.revalidate();
@@ -595,6 +620,10 @@ public class TournamentManagerWindow extends JFrame {
         addDetail("Name", c.getName());
         addDetail("Generation", String.valueOf(c.getGeneration()));
         addDetail("Parentage", c.getParentage());
+        if (c.isEliminated()) {
+            addDetail("Status", "ELIMINATED at Gen " + c.getEliminatedAtGeneration());
+            addDetail("Final Score", new DecimalFormat("0.0000").format(c.getFinalScore() * 100) + "%");
+        }
 
         if (c.isRunning() && c.getStartTimeMs() > 0) {
             long sec = (System.currentTimeMillis() - c.getStartTimeMs()) / 1000;
@@ -722,11 +751,24 @@ public class TournamentManagerWindow extends JFrame {
         return c;
     }
 
+    private static double parseScore(Object val) {
+        if (val instanceof String) {
+            String s = ((String) val).replace("%", "").trim();
+            if ("--".equals(s)) return -1;
+            try { return Double.parseDouble(s); } catch (NumberFormatException e) { return -1; }
+        }
+        return -1;
+    }
+
     public void refreshTable() {
         int sel = table.getSelectedRow();
+        int modelSel = (sel >= 0) ? table.convertRowIndexToModel(sel) : -1;
         tableModel.fireTableDataChanged();
-        if (sel >= 0 && sel < contestants.size()) {
-            table.setRowSelectionInterval(sel, sel);
+        if (modelSel >= 0 && modelSel < contestants.size()) {
+            try {
+                int viewRow = table.convertRowIndexToView(modelSel);
+                if (viewRow >= 0) table.setRowSelectionInterval(viewRow, viewRow);
+            } catch (IndexOutOfBoundsException ignored) {}
         }
     }
 
@@ -756,10 +798,16 @@ public class TournamentManagerWindow extends JFrame {
             DecimalFormat df = new DecimalFormat("0.0000");
             switch (col) {
                 case 0: return row + 1;
-                case 1: return c.getChartColor();
-                case 2: return c.getName();
-                case 3: return c.getBestScore() > 0 ? df.format(c.getBestScore() * 100) + "%" : "--";
-                case 4: return c.isRunning() ? "Running" : "Stopped";
+                case 1: return c.isEliminated() ? Color.DARK_GRAY : c.getChartColor();
+                case 2: return c.isEliminated() ? "\u2620 " + c.getName() : c.getName();
+                case 3: {
+                    double score = c.isEliminated() ? c.getFinalScore() : c.getBestScore();
+                    return score > 0 ? df.format(score * 100) + "%" : "--";
+                }
+                case 4: {
+                    if (c.isEliminated()) return "Eliminated (Gen " + c.getEliminatedAtGeneration() + ")";
+                    return c.isRunning() ? "Running" : "Stopped";
+                }
                 case 5: return c.getGeneration();
                 case 6: return c.getConfig().toSummary();
                 default: return "";

@@ -29,6 +29,9 @@ public class TournamentContestant {
     private long startTimeMs;
     private int generation;
     private String parentage = "initial";
+    private boolean eliminated = false;
+    private int eliminatedAtGeneration = -1;
+    private double finalScore = 0;
 
     private static final Color[] PRESET_COLORS = {
         new Color(80, 200, 120),   // green
@@ -190,4 +193,15 @@ public class TournamentContestant {
     public void setGeneration(int generation) { this.generation = generation; }
     public String getParentage() { return parentage; }
     public void setParentage(String parentage) { this.parentage = parentage; }
+    public boolean isEliminated() { return eliminated; }
+    public int getEliminatedAtGeneration() { return eliminatedAtGeneration; }
+    public double getFinalScore() { return finalScore; }
+
+    /** Marks this contestant as eliminated. Preserves the last best image/score for display. */
+    public void eliminate(int atGeneration) {
+        this.eliminated = true;
+        this.eliminatedAtGeneration = atGeneration;
+        this.finalScore = bestScore;
+        dispose();
+    }
 }

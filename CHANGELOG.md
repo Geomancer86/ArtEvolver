@@ -40,6 +40,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`TournamentContestant.dispose()`** — full cleanup: stop + interrupt threads + clear evolvers
 - **`TournamentContestant` generation/parentage tracking** for evolutionary lineage
 
+### Fixed — Evolutionary Tournament Not Firing
+- **`EvolutionaryTournament.start()` now returns `boolean`** and logs errors when preconditions
+  fail, instead of silently returning. `toggleEvolving()` now shows an error dialog on failure.
+- **Ranking now filters to alive contestants only** — `getAlive()` helper excludes eliminated
+  contestants from ranking, parent selection, and minimum population checks.
+
+### Added — Eliminated Contestants Remain Visible
+- **Eliminated contestants stay in the list** — instead of being removed, culled contestants
+  are marked `eliminated=true` with their final score and elimination generation preserved.
+- **Draw All** shows eliminated contestants with 35% opacity, red border, and a skull
+  "ELIMINATED" overlay while preserving their last best image.
+- **Fitness chart** keeps eliminated contestants' historical data visible (series not cleared);
+  only stops adding new data points.
+- **Tournament Manager table** shows eliminated contestants with skull icon, grey color swatch,
+  "Eliminated (Gen N)" status, and sorts them to the bottom by default.
+- **Detail panel** shows elimination info (status, final score) for eliminated contestants.
+- **Contestant combo** shows eliminated entries with skull icon and "ELIMINATED" suffix.
+- **Table is now sortable** — click column headers to sort by name, score, status, gen, or
+  parameters. Default sort: Status ascending + Score descending (eliminated at bottom).
+
 ### Added — Tournament Display Modes
 - **Display Mode** combo box in the Tournament section of the sidebar with three options:
   - **Draw Selected** — shows the contestant currently picked in the combo box (default)

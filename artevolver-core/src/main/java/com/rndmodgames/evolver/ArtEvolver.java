@@ -797,6 +797,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				    long tGoodIter = 0;
 				    TournamentContestant bestContestant = null;
 				    for (TournamentContestant c : contestants) {
+				        if (c.isEliminated()) continue;
 				        c.updateBest();
 				        tTotalIter += c.getTotalIterations();
 				        tGoodIter += c.getGoodIterations();
@@ -922,6 +923,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                     if (fitnessChartWindow != null && fitnessChartWindow.isVisible()) {
                         if (tournamentMode && !contestants.isEmpty()) {
                             for (TournamentContestant c : contestants) {
+                                if (c.isEliminated()) continue;
                                 if (c.getBestScore() > 0) {
                                     fitnessChartWindow.addDataPoint(c.getId(), c.getName(),
                                         c.getTotalIterations(), c.getBestScore(), c.getChartColor());
@@ -2110,8 +2112,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	        } else {
 	            DecimalFormat df = new DecimalFormat("0.00");
 	            for (TournamentContestant c : contestants) {
-	                cmbContestant.addItem(c.getName() + " (" + df.format(
-	                    Math.max(0, c.getBestScore()) * 100) + "%)");
+	                if (c.isEliminated()) {
+	                    cmbContestant.addItem("\u2620 " + c.getName() + " (" + df.format(c.getFinalScore() * 100) + "%) ELIMINATED");
+	                } else {
+	                    cmbContestant.addItem(c.getName() + " (" + df.format(
+	                        Math.max(0, c.getBestScore()) * 100) + "%)");
+	                }
 	            }
 	        }
 	        if (prevIdx >= 0 && prevIdx < cmbContestant.getItemCount()) {
@@ -2143,8 +2149,10 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    DecimalFormat df = new DecimalFormat("0.00");
 	    Font nameFont = new Font(Font.SANS_SERIF, Font.BOLD, Math.max(9, Math.min(12, cellW / 14)));
 	    Font scoreFont = new Font(Font.MONOSPACED, Font.BOLD, Math.max(9, Math.min(11, cellW / 16)));
+	    Font elimFont = new Font(Font.SANS_SERIF, Font.BOLD, Math.max(10, Math.min(14, cellW / 10)));
 
 	    double bestScoreInTournament = contestants.stream()
+	        .filter(c -> !c.isEliminated())
 	        .mapToDouble(TournamentContestant::getBestScore).max().orElse(0);
 
 	    for (int i = 0; i < n; i++) {
@@ -2153,6 +2161,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	        int row = i / cols;
 	        int cx = pad + col * cellW;
 	        int cy = pad + row * cellH;
+	        boolean dead = c.isEliminated();
 
 	        BufferedImage img = c.getBestImage();
 	        if (img != null) {
@@ -2165,7 +2174,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	            int drawH = (int) (imgH * scale);
 	            int dx = cx + (cellW - drawW) / 2;
 	            int dy = cy + pad;
-	            g.drawImage(img, dx, dy, drawW, drawH, null);
+	            if (dead) {
+	                java.awt.Composite origComp = g.getComposite();
+	                g.setComposite(java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, 0.35f));
+	                g.drawImage(img, dx, dy, drawW, drawH, null);
+	                g.setComposite(origComp);
+	            } else {
+	                g.drawImage(img, dx, dy, drawW, drawH, null);
+	            }
 	        } else {
 	            g.setColor(new java.awt.Color(60, 60, 70));
 	            g.fillRect(cx + pad, cy + pad, cellW - pad * 2, cellH - pad * 2 - 18);
@@ -2174,25 +2190,36 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	            g.drawString("initializing...", cx + pad + 4, cy + cellH / 2);
 	        }
 
-	        boolean isBest = (c.getBestScore() > 0 && c.getBestScore() >= bestScoreInTournament);
-	        boolean isSelected = (c == selectedContestant);
-
-	        if (isBest || isSelected) {
-	            g.setStroke(new java.awt.BasicStroke(isBest ? 3f : 2f));
-	            g.setColor(isBest ? new java.awt.Color(255, 215, 0) : c.getChartColor());
+	        if (dead) {
+	            g.setStroke(new java.awt.BasicStroke(2f));
+	            g.setColor(new java.awt.Color(178, 34, 34, 180));
 	            g.drawRect(cx + 1, cy + 1, cellW - 3, cellH - 3);
+	            g.setFont(elimFont);
+	            g.setColor(new java.awt.Color(178, 34, 34));
+	            String elimTxt = "\u2620 ELIMINATED";
+	            int ew = g.getFontMetrics().stringWidth(elimTxt);
+	            g.drawString(elimTxt, cx + (cellW - ew) / 2, cy + cellH / 2 + 5);
+	        } else {
+	            boolean isBest = (c.getBestScore() > 0 && c.getBestScore() >= bestScoreInTournament);
+	            boolean isSelected = (c == selectedContestant);
+	            if (isBest || isSelected) {
+	                g.setStroke(new java.awt.BasicStroke(isBest ? 3f : 2f));
+	                g.setColor(isBest ? new java.awt.Color(255, 215, 0) : c.getChartColor());
+	                g.drawRect(cx + 1, cy + 1, cellW - 3, cellH - 3);
+	            }
 	        }
 
 	        int labelY = cy + cellH - 6;
 	        g.setColor(new java.awt.Color(0, 0, 0, 160));
 	        g.fillRect(cx, labelY - 13, cellW, 16);
 	        g.setFont(nameFont);
-	        g.setColor(c.getChartColor());
+	        g.setColor(dead ? java.awt.Color.GRAY : c.getChartColor());
 	        g.drawString(c.getName(), cx + 3, labelY);
 
-	        String scoreStr = c.getBestScore() > 0 ? df.format(c.getBestScore() * 100) + "%" : "--";
+	        double displayScore = dead ? c.getFinalScore() : c.getBestScore();
+	        String scoreStr = displayScore > 0 ? df.format(displayScore * 100) + "%" : "--";
 	        g.setFont(scoreFont);
-	        g.setColor(java.awt.Color.WHITE);
+	        g.setColor(dead ? java.awt.Color.DARK_GRAY : java.awt.Color.WHITE);
 	        int scoreW = g.getFontMetrics().stringWidth(scoreStr);
 	        g.drawString(scoreStr, cx + cellW - scoreW - 4, labelY);
 	    }
@@ -2244,6 +2271,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	    fitnessChartWindow.setVisible(true);
 
 	    for (TournamentContestant c : contestants) {
+	        if (c.isEliminated()) continue;
 	        if (!c.isRunning()) {
 	            try {
 	                if (c.getEvolvers().isEmpty()) {
@@ -2276,7 +2304,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	        tournamentManagerWindow.resetEvolveButton();
 	    }
 	    for (TournamentContestant c : contestants) {
-	        c.stop();
+	        if (!c.isEliminated()) c.stop();
 	    }
 	    if (tournamentManagerWindow != null) tournamentManagerWindow.refreshTable();
 	    refreshContestantCombo();

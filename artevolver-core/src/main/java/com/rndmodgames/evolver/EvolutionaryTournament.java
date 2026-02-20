@@ -48,9 +48,16 @@ public class EvolutionaryTournament {
         this.contestants = contestants;
     }
 
-    public void start() {
-        if (running) return;
-        if (contestants.size() < minContestants) return;
+    /**
+     * @return true if successfully started, false if preconditions not met
+     */
+    public boolean start() {
+        if (running) return false;
+        if (contestants.size() < minContestants) {
+            System.err.println("[EvoTournament] Cannot start: need " + minContestants
+                    + " contestants, have " + contestants.size());
+            return false;
+        }
         running = true;
         converged = false;
         stalledGenerations = 0;
@@ -58,10 +65,12 @@ public class EvolutionaryTournament {
         lastTickMs = System.currentTimeMillis();
 
         cullTimer = new Timer(cutoffSeconds * 1000, e -> onCutoffTick());
+        cullTimer.setInitialDelay(cutoffSeconds * 1000);
         cullTimer.setRepeats(true);
         cullTimer.start();
         System.out.println("[EvoTournament] Started — cutoff every " + cutoffSeconds
                 + "s, pop=" + contestants.size());
+        return true;
     }
 
     public void stop() {
@@ -82,13 +91,22 @@ public class EvolutionaryTournament {
         return Math.max(0, cutoffSeconds - (int) elapsed);
     }
 
+    private List<TournamentContestant> getAlive() {
+        List<TournamentContestant> alive = new ArrayList<>();
+        for (TournamentContestant c : contestants) {
+            if (!c.isEliminated()) alive.add(c);
+        }
+        return alive;
+    }
+
     private void onCutoffTick() {
-        if (!running || contestants.size() < minContestants) return;
+        List<TournamentContestant> alive = getAlive();
+        if (!running || alive.size() < minContestants) return;
 
         lastTickMs = System.currentTimeMillis();
         generation++;
 
-        List<TournamentContestant> ranked = new ArrayList<>(contestants);
+        List<TournamentContestant> ranked = new ArrayList<>(alive);
         ranked.sort((a, b) -> Double.compare(b.getBestScore(), a.getBestScore()));
 
         boolean anyReady = ranked.stream().anyMatch(c -> c.getBestScore() > 0);
@@ -153,11 +171,7 @@ public class EvolutionaryTournament {
                 + "x"
                 + parentB.getName().substring(0, Math.min(3, parentB.getName().length()));
 
-        worst.dispose();
-        contestants.remove(worst);
-        if (artEvolver.getFitnessChartWindow() != null) {
-            artEvolver.getFitnessChartWindow().clearSeries(worst.getId());
-        }
+        worst.eliminate(generation);
 
         TournamentContestant child = new TournamentContestant("evo" + nextId++, childName);
         child.setConfig(childConfig);
@@ -198,7 +212,7 @@ public class EvolutionaryTournament {
         rec.bestScore = best.getBestScore();
         rec.worstScore = culledScore;
         rec.avgScore = avgScore;
-        rec.aliveCount = contestants.size();
+        rec.aliveCount = getAlive().size();
         rec.bestEverScore = bestEverScore;
         rec.bestEverName = bestEverName;
         rec.converged = converged;

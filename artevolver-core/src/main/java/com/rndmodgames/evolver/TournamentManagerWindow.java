@@ -1671,7 +1671,8 @@ public class TournamentManagerWindow extends JFrame {
             }
 
             // Promise tag
-            if (vel > 0.001) sb.append("  \u2B50 FAST");
+            if (vel < -0.0001) sb.append("  \u274C DECLINING");
+            else if (vel > 0.001) sb.append("  \u2B50 FAST");
             else if (vel > 0 && acc > 0) sb.append("  \u2197 rising");
             else if (vel <= 0 && acc < 0) sb.append("  \u2198 fading");
             else if (uptimeSec > 30 && score < leader.getBestScore() * 0.95 && vel <= 0)
@@ -2078,7 +2079,8 @@ public class TournamentManagerWindow extends JFrame {
                 case 4: {
                     if (c.isFinished()) return "--";
                     double vel = c.getFitnessTracker().getVelocity();
-                    if (vel <= 0) return "--";
+                    if (vel < -0.0000001) return "\u25BC" + new DecimalFormat("0.000000").format(Math.abs(vel) * 100) + "/s";
+                    if (vel <= 0.0000001) return "\u25AC 0";
                     return new DecimalFormat("0.000000").format(vel * 100) + "/s";
                 }
                 case 5: {

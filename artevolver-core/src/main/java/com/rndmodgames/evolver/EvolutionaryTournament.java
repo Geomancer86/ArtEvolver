@@ -200,6 +200,31 @@ public class EvolutionaryTournament {
             // Skip remaining soft checks for grace-protected contestants
             if (c.isProtected()) continue;
 
+            // Declining detection: negative velocity = actively regressing, worse than stale.
+            // Must fire BEFORE the stale check. Minimum 5s of data to avoid false positives.
+            {
+                FitnessTracker ft = c.getFitnessTracker();
+                double vel = ft.getVelocity();
+                double elapsed = ft.getElapsedSeconds();
+                if (elapsed >= 5 && vel < -STALE_VELOCITY_THRESHOLD) {
+                    if (c.hasMoreStages()) {
+                        System.out.println("[EvoTournament] DECLINING-SHIFT: " + c.getName()
+                                + " regressing (vel=" + DF2.format(vel * 100)
+                                + "%/s) — shifting to gear "
+                                + (c.getCurrentStageIndex() + 2) + "/" + c.getTotalStages());
+                        c.advanceStage();
+                        ft.resetWindow();
+                    } else {
+                        System.out.println("[EvoTournament] DECLINING: " + c.getName()
+                                + " regressing (vel=" + DF2.format(vel * 100)
+                                + "%/s) on last gear — terminating immediately");
+                        c.eliminate(generation);
+                        killed.add(c);
+                    }
+                    continue;
+                }
+            }
+
             // Stale detection: flat fitness for staleThresholdSeconds = early termination
             // Multi-stage: auto-shift gear instead of killing if more stages available
             if (staleThresholdSeconds > 0 && ageSec >= staleThresholdSeconds) {
@@ -234,7 +259,7 @@ public class EvolutionaryTournament {
                     long remainSec = maxLifespanSeconds - ageSec;
                     if (remainSec > 0) {
                         double projected = ft.getProjectedFitness(remainSec);
-                        if (projected > 0 && projected < worstAliveScore) {
+                        if (projected < worstAliveScore) {
                             System.out.println("[EvoTournament] HOPELESS: " + c.getName()
                                     + " projected=" + DF2.format(projected * 100)
                                     + "% < worst alive=" + DF2.format(worstAliveScore * 100)
@@ -937,32 +962,42 @@ public class EvolutionaryTournament {
 
     EvolutionConfig breedConfigs(EvolutionConfig cfgA, EvolutionConfig cfgB) {
         boolean eitherMulti = cfgA.isMultiStage() || cfgB.isMultiStage();
+        EvolutionConfig template = RNG.nextBoolean() ? cfgA : cfgB;
         if (eitherMulti) {
             float[] genesA = cfgA.toBreedableGeneArray(MULTI_STAGE_COUNT);
             float[] genesB = cfgB.toBreedableGeneArray(MULTI_STAGE_COUNT);
             float[] childGenes = crossover(genesA, genesB);
             childGenes = mutateMultiStage(childGenes, MULTI_STAGE_COUNT);
             EvolutionStage.TriggerType[] triggers = inferTriggerTypes(cfgA, cfgB, MULTI_STAGE_COUNT);
-            return EvolutionConfig.fromMultiStageGeneArray(childGenes, MULTI_STAGE_COUNT, triggers, cfgA);
+            return EvolutionConfig.fromMultiStageGeneArray(childGenes, MULTI_STAGE_COUNT, triggers, template);
         }
         float[] genesA = cfgA.toGeneArray();
         float[] genesB = cfgB.toGeneArray();
         float[] childGenes = crossover(genesA, genesB);
         childGenes = mutate(childGenes);
-        return EvolutionConfig.fromGeneArray(childGenes, cfgA);
+        return EvolutionConfig.fromGeneArray(childGenes, template);
     }
 
     /**
-     * Infers trigger types for breeding. If a parent has stages, use those triggers;
-     * otherwise default to TIME for non-terminal stages.
+     * Infers trigger types for breeding. When both parents have stages, each stage's
+     * trigger type is randomly inherited from one parent (genetic mixing). When only
+     * one parent has stages, uses that parent's triggers. Defaults to TIME otherwise.
      */
     private EvolutionStage.TriggerType[] inferTriggerTypes(EvolutionConfig cfgA,
             EvolutionConfig cfgB, int stageCount) {
         EvolutionStage.TriggerType[] result = new EvolutionStage.TriggerType[stageCount];
-        EvolutionConfig donor = cfgA.isMultiStage() ? cfgA : (cfgB.isMultiStage() ? cfgB : null);
+        boolean aHas = cfgA.isMultiStage() && cfgA.getStages() != null;
+        boolean bHas = cfgB.isMultiStage() && cfgB.getStages() != null;
         for (int i = 0; i < stageCount; i++) {
-            if (donor != null && donor.getStages() != null && i < donor.getStages().size()) {
-                result[i] = donor.getStages().get(i).getTriggerType();
+            if (aHas && bHas) {
+                EvolutionConfig pick = RNG.nextBoolean() ? cfgA : cfgB;
+                result[i] = (i < pick.getStages().size())
+                        ? pick.getStages().get(i).getTriggerType()
+                        : EvolutionStage.TriggerType.TIME;
+            } else if (aHas && i < cfgA.getStages().size()) {
+                result[i] = cfgA.getStages().get(i).getTriggerType();
+            } else if (bHas && i < cfgB.getStages().size()) {
+                result[i] = cfgB.getStages().get(i).getTriggerType();
             } else {
                 result[i] = EvolutionStage.TriggerType.TIME;
             }
@@ -977,6 +1012,7 @@ public class EvolutionaryTournament {
     private EvolutionConfig breedWithAncestry(TournamentContestant parentA,
                                                TournamentContestant parentB) {
         boolean eitherMulti = parentA.getConfig().isMultiStage() || parentB.getConfig().isMultiStage();
+        EvolutionConfig template = RNG.nextBoolean() ? parentA.getConfig() : parentB.getConfig();
 
         List<LineageNode.WeightedGenes> genesA =
                 parentA.getLineageNode().getAncestralGenes(lineageDecay, ancestryDepth);
@@ -992,12 +1028,12 @@ public class EvolutionaryTournament {
             EvolutionStage.TriggerType[] triggers = inferTriggerTypes(
                     parentA.getConfig(), parentB.getConfig(), MULTI_STAGE_COUNT);
             return EvolutionConfig.fromMultiStageGeneArray(blended, MULTI_STAGE_COUNT,
-                    triggers, parentA.getConfig());
+                    triggers, template);
         }
 
         float[] blended = blendAncestralGenes(genesA, genesB, EvolutionConfig.GENE_COUNT);
         blended = mutate(blended);
-        return EvolutionConfig.fromGeneArray(blended, parentA.getConfig());
+        return EvolutionConfig.fromGeneArray(blended, template);
     }
 
     /**

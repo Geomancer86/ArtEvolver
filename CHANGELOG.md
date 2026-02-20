@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] (3.2.0-SNAPSHOT)
 
+### Fixed — Declining Fitness Detection & Breeding Fairness
+
+- **DECLINING detection**: New check in `enforceLifespanCap()` that fires BEFORE the
+  stale check. If velocity is significantly negative (< -STALE_VELOCITY_THRESHOLD),
+  the contestant is treated worse than stale. Multi-stage contestants with declining
+  fitness auto-shift gear (same as stale); single-stage or last-gear contestants are
+  eliminated immediately. Previously, declining contestants escaped both the STALE check
+  (which used `Math.abs(vel)`, making negative velocity look like a large positive value
+  exceeding the threshold) and the HOPELESS check (which required `projected > 0`,
+  skipping contestants with negative projections entirely).
+- **HOPELESS check catches negative projections**: Removed the `projected > 0` guard
+  from the HOPELESS detection. Contestants whose projected end-of-life fitness is
+  negative or zero are now correctly identified as hopeless and eliminated.
+- **Symmetric breeding template**: `breedConfigs()` and `breedWithAncestry()` now
+  randomly pick the template parent (for non-gene fields like threads, evolveIterations)
+  instead of always using parent A. This prevents systematic bias toward one parent's
+  non-genetic traits.
+- **Trigger type mixing in multi-stage breeding**: `inferTriggerTypes()` now randomly
+  selects each stage's trigger type from either parent when both are multi-stage,
+  enabling genetic exploration of trigger strategies (TIME/STALE/FITNESS) across
+  generations. Previously always used parent A's triggers.
+- **Velocity display improvements**: Tournament table now shows declining velocity with
+  a down-arrow indicator instead of hiding it as "--". Live status mini-leaderboard
+  shows "DECLINING" tag for contestants with negative velocity.
+
 ### Added — Multi-Stage (Geared) Competitors
 
 - **Multi-stage evolution engine**: Competitors can now have configurable "gear" stages

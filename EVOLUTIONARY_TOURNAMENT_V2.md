@@ -268,6 +268,7 @@ table (new "Parentage" and "Breed" columns) and in the dashboard JSON/HTML.
 | `ancestryDepth` | 3 | Max generations back for breeding/lineage |
 | `maxLifespanSeconds` | 60 | Hard cap age — applies even during grace (0 = disabled) |
 | `staleThresholdSeconds` | 15 | Kill flat-line contestants after N seconds of zero improvement (0 = off) |
+| *(declining kill)* | 5s min | Immediate termination if velocity is negative (worse than stale) |
 | *(hopeless kill)* | 10s min | Projected-fitness early kill if can't beat worst alive |
 | `maxPromoted` | 10 | Max contestants in the hall of fame |
 | `presetInjectionInterval` | 3 | Every Nth spawn inject untried preset (0 = off) |

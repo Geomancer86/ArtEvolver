@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.0] - 2026-02-20 (develop branch)
 
+### Fixed — Population Control, Promotion Quality & Consistency
+
+- **Population cap**: Autopilot now derives a `maxAliveContestants` from the thread budget
+  (threadBudget / threadsPerContestant). Prevents unbounded population growth that previously
+  led to 100+ active contestants overwhelming the tournament
+- **Autopilot defers to evo tournament**: Once the evolutionary tournament is running, the
+  autopilot stops spawning raw contestants. Only the evo tournament breeds replacements,
+  ensuring proper lineage tracking, naming, and selection pressure
+- **Lifespan enforcer breeds replacements**: When the lifespan timer kills expired/stale
+  contestants, it now immediately breeds replacements (via the evo tournament's breeding pool)
+  instead of leaving empty slots that the autopilot would fill with untracked randoms
+- **Stricter promotion threshold**: Promotion to the hall of fame now requires beating the
+  AVERAGE score of the promoted pool, not just the worst. This creates a steadily rising
+  quality bar and prevents the pool from filling with mediocre configs
+- **Settings consistency**: All entry points (manual "Start Evolving", "Auto-Evolve on Start",
+  autopilot auto-start) now use the same `createEvoTournament()` path, ensuring user-configured
+  settings are always preserved regardless of how the tournament is started
+- **Lifespan timer management**: `ensureLifespanTimer()` correctly starts/stops the enforcement
+  timer when either `maxLifespanSeconds` or `staleThresholdSeconds` is changed mid-run
+
 ### Added — Stale Detection, Rich Naming & Expanded Presets
 
 - **Stale detection (early kill)**: Contestants with flat-line fitness (near-zero velocity)

@@ -47,8 +47,9 @@ public class TournamentManagerWindow extends JFrame {
     private double maxRamPercent = 85;
     private double maxHeapPercent = 80;
     private long lastSpawnMs = 0;
-    private static final long SPAWN_COOLDOWN_MS = 5000; // 5 seconds between spawns
+    private static final long SPAWN_COOLDOWN_MS = 5000;
     private static final int MAX_TOTAL_THREADS = Runtime.getRuntime().availableProcessors();
+    private int maxAliveContestants = 12;
 
     // Prehistoric Mode UI
     private JPanel prehistoricPanel;
@@ -358,14 +359,16 @@ public class TournamentManagerWindow extends JFrame {
                 .mapToInt(c -> c.getConfig() != null ? c.getConfig().threads : 1)
                 .sum();
         int threadBudget = Math.max(2, (int) (MAX_TOTAL_THREADS * (maxCpuPercent / 100.0)));
+        int aliveNow = (int) contestants.stream().filter(c -> !c.isFinished()).count();
         JTextArea txtInfo = new JTextArea(
                 "Autopilot monitors system resources and automatically:\n"
-                + " - Spawns replacements when promoted contestants free threads\n"
+                + " - Replaces expired/stale contestants via evo tournament breeding\n"
                 + " - Thread budget: " + totalThreadsUsed + "/" + threadBudget
                 + " (" + MAX_TOTAL_THREADS + " logical cores * " + (int)maxCpuPercent + "% limit)\n"
-                + " - 10s cooldown between spawns\n"
-                + " - Uses Prehistoric Mode (Genesis) or Quick Setup based on state\n"
-                + " - Activates evolutionary tournament when enough contestants exist\n\n"
+                + " - Max alive pop: " + maxAliveContestants + " (alive now: " + aliveNow + ")\n"
+                + " - " + (SPAWN_COOLDOWN_MS / 1000) + "s cooldown between spawns\n"
+                + " - Once evo tournament starts, only IT breeds replacements\n"
+                + " - Activates evolutionary tournament when 3+ contestants have scores\n\n"
                 + "Current system:\n" + sysMonitor.toString());
         txtInfo.setEditable(false);
         txtInfo.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 11));
@@ -445,9 +448,18 @@ public class TournamentManagerWindow extends JFrame {
                 .sum();
 
         // Thread budget: use the full logical core count scaled by CPU limit.
-        // The user chose how many cores to dedicate — respect that choice.
         int threadBudget = Math.max(2, (int) (MAX_TOTAL_THREADS * (maxCpuPercent / 100.0)));
         boolean threadBudgetAvailable = totalThreadsUsed + 2 <= threadBudget;
+
+        // Derive max alive from thread budget to prevent unbounded population growth
+        int threadsPerContestantEst = 2;
+        for (TournamentContestant cc : contestants) {
+            if (!cc.isFinished() && cc.getConfig() != null) {
+                threadsPerContestantEst = cc.getConfig().threads;
+                break;
+            }
+        }
+        maxAliveContestants = Math.max(3, threadBudget / Math.max(1, threadsPerContestantEst));
 
         boolean resourcesAvailable = sysMonitor.canAddWork(maxCpuPercent, maxRamPercent, maxHeapPercent);
 
@@ -481,8 +493,12 @@ public class TournamentManagerWindow extends JFrame {
         boolean inPrehistoric = prehistoricMode != null && prehistoricMode.isActive();
         int freeThreads = threadBudget - totalThreadsUsed;
         boolean needsReplacement = freeThreads >= threadsPerContestant;
+        boolean underPopCap = aliveCount < maxAliveContestants;
+        boolean evoRunning = evoTournament != null && evoTournament.isRunning();
 
-        if (!inPrehistoric && canSpawn && needsReplacement) {
+        // Only autopilot-spawn raw contestants if the evo tournament isn't handling breeding.
+        // Once the evo tournament is active, IT manages all culling/spawning via onCutoffTick.
+        if (!inPrehistoric && !evoRunning && canSpawn && needsReplacement && underPopCap) {
             EvolutionConfig cfg = new EvolutionConfig();
             artEvolver.populateConfigFromUI(cfg);
             cfg.threads = threadsPerContestant;
@@ -1080,9 +1096,7 @@ public class TournamentManagerWindow extends JFrame {
     // --- Evolutionary Tournament ---
 
     private void toggleEvolving() {
-        if (evoTournament == null) {
-            evoTournament = new EvolutionaryTournament(artEvolver, contestants);
-        }
+        createEvoTournament();
 
         if (evoTournament.isRunning()) {
             evoTournament.stop();
@@ -1128,9 +1142,7 @@ public class TournamentManagerWindow extends JFrame {
 
     /** Silently starts evolving if preconditions are met (called by auto-evolve). */
     private void autoStartEvolving() {
-        if (evoTournament == null) {
-            evoTournament = new EvolutionaryTournament(artEvolver, contestants);
-        }
+        createEvoTournament();
         if (evoTournament.isRunning()) return;
 
         long alive = contestants.stream().filter(c -> !c.isFinished()).count();

@@ -170,6 +170,8 @@ public class EvolutionaryTournament {
     private void enforceLifespanCap() {
         if (!running) return;
         long now = System.currentTimeMillis();
+        List<TournamentContestant> killed = new ArrayList<>();
+
         for (TournamentContestant c : new ArrayList<>(contestants)) {
             if (c.isFinished() || c.isProtected()) continue;
             long startMs = c.getStartTimeMs();
@@ -181,6 +183,7 @@ public class EvolutionaryTournament {
                 System.out.println("[EvoTournament] HARD CAP: " + c.getName()
                         + " finished after " + ageSec + "s (limit " + maxLifespanSeconds + "s)");
                 finishContestant(c);
+                killed.add(c);
                 continue;
             }
 
@@ -194,6 +197,54 @@ public class EvolutionaryTournament {
                             + " flat for " + (int) elapsed + "s (vel=" + DF2.format(vel * 100)
                             + "%/s) — terminating early");
                     c.eliminate(generation);
+                    killed.add(c);
+                }
+            }
+        }
+
+        // Breed replacements for each killed contestant to maintain population
+        if (!killed.isEmpty() && running) {
+            List<TournamentContestant> alive = getAlive();
+            if (alive.size() >= 2) {
+                List<ScoredContestant> pool = computeCompositeScores(getBreedingPool());
+                pool.sort((a, b) -> Double.compare(b.compositeScore, a.compositeScore));
+                for (TournamentContestant dead : killed) {
+                    TournamentContestant parentA = selectParent(pool, dead);
+                    TournamentContestant parentB = selectParentDiverse(pool, dead, parentA);
+                    if (parentA == null || parentB == null) break;
+
+                    EvolutionConfig childConfig;
+                    String breedTag;
+                    spawnsSinceLastPreset++;
+
+                    EvolutionConfig presetConfig = tryGetUntriedPreset();
+                    if (presetConfig != null && presetInjectionInterval > 0
+                            && spawnsSinceLastPreset >= presetInjectionInterval) {
+                        childConfig = presetConfig;
+                        childConfig.threads = dead.getConfig() != null ? dead.getConfig().threads : 2;
+                        String presetShort = abbreviate(childConfig.name, 8);
+                        String childName = "R" + generation + "\u00b7P\u00b7" + presetShort;
+                        breedTag = "Preset:" + childConfig.name;
+                        spawnsSinceLastPreset = 0;
+                        spawnChild(childName, childConfig, parentA, parentB, breedTag);
+                    } else {
+                        boolean ancestral = useAncestralCrossover
+                                && parentA.getLineageNode() != null
+                                && parentB.getLineageNode() != null;
+                        childConfig = ancestral
+                                ? breedWithAncestry(parentA, parentB)
+                                : breedConfigs(parentA.getConfig(), parentB.getConfig());
+                        childConfig.threads = dead.getConfig() != null ? dead.getConfig().threads : 2;
+                        int mutations = lastMutationCount;
+                        String pa = abbreviate(parentA.getName(), 5);
+                        String pb = abbreviate(parentB.getName(), 5);
+                        String crossType = ancestral ? "ANC" : "BLX";
+                        String mutTag = mutations > 0 ? "\u00b7M" + mutations : "";
+                        String childName = "R" + generation + "\u00b7" + pa + "\u00d7" + pb
+                                + "\u00b7" + crossType + mutTag;
+                        breedTag = crossType + (mutations > 0 ? "+" + mutations + "mut" : "");
+                        spawnChild(childName, childConfig, parentA, parentB, breedTag);
+                    }
                 }
             }
         }
@@ -646,21 +697,28 @@ public class EvolutionaryTournament {
 
     /**
      * Decides whether a finishing contestant deserves promotion or elimination.
-     * Promotion is earned: the contestant's score must beat the worst in the
-     * promoted pool (or the pool must have room). Otherwise it's eliminated.
-     * If the pool is full and the newcomer is better, the worst promoted is
-     * downgraded to eliminated to make room.
+     * Promotion requires beating the AVERAGE score of the promoted pool (not just
+     * the worst), ensuring a steadily rising quality bar. If the pool is full and
+     * the newcomer qualifies, the worst promoted is demoted to make room.
      */
     private void finishContestant(TournamentContestant c) {
         double score = c.getBestScore();
         List<TournamentContestant> promoted = getPromoted();
 
-        if (promoted.size() < maxPromoted) {
+        double avgPromotedScore = 0;
+        if (!promoted.isEmpty()) {
+            avgPromotedScore = promoted.stream()
+                    .mapToDouble(TournamentContestant::getFinalScore).average().orElse(0);
+        }
+
+        boolean meetsThreshold = promoted.isEmpty() || score > avgPromotedScore;
+
+        if (meetsThreshold && promoted.size() < maxPromoted) {
             c.promote(generation);
             System.out.println("[EvoTournament] \uD83C\uDFC5 Promoted " + c.getName()
                     + " (" + DF2.format(score * 100) + "%) — pool " + (promoted.size() + 1)
-                    + "/" + maxPromoted);
-        } else {
+                    + "/" + maxPromoted + " (avg " + DF2.format(avgPromotedScore * 100) + "%)");
+        } else if (meetsThreshold && promoted.size() >= maxPromoted) {
             TournamentContestant worstPromoted = promoted.stream()
                     .min((a, b) -> Double.compare(a.getFinalScore(), b.getFinalScore()))
                     .orElse(null);
@@ -668,14 +726,21 @@ public class EvolutionaryTournament {
             if (worstPromoted != null && score > worstPromoted.getFinalScore()) {
                 System.out.println("[EvoTournament] \uD83C\uDFC5 Promoted " + c.getName()
                         + " (" + DF2.format(score * 100) + "%), displacing "
-                        + worstPromoted.getName() + " (" + DF2.format(worstPromoted.getFinalScore() * 100) + "%)");
+                        + worstPromoted.getName() + " (" + DF2.format(worstPromoted.getFinalScore() * 100)
+                        + "%) — avg=" + DF2.format(avgPromotedScore * 100) + "%");
                 worstPromoted.eliminate(generation);
                 c.promote(generation);
             } else {
                 c.eliminate(generation);
                 System.out.println("[EvoTournament] Eliminated " + c.getName()
-                        + " (" + DF2.format(score * 100) + "%) — not good enough for hall of fame");
+                        + " (" + DF2.format(score * 100) + "%) — below avg promoted "
+                        + DF2.format(avgPromotedScore * 100) + "%");
             }
+        } else {
+            c.eliminate(generation);
+            System.out.println("[EvoTournament] Eliminated " + c.getName()
+                    + " (" + DF2.format(score * 100) + "%) — below avg promoted "
+                    + DF2.format(avgPromotedScore * 100) + "%");
         }
     }
 
@@ -997,15 +1062,23 @@ public class EvolutionaryTournament {
     public int getMaxLifespanSeconds() { return maxLifespanSeconds; }
     public void setMaxLifespanSeconds(int s) {
         this.maxLifespanSeconds = Math.max(0, s);
-        if (running && s > 0 && lifespanTimer == null) {
+        ensureLifespanTimer();
+    }
+    public int getStaleThresholdSeconds() { return staleThresholdSeconds; }
+    public void setStaleThresholdSeconds(int s) {
+        this.staleThresholdSeconds = Math.max(0, s);
+        ensureLifespanTimer();
+    }
+
+    private void ensureLifespanTimer() {
+        boolean needTimer = running && (maxLifespanSeconds > 0 || staleThresholdSeconds > 0);
+        if (needTimer && lifespanTimer == null) {
             startLifespanEnforcer();
-        } else if (s <= 0 && lifespanTimer != null) {
+        } else if (!needTimer && lifespanTimer != null) {
             lifespanTimer.stop();
             lifespanTimer = null;
         }
     }
-    public int getStaleThresholdSeconds() { return staleThresholdSeconds; }
-    public void setStaleThresholdSeconds(int s) { this.staleThresholdSeconds = Math.max(0, s); }
     public int getMaxPromoted() { return maxPromoted; }
     public void setMaxPromoted(int n) { this.maxPromoted = Math.max(1, n); }
     public int getPresetInjectionInterval() { return presetInjectionInterval; }

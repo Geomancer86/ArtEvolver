@@ -166,11 +166,14 @@ velocity drops near zero but their absolute score keeps them at the top indefini
 5. The fitness chart looks clean: all contestants have similar time spans
 6. The oldest expired contestant is promoted first (fairness)
 
-**Promoted Pool (Hall of Fame) — Merit-Based**:
+**Promoted Pool (Hall of Fame) — Merit-Based (Above Average)**:
 - Promotion is **earned**, not automatic. When a contestant finishes (lifespan or culled):
-  - If the pool has room (`< maxPromoted`): promoted
-  - If the pool is full: promoted only if score beats the worst promoted (who gets demoted)
+  - Must beat the **average** score of the promoted pool (not just the worst)
+  - If the pool has room and score > avg: promoted
+  - If the pool is full, score > avg, and beats worst promoted: promoted (worst demoted)
   - Otherwise: eliminated (not good enough for the hall of fame)
+- This creates a **steadily rising quality bar** — the more good configs are promoted,
+  the harder it becomes to earn a spot, ensuring only truly excellent configs survive
 - Promoted contestants retain their config and final score
 - They are available as **parent candidates** when breeding new offspring
 - `maxPromoted` cap (default 10) keeps only the best-ever configs in the breeding pool

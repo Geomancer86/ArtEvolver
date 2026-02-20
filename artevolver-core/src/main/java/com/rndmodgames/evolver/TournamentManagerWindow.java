@@ -47,7 +47,7 @@ public class TournamentManagerWindow extends JFrame {
     private double maxRamPercent = 85;
     private double maxHeapPercent = 80;
     private long lastSpawnMs = 0;
-    private static final long SPAWN_COOLDOWN_MS = 10000; // 10 seconds between spawns
+    private static final long SPAWN_COOLDOWN_MS = 5000; // 5 seconds between spawns
     private static final int MAX_TOTAL_THREADS = Runtime.getRuntime().availableProcessors();
 
     // Prehistoric Mode UI
@@ -355,14 +355,13 @@ public class TournamentManagerWindow extends JFrame {
                 .filter(c -> !c.isFinished() && c.isRunning())
                 .mapToInt(c -> c.getConfig() != null ? c.getConfig().threads : 1)
                 .sum();
-        int threadBudget = Math.max(2, (int) (MAX_TOTAL_THREADS / 2.0 * (maxCpuPercent / 100.0)));
+        int threadBudget = Math.max(2, (int) (MAX_TOTAL_THREADS * (maxCpuPercent / 100.0)));
         JTextArea txtInfo = new JTextArea(
                 "Autopilot monitors system resources and automatically:\n"
-                + " - Spawns ONE new contestant every 10+ seconds (cooldown)\n"
-                + " - Pauses spawning when thread budget or CPU/RAM limits are hit\n"
-                + " - Evolver thread budget: " + totalThreadsUsed + "/" + threadBudget
-                + " (" + MAX_TOTAL_THREADS + " logical cores)\n"
-                + " - Budget = half of logical cores * CPU limit (evolver threads are 100% compute)\n"
+                + " - Spawns replacements when promoted contestants free threads\n"
+                + " - Thread budget: " + totalThreadsUsed + "/" + threadBudget
+                + " (" + MAX_TOTAL_THREADS + " logical cores * " + (int)maxCpuPercent + "% limit)\n"
+                + " - 10s cooldown between spawns\n"
                 + " - Uses Prehistoric Mode (Genesis) or Quick Setup based on state\n"
                 + " - Activates evolutionary tournament when enough contestants exist\n\n"
                 + "Current system:\n" + sysMonitor.toString());
@@ -405,10 +404,8 @@ public class TournamentManagerWindow extends JFrame {
             return;
         }
 
-        // Conservative thread budget: use at most half of logical cores.
-        // On SMT/HT systems (e.g. 16C/32T), this means ~16 evolver threads,
-        // leaving the other half for OS, JVM, GC, Swing EDT, and breathing room.
-        int threadBudget = Math.max(2, MAX_TOTAL_THREADS / 2);
+        // Thread budget: full core count scaled by CPU limit.
+        int threadBudget = Math.max(2, (int) (MAX_TOTAL_THREADS * (maxCpuPercent / 100.0)));
 
         if (contestants.isEmpty() && (prehistoricMode == null || !prehistoricMode.isActive())) {
             prehistoricMode = new PrehistoricMode(artEvolver, contestants);
@@ -445,16 +442,13 @@ public class TournamentManagerWindow extends JFrame {
                 .mapToInt(c -> c.getConfig() != null ? c.getConfig().threads : 1)
                 .sum();
 
-        // Hard ceiling: half of logical cores, scaled by CPU limit.
-        // On 16C/32T with 90% limit: budget = max(2, 32/2 * 0.9) = 14 evolver threads.
-        // Each thread is 100% compute-bound, so this leaves plenty of headroom.
-        int threadBudget = Math.max(2, (int) (MAX_TOTAL_THREADS / 2.0 * (maxCpuPercent / 100.0)));
-        boolean threadBudgetAvailable = totalThreadsUsed < threadBudget;
+        // Thread budget: use the full logical core count scaled by CPU limit.
+        // The user chose how many cores to dedicate — respect that choice.
+        int threadBudget = Math.max(2, (int) (MAX_TOTAL_THREADS * (maxCpuPercent / 100.0)));
+        boolean threadBudgetAvailable = totalThreadsUsed + 2 <= threadBudget;
 
-        // CPU/RAM check with actual readings
         boolean resourcesAvailable = sysMonitor.canAddWork(maxCpuPercent, maxRamPercent, maxHeapPercent);
 
-        // Enforce cooldown between spawns — let existing contestants stabilize
         boolean cooldownPassed = (now - lastSpawnMs) > SPAWN_COOLDOWN_MS;
 
         boolean canSpawn = threadBudgetAvailable && resourcesAvailable && cooldownPassed;
@@ -472,12 +466,23 @@ public class TournamentManagerWindow extends JFrame {
             return;
         }
 
-        // Regular tournament: spawn cautiously, one at a time
-        if (aliveCount < 3 && canSpawn) {
-            int threadsForNew = Math.max(1, Math.min(2, threadBudget - totalThreadsUsed));
+        // Determine target threads per new contestant from existing contestants
+        int threadsPerContestant = 2;
+        for (TournamentContestant c : contestants) {
+            if (!c.isFinished() && c.getConfig() != null) {
+                threadsPerContestant = c.getConfig().threads;
+                break;
+            }
+        }
+
+        // Spawn replacement when threads are available (from promotions or initial headroom)
+        int freeThreads = threadBudget - totalThreadsUsed;
+        boolean needsReplacement = freeThreads >= threadsPerContestant;
+
+        if (canSpawn && needsReplacement) {
             EvolutionConfig cfg = new EvolutionConfig();
             artEvolver.populateConfigFromUI(cfg);
-            cfg.threads = threadsForNew;
+            cfg.threads = threadsPerContestant;
             cfg.name = "Auto-" + nextId;
             TournamentContestant c = new TournamentContestant("a" + nextId++, cfg.name);
             c.setConfig(cfg);
@@ -503,8 +508,9 @@ public class TournamentManagerWindow extends JFrame {
                 }
             }
             lastSpawnMs = now;
-            System.out.println("[Autopilot] Spawned " + cfg.name + " (" + threadsForNew
-                    + "T, " + (totalThreadsUsed + threadsForNew) + "/" + threadBudget + " budget)");
+            System.out.println("[Autopilot] Spawned " + cfg.name + " (" + threadsPerContestant
+                    + "T, " + (totalThreadsUsed + threadsPerContestant) + "/" + threadBudget
+                    + " budget, " + aliveCount + " alive)");
         }
 
         // Auto-start evolutionary tournament if enough running contestants
@@ -514,7 +520,6 @@ public class TournamentManagerWindow extends JFrame {
             if (anyHaveScores) {
                 createEvoTournament();
                 if (evoTournament != null && !evoTournament.isRunning()) {
-                    // Machine gun start: begin at minimum cutoff, adaptive ramps up
                     evoTournament.setCutoffSeconds(evoTournament.getAdaptiveCutoffMin());
                     evoTournament.setAdaptiveCutoff(true);
                     lastHistoryRecordCount = 0;

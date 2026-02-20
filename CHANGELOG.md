@@ -14,20 +14,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Breeds a replacement via BLX-alpha crossover + Gaussian mutation on 9 numeric genes
   - Tournament selection picks parents from the top half of performers
   - Spawns the new contestant with bred config, fresh evolvers, and starts it immediately
-  - Tracks full generation history with culled/bred/parent details
   - Configurable: cutoff interval, mutation rate (0-1), mutation strength (0-1), min contestants
+- **Live countdown timer** — real-time display of seconds until next cull tick, color-coded
+  (blue > 30s, orange ≤ 30s, red ≤ 10s)
+- **Best-ever tracking** — records the highest fitness ever achieved and its configuration,
+  surviving across generations even if that contestant is culled
+- **Convergence detection** — automatically detects when the meta-GA stalls for 5 consecutive
+  generations without meaningful improvement (< 0.01% gain), displays [CONVERGED] indicator
+- **Rich generation history** — each record tracks: full ranking, culled contestant (with gen),
+  parents, child, best/worst/average scores, timestamp, and convergence state
+- **Edge case handling** — skips culling when no contestants have scores yet; breaks tied scores
+  by preferring to cull the older contestant; limits parent selection retry attempts
 - **Gene array system in `EvolutionConfig`** — 9 breedable parameters mapped to float arrays
   - `toGeneArray()` / `fromGeneArray()` for genetic operations
   - `getGeneMin()` / `getGeneMax()` define parameter ranges
   - Covers: gridMutationChances, gridMutationDecay, randomMutationChances, randomMutationPercent,
     closeMutationChances, closeMutationPercent, targetedSwapAttempts, population, crossoverMax
 - **Evolutionary UI controls in Tournament Manager**
-  - "Start Evolving" / "Stop Evolving" toggle button
-  - "Evo Settings" dialog for all meta-GA parameters
-  - Generation counter label updated in real-time
-  - History log panel showing all cull/breed events with parent names and parameters
-  - Table now includes "Gen" column showing which meta-generation spawned each contestant
-  - Detail panel shows parentage ("bred from X x Y" or "initial")
+  - "Start Evolving" / "Stop Evolving" toggle button with state-dependent styling
+  - "Evo Settings" dialog for all meta-GA parameters (can update cutoff while running)
+  - Generation counter label + live countdown + best-ever label updated in real-time
+  - History log panel showing all cull/breed events with full rankings and averages
+  - Table includes "Gen" column; detail panel shows parentage, runtime, and iteration speed
+  - Quick Setup button disabled during active evolution to prevent corruption
 - **`TournamentContestant.dispose()`** — full cleanup: stop + interrupt threads + clear evolvers
 - **`TournamentContestant` generation/parentage tracking** for evolutionary lineage
 

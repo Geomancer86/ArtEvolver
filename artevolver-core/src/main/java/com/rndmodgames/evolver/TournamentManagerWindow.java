@@ -4,7 +4,6 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -28,8 +27,13 @@ public class TournamentManagerWindow extends JFrame {
 
     private EvolutionaryTournament evoTournament;
     private JLabel lblGeneration;
+    private JLabel lblCountdown;
+    private JLabel lblBestEver;
     private JTextArea txtHistory;
     private JButton btnEvolve;
+    private JButton btnQuickSetupRef;
+    private JButton btnStartAllRef;
+    private JButton btnStopAllRef;
 
     private static final Color BG = new Color(240, 240, 244);
     private static final Color HEADER_BG = new Color(50, 55, 70);
@@ -79,29 +83,29 @@ public class TournamentManagerWindow extends JFrame {
         btnRemove.setForeground(new Color(178, 34, 34));
         btnRemove.addActionListener(e -> removeSelected());
 
-        JButton btnQuickSetup = makeBtn("\u26A1 Quick Setup");
-        btnQuickSetup.setBackground(new Color(33, 150, 243));
-        btnQuickSetup.setForeground(Color.WHITE);
-        btnQuickSetup.addActionListener(e -> showQuickSetup());
+        btnQuickSetupRef = makeBtn("\u26A1 Quick Setup");
+        btnQuickSetupRef.setBackground(new Color(33, 150, 243));
+        btnQuickSetupRef.setForeground(Color.WHITE);
+        btnQuickSetupRef.addActionListener(e -> showQuickSetup());
 
-        JButton btnStartAll = makeBtn("\u25B6 Start All");
-        btnStartAll.setBackground(new Color(46, 139, 87));
-        btnStartAll.setForeground(Color.WHITE);
-        btnStartAll.addActionListener(e -> artEvolver.startTournament());
+        btnStartAllRef = makeBtn("\u25B6 Start All");
+        btnStartAllRef.setBackground(new Color(46, 139, 87));
+        btnStartAllRef.setForeground(Color.WHITE);
+        btnStartAllRef.addActionListener(e -> artEvolver.startTournament());
 
-        JButton btnStopAll = makeBtn("\u25A0 Stop All");
-        btnStopAll.setBackground(new Color(178, 34, 34));
-        btnStopAll.setForeground(Color.WHITE);
-        btnStopAll.addActionListener(e -> artEvolver.stopTournament());
+        btnStopAllRef = makeBtn("\u25A0 Stop All");
+        btnStopAllRef.setBackground(new Color(178, 34, 34));
+        btnStopAllRef.setForeground(Color.WHITE);
+        btnStopAllRef.addActionListener(e -> artEvolver.stopTournament());
 
-        buttonBar.add(btnQuickSetup);
+        buttonBar.add(btnQuickSetupRef);
         buttonBar.add(Box.createHorizontalStrut(8));
         buttonBar.add(btnAdd);
         buttonBar.add(btnDuplicate);
         buttonBar.add(btnRemove);
         buttonBar.add(Box.createHorizontalStrut(20));
-        buttonBar.add(btnStartAll);
-        buttonBar.add(btnStopAll);
+        buttonBar.add(btnStartAllRef);
+        buttonBar.add(btnStopAllRef);
 
         JPanel evoBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
         evoBar.setOpaque(false);
@@ -116,11 +120,23 @@ public class TournamentManagerWindow extends JFrame {
         btnEvoSettings.addActionListener(e -> showEvoSettings());
         evoBar.add(btnEvoSettings);
 
-        evoBar.add(Box.createHorizontalStrut(12));
+        evoBar.add(Box.createHorizontalStrut(10));
         lblGeneration = new JLabel("Gen: 0");
         lblGeneration.setFont(new Font(Font.MONOSPACED, Font.BOLD, 13));
         lblGeneration.setForeground(new Color(156, 39, 176));
         evoBar.add(lblGeneration);
+
+        evoBar.add(Box.createHorizontalStrut(6));
+        lblCountdown = new JLabel("");
+        lblCountdown.setFont(new Font(Font.MONOSPACED, Font.BOLD, 13));
+        lblCountdown.setForeground(new Color(255, 152, 0));
+        evoBar.add(lblCountdown);
+
+        evoBar.add(Box.createHorizontalStrut(10));
+        lblBestEver = new JLabel("");
+        lblBestEver.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 11));
+        lblBestEver.setForeground(new Color(76, 175, 80));
+        evoBar.add(lblBestEver);
 
         JPanel allBars = new JPanel();
         allBars.setLayout(new BoxLayout(allBars, BoxLayout.Y_AXIS));
@@ -357,6 +373,8 @@ public class TournamentManagerWindow extends JFrame {
             evoTournament.stop();
             btnEvolve.setText("\u2B50 Start Evolving");
             btnEvolve.setBackground(new Color(156, 39, 176));
+            lblCountdown.setText("");
+            setEvoLockButtons(false);
         } else {
             if (contestants.size() < evoTournament.getMinContestants()) {
                 JOptionPane.showMessageDialog(this,
@@ -381,7 +399,12 @@ public class TournamentManagerWindow extends JFrame {
             evoTournament.start();
             btnEvolve.setText("\u25A0 Stop Evolving");
             btnEvolve.setBackground(new Color(178, 34, 34));
+            setEvoLockButtons(true);
         }
+    }
+
+    private void setEvoLockButtons(boolean evolving) {
+        btnQuickSetupRef.setEnabled(!evolving);
     }
 
     private void showEvoSettings() {
@@ -412,6 +435,15 @@ public class TournamentManagerWindow extends JFrame {
                 evoTournament.getMinContestants(), 2, 20, 1));
         form.add(spnMinPop);
 
+        form.add(new JLabel(""));
+        form.add(new JLabel(""));
+
+        JLabel hint = new JLabel("<html><i>Cutoff can be changed while evolving is running.</i></html>");
+        hint.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
+        hint.setForeground(Color.GRAY);
+        form.add(hint);
+        form.add(new JLabel(""));
+
         int result = JOptionPane.showConfirmDialog(this, form,
                 "Evolutionary Tournament Settings", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
@@ -423,16 +455,47 @@ public class TournamentManagerWindow extends JFrame {
         }
     }
 
-    /** Called periodically to update the generation label and history log. */
+    /** Called periodically to update generation, countdown, best-ever, history. */
     public void refreshEvolutionaryState() {
         if (evoTournament == null) return;
 
         lblGeneration.setText("Gen: " + evoTournament.getGeneration());
 
-        List<EvolutionaryTournament.GenerationRecord> history = evoTournament.getHistory();
-        if (txtHistory.getLineCount() - 1 < history.size()) {
+        int remaining = evoTournament.getSecondsUntilNextTick();
+        if (remaining >= 0) {
+            int m = remaining / 60;
+            int s = remaining % 60;
+            String countText = (m > 0) ? String.format("Next: %d:%02d", m, s) : String.format("Next: %ds", s);
+            lblCountdown.setText(countText);
+            if (remaining <= 10) {
+                lblCountdown.setForeground(new Color(244, 67, 54));
+            } else if (remaining <= 30) {
+                lblCountdown.setForeground(new Color(255, 152, 0));
+            } else {
+                lblCountdown.setForeground(new Color(100, 181, 246));
+            }
+        } else {
+            lblCountdown.setText("");
+        }
+
+        if (evoTournament.getBestEverScore() > 0) {
+            DecimalFormat df = new DecimalFormat("0.0000");
+            String bestText = "Best Ever: " + evoTournament.getBestEverName()
+                    + " " + df.format(evoTournament.getBestEverScore() * 100) + "%";
+            if (evoTournament.isConverged()) {
+                bestText += "  [CONVERGED]";
+                lblBestEver.setForeground(new Color(255, 193, 7));
+            } else {
+                lblBestEver.setForeground(new Color(76, 175, 80));
+            }
+            lblBestEver.setText(bestText);
+        }
+
+        List<EvolutionaryTournament.GenerationRecord> records = evoTournament.getHistory();
+        int historyLines = txtHistory.getLineCount() - 1;
+        if (historyLines < records.size()) {
             StringBuilder sb = new StringBuilder();
-            for (EvolutionaryTournament.GenerationRecord rec : history) {
+            for (EvolutionaryTournament.GenerationRecord rec : records) {
                 sb.append(rec.toString()).append('\n');
             }
             txtHistory.setText(sb.toString());
@@ -521,6 +584,17 @@ public class TournamentManagerWindow extends JFrame {
         addDetail("Name", c.getName());
         addDetail("Generation", String.valueOf(c.getGeneration()));
         addDetail("Parentage", c.getParentage());
+
+        if (c.isRunning() && c.getStartTimeMs() > 0) {
+            long sec = (System.currentTimeMillis() - c.getStartTimeMs()) / 1000;
+            long h = sec / 3600; long m = (sec % 3600) / 60; long s = sec % 60;
+            String runtime = (h > 0) ? h + "h " + m + "m " + s + "s" : (m > 0) ? m + "m " + s + "s" : s + "s";
+            addDetail("Runtime", runtime);
+            if (sec > 0 && c.getTotalIterations() > 0) {
+                addDetail("Speed", String.format("%,d iter/s", c.getTotalIterations() / sec));
+            }
+        }
+
         addDetail("Threads", String.valueOf(cfg.threads));
         addDetail("Population", String.valueOf(cfg.population));
         addDetail("Crossover Max", String.valueOf(cfg.crossoverMax));

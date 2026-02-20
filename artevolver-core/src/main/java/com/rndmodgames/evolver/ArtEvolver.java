@@ -319,6 +319,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private JComboBox<String> cmbDrawMode;
 	private boolean tournamentMode = false;
 	private int tournamentDrawMode = 0; // 0=Selected, 1=Best, 2=All
+	private boolean hideEliminatedInGrid = true;
+	private static final int MAX_ELIMINATED_IN_GRID = 5;
 
 	// Timer
 	public Timer processTimer;
@@ -1636,6 +1638,19 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	        isDirty = true;
 	    });
 	    sb.add(cmbDrawMode);
+	    sb.add(Box.createVerticalStrut(2));
+
+	    javax.swing.JCheckBox chkHideElim = new javax.swing.JCheckBox("Hide eliminated in grid", hideEliminatedInGrid);
+	    chkHideElim.setToolTipText("<html>When checked, eliminated contestants are hidden in Draw All grid.<br>"
+	        + "At most " + MAX_ELIMINATED_IN_GRID + " recent eliminated are shown when unchecked.</html>");
+	    chkHideElim.setOpaque(false);
+	    chkHideElim.setForeground(java.awt.Color.LIGHT_GRAY);
+	    chkHideElim.setFont(chkHideElim.getFont().deriveFont(11f));
+	    chkHideElim.addActionListener(e -> {
+	        hideEliminatedInGrid = chkHideElim.isSelected();
+	        isDirty = true;
+	    });
+	    sb.add(chkHideElim);
 
 	    addSeparator(sb);
 
@@ -2139,16 +2154,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * Each cell shows the contestant's image scaled to fit, with name and score overlay.
 	 */
 	private void paintAllContestants(Graphics2D g, int panelW, int panelH) {
-	    int n = contestants.size();
-	    if (n == 0) return;
+	    if (contestants.isEmpty()) return;
 
 	    g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
 	        java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 
-	    // Sort: alive by best score descending, then eliminated at bottom
+	    // Sort: alive by best score descending, then promoted, then eliminated at bottom
 	    List<TournamentContestant> sorted = new java.util.ArrayList<>(contestants);
 	    sorted.sort((a, b) -> {
-	        // Active first, then promoted, then eliminated
 	        int statusA = a.isEliminated() ? 2 : a.isPromoted() ? 1 : 0;
 	        int statusB = b.isEliminated() ? 2 : b.isPromoted() ? 1 : 0;
 	        if (statusA != statusB) return statusA - statusB;
@@ -2156,6 +2169,24 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	        double sb = b.isFinished() ? b.getFinalScore() : b.getBestScore();
 	        return Double.compare(sb, sa);
 	    });
+
+	    // Filter: hide or cap eliminated contestants to prevent grid explosion
+	    if (hideEliminatedInGrid) {
+	        sorted.removeIf(TournamentContestant::isEliminated);
+	    } else {
+	        int elimCount = 0;
+	        java.util.Iterator<TournamentContestant> it = sorted.iterator();
+	        while (it.hasNext()) {
+	            TournamentContestant c = it.next();
+	            if (c.isEliminated()) {
+	                elimCount++;
+	                if (elimCount > MAX_ELIMINATED_IN_GRID) it.remove();
+	            }
+	        }
+	    }
+
+	    int n = sorted.size();
+	    if (n == 0) return;
 
 	    int cols = (int) Math.ceil(Math.sqrt(n));
 	    int rows = (int) Math.ceil((double) n / cols);

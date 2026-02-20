@@ -354,13 +354,14 @@ public class TournamentManagerWindow extends JFrame {
                 .filter(c -> !c.isEliminated() && c.isRunning())
                 .mapToInt(c -> c.getConfig() != null ? c.getConfig().threads : 1)
                 .sum();
-        int threadBudget = (int) (MAX_TOTAL_THREADS * (maxCpuPercent / 100.0) * 0.75);
+        int threadBudget = Math.max(2, (int) (MAX_TOTAL_THREADS / 2.0 * (maxCpuPercent / 100.0)));
         JTextArea txtInfo = new JTextArea(
                 "Autopilot monitors system resources and automatically:\n"
                 + " - Spawns ONE new contestant every 10+ seconds (cooldown)\n"
-                + " - Pauses spawning when CPU/RAM limits are approached\n"
-                + " - Thread budget: " + totalThreadsUsed + "/" + threadBudget
-                + " (" + MAX_TOTAL_THREADS + " cores available)\n"
+                + " - Pauses spawning when thread budget or CPU/RAM limits are hit\n"
+                + " - Evolver thread budget: " + totalThreadsUsed + "/" + threadBudget
+                + " (" + MAX_TOTAL_THREADS + " logical cores)\n"
+                + " - Budget = half of logical cores * CPU limit (evolver threads are 100% compute)\n"
                 + " - Uses Prehistoric Mode (Genesis) or Quick Setup based on state\n"
                 + " - Activates evolutionary tournament when enough contestants exist\n\n"
                 + "Current system:\n" + sysMonitor.toString());
@@ -403,8 +404,10 @@ public class TournamentManagerWindow extends JFrame {
             return;
         }
 
-        // Conservative thread budget: use at most 60% of cores initially
-        int threadBudget = (int) (MAX_TOTAL_THREADS * 0.6);
+        // Conservative thread budget: use at most half of logical cores.
+        // On SMT/HT systems (e.g. 16C/32T), this means ~16 evolver threads,
+        // leaving the other half for OS, JVM, GC, Swing EDT, and breathing room.
+        int threadBudget = Math.max(2, MAX_TOTAL_THREADS / 2);
 
         if (contestants.isEmpty() && (prehistoricMode == null || !prehistoricMode.isActive())) {
             prehistoricMode = new PrehistoricMode(artEvolver, contestants);
@@ -441,8 +444,10 @@ public class TournamentManagerWindow extends JFrame {
                 .mapToInt(c -> c.getConfig() != null ? c.getConfig().threads : 1)
                 .sum();
 
-        // Hard ceiling: never exceed 75% of available cores with evolution threads
-        int threadBudget = (int) (MAX_TOTAL_THREADS * (maxCpuPercent / 100.0) * 0.75);
+        // Hard ceiling: half of logical cores, scaled by CPU limit.
+        // On 16C/32T with 90% limit: budget = max(2, 32/2 * 0.9) = 14 evolver threads.
+        // Each thread is 100% compute-bound, so this leaves plenty of headroom.
+        int threadBudget = Math.max(2, (int) (MAX_TOTAL_THREADS / 2.0 * (maxCpuPercent / 100.0)));
         boolean threadBudgetAvailable = totalThreadsUsed < threadBudget;
 
         // CPU/RAM check with actual readings
@@ -453,15 +458,15 @@ public class TournamentManagerWindow extends JFrame {
 
         boolean canSpawn = threadBudgetAvailable && resourcesAvailable && cooldownPassed;
 
-        // If prehistoric mode is active, let it manage progression (but respect limits)
+        // If prehistoric mode is active, keep its budget in sync and let it manage
         if (prehistoricMode != null && prehistoricMode.isActive()) {
-            if (canSpawn && aliveCount < Math.max(3, threadBudget / 2)
-                    && !prehistoricMode.isAtFinalEra()) {
-                prehistoricMode.addPresetContestant();
-                lastSpawnMs = now;
-                refreshTable();
-                System.out.println("[Autopilot] Spawned prehistoric contestant ("
-                        + (totalThreadsUsed) + "/" + threadBudget + " threads used)");
+            prehistoricMode.setMaxThreadsBudget(threadBudget);
+            if (canSpawn && !prehistoricMode.isAtFinalEra()) {
+                String spawned = prehistoricMode.addPresetContestant();
+                if (spawned != null) {
+                    lastSpawnMs = now;
+                    refreshTable();
+                }
             }
             return;
         }
@@ -718,10 +723,13 @@ public class TournamentManagerWindow extends JFrame {
         JSpinner spnDuration = new JSpinner(new SpinnerNumberModel(60, 10, 600, 10));
         form.add(spnDuration);
 
-        form.add(new JLabel("Max Thread Budget:"));
+        form.add(new JLabel("Max Evolver Threads:"));
         int avail = Runtime.getRuntime().availableProcessors();
+        int defaultBudget = Math.max(2, avail / 2);
         JSpinner spnThreads = new JSpinner(new SpinnerNumberModel(
-                Math.max(2, avail - 2), 2, avail * 2, 1));
+                defaultBudget, 2, avail, 1));
+        spnThreads.setToolTipText("Max evolver threads (" + avail + " logical cores). "
+                + "Each evolver thread uses 100% of a core. Default = half of cores.");
         form.add(spnThreads);
 
         form.add(new JLabel("Auto-Advance:"));
@@ -897,9 +905,12 @@ public class TournamentManagerWindow extends JFrame {
         JPanel form = new JPanel(new GridLayout(0, 2, 8, 6));
         form.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        form.add(new JLabel("Total CPU Cores to Use:"));
+        form.add(new JLabel("Total Evolver Threads:"));
+        int defaultCores = Math.max(2, availableCores / 2);
         JSpinner spnCores = new JSpinner(new SpinnerNumberModel(
-                Math.max(2, availableCores - 2), 2, availableCores * 2, 1));
+                defaultCores, 2, availableCores, 1));
+        spnCores.setToolTipText("Each evolver thread uses 100% of a core. "
+                + "Default = half of " + availableCores + " logical cores.");
         form.add(spnCores);
 
         form.add(new JLabel("Threads per Contestant:"));

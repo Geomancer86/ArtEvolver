@@ -94,7 +94,8 @@ public class PrehistoricMode {
     public PrehistoricMode(ArtEvolver artEvolver, List<TournamentContestant> contestants) {
         this.artEvolver = artEvolver;
         this.contestants = contestants;
-        this.maxThreadsBudget = Math.max(2, Runtime.getRuntime().availableProcessors() - 2);
+        // Conservative default: half of logical cores. Caller (autopilot) can lower further.
+        this.maxThreadsBudget = Math.max(2, Runtime.getRuntime().availableProcessors() / 2);
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -351,8 +352,23 @@ public class PrehistoricMode {
     //  HELPERS
     // ════════════════════════════════════════════════════════════════
 
-    private void spawnAndStart(EvolutionConfig cfg) {
-        cfg.chartColor = null; // Let TournamentContestant assign
+    /**
+     * Central spawn gate — every contestant goes through here.
+     * Refuses to spawn if total evolver threads would exceed the budget.
+     */
+    private boolean spawnAndStart(EvolutionConfig cfg) {
+        int threadsUsed = contestants.stream()
+                .filter(c -> !c.isEliminated() && c.isRunning())
+                .mapToInt(c -> c.getConfig() != null ? c.getConfig().threads : 1)
+                .sum();
+        if (threadsUsed + cfg.threads > maxThreadsBudget) {
+            System.out.println("[Prehistoric] BLOCKED spawn of " + cfg.name
+                    + " (" + cfg.threads + "T) — budget full: "
+                    + threadsUsed + "/" + maxThreadsBudget);
+            return false;
+        }
+
+        cfg.chartColor = null;
         TournamentContestant c = new TournamentContestant(
                 "pre" + nextContestantId, cfg.name);
         nextContestantId++;
@@ -374,7 +390,6 @@ public class PrehistoricMode {
             }
         }
 
-        // Ensure the process timer is running
         if (!artEvolver.isRunning()) {
             artEvolver.setTournamentMode(true);
             artEvolver.startProcessTimer();
@@ -383,7 +398,9 @@ public class PrehistoricMode {
         artEvolver.refreshContestantCombo();
         System.out.println("[Prehistoric] Spawned: " + cfg.name
                 + " [" + cfg.threads + "T, " + (cfg.useDeltaEvolution ? "delta" : "legacy")
-                + ", init=" + cfg.initializationMethod + "]");
+                + ", init=" + cfg.initializationMethod
+                + "] threads: " + (threadsUsed + cfg.threads) + "/" + maxThreadsBudget);
+        return true;
     }
 
     private EvolutionConfig createConfigForCurrentEra() {

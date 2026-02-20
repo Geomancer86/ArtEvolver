@@ -11,26 +11,35 @@ import javax.swing.*;
 /**
  * Standalone movable window displaying a real-time fitness chart.
  * Supports multiple named data series with distinct colors for Tournament Mode.
+ * X-axis can toggle between total iterations and elapsed time.
  */
 public class FitnessChartWindow extends JFrame {
 
     private static final long serialVersionUID = 1L;
 
+    /** X-axis mode: 0 = iterations, 1 = elapsed time */
+    private int xAxisMode = 0;
+
     private final Map<String, Series> seriesMap = new LinkedHashMap<>();
     private final ChartPanel chartPanel;
     private final JPanel statsBar;
+    private final JPanel toolBar;
+    private final JToggleButton btnIterations;
+    private final JToggleButton btnTime;
 
     private static final Color BG_DARK     = new Color(30, 30, 38);
     private static final Color GRID_COLOR  = new Color(55, 55, 70);
     private static final Color AXIS_COLOR  = new Color(140, 140, 160);
     private static final Color TEXT_COLOR  = new Color(200, 200, 210);
     private static final Color LABEL_COLOR = new Color(160, 160, 175);
+    private static final Color ACCENT      = new Color(80, 200, 120);
 
     private static final Font AXIS_FONT    = new Font(Font.SANS_SERIF, Font.PLAIN, 10);
     private static final Font TITLE_FONT   = new Font(Font.SANS_SERIF, Font.BOLD, 13);
     private static final Font STAT_FONT    = new Font(Font.MONOSPACED, Font.BOLD, 12);
     private static final Font STAT_LBL     = new Font(Font.SANS_SERIF, Font.PLAIN, 10);
     private static final Font LEGEND_FONT  = new Font(Font.SANS_SERIF, Font.BOLD, 11);
+    private static final Font BTN_FONT     = new Font(Font.SANS_SERIF, Font.BOLD, 11);
 
     private static final int MARGIN_LEFT   = 60;
     private static final int MARGIN_RIGHT  = 20;
@@ -46,18 +55,57 @@ public class FitnessChartWindow extends JFrame {
         getContentPane().setBackground(BG_DARK);
         setLayout(new BorderLayout());
 
+        chartPanel = new ChartPanel();
+        chartPanel.setPreferredSize(new Dimension(850, 520));
+
+        // Top bar: stats + axis toggle
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setBackground(new Color(25, 25, 32));
+
         statsBar = new JPanel();
         statsBar.setBackground(new Color(25, 25, 32));
         statsBar.setLayout(new FlowLayout(FlowLayout.LEFT, 12, 4));
-        statsBar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, GRID_COLOR));
-        add(statsBar, BorderLayout.NORTH);
+        topPanel.add(statsBar, BorderLayout.CENTER);
 
-        chartPanel = new ChartPanel();
-        chartPanel.setPreferredSize(new Dimension(850, 520));
+        toolBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 3));
+        toolBar.setBackground(new Color(25, 25, 32));
+
+        JLabel lblAxis = new JLabel("X-Axis:");
+        lblAxis.setFont(STAT_LBL);
+        lblAxis.setForeground(LABEL_COLOR);
+        toolBar.add(lblAxis);
+
+        ButtonGroup bg = new ButtonGroup();
+        btnIterations = makeToggle("Iterations", true);
+        btnTime = makeToggle("Time", false);
+        bg.add(btnIterations);
+        bg.add(btnTime);
+        btnIterations.addActionListener(e -> { xAxisMode = 0; chartPanel.repaint(); });
+        btnTime.addActionListener(e -> { xAxisMode = 1; chartPanel.repaint(); });
+        toolBar.add(btnIterations);
+        toolBar.add(btnTime);
+
+        topPanel.add(toolBar, BorderLayout.EAST);
+        topPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, GRID_COLOR));
+        add(topPanel, BorderLayout.NORTH);
         add(chartPanel, BorderLayout.CENTER);
 
         pack();
         sizeToScreen();
+    }
+
+    private JToggleButton makeToggle(String text, boolean selected) {
+        JToggleButton btn = new JToggleButton(text, selected);
+        btn.setFont(BTN_FONT);
+        btn.setFocusPainted(false);
+        btn.setPreferredSize(new Dimension(85, 22));
+        btn.setBackground(selected ? ACCENT : new Color(50, 50, 60));
+        btn.setForeground(selected ? Color.BLACK : TEXT_COLOR);
+        btn.addChangeListener(e -> {
+            btn.setBackground(btn.isSelected() ? ACCENT : new Color(50, 50, 60));
+            btn.setForeground(btn.isSelected() ? Color.BLACK : TEXT_COLOR);
+        });
+        return btn;
     }
 
     private void sizeToScreen() {
@@ -75,8 +123,10 @@ public class FitnessChartWindow extends JFrame {
 
     /**
      * Add a data point to a named series.
+     * Stores iterations, score, AND wall-clock timestamp for dual-axis support.
      */
-    public void addDataPoint(String seriesId, String displayName, long iterations, double score, Color color) {
+    public void addDataPoint(String seriesId, String displayName,
+                             long iterations, double score, Color color) {
         Series s;
         synchronized (seriesMap) {
             s = seriesMap.computeIfAbsent(seriesId, k -> {
@@ -87,13 +137,16 @@ public class FitnessChartWindow extends JFrame {
         }
         s.name = displayName;
         s.color = color;
+        long now = System.currentTimeMillis();
         synchronized (s.data) {
-            if (s.firstIterations < 0) {
+            if (s.firstTimeMs < 0) {
+                s.firstTimeMs = now;
                 s.firstIterations = iterations;
                 s.firstScore = score;
             }
             if (score > s.peakScore) s.peakScore = score;
-            s.data.add(new double[]{iterations, score});
+            // [0]=iterations, [1]=score, [2]=elapsed ms since first data point
+            s.data.add(new double[]{iterations, score, now - s.firstTimeMs});
             if (s.data.size() > MAX_DATA_POINTS) thin(s.data);
             s.latestScore = score;
         }
@@ -190,10 +243,11 @@ public class FitnessChartWindow extends JFrame {
     static class Series {
         String name;
         Color color;
-        final List<double[]> data = new ArrayList<>();
+        final List<double[]> data = new ArrayList<>(); // [iterations, score, elapsedMs]
         double peakScore = 0;
         double latestScore = 0;
         long firstIterations = -1;
+        long firstTimeMs = -1;
         double firstScore = 0;
         JLabel lblValue;
 
@@ -246,16 +300,20 @@ public class FitnessChartWindow extends JFrame {
                 return;
             }
 
+            // X-value index: 0=iterations, 2=elapsed ms
+            int xIdx = (xAxisMode == 1) ? 2 : 0;
+
             double minScore = Double.MAX_VALUE, maxScore = Double.MIN_VALUE;
-            double minIter = Double.MAX_VALUE, maxIter = Double.MIN_VALUE;
+            double minX = Double.MAX_VALUE, maxX = Double.MIN_VALUE;
 
             for (Series s : allSeries) {
                 synchronized (s.data) {
                     for (double[] dp : s.data) {
                         if (dp[1] < minScore) minScore = dp[1];
                         if (dp[1] > maxScore) maxScore = dp[1];
-                        if (dp[0] < minIter) minIter = dp[0];
-                        if (dp[0] > maxIter) maxIter = dp[0];
+                        double xVal = dp.length > xIdx ? dp[xIdx] : dp[0];
+                        if (xVal < minX) minX = xVal;
+                        if (xVal > maxX) maxX = xVal;
                     }
                 }
             }
@@ -264,15 +322,15 @@ public class FitnessChartWindow extends JFrame {
             if (scoreRange < 0.0001) { scoreRange = 0.001; minScore = maxScore - scoreRange / 2; }
             double pad = scoreRange * 0.08;
             minScore -= pad; maxScore += pad; scoreRange = maxScore - minScore;
-            double iterRange = maxIter - minIter;
-            if (iterRange < 1) iterRange = 1;
+            double xRange = maxX - minX;
+            if (xRange < 1) xRange = 1;
 
-            drawAxes(g, chartW, chartH, minScore, maxScore, scoreRange, minIter, iterRange);
+            drawAxes(g, chartW, chartH, minScore, maxScore, scoreRange, minX, xRange);
 
             for (Series s : allSeries) {
                 synchronized (s.data) {
                     if (s.data.isEmpty()) continue;
-                    drawSeries(g, s, chartW, chartH, minScore, maxScore, scoreRange, minIter, iterRange);
+                    drawSeries(g, s, chartW, chartH, minScore, maxScore, scoreRange, minX, xRange, xIdx);
                 }
             }
 
@@ -296,7 +354,8 @@ public class FitnessChartWindow extends JFrame {
             g.drawLine(MARGIN_LEFT, MARGIN_TOP + chartH, MARGIN_LEFT + chartW, MARGIN_TOP + chartH);
         }
 
-        private void drawAxes(Graphics2D g, int cW, int cH, double minS, double maxS, double sR, double minI, double iR) {
+        private void drawAxes(Graphics2D g, int cW, int cH,
+                              double minS, double maxS, double sR, double minX, double xR) {
             g.setFont(AXIS_FONT);
             g.setColor(LABEL_COLOR);
             FontMetrics fm = g.getFontMetrics();
@@ -307,18 +366,27 @@ public class FitnessChartWindow extends JFrame {
                 g.drawString(label, MARGIN_LEFT - fm.stringWidth(label) - 4, y + fm.getAscent() / 2);
             }
             for (int i = 0; i <= 6; i++) {
-                double val = minI + i * iR / 6;
+                double val = minX + i * xR / 6;
                 int x = MARGIN_LEFT + i * cW / 6;
-                String label = formatIter((long) val);
+                String label = (xAxisMode == 1) ? formatTime((long) val) : formatIter((long) val);
                 g.drawString(label, x - fm.stringWidth(label) / 2, MARGIN_TOP + cH + fm.getHeight() + 2);
             }
+
+            // Axis title
+            g.setFont(STAT_LBL);
+            String axisTitle = (xAxisMode == 1) ? "Elapsed Time" : "Iterations";
+            int titleW = g.getFontMetrics().stringWidth(axisTitle);
+            g.setColor(AXIS_COLOR);
+            g.drawString(axisTitle, MARGIN_LEFT + (cW - titleW) / 2, MARGIN_TOP + cH + fm.getHeight() + 16);
         }
 
         private void drawSeries(Graphics2D g, Series s, int cW, int cH,
-                                double minS, double maxS, double sR, double minI, double iR) {
+                                double minS, double maxS, double sR,
+                                double minX, double xR, int xIdx) {
             if (s.data.size() == 1) {
                 double[] dp = s.data.get(0);
-                double px = MARGIN_LEFT + ((dp[0] - minI) / iR) * cW;
+                double xVal = dp.length > xIdx ? dp[xIdx] : dp[0];
+                double px = MARGIN_LEFT + ((xVal - minX) / xR) * cW;
                 double py = MARGIN_TOP + ((maxS - dp[1]) / sR) * cH;
                 g.setColor(s.color);
                 g.fillOval((int) px - 5, (int) py - 5, 10, 10);
@@ -330,7 +398,8 @@ public class FitnessChartWindow extends JFrame {
             boolean first = true;
 
             for (double[] dp : s.data) {
-                double px = MARGIN_LEFT + ((dp[0] - minI) / iR) * cW;
+                double xVal = dp.length > xIdx ? dp[xIdx] : dp[0];
+                double px = MARGIN_LEFT + ((xVal - minX) / xR) * cW;
                 double py = MARGIN_TOP + ((maxS - dp[1]) / sR) * cH;
                 if (first) {
                     line.moveTo(px, py);
@@ -344,7 +413,8 @@ public class FitnessChartWindow extends JFrame {
             }
 
             double[] last = s.data.get(s.data.size() - 1);
-            double lastX = MARGIN_LEFT + ((last[0] - minI) / iR) * cW;
+            double lastXVal = last.length > xIdx ? last[xIdx] : last[0];
+            double lastX = MARGIN_LEFT + ((lastXVal - minX) / xR) * cW;
             double lastY = MARGIN_TOP + ((maxS - last[1]) / sR) * cH;
             fill.lineTo(lastX, MARGIN_TOP + cH);
             fill.closePath();
@@ -384,6 +454,17 @@ public class FitnessChartWindow extends JFrame {
             if (val >= 1_000_000) return dfIter.format(val / 1_000_000) + "M";
             if (val >= 1_000) return dfIter.format(val / 1_000) + "K";
             return dfIter.format(val);
+        }
+
+        private String formatTime(long ms) {
+            long totalSec = ms / 1000;
+            if (totalSec < 60) return totalSec + "s";
+            long min = totalSec / 60;
+            long sec = totalSec % 60;
+            if (min < 60) return min + "m" + (sec > 0 ? sec + "s" : "");
+            long hrs = min / 60;
+            min = min % 60;
+            return hrs + "h" + (min > 0 ? min + "m" : "");
         }
     }
 }

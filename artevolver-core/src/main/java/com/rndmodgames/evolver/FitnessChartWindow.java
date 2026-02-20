@@ -42,7 +42,6 @@ public class FitnessChartWindow extends JFrame {
     public FitnessChartWindow() {
         super("Fitness Progression");
         setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-        setSize(780, 480);
         setMinimumSize(new Dimension(400, 250));
         getContentPane().setBackground(BG_DARK);
         setLayout(new BorderLayout());
@@ -54,7 +53,24 @@ public class FitnessChartWindow extends JFrame {
         add(statsBar, BorderLayout.NORTH);
 
         chartPanel = new ChartPanel();
+        chartPanel.setPreferredSize(new Dimension(850, 520));
         add(chartPanel, BorderLayout.CENTER);
+
+        pack();
+        sizeToScreen();
+    }
+
+    private void sizeToScreen() {
+        Dimension screenSize = java.awt.Toolkit.getDefaultToolkit().getScreenSize();
+        java.awt.Insets insets = java.awt.Toolkit.getDefaultToolkit().getScreenInsets(
+            getGraphicsConfiguration());
+        int usableW = screenSize.width - insets.left - insets.right;
+        int usableH = screenSize.height - insets.top - insets.bottom;
+
+        int w = Math.min(Math.max(getWidth(), 850), (int) (usableW * 0.65));
+        int h = Math.min(Math.max(getHeight(), 550), (int) (usableH * 0.7));
+        setSize(w, h);
+        setLocationRelativeTo(null);
     }
 
     /**

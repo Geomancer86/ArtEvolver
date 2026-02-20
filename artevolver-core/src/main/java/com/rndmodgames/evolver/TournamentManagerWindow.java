@@ -34,6 +34,7 @@ public class TournamentManagerWindow extends JFrame {
     private JButton btnQuickSetupRef;
     private JButton btnStartAllRef;
     private JButton btnStopAllRef;
+    private JCheckBox chkAutoEvolve;
 
     private static final Color BG = new Color(240, 240, 244);
     private static final Color HEADER_BG = new Color(50, 55, 70);
@@ -80,7 +81,7 @@ public class TournamentManagerWindow extends JFrame {
         ));
 
         JScrollPane tableScroll = new JScrollPane(table);
-        tableScroll.setPreferredSize(new Dimension(600, 200));
+        tableScroll.setPreferredSize(new Dimension(920, 250));
 
         JPanel buttonBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
         buttonBar.setOpaque(false);
@@ -103,7 +104,10 @@ public class TournamentManagerWindow extends JFrame {
         btnStartAllRef = makeBtn("\u25B6 Start All");
         btnStartAllRef.setBackground(new Color(46, 139, 87));
         btnStartAllRef.setForeground(Color.WHITE);
-        btnStartAllRef.addActionListener(e -> artEvolver.startTournament());
+        btnStartAllRef.addActionListener(e -> {
+            artEvolver.startTournament();
+            if (chkAutoEvolve.isSelected()) autoStartEvolving();
+        });
 
         btnStopAllRef = makeBtn("\u25A0 Stop All");
         btnStopAllRef.setBackground(new Color(178, 34, 34));
@@ -121,6 +125,13 @@ public class TournamentManagerWindow extends JFrame {
 
         JPanel evoBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
         evoBar.setOpaque(false);
+
+        chkAutoEvolve = new JCheckBox("Auto-Evolve on Start", true);
+        chkAutoEvolve.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 11));
+        chkAutoEvolve.setOpaque(false);
+        chkAutoEvolve.setToolTipText("When checked, pressing Start All automatically begins the evolutionary culling cycle.");
+        evoBar.add(chkAutoEvolve);
+        evoBar.add(Box.createHorizontalStrut(6));
 
         btnEvolve = makeBtn("\u2B50 Start Evolving");
         btnEvolve.setBackground(new Color(156, 39, 176));
@@ -162,10 +173,10 @@ public class TournamentManagerWindow extends JFrame {
         detailPanel.setBackground(BG);
 
         JScrollPane detailScroll = new JScrollPane(detailPanel);
-        detailScroll.setPreferredSize(new Dimension(300, 120));
+        detailScroll.setPreferredSize(new Dimension(400, 180));
         detailScroll.setBorder(BorderFactory.createTitledBorder("Contestant Parameters"));
 
-        txtHistory = new JTextArea(5, 40);
+        txtHistory = new JTextArea(8, 50);
         txtHistory.setEditable(false);
         txtHistory.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 11));
         txtHistory.setBackground(new Color(30, 30, 38));
@@ -194,9 +205,23 @@ public class TournamentManagerWindow extends JFrame {
 
         JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, topPanel, bottomSplit);
         split.setResizeWeight(0.55);
-        split.setDividerLocation(320);
         add(split, BorderLayout.CENTER);
-        setSize(960, 620);
+
+        pack();
+        sizeToScreen();
+    }
+
+    private void sizeToScreen() {
+        Dimension screenSize = java.awt.Toolkit.getDefaultToolkit().getScreenSize();
+        java.awt.Insets insets = java.awt.Toolkit.getDefaultToolkit().getScreenInsets(
+            getGraphicsConfiguration());
+        int usableW = screenSize.width - insets.left - insets.right;
+        int usableH = screenSize.height - insets.top - insets.bottom;
+
+        int w = Math.min(Math.max(getWidth(), 1000), usableW);
+        int h = Math.min(Math.max(getHeight(), 650), (int) (usableH * 0.85));
+        setSize(w, h);
+        setLocationRelativeTo(null);
     }
 
     private JButton makeBtn(String text) {
@@ -419,6 +444,24 @@ public class TournamentManagerWindow extends JFrame {
             btnEvolve.setText("\u25A0 Stop Evolving");
             btnEvolve.setBackground(new Color(178, 34, 34));
             setEvoLockButtons(true);
+        }
+    }
+
+    /** Silently starts evolving if preconditions are met (called by auto-evolve). */
+    private void autoStartEvolving() {
+        if (evoTournament == null) {
+            evoTournament = new EvolutionaryTournament(artEvolver, contestants);
+        }
+        if (evoTournament.isRunning()) return;
+
+        long alive = contestants.stream().filter(c -> !c.isEliminated()).count();
+        if (alive < evoTournament.getMinContestants()) return;
+
+        if (evoTournament.start()) {
+            btnEvolve.setText("\u25A0 Stop Evolving");
+            btnEvolve.setBackground(new Color(178, 34, 34));
+            setEvoLockButtons(true);
+            System.out.println("[Tournament] Auto-evolve started");
         }
     }
 

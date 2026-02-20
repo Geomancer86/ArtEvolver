@@ -5,7 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.1.0] - 2026-02-19 (develop branch)
+## [3.1.0] - 2026-02-20 (develop branch)
+
+### Improved — Auto-Evolve on Start & Window Sizing
+- **Auto-Evolve toggle** — new "Auto-Evolve on Start" checkbox (default ON) in the Tournament
+  Manager's evolutionary bar. When checked, pressing "Start All" automatically begins the
+  evolutionary culling cycle alongside the contestants, so users no longer need to separately
+  discover and click "Start Evolving"
+- **Manual control preserved** — the "Start Evolving" / "Stop Evolving" button remains available
+  for users who want to start/stop the evolutionary cycle independently
+- **Window auto-sizing** — `TournamentManagerWindow` and `FitnessChartWindow` now use `pack()`
+  followed by screen-aware sizing (respecting usable screen area and taskbar insets) instead of
+  hardcoded sizes. Windows open at content-fitting dimensions without requiring manual resizing
+- **Increased preferred sizes** — table scroll, detail panel, and history panel use larger preferred
+  dimensions so `pack()` allocates more space and scrollbars are minimized on first open
 
 ### Added — Evolutionary Tournament Mode (Meta-GA)
 - **`EvolutionaryTournament`** — meta-genetic algorithm that evolves GA parameters themselves

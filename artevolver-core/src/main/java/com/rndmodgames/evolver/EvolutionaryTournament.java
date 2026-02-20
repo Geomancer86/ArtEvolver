@@ -171,10 +171,9 @@ public class EvolutionaryTournament {
             if (startMs <= 0) continue;
             long ageSec = (now - startMs) / 1000;
             if (ageSec >= maxLifespanSeconds) {
-                System.out.println("[EvoTournament] HARD CAP: promoting " + c.getName()
-                        + " after " + ageSec + "s (limit " + maxLifespanSeconds + "s)");
-                c.promote(generation);
-                rotatePromotedPool();
+                System.out.println("[EvoTournament] HARD CAP: " + c.getName()
+                        + " finished after " + ageSec + "s (limit " + maxLifespanSeconds + "s)");
+                finishContestant(c);
             }
         }
     }
@@ -308,6 +307,7 @@ public class EvolutionaryTournament {
         double lastCulledScore = 0, lastCulledComposite = 0, lastCulledVelocity = 0;
         int lastCulledGen = 0;
         boolean lastCulledByLifespan = false;
+        boolean lastCulledWasPromoted = false;
         String lastParentA = null, lastParentB = null, lastChildName = null;
         String lastChildParams = null;
 
@@ -371,13 +371,9 @@ public class EvolutionaryTournament {
                 lastParentB = parentB.getName();
             }
 
-            // Lifespan-expired: promote (hall of fame). Poor performance: eliminate.
-            if (lastCulledByLifespan) {
-                worst.promote(generation);
-                rotatePromotedPool();
-            } else {
-                worst.eliminate(generation);
-            }
+            // Merit-based: if good enough for hall of fame, promote; otherwise eliminate
+            finishContestant(worst);
+            lastCulledWasPromoted = worst.isPromoted();
 
             spawnChild(childName, childConfig, parentA, parentB);
 
@@ -424,6 +420,7 @@ public class EvolutionaryTournament {
         rec.ancestralCrossover = useAncestralCrossover;
         rec.currentCutoff = cutoffSeconds;
         rec.culledByLifespan = lastCulledByLifespan;
+        rec.wasPromoted = lastCulledWasPromoted;
         rec.presetInjected = (lastParentA != null && lastParentA.equals("[preset]"));
         rec.rankingMode = rankingStrategy.name();
         rec.effectiveWeights = getEffectiveWeights();
@@ -609,18 +606,37 @@ public class EvolutionaryTournament {
     // ═══════════════════════════════════════════════════════════
 
     /**
-     * Keeps the promoted pool at maxPromoted size by removing the worst promoted.
+     * Decides whether a finishing contestant deserves promotion or elimination.
+     * Promotion is earned: the contestant's score must beat the worst in the
+     * promoted pool (or the pool must have room). Otherwise it's eliminated.
+     * If the pool is full and the newcomer is better, the worst promoted is
+     * downgraded to eliminated to make room.
      */
-    private void rotatePromotedPool() {
+    private void finishContestant(TournamentContestant c) {
+        double score = c.getBestScore();
         List<TournamentContestant> promoted = getPromoted();
-        if (promoted.size() <= maxPromoted) return;
 
-        promoted.sort((a, b) -> Double.compare(a.getFinalScore(), b.getFinalScore()));
-        while (promoted.size() > maxPromoted) {
-            TournamentContestant worst = promoted.remove(0);
-            worst.eliminate(generation);
-            System.out.println("[EvoTournament] Promoted pool rotation: " + worst.getName()
-                    + " retired (score " + DF2.format(worst.getFinalScore() * 100) + "%)");
+        if (promoted.size() < maxPromoted) {
+            c.promote(generation);
+            System.out.println("[EvoTournament] \uD83C\uDFC5 Promoted " + c.getName()
+                    + " (" + DF2.format(score * 100) + "%) — pool " + (promoted.size() + 1)
+                    + "/" + maxPromoted);
+        } else {
+            TournamentContestant worstPromoted = promoted.stream()
+                    .min((a, b) -> Double.compare(a.getFinalScore(), b.getFinalScore()))
+                    .orElse(null);
+
+            if (worstPromoted != null && score > worstPromoted.getFinalScore()) {
+                System.out.println("[EvoTournament] \uD83C\uDFC5 Promoted " + c.getName()
+                        + " (" + DF2.format(score * 100) + "%), displacing "
+                        + worstPromoted.getName() + " (" + DF2.format(worstPromoted.getFinalScore() * 100) + "%)");
+                worstPromoted.eliminate(generation);
+                c.promote(generation);
+            } else {
+                c.eliminate(generation);
+                System.out.println("[EvoTournament] Eliminated " + c.getName()
+                        + " (" + DF2.format(score * 100) + "%) — not good enough for hall of fame");
+            }
         }
     }
 
@@ -1006,6 +1022,7 @@ public class EvolutionaryTournament {
         public int spawnsThisTick = 1;
         public int currentCutoff;
         public boolean culledByLifespan;
+        public boolean wasPromoted;
         public boolean presetInjected;
         public String rankingMode;
         public float[] effectiveWeights;
@@ -1083,10 +1100,13 @@ public class EvolutionaryTournament {
                 sb.append("  \u26A0 Stalling (").append(stalledGens).append(" gens without improvement)\n");
             }
 
-            // Culling with story
-            if (culledByLifespan) {
+            // Culling with story — outcome depends on merit
+            if (wasPromoted) {
                 sb.append("  \uD83C\uDFC5 Promoted ").append(culledName)
-                  .append(" (").append(DF2_STATIC.format(culledScore * 100)).append("%, time served)");
+                  .append(" (").append(DF2_STATIC.format(culledScore * 100)).append("%");
+                if (culledByLifespan) sb.append(", time served");
+                else sb.append(", earned hall of fame");
+                sb.append(")");
                 if (promotedCount > 0) sb.append("  [").append(promotedCount).append(" in hall of fame]");
                 sb.append("\n");
             } else {
@@ -1097,7 +1117,8 @@ public class EvolutionaryTournament {
                     sb.append("Eliminated ").append(culledName);
                 }
                 sb.append(" (").append(DF2_STATIC.format(culledScore * 100)).append("%");
-                if (culledVelocity > 0) sb.append(", was still improving");
+                if (culledByLifespan) sb.append(", lifespan expired, not good enough for hall of fame");
+                else if (culledVelocity > 0) sb.append(", was still improving");
                 else if (culledVelocity < -0.0001) sb.append(", declining");
                 else sb.append(", stagnant");
                 if (culledGeneration > 0) sb.append(", born Gen ").append(culledGeneration);

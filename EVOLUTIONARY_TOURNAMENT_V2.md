@@ -166,10 +166,16 @@ velocity drops near zero but their absolute score keeps them at the top indefini
 5. The fitness chart looks clean: all contestants have similar time spans
 6. The oldest expired contestant is promoted first (fairness)
 
-**Promoted Pool (Hall of Fame)**:
+**Promoted Pool (Hall of Fame) — Merit-Based**:
+- Promotion is **earned**, not automatic. When a contestant finishes (lifespan or culled):
+  - If the pool has room (`< maxPromoted`): promoted
+  - If the pool is full: promoted only if score beats the worst promoted (who gets demoted)
+  - Otherwise: eliminated (not good enough for the hall of fame)
 - Promoted contestants retain their config and final score
 - They are available as **parent candidates** when breeding new offspring
-- A `maxPromoted` cap (default 10) prevents unbounded growth — worst promoted rotate out
+- `maxPromoted` cap (default 10) keeps only the best-ever configs in the breeding pool
+- A **lifespan enforcement timer** (every 5s) hard-caps contestant age independently of
+  the cull cycle, ensuring no contestant ever exceeds `maxLifespanSeconds`
 - UI shows promoted with gold medal badge, between active and eliminated in sort order
 - Dashboard JSON includes `"promoted": true` field
 

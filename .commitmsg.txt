@@ -1,0 +1,5 @@
+Add generation evolution chart to dashboard
+
+New canvas line chart in sidebar showing best/avg/worst/best-ever fitness
+per generation with trend summary table. API endpoint enriched with
+generationHistory array. Documents updated.

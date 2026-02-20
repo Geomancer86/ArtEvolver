@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] (3.2.0-SNAPSHOT)
 
+### Added — Dashboard Generation Evolution Chart
+
+- **Generation evolution chart**: New canvas-based line chart in the dashboard sidebar
+  showing best score (green), average score (blue), worst score (red), and best-ever
+  (gold dashed) per generation. Includes a shaded area between best/worst for spread
+  visibility. The chart auto-hides when fewer than 2 generations have been recorded.
+- **Generation summary table**: Below the chart, a compact table shows current best score,
+  average score, best-ever score, alive/promoted counts, and per-generation trend arrows
+  (improving/declining/flat) with total change since generation 1.
+- **API endpoint enriched**: `/api/state` now includes a `generationHistory` array with
+  per-generation stats: `gen`, `best`, `avg`, `worst`, `bestEver`, `alive`, `promoted`,
+  `stalled`, `cutoff`. Skipped generations are excluded.
+
+### Fixed — Draw All Grid Performance
+
+- **Eliminated contestants hidden in Draw All**: New checkbox "Hide eliminated in grid"
+  (default: checked) prevents rendering 500+ eliminated drawings. When unchecked, at most
+  5 recent eliminated are shown. Grid dimensions computed from visible contestants only.
+
 ### Changed — Tournament Convergence Tuning (Faster Evolution Cycle)
 
 - **Default lifespan 60s → 30s**: Halved contestant lifespan for faster population turnover.

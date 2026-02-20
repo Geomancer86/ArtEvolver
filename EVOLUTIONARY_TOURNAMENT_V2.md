@@ -480,11 +480,20 @@ Java App (Swing)
 - `contestants[]` — id, name, rank, score, velocity, acceleration, peak,
   iterations, status flags, generation, parentage, config, color, uptime
 - `history[]` — narrative log strings (pre-formatted)
+- `generationHistory[]` — per-generation stats: `gen`, `best`, `avg`, `worst`,
+  `bestEver`, `alive`, `promoted`, `stalled`, `cutoff` (skipped generations excluded)
 
 ### Dashboard Features
 
 - Dark theme with GitHub-inspired design
 - System metrics bar with animated gauge fills (color: green/yellow/red)
+- **Generation Evolution Chart**: Canvas-based line chart in the sidebar showing best
+  (green), average (blue), worst (red), and best-ever (gold dashed) fitness per
+  generation. Shaded area between best/worst shows population spread. Auto-hides when
+  fewer than 2 generations have been recorded.
+- **Generation Summary Table**: Below the chart, compact table with current best/avg/
+  best-ever scores, alive/promoted counts, per-generation trend arrows (▲/▼/▬), and
+  total fitness change since generation 1. Stalled generations show warning indicator.
 - Leaderboard cards: rank, image thumbnail, fitness stats, config summary
 - Eliminated contestants: faded, skull rank icon, export download button
 - Evolution history: syntax-highlighted log with newest entries first

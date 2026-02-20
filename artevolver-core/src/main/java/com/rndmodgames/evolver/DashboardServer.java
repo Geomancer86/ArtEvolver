@@ -422,8 +422,10 @@ public class DashboardServer {
                 narratives.add(rec.toNarrative());
             }
         }
+        List<EvolutionaryTournament.GenerationRecord> genRecords = null;
         if (evo != null) {
-            for (EvolutionaryTournament.GenerationRecord rec : evo.getHistory()) {
+            genRecords = evo.getHistory();
+            for (EvolutionaryTournament.GenerationRecord rec : genRecords) {
                 narratives.add(rec.toNarrative());
             }
         }
@@ -431,6 +433,30 @@ public class DashboardServer {
             sb.append("    ").append(jsonStr(narratives.get(i)));
             if (i < narratives.size() - 1) sb.append(",");
             sb.append("\n");
+        }
+        sb.append("  ],\n");
+
+        // Per-generation stats for the evolution chart
+        sb.append("  \"generationHistory\": [\n");
+        if (genRecords != null) {
+            boolean first = true;
+            for (EvolutionaryTournament.GenerationRecord rec : genRecords) {
+                if (rec.skipped) continue;
+                if (!first) sb.append(",\n");
+                first = false;
+                sb.append("    {");
+                sb.append("\"gen\":").append(rec.generation).append(",");
+                sb.append("\"best\":").append(DF4.format(rec.bestScore * 100)).append(",");
+                sb.append("\"avg\":").append(DF4.format(rec.avgScore * 100)).append(",");
+                sb.append("\"worst\":").append(DF4.format(rec.worstScore * 100)).append(",");
+                sb.append("\"bestEver\":").append(DF4.format(rec.bestEverScore * 100)).append(",");
+                sb.append("\"alive\":").append(rec.aliveCount).append(",");
+                sb.append("\"promoted\":").append(rec.promotedCount).append(",");
+                sb.append("\"stalled\":").append(rec.stalledGens).append(",");
+                sb.append("\"cutoff\":").append(rec.currentCutoff);
+                sb.append("}");
+            }
+            if (!first) sb.append("\n");
         }
         sb.append("  ]\n");
         sb.append("}");

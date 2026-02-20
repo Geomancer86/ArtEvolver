@@ -32,6 +32,9 @@ public class TournamentContestant {
     private boolean eliminated = false;
     private int eliminatedAtGeneration = -1;
     private double finalScore = 0;
+    private int graceTicks = 0;
+    private final FitnessTracker fitnessTracker = new FitnessTracker();
+    private LineageNode lineageNode;
 
     private static final Color[] PRESET_COLORS = {
         new Color(80, 200, 120),   // green
@@ -197,11 +200,24 @@ public class TournamentContestant {
     public int getEliminatedAtGeneration() { return eliminatedAtGeneration; }
     public double getFinalScore() { return finalScore; }
 
+    public int getGraceTicks() { return graceTicks; }
+    public void setGraceTicks(int graceTicks) { this.graceTicks = graceTicks; }
+    public void decrementGraceTicks() { if (graceTicks > 0) graceTicks--; }
+    public boolean isProtected() { return graceTicks > 0; }
+    public FitnessTracker getFitnessTracker() { return fitnessTracker; }
+    public LineageNode getLineageNode() { return lineageNode; }
+    public void setLineageNode(LineageNode node) { this.lineageNode = node; }
+
     /** Marks this contestant as eliminated. Preserves the last best image/score for display. */
     public void eliminate(int atGeneration) {
         this.eliminated = true;
         this.eliminatedAtGeneration = atGeneration;
         this.finalScore = bestScore;
+        if (lineageNode != null) {
+            lineageNode.setEliminated(true);
+            lineageNode.setPeakFitness(fitnessTracker.getPeakFitness());
+            lineageNode.setPeakVelocity(fitnessTracker.getPeakVelocity());
+        }
         dispose();
     }
 }

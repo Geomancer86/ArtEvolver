@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.0] - 2026-02-20 (develop branch)
 
+### Added — Evolutionary Tournament v2 (Velocity-Aware Meta-GA)
+Major redesign solving the "newcomer problem" where bred contestants were immediately culled
+before proving their parameter quality, since they always started at fitness 0.
+
+- **`FitnessTracker`** (new class) — per-contestant time-series fitness tracking
+  - Records timestamped fitness snapshots from the ArtEvolver process timer
+  - Computes velocity (fitness gain/sec) over a configurable sliding window (default 30s)
+  - Computes acceleration (rate of velocity change) via half-window comparison
+  - Provides projected fitness, peak fitness, peak velocity, and iterations/sec
+- **`LineageNode`** (new class) — full ancestry tree with multi-generational memory
+  - Each contestant gets a node linked to parent nodes, forming a pedigree tree
+  - Lineage fitness: decay-weighted average of peak fitness across ancestors (configurable
+    decay=0.7, depth=3), inspired by BLUP pedigree analysis in animal breeding
+  - Lineage velocity: same formula applied to peak velocity values
+  - Ancestral gene retrieval with decay weights for multi-generational crossover
+  - Inbreeding detection: prevents crossing contestants sharing a recent common ancestor
+  - Ancestry string formatter for display in the detail panel
+- **Composite ranking** — replaces pure absolute-fitness ranking with weighted blend:
+  - Fitness weight (default 0.35) — current absolute score still matters
+  - Velocity weight (default 0.40) — improvement speed is the primary signal
+  - Acceleration weight (default 0.05) — rewarding contestants that are speeding up
+  - Lineage weight (default 0.20) — rewarding configurations from successful family lines
+  - Min-max normalization across alive contestants for fair cross-metric comparison
+- **Grace period** — new contestants receive configurable immunity ticks (default 1)
+  during which they cannot be selected for culling, giving them time to build up
+  velocity data before being compared to established contestants
+- **Multi-generational crossover** — when breeding, gene arrays from grandparents and
+  great-grandparents are blended with exponentially decaying weights, then BLX-alpha
+  exploration is applied. Falls back to standard two-parent crossover when ancestry is empty
+- **Configurable parameters** — all new parameters exposed in Evo Settings dialog:
+  grace period ticks, velocity window, all 4 ranking weights, lineage decay, ancestry
+  depth, and ancestral crossover toggle. All are future meta-optimizable
+- **Enhanced table** — new "Velocity" column showing real-time fitness gain rate per
+  contestant; protected contestants shown with star icon; composite scores in history log
+- **Enhanced detail panel** — shows velocity, acceleration, peak fitness, peak velocity,
+  lineage fitness, and a formatted ancestry tree for each contestant
+- **Generation records** — enriched with composite score, velocity, grace ticks,
+  ancestral crossover flag for complete audit trail
+
 ### Improved — Auto-Evolve on Start & Window Sizing
 - **Auto-Evolve toggle** — new "Auto-Evolve on Start" checkbox (default ON) in the Tournament
   Manager's evolutionary bar. When checked, pressing "Start All" automatically begins the

@@ -62,9 +62,10 @@ public class TournamentManagerWindow extends JFrame {
         table.getColumnModel().getColumn(0).setMaxWidth(40);
         table.getColumnModel().getColumn(1).setMaxWidth(30);
         table.getColumnModel().getColumn(3).setPreferredWidth(100);
-        table.getColumnModel().getColumn(4).setPreferredWidth(60);
-        table.getColumnModel().getColumn(5).setMaxWidth(40);
-        table.getColumnModel().getColumn(6).setPreferredWidth(200);
+        table.getColumnModel().getColumn(4).setPreferredWidth(100);
+        table.getColumnModel().getColumn(5).setPreferredWidth(60);
+        table.getColumnModel().getColumn(6).setMaxWidth(40);
+        table.getColumnModel().getColumn(7).setPreferredWidth(200);
 
         table.getColumnModel().getColumn(1).setCellRenderer(new ColorCellRenderer());
 
@@ -74,9 +75,14 @@ public class TournamentManagerWindow extends JFrame {
             double sb = parseScore(b);
             return Double.compare(sa, sb);
         });
+        sorter.setComparator(4, (Object a, Object b) -> {
+            double sa = parseScore(a);
+            double sb = parseScore(b);
+            return Double.compare(sa, sb);
+        });
         table.setRowSorter(sorter);
         sorter.setSortKeys(java.util.Arrays.asList(
-            new javax.swing.RowSorter.SortKey(4, javax.swing.SortOrder.ASCENDING),
+            new javax.swing.RowSorter.SortKey(5, javax.swing.SortOrder.ASCENDING),
             new javax.swing.RowSorter.SortKey(3, javax.swing.SortOrder.DESCENDING)
         ));
 
@@ -485,13 +491,29 @@ public class TournamentManagerWindow extends JFrame {
             evoTournament = new EvolutionaryTournament(artEvolver, contestants);
         }
 
-        JPanel form = new JPanel(new GridLayout(0, 2, 8, 6));
+        JPanel form = new JPanel(new GridLayout(0, 2, 8, 4));
         form.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        // --- Timing & Population ---
+        addSectionLabel(form, "TIMING & POPULATION");
 
         form.add(new JLabel("Cutoff Interval (seconds):"));
         JSpinner spnCutoff = new JSpinner(new SpinnerNumberModel(
                 evoTournament.getCutoffSeconds(), 10, 600, 10));
         form.add(spnCutoff);
+
+        form.add(new JLabel("Grace Period (ticks):"));
+        JSpinner spnGrace = new JSpinner(new SpinnerNumberModel(
+                evoTournament.getGracePeriodTicks(), 0, 10, 1));
+        form.add(spnGrace);
+
+        form.add(new JLabel("Min Contestants (floor):"));
+        JSpinner spnMinPop = new JSpinner(new SpinnerNumberModel(
+                evoTournament.getMinContestants(), 2, 20, 1));
+        form.add(spnMinPop);
+
+        // --- Breeding ---
+        addSectionLabel(form, "BREEDING & MUTATION");
 
         form.add(new JLabel("Mutation Rate (0.0-1.0):"));
         JSpinner spnMutRate = new JSpinner(new SpinnerNumberModel(
@@ -503,29 +525,89 @@ public class TournamentManagerWindow extends JFrame {
                 (double) evoTournament.getMutationStrength(), 0.0, 1.0, 0.05));
         form.add(spnMutStr);
 
-        form.add(new JLabel("Min Contestants (floor):"));
-        JSpinner spnMinPop = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getMinContestants(), 2, 20, 1));
-        form.add(spnMinPop);
+        form.add(new JLabel("Ancestral Crossover:"));
+        JCheckBox chkAncestral = new JCheckBox("Blend grandparent genes", evoTournament.isUseAncestralCrossover());
+        form.add(chkAncestral);
 
-        form.add(new JLabel(""));
-        form.add(new JLabel(""));
+        form.add(new JLabel("Ancestry Depth:"));
+        JSpinner spnAncDepth = new JSpinner(new SpinnerNumberModel(
+                evoTournament.getAncestryDepth(), 1, 10, 1));
+        form.add(spnAncDepth);
 
-        JLabel hint = new JLabel("<html><i>Cutoff can be changed while evolving is running.</i></html>");
+        // --- Composite Ranking Weights ---
+        addSectionLabel(form, "RANKING WEIGHTS (should sum to ~1.0)");
+
+        form.add(new JLabel("Fitness Weight:"));
+        JSpinner spnWFit = new JSpinner(new SpinnerNumberModel(
+                (double) evoTournament.getFitnessWeight(), 0.0, 1.0, 0.05));
+        form.add(spnWFit);
+
+        form.add(new JLabel("Velocity Weight:"));
+        JSpinner spnWVel = new JSpinner(new SpinnerNumberModel(
+                (double) evoTournament.getVelocityWeight(), 0.0, 1.0, 0.05));
+        form.add(spnWVel);
+
+        form.add(new JLabel("Acceleration Weight:"));
+        JSpinner spnWAcc = new JSpinner(new SpinnerNumberModel(
+                (double) evoTournament.getAccelerationWeight(), 0.0, 1.0, 0.05));
+        form.add(spnWAcc);
+
+        form.add(new JLabel("Lineage Weight:"));
+        JSpinner spnWLin = new JSpinner(new SpinnerNumberModel(
+                (double) evoTournament.getLineageWeight(), 0.0, 1.0, 0.05));
+        form.add(spnWLin);
+
+        // --- Lineage ---
+        addSectionLabel(form, "LINEAGE & VELOCITY");
+
+        form.add(new JLabel("Lineage Decay (per gen):"));
+        JSpinner spnLinDecay = new JSpinner(new SpinnerNumberModel(
+                evoTournament.getLineageDecay(), 0.0, 1.0, 0.05));
+        form.add(spnLinDecay);
+
+        form.add(new JLabel("Velocity Window (seconds):"));
+        JSpinner spnVelWin = new JSpinner(new SpinnerNumberModel(
+                evoTournament.getVelocityWindowSeconds(), 5, 300, 5));
+        form.add(spnVelWin);
+
+        JLabel hint = new JLabel("<html><i>Settings can be changed while evolving is running.<br>"
+                + "Grace period protects newcomers from immediate culling.</i></html>");
         hint.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
         hint.setForeground(Color.GRAY);
         form.add(hint);
         form.add(new JLabel(""));
 
-        int result = JOptionPane.showConfirmDialog(this, form,
+        JScrollPane scroll = new JScrollPane(form);
+        scroll.setPreferredSize(new Dimension(420, 520));
+        scroll.getVerticalScrollBar().setUnitIncrement(12);
+
+        int result = JOptionPane.showConfirmDialog(this, scroll,
                 "Evolutionary Tournament Settings", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
         if (result == JOptionPane.OK_OPTION) {
             evoTournament.setCutoffSeconds((int) spnCutoff.getValue());
+            evoTournament.setGracePeriodTicks((int) spnGrace.getValue());
+            evoTournament.setMinContestants((int) spnMinPop.getValue());
             evoTournament.setMutationRate(((Number) spnMutRate.getValue()).floatValue());
             evoTournament.setMutationStrength(((Number) spnMutStr.getValue()).floatValue());
-            evoTournament.setMinContestants((int) spnMinPop.getValue());
+            evoTournament.setUseAncestralCrossover(chkAncestral.isSelected());
+            evoTournament.setAncestryDepth((int) spnAncDepth.getValue());
+            evoTournament.setFitnessWeight(((Number) spnWFit.getValue()).floatValue());
+            evoTournament.setVelocityWeight(((Number) spnWVel.getValue()).floatValue());
+            evoTournament.setAccelerationWeight(((Number) spnWAcc.getValue()).floatValue());
+            evoTournament.setLineageWeight(((Number) spnWLin.getValue()).floatValue());
+            evoTournament.setLineageDecay(((Number) spnLinDecay.getValue()).doubleValue());
+            evoTournament.setVelocityWindowSeconds((int) spnVelWin.getValue());
         }
+    }
+
+    private void addSectionLabel(JPanel form, String text) {
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 11));
+        lbl.setForeground(new Color(100, 100, 120));
+        lbl.setBorder(new EmptyBorder(8, 0, 2, 0));
+        form.add(lbl);
+        form.add(new JLabel(""));
     }
 
     /** Called periodically to update generation, countdown, best-ever, history. */
@@ -560,6 +642,10 @@ public class TournamentManagerWindow extends JFrame {
                 lblBestEver.setForeground(new Color(255, 193, 7));
             } else {
                 lblBestEver.setForeground(new Color(76, 175, 80));
+            }
+            long protectedCount = contestants.stream().filter(c -> !c.isEliminated() && c.isProtected()).count();
+            if (protectedCount > 0) {
+                bestText += "  \u2B50" + protectedCount + " protected";
             }
             lblBestEver.setText(bestText);
         }
@@ -663,9 +749,41 @@ public class TournamentManagerWindow extends JFrame {
         addDetail("Name", c.getName());
         addDetail("Generation", String.valueOf(c.getGeneration()));
         addDetail("Parentage", c.getParentage());
+
+        if (c.isProtected()) {
+            addDetail("Grace Period", c.getGraceTicks() + " ticks remaining \u2B50");
+        }
+
         if (c.isEliminated()) {
             addDetail("Status", "ELIMINATED at Gen " + c.getEliminatedAtGeneration());
             addDetail("Final Score", new DecimalFormat("0.0000").format(c.getFinalScore() * 100) + "%");
+        }
+
+        FitnessTracker ft = c.getFitnessTracker();
+        if (ft.getSnapshotCount() > 1) {
+            DecimalFormat dfv = new DecimalFormat("0.000000");
+            addDetail("Velocity", dfv.format(ft.getVelocity() * 100) + "%/s");
+            addDetail("Acceleration", dfv.format(ft.getAcceleration() * 100) + "%/s\u00B2");
+            addDetail("Peak Fitness", new DecimalFormat("0.0000").format(ft.getPeakFitness() * 100) + "%");
+            addDetail("Peak Velocity", dfv.format(ft.getPeakVelocity() * 100) + "%/s");
+        }
+
+        if (c.getLineageNode() != null) {
+            LineageNode ln = c.getLineageNode();
+            addDetail("Lineage Fitness", new DecimalFormat("0.0000").format(
+                    ln.getLineageFitness(0.7, 3) * 100) + "%");
+            String ancestry = ln.getAncestryString(2);
+            if (ancestry.contains("\n")) {
+                addDetail("Ancestry", "");
+                JTextArea txtAnc = new JTextArea(ancestry);
+                txtAnc.setEditable(false);
+                txtAnc.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 10));
+                txtAnc.setOpaque(false);
+                txtAnc.setAlignmentX(Component.LEFT_ALIGNMENT);
+                detailPanel.add(txtAnc);
+            } else if (!ancestry.isEmpty()) {
+                addDetail("Ancestry", ancestry);
+            }
         }
 
         if (c.isRunning() && c.getStartTimeMs() > 0) {
@@ -828,7 +946,7 @@ public class TournamentManagerWindow extends JFrame {
     }
 
     private class ContestantTableModel extends AbstractTableModel {
-        private final String[] COLS = {"#", "", "Name", "Score", "Status", "Gen", "Parameters"};
+        private final String[] COLS = {"#", "", "Name", "Score", "Velocity", "Status", "Gen", "Parameters"};
 
         @Override public int getRowCount() { return contestants.size(); }
         @Override public int getColumnCount() { return COLS.length; }
@@ -842,17 +960,27 @@ public class TournamentManagerWindow extends JFrame {
             switch (col) {
                 case 0: return row + 1;
                 case 1: return c.isEliminated() ? Color.DARK_GRAY : c.getChartColor();
-                case 2: return c.isEliminated() ? "\u2620 " + c.getName() : c.getName();
+                case 2: {
+                    String n = c.isEliminated() ? "\u2620 " + c.getName() : c.getName();
+                    if (c.isProtected()) n += " \u2B50";
+                    return n;
+                }
                 case 3: {
                     double score = c.isEliminated() ? c.getFinalScore() : c.getBestScore();
                     return score > 0 ? df.format(score * 100) + "%" : "--";
                 }
                 case 4: {
+                    if (c.isEliminated()) return "--";
+                    double vel = c.getFitnessTracker().getVelocity();
+                    if (vel <= 0) return "--";
+                    return new DecimalFormat("0.000000").format(vel * 100) + "/s";
+                }
+                case 5: {
                     if (c.isEliminated()) return "Eliminated (Gen " + c.getEliminatedAtGeneration() + ")";
                     return c.isRunning() ? "Running" : "Stopped";
                 }
-                case 5: return c.getGeneration();
-                case 6: return c.getConfig().toSummary();
+                case 6: return c.getGeneration();
+                case 7: return c.getConfig().toSummary();
                 default: return "";
             }
         }

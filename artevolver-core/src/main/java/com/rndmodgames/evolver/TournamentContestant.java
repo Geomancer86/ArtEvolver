@@ -39,6 +39,10 @@ public class TournamentContestant {
     private final FitnessTracker fitnessTracker = new FitnessTracker();
     private LineageNode lineageNode;
 
+    // --- Multi-stage (geared) evolution ---
+    private int currentStageIndex = 0;
+    private long lastStageChangeMs = 0;
+
     private static final Color[] PRESET_COLORS = {
         new Color(80, 200, 120),   // green
         new Color(66, 133, 244),   // blue

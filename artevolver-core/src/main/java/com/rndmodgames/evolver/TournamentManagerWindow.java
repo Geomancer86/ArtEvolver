@@ -411,7 +411,7 @@ public class TournamentManagerWindow extends JFrame {
             prehistoricMode = new PrehistoricMode(artEvolver, contestants);
             prehistoricMode.setMaxThreadsBudget(threadBudget);
             prehistoricMode.setAutoAdvance(true);
-            prehistoricMode.setEraDurationSeconds(60);
+            prehistoricMode.setEraDurationSeconds(10);
             if (prehistoricMode.start()) {
                 prehistoricPanel.setVisible(true);
                 btnStartPrehistoric.setText("\u25A0 Stop Prehistoric");
@@ -453,7 +453,7 @@ public class TournamentManagerWindow extends JFrame {
 
         boolean canSpawn = threadBudgetAvailable && resourcesAvailable && cooldownPassed;
 
-        // If prehistoric mode is active, keep its budget in sync and let it manage
+        // If prehistoric mode is active, keep its budget in sync and add contestants
         if (prehistoricMode != null && prehistoricMode.isActive()) {
             prehistoricMode.setMaxThreadsBudget(threadBudget);
             if (canSpawn && !prehistoricMode.isAtFinalEra()) {
@@ -463,7 +463,7 @@ public class TournamentManagerWindow extends JFrame {
                     refreshTable();
                 }
             }
-            return;
+            // Don't return — fall through so evo tournament can start during genesis
         }
 
         // Determine target threads per new contestant from existing contestants
@@ -475,11 +475,12 @@ public class TournamentManagerWindow extends JFrame {
             }
         }
 
-        // Spawn replacement when threads are available (from promotions or initial headroom)
+        // Spawn replacement when threads are available (only if not in prehistoric mode)
+        boolean inPrehistoric = prehistoricMode != null && prehistoricMode.isActive();
         int freeThreads = threadBudget - totalThreadsUsed;
         boolean needsReplacement = freeThreads >= threadsPerContestant;
 
-        if (canSpawn && needsReplacement) {
+        if (!inPrehistoric && canSpawn && needsReplacement) {
             EvolutionConfig cfg = new EvolutionConfig();
             artEvolver.populateConfigFromUI(cfg);
             cfg.threads = threadsPerContestant;

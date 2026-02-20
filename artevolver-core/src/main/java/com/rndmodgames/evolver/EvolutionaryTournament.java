@@ -22,6 +22,7 @@ public class EvolutionaryTournament {
     private final ArtEvolver artEvolver;
     private final List<TournamentContestant> contestants;
     private Timer cullTimer;
+    private Timer lifespanTimer;
 
     private int generation = 0;
     private boolean running = false;
@@ -120,6 +121,10 @@ public class EvolutionaryTournament {
         cullTimer.setInitialDelay(cutoffSeconds * 1000);
         cullTimer.setRepeats(true);
         cullTimer.start();
+
+        if (maxLifespanSeconds > 0) {
+            startLifespanEnforcer();
+        }
         System.out.println("[EvoTournament] Started — cutoff every " + cutoffSeconds
                 + "s, pop=" + aliveCount + ", grace=" + gracePeriodTicks + " ticks"
                 + ", spawns=" + spawnsPerTick
@@ -138,7 +143,40 @@ public class EvolutionaryTournament {
             cullTimer.stop();
             cullTimer = null;
         }
+        if (lifespanTimer != null) {
+            lifespanTimer.stop();
+            lifespanTimer = null;
+        }
         System.out.println("[EvoTournament] Stopped at generation " + generation);
+    }
+
+    /**
+     * Starts a fast-polling timer (every 5s) that hard-enforces the lifespan cap.
+     * Any active contestant past maxLifespanSeconds is immediately promoted,
+     * regardless of the cull cycle, grace period, or minimum population constraints.
+     */
+    private void startLifespanEnforcer() {
+        if (lifespanTimer != null) { lifespanTimer.stop(); }
+        lifespanTimer = new Timer(5_000, e -> enforceLifespanCap());
+        lifespanTimer.setRepeats(true);
+        lifespanTimer.start();
+    }
+
+    private void enforceLifespanCap() {
+        if (!running || maxLifespanSeconds <= 0) return;
+        long now = System.currentTimeMillis();
+        for (TournamentContestant c : new ArrayList<>(contestants)) {
+            if (c.isFinished()) continue;
+            long startMs = c.getStartTimeMs();
+            if (startMs <= 0) continue;
+            long ageSec = (now - startMs) / 1000;
+            if (ageSec >= maxLifespanSeconds) {
+                System.out.println("[EvoTournament] HARD CAP: promoting " + c.getName()
+                        + " after " + ageSec + "s (limit " + maxLifespanSeconds + "s)");
+                c.promote(generation);
+                rotatePromotedPool();
+            }
+        }
     }
 
     public int getSecondsUntilNextTick() {
@@ -888,7 +926,15 @@ public class EvolutionaryTournament {
     public int getAdaptiveCutoffMax() { return adaptiveCutoffMax; }
     public void setAdaptiveCutoffMax(int s) { this.adaptiveCutoffMax = Math.max(30, s); }
     public int getMaxLifespanSeconds() { return maxLifespanSeconds; }
-    public void setMaxLifespanSeconds(int s) { this.maxLifespanSeconds = Math.max(0, s); }
+    public void setMaxLifespanSeconds(int s) {
+        this.maxLifespanSeconds = Math.max(0, s);
+        if (running && s > 0 && lifespanTimer == null) {
+            startLifespanEnforcer();
+        } else if (s <= 0 && lifespanTimer != null) {
+            lifespanTimer.stop();
+            lifespanTimer = null;
+        }
+    }
     public int getMaxPromoted() { return maxPromoted; }
     public void setMaxPromoted(int n) { this.maxPromoted = Math.max(1, n); }
     public int getPresetInjectionInterval() { return presetInjectionInterval; }

@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.0] - 2026-02-20 (develop branch)
 
+### Added — Contestant Lifespan Cap & Ranking Strategies
+
+- **Max Lifespan Cap**: New `maxLifespanSeconds` parameter (default 0 = disabled). When set,
+  any contestant exceeding this age is prioritized for culling regardless of score. Prevents
+  the leader from dominating forever with marginal gains. Forces genetic turnover where the
+  leader's genes live on through children. The chart looks much cleaner when all contestants
+  have similar time spans (especially with time-based X-axis)
+- **Ranking Strategy modes**: New `RankingStrategy` enum with four modes:
+  - `BALANCED`: Uses the manually configured base weights (previous default behavior)
+  - `VELOCITY_FIRST`: 60% velocity, 15% acceleration, 10% fitness, 15% lineage
+  - `FITNESS_FIRST`: 65% fitness, 15% velocity, 5% acceleration, 15% lineage
+  - `AUTO` (new default): Starts velocity-heavy (favoring fast learners) and linearly
+    transitions to fitness-heavy over `autoTransitionGen` generations. Early generations
+    reward speed of improvement, later generations reward peak performance
+- **AUTO transition parameter**: `autoTransitionGen` controls how many generations the
+  shift from velocity-first to fitness-first takes (default 10)
+- **Dynamic effective weights**: `getEffectiveWeights()` returns the actual weights being
+  used at any moment, reflecting the current ranking strategy and generation
+- **Live status shows ranking mode**: The smart announcer displays the active strategy and
+  current weight distribution, plus lifespan countdown warnings for expiring contestants
+- **Lifespan in per-contestant display**: Each contestant line shows age/lifespan remaining
+  and an EXPIRED marker when over the limit
+- **Settings dialog expanded**: New "Contestant Lifespan" and "Ranking Strategy" sections
+  with tooltips explaining each option. Base weights section clarified as only used by BALANCED
+
 ### Fixed — Evolution History Panel & Tournament Speed
 
 - **History panel only showed Generation 1**: The update check compared `txtHistory.getLineCount()` 

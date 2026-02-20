@@ -118,7 +118,20 @@ compositeScore = wFitness × normalizedFitness
 current alive population (min-max scaling) so that the weights are meaningful
 regardless of the actual fitness scale.
 
-**Default weights** (configurable, future meta-optimizable):
+**Ranking Strategy** determines how the weights are applied:
+
+| Strategy | Description |
+|----------|-------------|
+| `BALANCED` | Uses the manually configured base weights below |
+| `VELOCITY_FIRST` | 60% velocity, 15% acceleration, 10% fitness, 15% lineage |
+| `FITNESS_FIRST` | 65% fitness, 15% velocity, 5% acceleration, 15% lineage |
+| `AUTO` (default) | Linearly interpolates from velocity-first to fitness-first over `autoTransitionGen` generations |
+
+**AUTO mode** is the recommended default: early generations reward fast learners (who
+show the most improvement per second), while later generations shift to rewarding peak
+fitness once the population has differentiated. The transition point is configurable.
+
+**Base weights** (used by BALANCED, overridden by other strategies):
 - `wFitness` = 0.35 — Current absolute fitness still matters
 - `wVelocity` = 0.40 — How fast are you improving? (primary signal)
 - `wAcceleration` = 0.05 — Are you speeding up or slowing down?
@@ -139,18 +152,37 @@ When selecting parents for a new contestant:
 3. **Inbreeding prevention**: If both parents share a recent common ancestor
    (within `ancestryDepth` generations), prefer a different partner.
 
-### F. Configurable Parameters (all future meta-optimizable)
+### F. Contestant Lifespan Cap
+
+**Problem**: The leading contestant accumulates marginal gains forever, dominating the
+tournament and the chart. Even with good velocity tracking, eventually the leader's
+velocity drops near zero but their absolute score keeps them at the top indefinitely.
+
+**Solution**: `maxLifespanSeconds` (default 0 = disabled). When set:
+1. Any contestant exceeding this age is automatically the first candidate for culling
+2. Even the top performer gets replaced — their genes live on through children
+3. Forces continuous genetic turnover and exploration
+4. The fitness chart looks clean: all contestants have similar time spans
+5. The oldest expired contestant is culled first (fairness)
+
+This is especially effective with the time-based X-axis on the fitness chart — all
+lines span roughly the same horizontal distance, making comparison easy.
+
+### G. Configurable Parameters (all future meta-optimizable)
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `gracePeriodTicks` | 1 | Ticks of immunity for new contestants |
+| `gracePeriodTicks` | 2 | Ticks of immunity for new contestants |
 | `velocityWindowSeconds` | 30 | Window for velocity/acceleration calculation |
-| `fitnessWeight` | 0.35 | Weight of absolute fitness in composite score |
-| `velocityWeight` | 0.40 | Weight of improvement speed |
-| `accelerationWeight` | 0.05 | Weight of improvement acceleration |
+| `fitnessWeight` | 0.35 | Base weight of absolute fitness in composite score |
+| `velocityWeight` | 0.40 | Base weight of improvement speed |
+| `accelerationWeight` | 0.05 | Base weight of improvement acceleration |
 | `lineageWeight` | 0.20 | Weight of ancestry performance |
 | `lineageDecay` | 0.7 | How much each generation back reduces weight |
 | `ancestryDepth` | 3 | Max generations back for breeding/lineage |
+| `maxLifespanSeconds` | 0 | Max age before forced culling (0 = disabled) |
+| `rankingStrategy` | AUTO | BALANCED, VELOCITY_FIRST, FITNESS_FIRST, AUTO |
+| `autoTransitionGen` | 10 | Generations for AUTO to fully shift to fitness-first |
 | `useAncestralCrossover` | true | Blend in grandparent genes during breeding |
 
 ## Implementation Plan

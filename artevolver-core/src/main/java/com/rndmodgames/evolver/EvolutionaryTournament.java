@@ -45,7 +45,15 @@ public class EvolutionaryTournament {
     private int adaptiveCutoffMin = 5;
     private int adaptiveCutoffMax = 300;
 
-    // --- Composite ranking weights (must sum to ~1.0) ---
+    // --- Contestant lifespan cap (0 = disabled) ---
+    private int maxLifespanSeconds = 0;
+
+    // --- Ranking strategy ---
+    public enum RankingStrategy { BALANCED, VELOCITY_FIRST, FITNESS_FIRST, AUTO }
+    private RankingStrategy rankingStrategy = RankingStrategy.AUTO;
+    private int autoTransitionGen = 10;
+
+    // --- Composite ranking base weights (used by BALANCED, modified by other strategies) ---
     private float fitnessWeight = 0.35f;
     private float velocityWeight = 0.40f;
     private float accelerationWeight = 0.05f;
@@ -111,8 +119,9 @@ public class EvolutionaryTournament {
                 + "s, pop=" + aliveCount + ", grace=" + gracePeriodTicks + " ticks"
                 + ", spawns=" + spawnsPerTick
                 + ", adaptive=" + (adaptiveCutoff ? "ON [" + adaptiveCutoffMin + "-" + adaptiveCutoffMax + "s]" : "OFF")
-                + ", weights: fit=" + fitnessWeight + " vel=" + velocityWeight
-                + " acc=" + accelerationWeight + " lin=" + lineageWeight);
+                + ", ranking=" + rankingStrategy
+                + (maxLifespanSeconds > 0 ? ", lifespan=" + maxLifespanSeconds + "s" : "")
+                + (rankingStrategy == RankingStrategy.AUTO ? ", autoTransition=" + autoTransitionGen + " gens" : ""));
         return true;
     }
 
@@ -234,6 +243,7 @@ public class EvolutionaryTournament {
         String lastCulledName = null;
         double lastCulledScore = 0, lastCulledComposite = 0, lastCulledVelocity = 0;
         int lastCulledGen = 0;
+        boolean lastCulledByLifespan = false;
         String lastParentA = null, lastParentB = null, lastChildName = null;
         String lastChildParams = null;
 
@@ -254,6 +264,7 @@ public class EvolutionaryTournament {
             lastCulledComposite = worstScored.compositeScore;
             lastCulledVelocity = worst.getFitnessTracker().getVelocity();
             lastCulledGen = worst.getGeneration();
+            lastCulledByLifespan = isExpired(worst);
 
             TournamentContestant parentA = selectParent(currentScored, worst);
             TournamentContestant parentB = selectParentDiverse(currentScored, worst, parentA);
@@ -321,6 +332,9 @@ public class EvolutionaryTournament {
         rec.stalledGens = stalledGenerations;
         rec.ancestralCrossover = useAncestralCrossover;
         rec.currentCutoff = cutoffSeconds;
+        rec.culledByLifespan = lastCulledByLifespan;
+        rec.rankingMode = rankingStrategy.name();
+        rec.effectiveWeights = getEffectiveWeights();
         // Track previous generation's average for delta comparison
         if (!history.isEmpty()) {
             GenerationRecord prev = history.get(history.size() - 1);
@@ -353,7 +367,33 @@ public class EvolutionaryTournament {
         }
     }
 
+    /** Checks if a contestant has exceeded its maximum lifespan. */
+    private boolean isExpired(TournamentContestant c) {
+        if (maxLifespanSeconds <= 0) return false;
+        long startMs = c.getStartTimeMs();
+        if (startMs <= 0) return false;
+        return (System.currentTimeMillis() - startMs) / 1000 >= maxLifespanSeconds;
+    }
+
+    /**
+     * Finds the worst eligible contestant for culling.
+     * Expired contestants (exceeded lifespan) are always prioritized, even if they rank well.
+     * Among non-expired, picks the lowest composite score that isn't protected.
+     */
     private ScoredContestant findWorstEligible(List<ScoredContestant> scored) {
+        // First pass: look for expired contestants (oldest first)
+        ScoredContestant oldestExpired = null;
+        for (int i = scored.size() - 1; i >= 0; i--) {
+            ScoredContestant sc = scored.get(i);
+            if (isExpired(sc.contestant)) {
+                if (oldestExpired == null || sc.contestant.getStartTimeMs() < oldestExpired.contestant.getStartTimeMs()) {
+                    oldestExpired = sc;
+                }
+            }
+        }
+        if (oldestExpired != null) return oldestExpired;
+
+        // Second pass: normal worst by composite score (not protected)
         ScoredContestant worst = null;
         for (int i = scored.size() - 1; i >= 0; i--) {
             ScoredContestant sc = scored.get(i);
@@ -371,7 +411,7 @@ public class EvolutionaryTournament {
     private int countEligibleForCull(List<ScoredContestant> scored) {
         int count = 0;
         for (ScoredContestant sc : scored) {
-            if (!sc.contestant.isProtected()) count++;
+            if (!sc.contestant.isProtected() || isExpired(sc.contestant)) count++;
         }
         return count;
     }
@@ -475,6 +515,35 @@ public class EvolutionaryTournament {
     //  COMPOSITE SCORING
     // ═══════════════════════════════════════════════════════════
 
+    /**
+     * Computes effective weights based on the active ranking strategy.
+     * AUTO interpolates from velocity-heavy to fitness-heavy over autoTransitionGen generations.
+     */
+    private float[] getEffectiveWeights() {
+        float wFit = fitnessWeight, wVel = velocityWeight, wAcc = accelerationWeight, wLin = lineageWeight;
+
+        switch (rankingStrategy) {
+            case VELOCITY_FIRST:
+                wFit = 0.10f; wVel = 0.60f; wAcc = 0.15f; wLin = 0.15f;
+                break;
+            case FITNESS_FIRST:
+                wFit = 0.65f; wVel = 0.15f; wAcc = 0.05f; wLin = 0.15f;
+                break;
+            case AUTO:
+                // Early: velocity-heavy. Late: fitness-heavy. Linear interpolation.
+                float t = Math.min(1.0f, (float) generation / Math.max(1, autoTransitionGen));
+                wFit  = 0.10f + t * 0.55f;  // 0.10 -> 0.65
+                wVel  = 0.60f - t * 0.45f;  // 0.60 -> 0.15
+                wAcc  = 0.15f - t * 0.10f;  // 0.15 -> 0.05
+                wLin  = 0.15f;              // constant
+                break;
+            case BALANCED:
+            default:
+                break;
+        }
+        return new float[] { wFit, wVel, wAcc, wLin };
+    }
+
     private List<ScoredContestant> computeCompositeScores(List<TournamentContestant> alive) {
         double[] fitnesses = new double[alive.size()];
         double[] velocities = new double[alive.size()];
@@ -496,12 +565,14 @@ public class EvolutionaryTournament {
         double[] normAcc = normalize(accelerations);
         double[] normLin = normalize(lineageScores);
 
+        float[] w = getEffectiveWeights();
+
         List<ScoredContestant> result = new ArrayList<>();
         for (int i = 0; i < alive.size(); i++) {
-            double composite = fitnessWeight * normFit[i]
-                    + velocityWeight * normVel[i]
-                    + accelerationWeight * normAcc[i]
-                    + lineageWeight * normLin[i];
+            double composite = w[0] * normFit[i]
+                    + w[1] * normVel[i]
+                    + w[2] * normAcc[i]
+                    + w[3] * normLin[i];
             result.add(new ScoredContestant(alive.get(i), composite,
                     normFit[i], normVel[i], normAcc[i], normLin[i]));
         }
@@ -712,6 +783,13 @@ public class EvolutionaryTournament {
     public void setAdaptiveCutoffMin(int s) { this.adaptiveCutoffMin = Math.max(5, s); }
     public int getAdaptiveCutoffMax() { return adaptiveCutoffMax; }
     public void setAdaptiveCutoffMax(int s) { this.adaptiveCutoffMax = Math.max(30, s); }
+    public int getMaxLifespanSeconds() { return maxLifespanSeconds; }
+    public void setMaxLifespanSeconds(int s) { this.maxLifespanSeconds = Math.max(0, s); }
+    public RankingStrategy getRankingStrategy() { return rankingStrategy; }
+    public void setRankingStrategy(RankingStrategy s) { this.rankingStrategy = s; }
+    public int getAutoTransitionGen() { return autoTransitionGen; }
+    public void setAutoTransitionGen(int g) { this.autoTransitionGen = Math.max(1, g); }
+    public float[] getCurrentEffectiveWeights() { return getEffectiveWeights(); }
 
     // ═══════════════════════════════════════════════════════════
     //  INNER CLASSES
@@ -773,6 +851,9 @@ public class EvolutionaryTournament {
         public boolean ancestralCrossover;
         public int spawnsThisTick = 1;
         public int currentCutoff;
+        public boolean culledByLifespan;
+        public String rankingMode;
+        public float[] effectiveWeights;
 
         GenerationRecord(int gen) {
             this.generation = gen;
@@ -854,7 +935,8 @@ public class EvolutionaryTournament {
                 sb.append("Eliminated ").append(culledName);
             }
             sb.append(" (").append(DF2_STATIC.format(culledScore * 100)).append("%");
-            if (culledVelocity > 0) sb.append(", was still improving");
+            if (culledByLifespan) sb.append(", LIFESPAN EXPIRED");
+            else if (culledVelocity > 0) sb.append(", was still improving");
             else if (culledVelocity < -0.0001) sb.append(", declining");
             else sb.append(", stagnant");
             if (culledGeneration > 0) sb.append(", born Gen ").append(culledGeneration);
@@ -870,6 +952,19 @@ public class EvolutionaryTournament {
             if (bestEverScore > bestScore * 1.001) {
                 sb.append("  \u2B50 Record: ").append(bestEverName)
                   .append(" ").append(DF2_STATIC.format(bestEverScore * 100)).append("%\n");
+            }
+
+            // Ranking mode
+            if (rankingMode != null) {
+                sb.append("  \uD83C\uDFAF Ranking: ").append(rankingMode);
+                if (effectiveWeights != null) {
+                    sb.append(" [fit=").append(DF2_STATIC.format(effectiveWeights[0]))
+                      .append(" vel=").append(DF2_STATIC.format(effectiveWeights[1]))
+                      .append(" acc=").append(DF2_STATIC.format(effectiveWeights[2]))
+                      .append(" lin=").append(DF2_STATIC.format(effectiveWeights[3]))
+                      .append("]");
+                }
+                sb.append('\n');
             }
 
             // Cycle timing

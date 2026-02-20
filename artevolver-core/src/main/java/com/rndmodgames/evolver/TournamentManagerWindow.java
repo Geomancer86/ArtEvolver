@@ -1122,6 +1122,33 @@ public class TournamentManagerWindow extends JFrame {
                 evoTournament.getAdaptiveCutoffMax(), 30, 600, 10));
         form.add(spnAdaptMax);
 
+        // --- Lifespan Cap ---
+        addSectionLabel(form, "CONTESTANT LIFESPAN");
+
+        form.add(new JLabel("Max Lifespan (seconds, 0=off):"));
+        JSpinner spnLifespan = new JSpinner(new SpinnerNumberModel(
+                evoTournament.getMaxLifespanSeconds(), 0, 3600, 10));
+        spnLifespan.setToolTipText("Force replacement after N seconds. Prevents leader stagnation.");
+        form.add(spnLifespan);
+
+        // --- Ranking Strategy ---
+        addSectionLabel(form, "RANKING STRATEGY");
+
+        form.add(new JLabel("Strategy:"));
+        JComboBox<EvolutionaryTournament.RankingStrategy> cmbStrategy = new JComboBox<>(
+                EvolutionaryTournament.RankingStrategy.values());
+        cmbStrategy.setSelectedItem(evoTournament.getRankingStrategy());
+        cmbStrategy.setToolTipText(
+                "BALANCED: use base weights. VELOCITY_FIRST: favor fast learners. "
+                + "FITNESS_FIRST: favor peak score. AUTO: start velocity-heavy, shift to fitness.");
+        form.add(cmbStrategy);
+
+        form.add(new JLabel("AUTO Transition Gen:"));
+        JSpinner spnAutoTransGen = new JSpinner(new SpinnerNumberModel(
+                evoTournament.getAutoTransitionGen(), 1, 100, 1));
+        spnAutoTransGen.setToolTipText("In AUTO mode, how many generations to fully transition from velocity to fitness.");
+        form.add(spnAutoTransGen);
+
         // --- Breeding ---
         addSectionLabel(form, "BREEDING & MUTATION");
 
@@ -1145,7 +1172,7 @@ public class TournamentManagerWindow extends JFrame {
         form.add(spnAncDepth);
 
         // --- Composite Ranking Weights ---
-        addSectionLabel(form, "RANKING WEIGHTS (should sum to ~1.0)");
+        addSectionLabel(form, "BASE WEIGHTS (used by BALANCED, overridden by other strategies)");
 
         form.add(new JLabel("Fitness Weight:"));
         JSpinner spnWFit = new JSpinner(new SpinnerNumberModel(
@@ -1181,14 +1208,16 @@ public class TournamentManagerWindow extends JFrame {
         form.add(spnVelWin);
 
         JLabel hint = new JLabel("<html><i>Settings can be changed while evolving is running.<br>"
-                + "Grace period protects newcomers from immediate culling.</i></html>");
+                + "Grace period protects newcomers from immediate culling.<br>"
+                + "Lifespan cap forces genetic turnover even for the leader.<br>"
+                + "AUTO ranking starts velocity-heavy and shifts to fitness.</i></html>");
         hint.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
         hint.setForeground(Color.GRAY);
         form.add(hint);
         form.add(new JLabel(""));
 
         JScrollPane scroll = new JScrollPane(form);
-        scroll.setPreferredSize(new Dimension(420, 520));
+        scroll.setPreferredSize(new Dimension(480, 600));
         scroll.getVerticalScrollBar().setUnitIncrement(12);
 
         int result = JOptionPane.showConfirmDialog(this, scroll,
@@ -1202,6 +1231,10 @@ public class TournamentManagerWindow extends JFrame {
             evoTournament.setAdaptiveCutoff(chkAdaptive.isSelected());
             evoTournament.setAdaptiveCutoffMin((int) spnAdaptMin.getValue());
             evoTournament.setAdaptiveCutoffMax((int) spnAdaptMax.getValue());
+            evoTournament.setMaxLifespanSeconds((int) spnLifespan.getValue());
+            evoTournament.setRankingStrategy(
+                    (EvolutionaryTournament.RankingStrategy) cmbStrategy.getSelectedItem());
+            evoTournament.setAutoTransitionGen((int) spnAutoTransGen.getValue());
             evoTournament.setMutationRate(((Number) spnMutRate.getValue()).floatValue());
             evoTournament.setMutationStrength(((Number) spnMutStr.getValue()).floatValue());
             evoTournament.setUseAncestralCrossover(chkAncestral.isSelected());
@@ -1374,8 +1407,13 @@ public class TournamentManagerWindow extends JFrame {
             // Grace period
             if (c.isProtected()) sb.append("  \u2B50");
 
-            // Uptime
-            if (uptimeSec < 60) sb.append("  [" + uptimeSec + "s]");
+            // Uptime + lifespan
+            if (evoTournament != null && evoTournament.getMaxLifespanSeconds() > 0 && startMs > 0) {
+                long remainLife = evoTournament.getMaxLifespanSeconds() - uptimeSec;
+                if (remainLife <= 0) sb.append("  \u23F3 EXPIRED");
+                else if (uptimeSec < 60) sb.append("  [" + uptimeSec + "s/" + evoTournament.getMaxLifespanSeconds() + "s]");
+                else sb.append("  [" + (uptimeSec / 60) + "m" + (uptimeSec % 60) + "s/" + evoTournament.getMaxLifespanSeconds() + "s]");
+            } else if (uptimeSec < 60) sb.append("  [" + uptimeSec + "s]");
             else sb.append("  [" + (uptimeSec / 60) + "m" + (uptimeSec % 60) + "s]");
 
             sb.append('\n');
@@ -1398,6 +1436,33 @@ public class TournamentManagerWindow extends JFrame {
         sb.append('\n');
 
         if (evoTournament != null && evoTournament.isRunning()) {
+            // Ranking mode
+            EvolutionaryTournament.RankingStrategy strat = evoTournament.getRankingStrategy();
+            float[] w = evoTournament.getCurrentEffectiveWeights();
+            sb.append("  Ranking: ").append(strat);
+            if (strat == EvolutionaryTournament.RankingStrategy.AUTO) {
+                sb.append(" [fit=").append(df2.format(w[0]))
+                  .append(" vel=").append(df2.format(w[1])).append("]");
+            }
+            sb.append('\n');
+
+            // Lifespan warnings
+            int lifespan = evoTournament.getMaxLifespanSeconds();
+            if (lifespan > 0) {
+                long now = System.currentTimeMillis();
+                for (TournamentContestant c : alive) {
+                    long startMs = c.getStartTimeMs();
+                    if (startMs > 0) {
+                        long ageSec = (now - startMs) / 1000;
+                        long remainLife = lifespan - ageSec;
+                        if (remainLife <= 15 && remainLife > 0) {
+                            sb.append("  \u23F3 ").append(c.getName())
+                              .append(" expires in ").append(remainLife).append("s\n");
+                        }
+                    }
+                }
+            }
+
             int remaining = evoTournament.getSecondsUntilNextTick();
             if (remaining >= 0) {
                 sb.append("  Next cycle in ").append(remaining).append("s");

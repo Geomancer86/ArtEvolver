@@ -1,7 +1,0 @@
-Add adaptive lifetime feature: max lifespan grows dynamically over time
-
-Tracks real elapsed lifetime of every competitor. When competitors use
-most of their allotted time (>=85% in LONGEST mode, >=70% in AVERAGE
-mode), the max lifespan grows by up to 10% per generation tick.
-Anomaly detection filters stuck competitors (>150% of max). Absolute
-ceiling at 600s. Full UI controls, dashboard indicators, and API data.

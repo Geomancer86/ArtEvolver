@@ -509,6 +509,10 @@ body {
     <span class="label">Spawns/Tick:</span>
     <span class="value" id="tSpawns">--</span>
   </div>
+  <div class="tournament-stat">
+    <span class="label">Lifespan:</span>
+    <span class="value" id="tLifespan">--</span>
+  </div>
   <div id="tCountdown" class="countdown">--:--</div>
 </div>
 
@@ -529,6 +533,20 @@ body {
         <div class="summary-card"><div class="num" id="sElim">0</div><div class="lbl">Eliminated</div></div>
         <div class="summary-card"><div class="num" id="sTotal">0</div><div class="lbl">Total</div></div>
         <div class="summary-card"><div class="num" id="sAvgScore">--</div><div class="lbl">Avg Fitness</div></div>
+      </div>
+      <div id="adaptiveLifetimePanel" style="margin-top:8px;display:none">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin-bottom:4px">Adaptive Lifetime</div>
+        <div class="summary-grid">
+          <div class="summary-card"><div class="num" id="alCurrent" style="font-size:16px">--</div><div class="lbl">Current Max</div></div>
+          <div class="summary-card"><div class="num" id="alInitial" style="font-size:16px">--</div><div class="lbl">Initial</div></div>
+          <div class="summary-card"><div class="num" id="alLongest" style="font-size:16px">--</div><div class="lbl">Longest</div></div>
+          <div class="summary-card"><div class="num" id="alAvg" style="font-size:16px">--</div><div class="lbl">Avg Life</div></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px;font-size:11px;color:var(--text-dim)">
+          <span id="alMode"></span>
+          <span id="alGrowths"></span>
+          <span id="alAnomalies"></span>
+        </div>
       </div>
     </div>
     <div class="sidebar-section" id="genChartSection" style="display:none">
@@ -637,6 +655,17 @@ function updateTournament(t) {
       t.cutoffSeconds + 's' + (t.adaptiveCutoff ? ' (adaptive)' : '');
     document.getElementById('tSpawns').textContent = t.spawnsPerTick;
 
+    // Lifespan indicator
+    const lifeEl = document.getElementById('tLifespan');
+    if (t.adaptiveLifetime) {
+      lifeEl.textContent = t.maxLifespan + 's (' + t.initialLifespan + 's→' + t.absoluteMaxLifespan + 's)';
+      lifeEl.title = 'Adaptive: ' + t.adaptiveLifetimeMode + ' mode, +'
+        + t.adaptiveGrowths + ' growths, longest=' + t.longestLifetime + 's';
+    } else {
+      lifeEl.textContent = t.maxLifespan + 's';
+      lifeEl.title = 'Fixed lifespan';
+    }
+
     const sec = t.secondsUntilNext;
     if (sec >= 0) {
       const m = Math.floor(sec / 60);
@@ -645,12 +674,31 @@ function updateTournament(t) {
       cd.textContent = m > 0 ? m + ':' + String(s).padStart(2,'0') : s + 's';
       cd.className = 'countdown' + (sec <= 10 ? ' urgent' : '');
     }
+    // Adaptive lifetime sidebar panel
+    const alPanel = document.getElementById('adaptiveLifetimePanel');
+    if (t.adaptiveLifetime) {
+      alPanel.style.display = '';
+      document.getElementById('alCurrent').textContent = t.maxLifespan + 's';
+      document.getElementById('alInitial').textContent = t.initialLifespan + 's';
+      document.getElementById('alLongest').textContent = parseFloat(t.longestLifetime).toFixed(1) + 's';
+      document.getElementById('alAvg').textContent = parseFloat(t.avgLifetime).toFixed(1) + 's';
+      document.getElementById('alMode').textContent = '📈 ' + t.adaptiveLifetimeMode;
+      document.getElementById('alGrowths').textContent = '⬆ ' + t.adaptiveGrowths + ' growths';
+      document.getElementById('alAnomalies').textContent = t.anomalies > 0 ? '⚠ ' + t.anomalies + ' anomalies' : '';
+      const growthPct = t.initialLifespan > 0 ? ((t.maxLifespan / t.initialLifespan - 1) * 100).toFixed(0) : 0;
+      document.getElementById('alCurrent').style.color = growthPct > 0 ? 'var(--green)' : 'var(--text)';
+    } else {
+      alPanel.style.display = 'none';
+    }
+
   } else {
     document.getElementById('tGen').textContent = '--';
     document.getElementById('tBestEver').textContent = '--';
     document.getElementById('tCutoff').textContent = '--';
     document.getElementById('tSpawns').textContent = '--';
+    document.getElementById('tLifespan').textContent = '--';
     document.getElementById('tCountdown').textContent = 'Idle';
+    document.getElementById('adaptiveLifetimePanel').style.display = 'none';
   }
 }
 

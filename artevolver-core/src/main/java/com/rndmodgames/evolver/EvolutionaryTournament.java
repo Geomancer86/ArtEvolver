@@ -49,6 +49,24 @@ public class EvolutionaryTournament {
     // --- Contestant lifespan cap (0 = disabled) ---
     private int maxLifespanSeconds = 30;
 
+    // --- Adaptive lifetime: dynamically grows the lifespan cap ---
+    public enum AdaptiveLifetimeMode { LONGEST, AVERAGE }
+    private boolean adaptiveLifetimeEnabled = true;
+    private AdaptiveLifetimeMode adaptiveLifetimeMode = AdaptiveLifetimeMode.LONGEST;
+    private int initialLifespanSeconds = 30;
+    private double adaptiveLifetimeGrowthCap = 0.10;
+    private double adaptiveLifetimeAnomalyThreshold = 1.50;
+    private int absoluteMaxLifespanSeconds = 600;
+
+    // --- Adaptive lifetime tracking ---
+    private final List<Double> recentLifetimes = new ArrayList<>();
+    private double longestRecordedLifetime = 0;
+    private double lifetimeSumAll = 0;
+    private int lifetimeCountAll = 0;
+    private int anomalyCount = 0;
+    private int adaptiveGrowthCount = 0;
+    private int previousAdaptiveLifespan = 0;
+
     // --- Stale detection: kill flat-line contestants early ---
     private int staleThresholdSeconds = 8;
     private static final double STALE_VELOCITY_THRESHOLD = 0.000001;
@@ -227,6 +245,7 @@ public class EvolutionaryTournament {
                         System.out.println("[EvoTournament] DECLINING: " + c.getName()
                                 + " regressing (vel=" + DF2.format(vel * 100)
                                 + "%/s) on last gear — terminating immediately");
+                        recordLifetime(c);
                         c.eliminate(generation);
                         killed.add(c);
                     }
@@ -251,6 +270,7 @@ public class EvolutionaryTournament {
                         System.out.println("[EvoTournament] STALE: " + c.getName()
                                 + " flat for " + (int) elapsed + "s (vel=" + DF2.format(vel * 100)
                                 + "%/s) on last gear — terminating early");
+                        recordLifetime(c);
                         c.eliminate(generation);
                         killed.add(c);
                     }
@@ -273,6 +293,7 @@ public class EvolutionaryTournament {
                                     + " projected=" + DF2.format(projected * 100)
                                     + "% < worst alive=" + DF2.format(worstAliveScore * 100)
                                     + "% with " + remainSec + "s remaining — terminating");
+                            recordLifetime(c);
                             c.eliminate(generation);
                             killed.add(c);
                         }
@@ -625,6 +646,8 @@ public class EvolutionaryTournament {
             System.out.println("[EvoTournament] CONVERGENCE DETECTED — "
                     + stalledGenerations + " generations without significant improvement");
         }
+
+        updateAdaptiveLifetime();
     }
 
     /** Checks if a contestant has exceeded its maximum lifespan. */
@@ -792,6 +815,7 @@ public class EvolutionaryTournament {
      * the newcomer qualifies, the worst promoted is demoted to make room.
      */
     private void finishContestant(TournamentContestant c) {
+        recordLifetime(c);
         double score = c.getBestScore();
         List<TournamentContestant> promoted = getPromoted();
 
@@ -832,6 +856,82 @@ public class EvolutionaryTournament {
                     + " (" + DF2.format(score * 100) + "%) — below avg promoted "
                     + DF2.format(avgPromotedScore * 100) + "%");
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  ADAPTIVE LIFETIME
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Records the actual elapsed lifetime of a finishing competitor for the
+     * adaptive lifetime feature. Filters anomalies (stuck/looped competitors).
+     */
+    private void recordLifetime(TournamentContestant c) {
+        if (!adaptiveLifetimeEnabled) return;
+        long startMs = c.getStartTimeMs();
+        if (startMs <= 0) return;
+        double elapsed = (System.currentTimeMillis() - startMs) / 1000.0;
+        if (elapsed <= 0) return;
+
+        double threshold = maxLifespanSeconds * adaptiveLifetimeAnomalyThreshold;
+        if (elapsed > threshold) {
+            anomalyCount++;
+            System.out.println("[AdaptiveLife] ANOMALY: " + c.getName()
+                    + " ran " + DF2.format(elapsed) + "s (>" + DF2.format(threshold)
+                    + "s) — excluded from adaptive tracking");
+            return;
+        }
+
+        recentLifetimes.add(elapsed);
+        lifetimeSumAll += elapsed;
+        lifetimeCountAll++;
+        if (elapsed > longestRecordedLifetime) {
+            longestRecordedLifetime = elapsed;
+        }
+    }
+
+    /**
+     * Called at each generation tick. Checks recent lifetimes and grows the
+     * max lifespan if competitors are utilizing most of their allotted time.
+     *
+     * LONGEST mode: grows when the longest recorded lifetime >= 85% of current max.
+     * AVERAGE mode: grows when the average recorded lifetime >= 70% of current max.
+     *
+     * Growth is capped at adaptiveLifetimeGrowthCap (default 10%) per update and
+     * never exceeds absoluteMaxLifespanSeconds.
+     */
+    private void updateAdaptiveLifetime() {
+        if (!adaptiveLifetimeEnabled || recentLifetimes.isEmpty()) return;
+
+        double reference;
+        double growTriggerRatio;
+        if (adaptiveLifetimeMode == AdaptiveLifetimeMode.LONGEST) {
+            reference = recentLifetimes.stream().mapToDouble(d -> d).max().orElse(0);
+            growTriggerRatio = 0.85;
+        } else {
+            reference = recentLifetimes.stream().mapToDouble(d -> d).average().orElse(0);
+            growTriggerRatio = 0.70;
+        }
+
+        double usageRatio = maxLifespanSeconds > 0 ? reference / maxLifespanSeconds : 0;
+
+        if (usageRatio >= growTriggerRatio) {
+            previousAdaptiveLifespan = maxLifespanSeconds;
+            int newMax = (int) Math.ceil(maxLifespanSeconds * (1 + adaptiveLifetimeGrowthCap));
+            newMax = Math.min(newMax, absoluteMaxLifespanSeconds);
+            newMax = Math.max(newMax, initialLifespanSeconds);
+
+            if (newMax != maxLifespanSeconds) {
+                System.out.println("[AdaptiveLife] Lifespan " + maxLifespanSeconds + "s -> " + newMax + "s"
+                        + " (usage=" + DF2.format(usageRatio * 100) + "%"
+                        + ", ref=" + DF2.format(reference) + "s"
+                        + ", mode=" + adaptiveLifetimeMode + ")");
+                maxLifespanSeconds = newMax;
+                adaptiveGrowthCount++;
+            }
+        }
+
+        recentLifetimes.clear();
     }
 
     /**
@@ -1240,8 +1340,25 @@ public class EvolutionaryTournament {
     public int getMaxLifespanSeconds() { return maxLifespanSeconds; }
     public void setMaxLifespanSeconds(int s) {
         this.maxLifespanSeconds = Math.max(0, s);
+        this.initialLifespanSeconds = this.maxLifespanSeconds;
         ensureLifespanTimer();
     }
+    public boolean isAdaptiveLifetimeEnabled() { return adaptiveLifetimeEnabled; }
+    public void setAdaptiveLifetimeEnabled(boolean b) { this.adaptiveLifetimeEnabled = b; }
+    public AdaptiveLifetimeMode getAdaptiveLifetimeMode() { return adaptiveLifetimeMode; }
+    public void setAdaptiveLifetimeMode(AdaptiveLifetimeMode m) { this.adaptiveLifetimeMode = m; }
+    public double getAdaptiveLifetimeGrowthCap() { return adaptiveLifetimeGrowthCap; }
+    public void setAdaptiveLifetimeGrowthCap(double d) { this.adaptiveLifetimeGrowthCap = Math.max(0.01, Math.min(1.0, d)); }
+    public double getAdaptiveLifetimeAnomalyThreshold() { return adaptiveLifetimeAnomalyThreshold; }
+    public void setAdaptiveLifetimeAnomalyThreshold(double d) { this.adaptiveLifetimeAnomalyThreshold = Math.max(1.1, d); }
+    public int getAbsoluteMaxLifespanSeconds() { return absoluteMaxLifespanSeconds; }
+    public void setAbsoluteMaxLifespanSeconds(int s) { this.absoluteMaxLifespanSeconds = Math.max(30, s); }
+    public int getInitialLifespanSeconds() { return initialLifespanSeconds; }
+    public double getLongestRecordedLifetime() { return longestRecordedLifetime; }
+    public double getAverageRecordedLifetime() { return lifetimeCountAll > 0 ? lifetimeSumAll / lifetimeCountAll : 0; }
+    public int getLifetimeRecordCount() { return lifetimeCountAll; }
+    public int getAnomalyCount() { return anomalyCount; }
+    public int getAdaptiveGrowthCount() { return adaptiveGrowthCount; }
     public int getStaleThresholdSeconds() { return staleThresholdSeconds; }
     public void setStaleThresholdSeconds(int s) {
         this.staleThresholdSeconds = Math.max(0, s);

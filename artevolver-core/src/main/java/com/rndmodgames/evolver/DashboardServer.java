@@ -316,7 +316,17 @@ public class DashboardServer {
             sb.append("    \"adaptiveCutoff\": ").append(evo.isAdaptiveCutoff()).append(",\n");
             sb.append("    \"spawnsPerTick\": ").append(evo.getSpawnsPerTick()).append(",\n");
             sb.append("    \"bestEverName\": ").append(jsonStr(evo.getBestEverName())).append(",\n");
-            sb.append("    \"bestEverScore\": ").append(DF4.format(evo.getBestEverScore() * 100)).append("\n");
+            sb.append("    \"bestEverScore\": ").append(DF4.format(evo.getBestEverScore() * 100)).append(",\n");
+            sb.append("    \"maxLifespan\": ").append(evo.getMaxLifespanSeconds()).append(",\n");
+            sb.append("    \"adaptiveLifetime\": ").append(evo.isAdaptiveLifetimeEnabled()).append(",\n");
+            sb.append("    \"adaptiveLifetimeMode\": ").append(jsonStr(evo.getAdaptiveLifetimeMode().name())).append(",\n");
+            sb.append("    \"initialLifespan\": ").append(evo.getInitialLifespanSeconds()).append(",\n");
+            sb.append("    \"longestLifetime\": ").append(DF2.format(evo.getLongestRecordedLifetime())).append(",\n");
+            sb.append("    \"avgLifetime\": ").append(DF2.format(evo.getAverageRecordedLifetime())).append(",\n");
+            sb.append("    \"lifetimeRecords\": ").append(evo.getLifetimeRecordCount()).append(",\n");
+            sb.append("    \"anomalies\": ").append(evo.getAnomalyCount()).append(",\n");
+            sb.append("    \"adaptiveGrowths\": ").append(evo.getAdaptiveGrowthCount()).append(",\n");
+            sb.append("    \"absoluteMaxLifespan\": ").append(evo.getAbsoluteMaxLifespanSeconds()).append("\n");
         } else {
             sb.append("    \"active\": false\n");
         }

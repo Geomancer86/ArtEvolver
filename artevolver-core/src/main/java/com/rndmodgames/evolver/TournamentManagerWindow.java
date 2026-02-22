@@ -1381,6 +1381,39 @@ public class TournamentManagerWindow extends JFrame {
         spnLifespan.setToolTipText("Promote and replace after N seconds. Default 30s for fast iteration.");
         form.add(spnLifespan);
 
+        javax.swing.JCheckBox chkAdaptiveLife = new javax.swing.JCheckBox("Adaptive Lifetime (grows over time)",
+                evoTournament.isAdaptiveLifetimeEnabled());
+        chkAdaptiveLife.setToolTipText("<html>When enabled, max lifespan grows automatically as competitors<br>"
+                + "use their allotted time. Growth capped at % per cycle.</html>");
+        form.add(chkAdaptiveLife);
+        form.add(new JLabel(""));
+
+        form.add(new JLabel("Adaptive Mode:"));
+        JComboBox<EvolutionaryTournament.AdaptiveLifetimeMode> cmbAdaptMode = new JComboBox<>(
+                EvolutionaryTournament.AdaptiveLifetimeMode.values());
+        cmbAdaptMode.setSelectedItem(evoTournament.getAdaptiveLifetimeMode());
+        cmbAdaptMode.setToolTipText("<html><b>LONGEST</b>: Grow when the longest competitor uses ≥85% of max.<br>"
+                + "<b>AVERAGE</b>: Grow when the average uses ≥70% of max (slower growth).</html>");
+        form.add(cmbAdaptMode);
+
+        form.add(new JLabel("Growth Cap (%):"));
+        JSpinner spnGrowthCap = new JSpinner(new SpinnerNumberModel(
+                evoTournament.getAdaptiveLifetimeGrowthCap() * 100, 1.0, 100.0, 1.0));
+        spnGrowthCap.setToolTipText("Max % increase per generation tick. Default 10%.");
+        form.add(spnGrowthCap);
+
+        form.add(new JLabel("Anomaly Threshold (%):"));
+        JSpinner spnAnomalyThresh = new JSpinner(new SpinnerNumberModel(
+                evoTournament.getAdaptiveLifetimeAnomalyThreshold() * 100, 110.0, 500.0, 10.0));
+        spnAnomalyThresh.setToolTipText("Competitors running longer than this % of max lifespan are considered stuck/anomalous.");
+        form.add(spnAnomalyThresh);
+
+        form.add(new JLabel("Absolute Max Lifespan (s):"));
+        JSpinner spnAbsMax = new JSpinner(new SpinnerNumberModel(
+                evoTournament.getAbsoluteMaxLifespanSeconds(), 30, 3600, 30));
+        spnAbsMax.setToolTipText("Hard ceiling for adaptive lifetime growth. Default 600s (10 min).");
+        form.add(spnAbsMax);
+
         form.add(new JLabel("Stale Detection (seconds, 0=off):"));
         JSpinner spnStale = new JSpinner(new SpinnerNumberModel(
                 evoTournament.getStaleThresholdSeconds(), 0, 120, 5));
@@ -1501,6 +1534,12 @@ public class TournamentManagerWindow extends JFrame {
             evoTournament.setAdaptiveCutoffMin((int) spnAdaptMin.getValue());
             evoTournament.setAdaptiveCutoffMax((int) spnAdaptMax.getValue());
             evoTournament.setMaxLifespanSeconds((int) spnLifespan.getValue());
+            evoTournament.setAdaptiveLifetimeEnabled(chkAdaptiveLife.isSelected());
+            evoTournament.setAdaptiveLifetimeMode(
+                    (EvolutionaryTournament.AdaptiveLifetimeMode) cmbAdaptMode.getSelectedItem());
+            evoTournament.setAdaptiveLifetimeGrowthCap(((Number) spnGrowthCap.getValue()).doubleValue() / 100.0);
+            evoTournament.setAdaptiveLifetimeAnomalyThreshold(((Number) spnAnomalyThresh.getValue()).doubleValue() / 100.0);
+            evoTournament.setAbsoluteMaxLifespanSeconds((int) spnAbsMax.getValue());
             evoTournament.setStaleThresholdSeconds((int) spnStale.getValue());
             evoTournament.setMaxPromoted((int) spnMaxPromoted.getValue());
             evoTournament.setPresetInjectionInterval((int) spnPresetInject.getValue());

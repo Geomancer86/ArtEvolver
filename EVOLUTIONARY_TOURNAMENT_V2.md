@@ -281,6 +281,11 @@ table (new "Parentage" and "Breed" columns) and in the dashboard JSON/HTML.
 | `autoTransitionGen` | 5 | Generations for AUTO to fully shift to fitness-first |
 | `useAncestralCrossover` | true | Blend in grandparent genes during breeding |
 | *(elitism)* | on | Best alive contestant immune from soft kills (stale/hopeless/declining) |
+| `adaptiveLifetimeEnabled` | true | Dynamically grow lifespan as competitors use their time |
+| `adaptiveLifetimeMode` | LONGEST | LONGEST (grow when longest ≥85%) or AVERAGE (grow when avg ≥70%) |
+| `adaptiveLifetimeGrowthCap` | 0.10 | Max growth per tick (10%) |
+| `adaptiveLifetimeAnomalyThreshold` | 1.50 | Exclude lifetimes >150% of current max (stuck/loop) |
+| `absoluteMaxLifespanSeconds` | 600 | Hard ceiling for adaptive growth |
 
 ## Implementation Plan
 

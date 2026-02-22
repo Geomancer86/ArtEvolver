@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] (3.2.0-SNAPSHOT)
 
+### Added — Adaptive Lifetime
+
+- **Adaptive lifetime feature**: Max lifespan now grows dynamically over time as
+  competitors use their allotted time. Tracks actual elapsed lifetime of every
+  competitor (stale-killed, hopeless-killed, declined, promoted, or hard-capped).
+- **Two modes**: `LONGEST` (default) — grows when the longest competitor uses ≥85%
+  of the current max lifespan. `AVERAGE` — grows when the average lifetime reaches
+  ≥70% of the max (much slower, more conservative growth).
+- **Growth cap**: Default 10% per generation tick. Prevents sudden jumps — the
+  lifespan grows steadily from 30s toward the absolute ceiling.
+- **Anomaly detection**: Competitors running longer than 150% of the current max
+  (e.g., stuck in a loop) are excluded from lifetime tracking and flagged.
+- **Absolute ceiling**: Hard safety limit of 600s (10 min) that adaptive growth
+  never exceeds.
+- **Full UI**: New controls in Evo Settings dialog — enable/disable checkbox,
+  mode selector, growth cap %, anomaly threshold %, absolute max.
+- **Dashboard indicators**: Tournament bar shows current lifespan with adaptive range.
+  Sidebar panel shows current max vs initial, longest/average recorded lifetimes,
+  growth count, anomaly count, and adaptive mode. Panel auto-hides when disabled.
+- **API enriched**: Tournament JSON now includes `maxLifespan`, `adaptiveLifetime`,
+  `adaptiveLifetimeMode`, `initialLifespan`, `longestLifetime`, `avgLifetime`,
+  `lifetimeRecords`, `anomalies`, `adaptiveGrowths`, `absoluteMaxLifespan`.
+
 ### Added — Dashboard Generation Evolution Chart
 
 - **Generation evolution chart**: New canvas-based line chart in the dashboard sidebar

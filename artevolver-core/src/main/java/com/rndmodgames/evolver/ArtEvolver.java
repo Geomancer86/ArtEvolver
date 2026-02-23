@@ -1109,6 +1109,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
       	container.add(scrollPane, BorderLayout.LINE_END);
       	container.add(imagePanel, BorderLayout.CENTER);
 
+      	setJMenuBar(buildMenuBar());
+
       	int imageW = (int) (width * widthTriangles) + 32;
       	int imageH = (int) (height * heightTriangles - height) + 32;
       	int sidebarW = 320;
@@ -1136,6 +1138,69 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		//
         mainFrame.setLocationRelativeTo(null);
         mainFrame.setVisible(true);
+    }
+
+    private javax.swing.JMenuBar buildMenuBar() {
+        javax.swing.JMenuBar menuBar = new javax.swing.JMenuBar();
+
+        // ── Help Menu ──
+        javax.swing.JMenu helpMenu = new javax.swing.JMenu("Help");
+        helpMenu.setMnemonic(java.awt.event.KeyEvent.VK_H);
+
+        javax.swing.JMenuItem miQuickStart = new javax.swing.JMenuItem("Quick Start Guide");
+        miQuickStart.setToolTipText("Open the quick start guide in your browser.");
+        miQuickStart.addActionListener(e -> openUrl("https://github.com/Geomancer86/ArtEvolver#usage-guide"));
+        helpMenu.add(miQuickStart);
+
+        javax.swing.JMenuItem miParamRef = new javax.swing.JMenuItem("Parameter Reference");
+        miParamRef.setToolTipText("Open the parameter reference documentation.");
+        miParamRef.addActionListener(e -> openUrl("https://github.com/Geomancer86/ArtEvolver#configuration-and-modes"));
+        helpMenu.add(miParamRef);
+
+        helpMenu.addSeparator();
+
+        javax.swing.JMenuItem miKeyboard = new javax.swing.JMenuItem("Keyboard Shortcuts");
+        miKeyboard.addActionListener(e -> JOptionPane.showMessageDialog(this,
+                "ArtEvolver Keyboard Shortcuts\n\n"
+                + "  No keyboard shortcuts are currently defined.\n"
+                + "  All controls are accessible from the sidebar\n"
+                + "  and the Tournament Manager window.",
+                "Keyboard Shortcuts", JOptionPane.INFORMATION_MESSAGE));
+        helpMenu.add(miKeyboard);
+
+        helpMenu.addSeparator();
+
+        javax.swing.JMenuItem miReportIssue = new javax.swing.JMenuItem("Report Issue...");
+        miReportIssue.addActionListener(e -> openUrl("https://github.com/Geomancer86/ArtEvolver/issues"));
+        helpMenu.add(miReportIssue);
+
+        helpMenu.addSeparator();
+
+        javax.swing.JMenuItem miAbout = new javax.swing.JMenuItem("About ArtEvolver");
+        miAbout.addActionListener(e -> JOptionPane.showMessageDialog(this,
+                "ArtEvolver v3.2.0\n\n"
+                + "Color Palette Puzzles from any image using\n"
+                + "a multithreaded genetic algorithm.\n\n"
+                + "Palette: Sherwin-Williams (1,535 named colors)\n"
+                + "Engine: Delta Fitness (50x faster), Meta-GA Tournament\n\n"
+                + "License: GNU GPL v3\n"
+                + "GitHub: github.com/Geomancer86/ArtEvolver\n"
+                + "Twitter: @ArtEvolver",
+                "About ArtEvolver", JOptionPane.INFORMATION_MESSAGE));
+        helpMenu.add(miAbout);
+
+        menuBar.add(helpMenu);
+        return menuBar;
+    }
+
+    private void openUrl(String url) {
+        try {
+            java.awt.Desktop.getDesktop().browse(java.net.URI.create(url));
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Could not open browser:\n" + url,
+                    "Browser Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     public static void main(String[] args) {

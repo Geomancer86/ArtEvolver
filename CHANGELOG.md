@@ -36,11 +36,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added — Thumbnail Cache (v3.2.0)
 
-- **In-memory thumbnail cache**: `ConcurrentHashMap<String, CachedThumbnail>` keyed by
-  contestant ID. Thumbnails only regenerated when `bestScore` changes.
+- **Persistent disk cache for source images** (`ImageDiskCache`): Resized source images
+  are cached as PNGs in `~/.artevolver/cache/` keyed by SHA-256 of (path + size + modified +
+  target dimensions). Loading a previously-opened image is near-instant even for 45MP+
+  camera files (Canon EOS R5, R1, etc.). Max 200 entries / 500MB with LRU eviction.
+- **In-memory dashboard thumbnail cache**: `ConcurrentHashMap<String, CachedThumbnail>`
+  keyed by contestant ID. Thumbnails only regenerated when `bestScore` changes.
 - **HTTP ETag headers**: `ETag` on `/api/image/{id}` responses. `304 Not Modified` for
   unchanged thumbnails. Browser-side caching eliminates redundant transfers.
-- **Memory bound**: Max 100 entries. LRU eviction when full.
 
 ### Added — Fitness Chart Culling (v3.2.0)
 

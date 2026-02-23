@@ -96,9 +96,10 @@ are saved automatically on exit and restored on next launch via `java.util.prefs
 Help menu with Quick Start Guide and Parameter Reference. Context-sensitive tooltips on every
 control with suggested starting values. Dashboard help overlay for metric explanations.
 
-### Thumbnail Cache (v3.2)
-In-memory cache for dashboard image thumbnails with HTTP ETag support. Thumbnails only regenerate
-when contestant scores change, dramatically reducing CPU overhead during dashboard auto-refresh.
+### Thumbnail Cache & Disk Cache (v3.2)
+Persistent disk cache stores resized source images in `~/.artevolver/cache/` so high-resolution
+camera images (Canon EOS R5 45MP, R1 50MP, etc.) load near-instantly on subsequent opens.
+In-memory cache for dashboard thumbnails with HTTP ETag support reduces CPU during auto-refresh.
 
 ---
 
@@ -228,6 +229,7 @@ artevolver/                              # v3.2.0-SNAPSHOT
 │       ├── LineageNode.java             # Ancestry tree for breeding
 │       ├── SystemMonitor.java           # JMX-based CPU/RAM/Disk monitoring
 │       ├── SettingsManager.java         # Persistent user preferences (java.util.prefs)
+│       ├── ImageDiskCache.java          # Persistent disk cache for resized source images
 │       ├── ClickerState.java            # Evolution Clicker game logic
 │       ├── benchmark/
 │       │   ├── BenchmarkLogger.java     # Thread-safe CSV benchmark writer

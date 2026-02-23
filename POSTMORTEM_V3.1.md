@@ -241,8 +241,9 @@ weights over time.
 5. **Help system** (Feature 2): DONE — Help menu (Quick Start, Parameter Ref, About,
    Report Issue) added to main ArtEvolver menu bar.
 
-6. **Thumbnail cache** (Feature 4): DONE — In-memory `ConcurrentHashMap` cache with HTTP
-   ETag support. `304 Not Modified` for unchanged thumbnails.
+6. **Thumbnail cache** (Feature 4): DONE — Two-tier cache: persistent disk cache
+   (`ImageDiskCache`) for resized source images across restarts (critical for 45MP+ cameras),
+   plus in-memory dashboard thumbnail cache with HTTP ETag/304 support.
 
 7. **Fitness chart culling** (Feature 5): DONE — Default top-25 series limit with "Top"
    checkbox + spinner. Active contestants always shown.

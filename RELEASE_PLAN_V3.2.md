@@ -193,41 +193,36 @@ re-rendering the contestant's best image and scaling it. This happens every 2 se
 per visible contestant (auto-refresh). With 8+ contestants, that's 8+ full image renders
 every 2 seconds, consuming significant CPU that could be used for evolution.
 
-#### Solution
+#### Solution (Implemented)
 
-1. **In-memory thumbnail cache** in `DashboardServer` or `TournamentContestant`
-   - `ConcurrentHashMap<String, CachedThumbnail>` where key = contestant ID
-   - `CachedThumbnail` stores: `byte[] pngBytes`, `long generatedAtScore`,
-     `long generatedAtTimestamp`
-2. **Cache invalidation by score**
-   - When `TournamentContestant.bestScore` changes, mark the cache entry as stale
-   - On next thumbnail request, regenerate only if score has changed
-   - If score unchanged, serve the cached PNG bytes directly
-3. **HTTP ETag support**
-   - Send `ETag: {contestantId}-{bestScore}` header with thumbnail responses
-   - Handle `If-None-Match` requests with `304 Not Modified`
-   - Browser-side caching eliminates redundant transfers
-4. **Lazy generation**
-   - Don't pre-generate thumbnails; only generate on first request
-   - After generation, cache until score changes
-5. **Memory bounds**
-   - Max cache size: 100 entries (well beyond typical contestant count)
-   - Each 300px PNG is ~20-50KB, so total cache is ~5MB max
-   - LRU eviction if needed (unlikely to trigger)
+**Two-tier cache architecture:**
+
+1. **Persistent disk cache for source images** (`ImageDiskCache`)
+   - Resized source images cached as PNGs in `~/.artevolver/cache/`
+   - Cache key = SHA-256 of (absolute path + file size + last modified + target dimensions)
+   - High-res camera images (Canon EOS R5 45MP, R1 50MP) load near-instantly on repeat
+   - Max 200 entries / 500MB with LRU eviction on oldest access time
+   - Survives app restarts — once an image is processed, it's always fast
+
+2. **In-memory dashboard thumbnail cache** (`CachedThumbnail` in `DashboardServer`)
+   - `ConcurrentHashMap<String, CachedThumbnail>` keyed by contestant ID
+   - Invalidated when `bestScore` changes; eliminated contestants cached permanently
+   - HTTP `ETag` headers with `304 Not Modified` for browser-side caching
+   - Max 100 entries (~5MB)
 
 #### Files Affected
 
-- `DashboardServer.java` — thumbnail endpoint handler, cache logic
-- `TournamentContestant.java` — expose score version or dirty flag for cache
-- Optionally new: `ThumbnailCache.java` if logic warrants extraction
+- `ImageDiskCache.java` — new: persistent disk cache for resized source images
+- `DashboardServer.java` — in-memory thumbnail cache + ETag support
+- `ArtEvolver.java` — disk cache integration in `setSourceImage()` and `loadImage()`
 
 #### Acceptance Criteria
 
-- [ ] Thumbnails are only regenerated when the contestant's score changes
-- [ ] Dashboard CPU usage drops significantly with 8+ contestants
-- [ ] HTTP ETag headers prevent redundant network transfers
-- [ ] Cache memory usage is bounded
-- [ ] Eliminated contestants' thumbnails are cached permanently (never change)
+- [x] Resized source images persist across app restarts via disk cache
+- [x] Second load of same image with same grid is near-instant (cache hit)
+- [x] Dashboard thumbnails only regenerated when contestant's score changes
+- [x] HTTP ETag headers prevent redundant network transfers
+- [x] Both caches have bounded memory/disk usage with automatic eviction
 
 ---
 

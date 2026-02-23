@@ -41,6 +41,8 @@ public class TournamentManagerWindow extends JFrame {
     // System Monitor + Autopilot + Dashboard
     private final SystemMonitor sysMonitor = new SystemMonitor();
     private DashboardServer dashboardServer;
+    private boolean dashboardAutoOpened = false;
+    private boolean autoOpenDashboard = true;
     private JLabel lblSysStatus;
     private boolean autopilotActive = false;
     private double maxCpuPercent = 80;
@@ -544,6 +546,7 @@ public class TournamentManagerWindow extends JFrame {
                     evoTournament.setAdaptiveCutoff(true);
                     lastHistoryRecordCount = 0;
                     evoTournament.start();
+                    autoOpenDashboardIfNeeded();
                     System.out.println("[Autopilot] Started evolutionary tournament"
                             + " (fast start at " + evoTournament.getCutoffSeconds()
                             + "s, " + aliveCount + " contestants)");
@@ -559,8 +562,18 @@ public class TournamentManagerWindow extends JFrame {
         ensureDashboardServer();
         if (dashboardServer != null) {
             dashboardServer.openInBrowser();
+            dashboardAutoOpened = true;
         }
     }
+
+    private void autoOpenDashboardIfNeeded() {
+        if (autoOpenDashboard && !dashboardAutoOpened) {
+            openDashboard();
+        }
+    }
+
+    public boolean isAutoOpenDashboard() { return autoOpenDashboard; }
+    public void setAutoOpenDashboard(boolean value) { this.autoOpenDashboard = value; }
 
     public DashboardServer getDashboardServer() { return dashboardServer; }
 
@@ -1289,6 +1302,7 @@ public class TournamentManagerWindow extends JFrame {
             btnEvolve.setText("\u25A0 Stop Evolving");
             btnEvolve.setBackground(new Color(178, 34, 34));
             setEvoLockButtons(true);
+            autoOpenDashboardIfNeeded();
         }
     }
 
@@ -1304,6 +1318,7 @@ public class TournamentManagerWindow extends JFrame {
             btnEvolve.setText("\u25A0 Stop Evolving");
             btnEvolve.setBackground(new Color(178, 34, 34));
             setEvoLockButtons(true);
+            autoOpenDashboardIfNeeded();
             System.out.println("[Tournament] Auto-evolve started");
         }
     }
@@ -1444,6 +1459,12 @@ public class TournamentManagerWindow extends JFrame {
                 "Sliding window for velocity computation. Default 12s.");
         form.add(secLineage);
 
+        // --- Dashboard ---
+        JPanel secDashboard = createSection("Dashboard");
+        JCheckBox chkAutoOpen = addCheckRow(secDashboard, "Auto-open browser dashboard on start", autoOpenDashboard,
+                "Automatically opens the dashboard in your default browser once per session.");
+        form.add(secDashboard);
+
         JScrollPane scroll = new JScrollPane(form);
         scroll.getVerticalScrollBar().setUnitIncrement(16);
         scroll.setBorder(null);
@@ -1487,6 +1508,7 @@ public class TournamentManagerWindow extends JFrame {
             evoTournament.setLineageWeight(((Number) spnWLin.getValue()).floatValue());
             evoTournament.setLineageDecay(((Number) spnLinDecay.getValue()).doubleValue());
             evoTournament.setVelocityWindowSeconds((int) spnVelWin.getValue());
+            autoOpenDashboard = chkAutoOpen.isSelected();
             saveEvoSettings();
             dlg.dispose();
         });

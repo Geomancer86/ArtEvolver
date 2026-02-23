@@ -9,6 +9,7 @@
 
 The result is a low-poly triangle art representation where every color corresponds to a real, purchasable paint. The evolution process runs in real-time, viewable in the built-in GUI or live-streamed to an audience.
 
+![Version](https://img.shields.io/badge/Version-3.2.0--SNAPSHOT-blue)
 ![ArtEvolver Pipeline](https://img.shields.io/badge/Status-Active%20Development-brightgreen)
 
 ---
@@ -80,6 +81,24 @@ Greedy nearest-color assignment analyzes the source image at each triangle's reg
 
 ### Adaptive Mutation Decay
 Tournament-based selection combined with adaptive mutation decay gradually shifts the search from broad exploration to fine-tuning as fitness improves.
+
+### Evolutionary Tournament System (v3.1)
+Meta-genetic algorithm that evolves GA parameters themselves. Velocity-aware composite ranking,
+multi-generational breeding with ancestry tracking, adaptive cutoff, multi-stage (geared) competitors,
+prehistoric mode with 8 progressive eras, promoted hall of fame, 21 preset strategies, autopilot mode,
+and real-time browser dashboard with REST API.
+
+### Persistent Settings (v3.2 — planned)
+All user preferences (sidebar parameters, tournament settings, window positions, last loaded image)
+are saved automatically on exit and restored on next launch via `java.util.prefs.Preferences`.
+
+### Help System (v3.2 — planned)
+Help menu with Quick Start Guide and Parameter Reference. Context-sensitive tooltips on every
+control with suggested starting values. Dashboard help overlay for metric explanations.
+
+### Thumbnail Cache (v3.2 — planned)
+In-memory cache for dashboard image thumbnails with HTTP ETag support. Thumbnails only regenerate
+when contestant scores change, dramatically reducing CPU overhead during dashboard auto-refresh.
 
 ---
 
@@ -183,33 +202,45 @@ mvn test -pl artevolver-core -Dtest=BenchmarkTest#lapSolverUnitTest
 ArtEvolver is organized as a Maven multi-module project:
 
 ```
-artevolver/
-├── pom.xml                          # Parent POM (v3.0.0-SNAPSHOT)
-├── artevolver-core/                 # Core evolution engine
+artevolver/                              # v3.2.0-SNAPSHOT
+├── pom.xml                              # Parent POM
+├── artevolver-core/                     # Core evolution engine + GUI
 │   └── src/main/java/com/rndmodgames/evolver/
-│       ├── ArtEvolver.java          # Swing GUI + threading orchestration
-│       ├── ArtEvolverTools.java     # Offline/test evolver factory
-│       ├── AbstractEvolver.java     # Fitness comparison (pixel-level RGB diff)
-│       ├── ImageEvolver.java        # Main evolution loop, rendering, mutations
-│       ├── CrossOver.java           # Crossover + mutation operators
-│       ├── Triangle.java            # Triangle polygon with assigned color
-│       ├── TriangleList.java        # Scored population member (drawing)
-│       ├── Palette.java             # Palette loader (parses text files)
-│       ├── PalleteColor.java        # Named color with RGB values
-│       ├── DeltaFitnessEngine.java  # O(pixels_per_tri) swap evaluation (v3.1)
-│       ├── LAPSolver.java           # Jonker-Volgenant optimal color assignment (v3.1)
+│       ├── ArtEvolver.java              # Swing GUI + threading orchestration
+│       ├── ArtEvolverTools.java         # Offline/test evolver factory
+│       ├── AbstractEvolver.java         # Fitness comparison (pixel-level RGB diff)
+│       ├── ImageEvolver.java            # Main evolution loop, rendering, mutations
+│       ├── CrossOver.java               # Crossover + mutation operators
+│       ├── Triangle.java                # Triangle polygon with assigned color
+│       ├── TriangleList.java            # Scored population member (drawing)
+│       ├── Palette.java                 # Palette loader (parses text files)
+│       ├── PalleteColor.java            # Named color with RGB values
+│       ├── DeltaFitnessEngine.java      # O(pixels_per_tri) swap evaluation
+│       ├── LAPSolver.java               # Jonker-Volgenant optimal assignment
+│       ├── EvolutionConfig.java         # Parameter bundle with gene array
+│       ├── EvolutionaryTournament.java  # Meta-GA: ranking, breeding, lifecycle
+│       ├── TournamentContestant.java    # Single evolution run encapsulation
+│       ├── TournamentManagerWindow.java # Tournament UI, autopilot, settings
+│       ├── FitnessChartWindow.java      # Real-time multi-series fitness chart
+│       ├── FitnessTracker.java          # Velocity/acceleration tracking
+│       ├── DashboardServer.java         # HTTP server + REST API + dashboard
+│       ├── PrehistoricMode.java         # Genesis mode (8 progressive eras)
+│       ├── LineageNode.java             # Ancestry tree for breeding
+│       ├── SystemMonitor.java           # JMX-based CPU/RAM/Disk monitoring
+│       ├── ClickerState.java            # Evolution Clicker game logic
 │       ├── benchmark/
-│       │   ├── BenchmarkLogger.java # Thread-safe CSV benchmark writer
-│       │   └── BenchmarkRunner.java # Headless benchmark harness
+│       │   ├── BenchmarkLogger.java     # Thread-safe CSV benchmark writer
+│       │   └── BenchmarkRunner.java     # Headless benchmark harness
 │       └── render/
-│           └── Renderer.java        # PNG export with scaling
+│           └── Renderer.java            # PNG export with scaling
 │   └── src/main/resources/
-│       ├── palette4.txt             # Sherwin-Williams (1,535 colors)
-│       ├── sherwin.txt              # Sherwin-Williams (original format)
-│       ├── palette2.txt             # Game Boy Color green (4 shades)
-│       ├── palette3.txt             # Black & White (2 colors)
-│       └── trilux.txt               # Trilux pens (12 colors)
-├── artevolver-desktop/              # Desktop launcher module
+│       ├── dashboard.html               # Browser dashboard (dark theme)
+│       ├── palette4.txt                 # Sherwin-Williams (1,535 colors)
+│       ├── sherwin.txt                  # Sherwin-Williams (original format)
+│       ├── palette2.txt                 # Game Boy Color green (4 shades)
+│       ├── palette3.txt                 # Black & White (2 colors)
+│       └── trilux.txt                   # Trilux pens (12 colors)
+├── artevolver-desktop/                  # Desktop launcher module
 └── README.md
 ```
 
@@ -228,6 +259,14 @@ artevolver/
 **`Palette` / `PalleteColor`** — Loads palette definitions from text resource files into in-memory color lists used during initialization and mutation.
 
 **`Renderer`** — Exports the current best mosaic as a scaled PNG file for frame capture and video generation.
+
+**`EvolutionaryTournament`** — Meta-genetic algorithm that evolves GA parameters. Ranks contestants by a weighted blend of fitness, velocity, acceleration, and lineage. Culls the worst, breeds replacements via BLX-alpha crossover with Gaussian mutation, tracks best-ever configuration, and detects convergence.
+
+**`TournamentManagerWindow`** — Full-featured Swing UI for managing the tournament: contestant table, detail panel, history log, autopilot controls, prehistoric mode, and evo settings dialog.
+
+**`DashboardServer`** — Embedded HTTP server using `com.sun.net.httpserver.HttpServer`. Serves a browser-based real-time leaderboard with REST API endpoints for tournament state, image thumbnails, and full-resolution exports. Zero external dependencies.
+
+**`FitnessChartWindow`** — Separate resizable JFrame with real-time multi-series fitness chart. Dark theme, gradient area fill, auto-scaling axes, peak indicator, color-coded legend, and per-series stats.
 
 ---
 

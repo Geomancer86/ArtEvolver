@@ -1846,6 +1846,7 @@ public class TournamentManagerWindow extends JFrame {
         SettingsManager.saveDouble(SettingsManager.KEY_EVO_GROWTH_CAP, evoTournament.getAdaptiveLifetimeGrowthCap());
         SettingsManager.saveDouble(SettingsManager.KEY_EVO_ANOMALY_THRESHOLD, evoTournament.getAdaptiveLifetimeAnomalyThreshold());
         SettingsManager.saveInt(SettingsManager.KEY_EVO_ABSOLUTE_MAX_LIFESPAN, evoTournament.getAbsoluteMaxLifespanSeconds());
+        SettingsManager.saveBoolean(SettingsManager.KEY_AUTO_OPEN_DASHBOARD, autoOpenDashboard);
         SettingsManager.saveDouble(SettingsManager.KEY_AUTOPILOT_CPU, maxCpuPercent);
         SettingsManager.saveDouble(SettingsManager.KEY_AUTOPILOT_RAM, maxRamPercent);
         SettingsManager.saveDouble(SettingsManager.KEY_AUTOPILOT_HEAP, maxHeapPercent);
@@ -1892,6 +1893,7 @@ public class TournamentManagerWindow extends JFrame {
             evoTournament.setAdaptiveLifetimeGrowthCap(SettingsManager.loadDouble(SettingsManager.KEY_EVO_GROWTH_CAP, evoTournament.getAdaptiveLifetimeGrowthCap()));
             evoTournament.setAdaptiveLifetimeAnomalyThreshold(SettingsManager.loadDouble(SettingsManager.KEY_EVO_ANOMALY_THRESHOLD, evoTournament.getAdaptiveLifetimeAnomalyThreshold()));
             evoTournament.setAbsoluteMaxLifespanSeconds(SettingsManager.loadInt(SettingsManager.KEY_EVO_ABSOLUTE_MAX_LIFESPAN, evoTournament.getAbsoluteMaxLifespanSeconds()));
+            autoOpenDashboard = SettingsManager.loadBoolean(SettingsManager.KEY_AUTO_OPEN_DASHBOARD, autoOpenDashboard);
             maxCpuPercent = SettingsManager.loadDouble(SettingsManager.KEY_AUTOPILOT_CPU, maxCpuPercent);
             maxRamPercent = SettingsManager.loadDouble(SettingsManager.KEY_AUTOPILOT_RAM, maxRamPercent);
             maxHeapPercent = SettingsManager.loadDouble(SettingsManager.KEY_AUTOPILOT_HEAP, maxHeapPercent);

@@ -309,10 +309,10 @@ automatically when the tournament starts.
 
 #### Acceptance Criteria
 
-- [ ] Dashboard opens in default browser when tournament starts
-- [ ] Only opens once per session (not on every restart of evolving)
-- [ ] Checkbox allows disabling the auto-open behavior
-- [ ] Preference is remembered across sessions (via Feature 3)
+- [x] Dashboard opens in default browser when tournament starts
+- [x] Only opens once per session (not on every restart of evolving)
+- [x] Checkbox allows disabling the auto-open behavior
+- [x] Preference is remembered across sessions (via Feature 3) — *fixed in code review*
 
 ---
 
@@ -328,7 +328,8 @@ automatically when the tournament starts.
 | 6 | Auto-Open Dashboard | LOW | 0.5 days | COMPLETE |
 
 **All 6 features implemented and merged to `develop`.**
-**Next step**: Testing, stabilization, then `release/v3.2.0` branch.
+**Code review pass completed**: 6 bugs found and fixed (see below).
+**Next step**: Human testing, stabilization, then `release/v3.2.0` branch.
 
 ---
 
@@ -353,9 +354,23 @@ develop (all 6 features merged)
                       └──→ develop (merge back)
 ```
 
+### Code Review & Bug Fixes (Post-Implementation)
+
+A systematic review of all v3.2.0 code identified **6 bugs**, all fixed on `develop`:
+
+| # | Bug | Severity | File(s) | Fix |
+|---|-----|----------|---------|-----|
+| 1 | `autoOpenDashboard` not persisted | HIGH | `TournamentManagerWindow.java` | Added save/load in `saveEvoSettings()`/`loadEvoSettings()` |
+| 2 | 3 sidebar prefs (evolve method, block crossover, draw mode) saved but never loaded | HIGH | `ArtEvolver.java` | Added loads in `loadSettings()` |
+| 3 | Combo boxes used hardcoded defaults, ignoring loaded prefs | HIGH | `ArtEvolver.java` | Use `INITIALIZATION_METHOD` / `savedEvolveMethodIdx` / `tournamentDrawMode` |
+| 4 | Window position saved but never restored | MEDIUM | `ArtEvolver.java` | Restore `setBounds()` from saved values in `initComponents()` |
+| 5 | Disk cache returns wrong `BufferedImage` type (`TYPE_3BYTE_BGR` vs `TYPE_INT_ARGB`) | MEDIUM | `ArtEvolver.java` | Post-load conversion if type mismatch |
+| 6 | `loadImage()` calls `setSourceImage()` when user cancels dialog | LOW | `ArtEvolver.java` | Moved call inside `APPROVE_OPTION` block |
+
 ### Release Checklist
 
-- [ ] All 6 features implemented and merged to develop
+- [x] All 6 features implemented and merged to develop
+- [x] Code review pass completed — 6 bugs fixed
 - [ ] Full test suite passes (`mvn test -pl artevolver-core`)
 - [ ] Manual testing on Threadripper 2950x / 128GB (primary test machine)
 - [ ] All documentation updated (README, CHANGELOG, ARCHITECTURE)

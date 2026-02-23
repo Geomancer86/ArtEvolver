@@ -61,6 +61,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Settings toggle**: "Auto-open browser dashboard on start" checkbox in Evo Settings
   (default: enabled).
 
+### Fixed — Code Review Bug Fixes (v3.2.0)
+
+- **`autoOpenDashboard` now persisted**: The "Auto-open browser dashboard" setting was
+  not saved/loaded between sessions despite having a `SettingsManager` key. Fixed in
+  both `saveEvoSettings()` and `loadEvoSettings()`.
+- **Three sidebar preferences not restored on launch**: Evolve Method, Block Crossover,
+  and Display Mode were saved on exit but never loaded on startup. All three now restore
+  correctly.
+- **Combo boxes ignored loaded preferences**: `cmbInitMethod`, `cmbEvolveMethod`, and
+  `cmbDrawMode` used hardcoded defaults (index 1, 1, 0) instead of the saved user
+  preference. Now initialized from `SettingsManager` values.
+- **Window position/size now restored**: Main window position and size were saved on close
+  but ignored on startup (always re-centered). Now restores to last position if valid.
+- **Disk cache image type mismatch**: `ImageIO.read()` returns `TYPE_3BYTE_BGR` from PNG
+  but the delta fitness engine expects `TYPE_INT_ARGB`. Added post-load conversion to
+  ensure pixel access performance is not degraded by cache hits.
+- **`loadImage()` no longer calls `setSourceImage()` on cancel**: When the user cancelled
+  the file dialog, `setSourceImage()` was still invoked unnecessarily.
+
 ---
 
 ### Added — Adaptive Lifetime

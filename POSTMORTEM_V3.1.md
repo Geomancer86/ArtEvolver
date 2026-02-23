@@ -251,6 +251,11 @@ weights over time.
 8. **Auto-open dashboard** (Feature 6): DONE — Browser dashboard opens automatically when
    the tournament starts. Configurable in Evo Settings.
 
+9. **Code review bug fixes**: 6 bugs found and fixed — `autoOpenDashboard` persistence,
+   3 missing sidebar preference loads, combo box defaults ignoring saved prefs, window
+   position restoration, disk cache image type mismatch, unnecessary `setSourceImage()`
+   call on file dialog cancel.
+
 ### Deferred to v3.3+
 
 9. **Separate autopilot from tournament**: The autopilot should be a thin resource manager

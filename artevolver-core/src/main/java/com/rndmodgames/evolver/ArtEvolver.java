@@ -379,6 +379,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private BufferedImage bestImage;
 	private final ImageDiskCache imageDiskCache = new ImageDiskCache();
 	private File lastLoadedFile;
+	private int savedEvolveMethodIdx = 1;
 	
 	long start;
 	long steps;
@@ -1153,8 +1154,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 		chooser.setAcceptAllFileFilterUsed(false);
 		chooser.setAccessory(new ImagePreviewPanel(chooser));
 		
-		//
-        mainFrame.setLocationRelativeTo(null);
+		int savedX = SettingsManager.loadInt(SettingsManager.KEY_MAIN_X, Integer.MIN_VALUE);
+		int savedW = SettingsManager.loadInt(SettingsManager.KEY_MAIN_W, -1);
+		int savedH = SettingsManager.loadInt(SettingsManager.KEY_MAIN_H, -1);
+		if (savedX != Integer.MIN_VALUE && savedW > 100 && savedH > 100) {
+		    int savedY = SettingsManager.loadInt(SettingsManager.KEY_MAIN_Y, 0);
+		    setBounds(savedX, savedY, savedW, savedH);
+		} else {
+		    mainFrame.setLocationRelativeTo(null);
+		}
         mainFrame.setVisible(true);
     }
 
@@ -1234,6 +1242,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         CrossOver.RANDOM_CLOSE_MUTATION_CHANCES = SettingsManager.loadInt(SettingsManager.KEY_CLOSE_MUTATIONS, (int) CrossOver.RANDOM_CLOSE_MUTATION_CHANCES);
         BENCHMARK_LOGGING = SettingsManager.loadBoolean(SettingsManager.KEY_BENCHMARK_LOGGING, BENCHMARK_LOGGING);
         EXPORT_VIDEO = SettingsManager.loadBoolean(SettingsManager.KEY_EXPORT_VIDEO, EXPORT_VIDEO);
+        savedEvolveMethodIdx = SettingsManager.loadInt(SettingsManager.KEY_EVOLVE_METHOD, 1);
+        CrossOver.CROSSOVER_BLOCK_ENABLED = SettingsManager.loadBoolean(SettingsManager.KEY_BLOCK_CROSSOVER, CrossOver.CROSSOVER_BLOCK_ENABLED);
+        tournamentDrawMode = SettingsManager.loadInt(SettingsManager.KEY_DRAW_MODE, tournamentDrawMode);
         System.out.println("[Settings] Loaded user preferences");
     }
 
@@ -1339,10 +1350,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 			} catch (Exception localException) {
 				JOptionPane.showMessageDialog(null, "Unable to Load Image: " + localException.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 			}
-		}
 
-		//
-		setSourceImage();
+			setSourceImage();
+		}
     }
     
     public void setSourceImage() {
@@ -1362,6 +1372,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             if (lastLoadedFile != null && lastLoadedFile.exists()) {
                 String cacheKey = imageDiskCache.buildKey(lastLoadedFile, newWidth, newHeight);
                 resizedOriginal = imageDiskCache.get(cacheKey);
+                if (resizedOriginal != null && resizedOriginal.getType() != IMAGE_TYPE) {
+                    BufferedImage converted = new BufferedImage(
+                            resizedOriginal.getWidth(), resizedOriginal.getHeight(), IMAGE_TYPE);
+                    Graphics2D gc = converted.createGraphics();
+                    gc.drawImage(resizedOriginal, 0, 0, null);
+                    gc.dispose();
+                    resizedOriginal = converted;
+                }
             }
 
             if (resizedOriginal == null) {
@@ -1777,6 +1795,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 	    addFieldLabel(sb, "Display Mode:");
 	    cmbDrawMode = new JComboBox<>(new String[]{"Draw Selected", "Draw Best", "Draw All"});
+	    cmbDrawMode.setSelectedIndex(Math.min(tournamentDrawMode, 2));
 	    cmbDrawMode.setToolTipText("<html>How to render contestants on the main panel:<br>" +
 	        "<b>Draw Selected</b> — shows the contestant picked above<br>" +
 	        "<b>Draw Best</b> — always shows the highest-scoring contestant<br>" +
@@ -1836,7 +1855,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	        "Smart Greedy (fast heuristic)",
 	        "LAP Optimal (Jonker-Volgenant)"
 	    });
-	    cmbInitMethod.setSelectedIndex(1);
+	    cmbInitMethod.setSelectedIndex(Math.min(ImageEvolver.INITIALIZATION_METHOD, cmbInitMethod.getItemCount() - 1));
 	    cmbInitMethod.setToolTipText(
 	        "<html>Random: shuffled palette<br>" +
 	        "Smart Greedy: O(N\u00B2) heuristic, good starting point<br>" +
@@ -1856,7 +1875,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	        "Legacy (render + compare)",
 	        "Delta Fitness (50x faster)"
 	    });
-	    cmbEvolveMethod.setSelectedIndex(1);
+	    cmbEvolveMethod.setSelectedIndex(Math.min(savedEvolveMethodIdx, cmbEvolveMethod.getItemCount() - 1));
 	    cmbEvolveMethod.setToolTipText(
 	        "<html>Legacy: renders full image each iteration (slow but simple)<br>" +
 	        "Delta: computes only affected pixels per swap (50x throughput)</html>");

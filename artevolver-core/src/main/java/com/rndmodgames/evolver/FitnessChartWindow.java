@@ -21,6 +21,13 @@ public class FitnessChartWindow extends JFrame {
     private int xAxisMode = 0;
 
     private final Map<String, Series> seriesMap = new LinkedHashMap<>();
+    private final Set<String> activeSeriesIds = Collections.synchronizedSet(new HashSet<>());
+    private boolean cullingEnabled = true;
+    private int maxVisibleSeries = 25;
+    private JCheckBox chkCulling;
+    private JSpinner spnMaxSeries;
+    private JLabel lblCullingStatus;
+
     private final ChartPanel chartPanel;
     private final JPanel statsBar;
     private final JPanel toolBar;
@@ -84,6 +91,35 @@ public class FitnessChartWindow extends JFrame {
         btnTime.addActionListener(e -> { xAxisMode = 1; chartPanel.repaint(); });
         toolBar.add(btnIterations);
         toolBar.add(btnTime);
+
+        toolBar.add(Box.createHorizontalStrut(12));
+
+        chkCulling = new JCheckBox("Top", cullingEnabled);
+        chkCulling.setFont(STAT_LBL);
+        chkCulling.setForeground(LABEL_COLOR);
+        chkCulling.setOpaque(false);
+        chkCulling.setToolTipText("Limit chart to the top N contestants plus any currently running.");
+        chkCulling.addActionListener(e -> {
+            cullingEnabled = chkCulling.isSelected();
+            spnMaxSeries.setEnabled(cullingEnabled);
+            chartPanel.repaint();
+        });
+        toolBar.add(chkCulling);
+
+        spnMaxSeries = new JSpinner(new SpinnerNumberModel(maxVisibleSeries, 5, 100, 5));
+        spnMaxSeries.setFont(STAT_LBL);
+        spnMaxSeries.setPreferredSize(new Dimension(55, 22));
+        spnMaxSeries.setToolTipText("Max chart series to display (top N by score + all active).");
+        spnMaxSeries.addChangeListener(ev -> {
+            maxVisibleSeries = ((Number) spnMaxSeries.getValue()).intValue();
+            chartPanel.repaint();
+        });
+        toolBar.add(spnMaxSeries);
+
+        lblCullingStatus = new JLabel("");
+        lblCullingStatus.setFont(STAT_LBL);
+        lblCullingStatus.setForeground(new Color(120, 120, 140));
+        toolBar.add(lblCullingStatus);
 
         topPanel.add(toolBar, BorderLayout.EAST);
         topPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, GRID_COLOR));
@@ -159,10 +195,20 @@ public class FitnessChartWindow extends JFrame {
         addDataPoint("default", "Default", iterations, score, new Color(80, 200, 120));
     }
 
+    /** Mark a series as actively running (always shown regardless of culling). */
+    public void setSeriesActive(String seriesId, boolean active) {
+        if (active) {
+            activeSeriesIds.add(seriesId);
+        } else {
+            activeSeriesIds.remove(seriesId);
+        }
+    }
+
     public void clearData() {
         synchronized (seriesMap) {
             seriesMap.clear();
         }
+        activeSeriesIds.clear();
         rebuildStatsBar();
         chartPanel.repaint();
     }
@@ -240,6 +286,59 @@ public class FitnessChartWindow extends JFrame {
         data.addAll(thinned);
     }
 
+    /**
+     * Returns the series that should be rendered, applying culling if enabled.
+     * Active (running) series are always included. Remaining slots go to top
+     * series by peak score.
+     */
+    private List<Series> getVisibleSeries() {
+        List<Series> all;
+        synchronized (seriesMap) {
+            all = new ArrayList<>(seriesMap.values());
+        }
+        if (!cullingEnabled || all.size() <= maxVisibleSeries) {
+            updateCullingLabel(all.size(), all.size());
+            return all;
+        }
+
+        List<Series> visible = new ArrayList<>();
+        List<Series> candidates = new ArrayList<>();
+
+        for (Series s : all) {
+            if (activeSeriesIds.contains(getSeriesId(s))) {
+                visible.add(s);
+            } else {
+                candidates.add(s);
+            }
+        }
+
+        candidates.sort((a, b) -> Double.compare(b.peakScore, a.peakScore));
+        int remaining = maxVisibleSeries - visible.size();
+        for (int i = 0; i < Math.min(remaining, candidates.size()); i++) {
+            visible.add(candidates.get(i));
+        }
+
+        updateCullingLabel(visible.size(), all.size());
+        return visible;
+    }
+
+    private String getSeriesId(Series s) {
+        synchronized (seriesMap) {
+            for (Map.Entry<String, Series> entry : seriesMap.entrySet()) {
+                if (entry.getValue() == s) return entry.getKey();
+            }
+        }
+        return "";
+    }
+
+    private void updateCullingLabel(int shown, int total) {
+        if (cullingEnabled && shown < total) {
+            lblCullingStatus.setText(" " + shown + "/" + total);
+        } else {
+            lblCullingStatus.setText("");
+        }
+    }
+
     static class Series {
         String name;
         Color color;
@@ -279,10 +378,7 @@ public class FitnessChartWindow extends JFrame {
 
             drawGrid(g, chartW, chartH);
 
-            List<Series> allSeries;
-            synchronized (seriesMap) {
-                allSeries = new ArrayList<>(seriesMap.values());
-            }
+            List<Series> allSeries = getVisibleSeries();
 
             boolean hasData = false;
             for (Series s : allSeries) {

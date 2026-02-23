@@ -1328,204 +1328,135 @@ public class TournamentManagerWindow extends JFrame {
             evoTournament = new EvolutionaryTournament(artEvolver, contestants);
         }
 
-        JPanel form = new JPanel(new GridLayout(0, 2, 8, 4));
-        form.setBorder(new EmptyBorder(10, 10, 10, 10));
+        JDialog dlg = new JDialog(this, "Evolutionary Tournament Settings", true);
+        dlg.setMinimumSize(new Dimension(480, 400));
+        dlg.setLayout(new BorderLayout());
+
+        JPanel form = new JPanel();
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+        form.setBorder(new EmptyBorder(6, 12, 6, 12));
 
         // --- Timing & Population ---
-        addSectionLabel(form, "TIMING & POPULATION");
-
-        form.add(new JLabel("Cutoff Interval (seconds):"));
-        JSpinner spnCutoff = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getCutoffSeconds(), 5, 600, 5));
-        spnCutoff.setToolTipText("Time between tournament cycles. Start low (5-10s) for fast churn.");
-        form.add(spnCutoff);
-
-        form.add(new JLabel("Grace Period (ticks):"));
-        JSpinner spnGrace = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getGracePeriodTicks(), 0, 10, 1));
-        form.add(spnGrace);
-
-        form.add(new JLabel("Min Contestants (floor):"));
-        JSpinner spnMinPop = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getMinContestants(), 2, 20, 1));
-        form.add(spnMinPop);
-
-        form.add(new JLabel("Spawns per Tick:"));
-        JSpinner spnSpawns = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getSpawnsPerTick(), 1, 10, 1));
-        form.add(spnSpawns);
+        JPanel secTiming = createSection("Timing & Population");
+        JSpinner spnCutoff = addSpinnerRow(secTiming, "Cutoff Interval (seconds):",
+                evoTournament.getCutoffSeconds(), 5, 600, 5,
+                "Time between tournament cycles. Start low (5-10s) for fast churn.");
+        JSpinner spnGrace = addSpinnerRow(secTiming, "Grace Period (ticks):",
+                evoTournament.getGracePeriodTicks(), 0, 10, 1,
+                "Number of cycles where newcomers are immune from culling.");
+        JSpinner spnMinPop = addSpinnerRow(secTiming, "Min Contestants (floor):",
+                evoTournament.getMinContestants(), 2, 20, 1,
+                "Minimum population. Default 3.");
+        JSpinner spnSpawns = addSpinnerRow(secTiming, "Spawns per Tick:",
+                evoTournament.getSpawnsPerTick(), 1, 10, 1,
+                "Contestants culled and replaced each cycle.");
+        form.add(secTiming);
 
         // --- Adaptive Cutoff ---
-        addSectionLabel(form, "ADAPTIVE CUTOFF");
+        JPanel secAdapt = createSection("Adaptive Cutoff");
+        JCheckBox chkAdaptive = addCheckRow(secAdapt, "Auto-adjust interval", evoTournament.isAdaptiveCutoff(),
+                "Automatically shorten/lengthen cycle based on improvement.");
+        JSpinner spnAdaptMin = addSpinnerRow(secAdapt, "Adaptive Min (seconds):",
+                evoTournament.getAdaptiveCutoffMin(), 5, 120, 5,
+                "Shortest possible cycle. Default 5s.");
+        JSpinner spnAdaptMax = addSpinnerRow(secAdapt, "Adaptive Max (seconds):",
+                evoTournament.getAdaptiveCutoffMax(), 5, 600, 5,
+                "Longest possible cycle. Default 300s.");
+        form.add(secAdapt);
 
-        form.add(new JLabel("Adaptive Cutoff:"));
-        JCheckBox chkAdaptive = new JCheckBox("Auto-adjust interval", evoTournament.isAdaptiveCutoff());
-        form.add(chkAdaptive);
+        // --- Contestant Lifespan ---
+        JPanel secLife = createSection("Contestant Lifespan");
+        JSpinner spnLifespan = addSpinnerRow(secLife, "Max Lifespan (seconds, 0=off):",
+                evoTournament.getMaxLifespanSeconds(), 0, 3600, 5,
+                "Promote and replace after N seconds. Default 30s.");
+        JSpinner spnStale = addSpinnerRow(secLife, "Stale Threshold (seconds, 0=off):",
+                evoTournament.getStaleThresholdSeconds(), 0, 120, 5,
+                "Kill flat-liners after N seconds of zero improvement.");
+        JSpinner spnMaxPromoted = addSpinnerRow(secLife, "Max Promoted (hall of fame):",
+                evoTournament.getMaxPromoted(), 1, 50, 1,
+                "Max promoted kept for breeding. Default 10.");
+        JSpinner spnPresetInject = addSpinnerRow(secLife, "Preset Injection Interval:",
+                evoTournament.getPresetInjectionInterval(), 0, 20, 1,
+                "Every Nth spawn uses a preset strategy (0=off). Default 5.");
+        form.add(secLife);
 
-        form.add(new JLabel("Adaptive Min (seconds):"));
-        JSpinner spnAdaptMin = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getAdaptiveCutoffMin(), 5, 120, 5));
-        form.add(spnAdaptMin);
-
-        form.add(new JLabel("Adaptive Max (seconds):"));
-        JSpinner spnAdaptMax = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getAdaptiveCutoffMax(), 5, 600, 5));
-        form.add(spnAdaptMax);
-
-        // --- Lifespan Cap ---
-        addSectionLabel(form, "CONTESTANT LIFESPAN");
-
-        form.add(new JLabel("Max Lifespan (seconds, 0=off):"));
-        JSpinner spnLifespan = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getMaxLifespanSeconds(), 0, 3600, 5));
-        spnLifespan.setToolTipText("Promote and replace after N seconds. Default 30s for fast iteration.");
-        form.add(spnLifespan);
-
-        javax.swing.JCheckBox chkAdaptiveLife = new javax.swing.JCheckBox("Adaptive Lifetime (grows over time)",
-                evoTournament.isAdaptiveLifetimeEnabled());
-        chkAdaptiveLife.setToolTipText("<html>When enabled, max lifespan grows automatically as competitors<br>"
-                + "use their allotted time. Growth capped at % per cycle.</html>");
-        form.add(chkAdaptiveLife);
-        form.add(new JLabel(""));
-
-        form.add(new JLabel("Adaptive Mode:"));
+        // --- Adaptive Lifetime ---
+        JPanel secAdaptLife = createSection("Adaptive Lifetime");
+        JCheckBox chkAdaptiveLife = addCheckRow(secAdaptLife, "Adaptive Lifetime (grows over time)",
+                evoTournament.isAdaptiveLifetimeEnabled(),
+                "Max lifespan grows as competitors use their allotted time.");
         JComboBox<EvolutionaryTournament.AdaptiveLifetimeMode> cmbAdaptMode = new JComboBox<>(
                 EvolutionaryTournament.AdaptiveLifetimeMode.values());
         cmbAdaptMode.setSelectedItem(evoTournament.getAdaptiveLifetimeMode());
-        cmbAdaptMode.setToolTipText("<html><b>LONGEST</b>: Grow when the longest competitor uses ≥85% of max.<br>"
-                + "<b>AVERAGE</b>: Grow when the average uses ≥70% of max (slower growth).</html>");
-        form.add(cmbAdaptMode);
-
-        form.add(new JLabel("Growth Cap (%):"));
-        JSpinner spnGrowthCap = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getAdaptiveLifetimeGrowthCap() * 100, 1.0, 100.0, 1.0));
-        spnGrowthCap.setToolTipText("Max % increase per generation tick. Default 10%.");
-        form.add(spnGrowthCap);
-
-        form.add(new JLabel("Anomaly Threshold (%):"));
-        JSpinner spnAnomalyThresh = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getAdaptiveLifetimeAnomalyThreshold() * 100, 110.0, 500.0, 10.0));
-        spnAnomalyThresh.setToolTipText("Competitors running longer than this % of max lifespan are considered stuck/anomalous.");
-        form.add(spnAnomalyThresh);
-
-        form.add(new JLabel("Absolute Max Lifespan (s):"));
-        JSpinner spnAbsMax = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getAbsoluteMaxLifespanSeconds(), 30, 3600, 30));
-        spnAbsMax.setToolTipText("Hard ceiling for adaptive lifetime growth. Default 600s (10 min).");
-        form.add(spnAbsMax);
-
-        form.add(new JLabel("Stale Detection (seconds, 0=off):"));
-        JSpinner spnStale = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getStaleThresholdSeconds(), 0, 120, 5));
-        spnStale.setToolTipText("Eliminate flat-line contestants after N seconds of zero improvement.");
-        form.add(spnStale);
-
-        form.add(new JLabel("Max Promoted (hall of fame):"));
-        JSpinner spnMaxPromoted = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getMaxPromoted(), 1, 50, 1));
-        spnMaxPromoted.setToolTipText("Max promoted contestants kept for breeding. Oldest/worst rotate out.");
-        form.add(spnMaxPromoted);
-
-        form.add(new JLabel("Preset Injection Interval:"));
-        JSpinner spnPresetInject = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getPresetInjectionInterval(), 0, 20, 1));
-        spnPresetInject.setToolTipText("Every Nth spawn, inject an untried preset strategy (0=off).");
-        form.add(spnPresetInject);
+        cmbAdaptMode.setMaximumSize(new Dimension(200, 24));
+        cmbAdaptMode.setToolTipText("LONGEST: grow when longest uses ≥85%. AVERAGE: grow when avg ≥70%.");
+        addLabeledRow(secAdaptLife, "Adaptive Mode:", cmbAdaptMode);
+        JSpinner spnGrowthCap = addSpinnerRow(secAdaptLife, "Growth Cap (%):",
+                evoTournament.getAdaptiveLifetimeGrowthCap() * 100, 1.0, 100.0, 1.0,
+                "Max % increase per generation tick. Default 10%.");
+        JSpinner spnAnomalyThresh = addSpinnerRow(secAdaptLife, "Anomaly Threshold (%):",
+                evoTournament.getAdaptiveLifetimeAnomalyThreshold() * 100, 110.0, 500.0, 10.0,
+                "Competitors above this % of max lifespan are considered stuck.");
+        JSpinner spnAbsMax = addSpinnerRow(secAdaptLife, "Absolute Max Lifespan (s):",
+                evoTournament.getAbsoluteMaxLifespanSeconds(), 30, 3600, 30,
+                "Hard ceiling for adaptive growth. Default 600s (10 min).");
+        form.add(secAdaptLife);
 
         // --- Ranking Strategy ---
-        addSectionLabel(form, "RANKING STRATEGY");
-
-        form.add(new JLabel("Strategy:"));
+        JPanel secRank = createSection("Ranking Strategy");
         JComboBox<EvolutionaryTournament.RankingStrategy> cmbStrategy = new JComboBox<>(
                 EvolutionaryTournament.RankingStrategy.values());
         cmbStrategy.setSelectedItem(evoTournament.getRankingStrategy());
-        cmbStrategy.setToolTipText(
-                "BALANCED: use base weights. VELOCITY_FIRST: favor fast learners. "
-                + "FITNESS_FIRST: favor peak score. AUTO: start velocity-heavy, shift to fitness.");
-        form.add(cmbStrategy);
+        cmbStrategy.setMaximumSize(new Dimension(200, 24));
+        cmbStrategy.setToolTipText("BALANCED: use base weights. AUTO: shift velocity→fitness over generations.");
+        addLabeledRow(secRank, "Strategy:", cmbStrategy);
+        JSpinner spnAutoTransGen = addSpinnerRow(secRank, "AUTO Transition Generations:",
+                evoTournament.getAutoTransitionGen(), 1, 100, 1,
+                "Generations to transition from velocity-first to fitness-first.");
+        form.add(secRank);
 
-        form.add(new JLabel("AUTO Transition Gen:"));
-        JSpinner spnAutoTransGen = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getAutoTransitionGen(), 1, 100, 1));
-        spnAutoTransGen.setToolTipText("In AUTO mode, how many generations to fully transition from velocity to fitness.");
-        form.add(spnAutoTransGen);
+        // --- Base Weights ---
+        JPanel secWeights = createSection("Base Weights (BALANCED mode)");
+        JSpinner spnWFit = addSpinnerRow(secWeights, "Fitness:", (double) evoTournament.getFitnessWeight(), 0.0, 1.0, 0.05, "");
+        JSpinner spnWVel = addSpinnerRow(secWeights, "Velocity:", (double) evoTournament.getVelocityWeight(), 0.0, 1.0, 0.05, "");
+        JSpinner spnWAcc = addSpinnerRow(secWeights, "Acceleration:", (double) evoTournament.getAccelerationWeight(), 0.0, 1.0, 0.05, "");
+        JSpinner spnWLin = addSpinnerRow(secWeights, "Lineage:", (double) evoTournament.getLineageWeight(), 0.0, 1.0, 0.05, "");
+        form.add(secWeights);
 
-        // --- Breeding ---
-        addSectionLabel(form, "BREEDING & MUTATION");
+        // --- Breeding & Mutation ---
+        JPanel secBreed = createSection("Breeding & Mutation");
+        JSpinner spnMutRate = addSpinnerRow(secBreed, "Mutation Rate:", (double) evoTournament.getMutationRate(), 0.0, 1.0, 0.05,
+                "Fraction of genes mutated per child. Default 0.4.");
+        JSpinner spnMutStr = addSpinnerRow(secBreed, "Mutation Strength:", (double) evoTournament.getMutationStrength(), 0.0, 1.0, 0.05,
+                "Delta applied to each mutation. Default 0.25.");
+        JCheckBox chkAncestral = addCheckRow(secBreed, "Ancestral Crossover (blend grandparent genes)",
+                evoTournament.isUseAncestralCrossover(), "Blend genes from multiple ancestors during breeding.");
+        JSpinner spnAncDepth = addSpinnerRow(secBreed, "Ancestry Depth:", evoTournament.getAncestryDepth(), 1, 10, 1,
+                "How many generations back to look for ancestral genes.");
+        form.add(secBreed);
 
-        form.add(new JLabel("Mutation Rate (0.0-1.0):"));
-        JSpinner spnMutRate = new JSpinner(new SpinnerNumberModel(
-                (double) evoTournament.getMutationRate(), 0.0, 1.0, 0.05));
-        form.add(spnMutRate);
-
-        form.add(new JLabel("Mutation Strength (0.0-1.0):"));
-        JSpinner spnMutStr = new JSpinner(new SpinnerNumberModel(
-                (double) evoTournament.getMutationStrength(), 0.0, 1.0, 0.05));
-        form.add(spnMutStr);
-
-        form.add(new JLabel("Ancestral Crossover:"));
-        JCheckBox chkAncestral = new JCheckBox("Blend grandparent genes", evoTournament.isUseAncestralCrossover());
-        form.add(chkAncestral);
-
-        form.add(new JLabel("Ancestry Depth:"));
-        JSpinner spnAncDepth = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getAncestryDepth(), 1, 10, 1));
-        form.add(spnAncDepth);
-
-        // --- Composite Ranking Weights ---
-        addSectionLabel(form, "BASE WEIGHTS (used by BALANCED, overridden by other strategies)");
-
-        form.add(new JLabel("Fitness Weight:"));
-        JSpinner spnWFit = new JSpinner(new SpinnerNumberModel(
-                (double) evoTournament.getFitnessWeight(), 0.0, 1.0, 0.05));
-        form.add(spnWFit);
-
-        form.add(new JLabel("Velocity Weight:"));
-        JSpinner spnWVel = new JSpinner(new SpinnerNumberModel(
-                (double) evoTournament.getVelocityWeight(), 0.0, 1.0, 0.05));
-        form.add(spnWVel);
-
-        form.add(new JLabel("Acceleration Weight:"));
-        JSpinner spnWAcc = new JSpinner(new SpinnerNumberModel(
-                (double) evoTournament.getAccelerationWeight(), 0.0, 1.0, 0.05));
-        form.add(spnWAcc);
-
-        form.add(new JLabel("Lineage Weight:"));
-        JSpinner spnWLin = new JSpinner(new SpinnerNumberModel(
-                (double) evoTournament.getLineageWeight(), 0.0, 1.0, 0.05));
-        form.add(spnWLin);
-
-        // --- Lineage ---
-        addSectionLabel(form, "LINEAGE & VELOCITY");
-
-        form.add(new JLabel("Lineage Decay (per gen):"));
-        JSpinner spnLinDecay = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getLineageDecay(), 0.0, 1.0, 0.05));
-        form.add(spnLinDecay);
-
-        form.add(new JLabel("Velocity Window (seconds):"));
-        JSpinner spnVelWin = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getVelocityWindowSeconds(), 5, 300, 5));
-        form.add(spnVelWin);
-
-        JLabel hint = new JLabel("<html><i>Settings can be changed while evolving is running.<br>"
-                + "Grace period protects newcomers from immediate culling.<br>"
-                + "Lifespan cap promotes contestants to Hall of Fame (breeding pool).<br>"
-                + "Preset injection introduces untried strategies into the gene pool.<br>"
-                + "AUTO ranking starts velocity-heavy and shifts to fitness.</i></html>");
-        hint.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
-        hint.setForeground(Color.GRAY);
-        form.add(hint);
-        form.add(new JLabel(""));
+        // --- Lineage & Velocity ---
+        JPanel secLineage = createSection("Lineage & Velocity");
+        JSpinner spnLinDecay = addSpinnerRow(secLineage, "Lineage Decay:", evoTournament.getLineageDecay(), 0.0, 1.0, 0.05,
+                "Weight decay per ancestor generation. Default 0.7.");
+        JSpinner spnVelWin = addSpinnerRow(secLineage, "Velocity Window (seconds):",
+                evoTournament.getVelocityWindowSeconds(), 5, 300, 5,
+                "Sliding window for velocity computation. Default 12s.");
+        form.add(secLineage);
 
         JScrollPane scroll = new JScrollPane(form);
-        scroll.setPreferredSize(new Dimension(500, 660));
-        scroll.getVerticalScrollBar().setUnitIncrement(12);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        scroll.setBorder(null);
+        dlg.add(scroll, BorderLayout.CENTER);
 
-        int result = JOptionPane.showConfirmDialog(this, scroll,
-                "Evolutionary Tournament Settings", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
-        if (result == JOptionPane.OK_OPTION) {
+        // Button panel: OK / Cancel
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 6));
+        JButton btnOk = new JButton("OK");
+        JButton btnCancel = new JButton("Cancel");
+        btnOk.setPreferredSize(new Dimension(80, 28));
+        btnCancel.setPreferredSize(new Dimension(80, 28));
+        btnCancel.addActionListener(e -> dlg.dispose());
+        btnOk.addActionListener(e -> {
             evoTournament.setCutoffSeconds((int) spnCutoff.getValue());
             evoTournament.setGracePeriodTicks((int) spnGrace.getValue());
             evoTournament.setMinContestants((int) spnMinPop.getValue());
@@ -1556,16 +1487,74 @@ public class TournamentManagerWindow extends JFrame {
             evoTournament.setLineageWeight(((Number) spnWLin.getValue()).floatValue());
             evoTournament.setLineageDecay(((Number) spnLinDecay.getValue()).doubleValue());
             evoTournament.setVelocityWindowSeconds((int) spnVelWin.getValue());
-        }
+            dlg.dispose();
+        });
+        btnPanel.add(btnOk);
+        btnPanel.add(btnCancel);
+        dlg.add(btnPanel, BorderLayout.SOUTH);
+
+        dlg.getRootPane().setDefaultButton(btnOk);
+        dlg.setSize(520, 720);
+        dlg.setLocationRelativeTo(this);
+        dlg.setVisible(true);
     }
 
-    private void addSectionLabel(JPanel form, String text) {
-        JLabel lbl = new JLabel(text);
-        lbl.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 11));
-        lbl.setForeground(new Color(100, 100, 120));
-        lbl.setBorder(new EmptyBorder(8, 0, 2, 0));
-        form.add(lbl);
-        form.add(new JLabel(""));
+    private JPanel createSection(String title) {
+        JPanel section = new JPanel();
+        section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
+        section.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder(
+                        BorderFactory.createLineBorder(new Color(180, 180, 200), 1, true),
+                        title, javax.swing.border.TitledBorder.LEFT,
+                        javax.swing.border.TitledBorder.TOP,
+                        new Font(Font.SANS_SERIF, Font.BOLD, 11),
+                        new Color(80, 80, 110)),
+                new EmptyBorder(4, 8, 6, 8)));
+        section.setAlignmentX(Component.LEFT_ALIGNMENT);
+        section.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+        return section;
+    }
+
+    private JSpinner addSpinnerRow(JPanel section, String label, Number value,
+                                   Comparable<?> min, Comparable<?> max, Number step, String tooltip) {
+        JPanel row = new JPanel(new BorderLayout(8, 0));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel lbl = new JLabel(label);
+        lbl.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 11));
+        if (tooltip != null && !tooltip.isEmpty()) lbl.setToolTipText(tooltip);
+        row.add(lbl, BorderLayout.CENTER);
+        JSpinner spn = new JSpinner(new SpinnerNumberModel(value, min, max, step));
+        spn.setPreferredSize(new Dimension(90, 22));
+        spn.setMaximumSize(new Dimension(90, 22));
+        if (tooltip != null && !tooltip.isEmpty()) spn.setToolTipText(tooltip);
+        row.add(spn, BorderLayout.EAST);
+        section.add(row);
+        section.add(Box.createVerticalStrut(2));
+        return spn;
+    }
+
+    private JCheckBox addCheckRow(JPanel section, String label, boolean selected, String tooltip) {
+        JCheckBox chk = new JCheckBox(label, selected);
+        chk.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 11));
+        chk.setAlignmentX(Component.LEFT_ALIGNMENT);
+        if (tooltip != null && !tooltip.isEmpty()) chk.setToolTipText(tooltip);
+        section.add(chk);
+        section.add(Box.createVerticalStrut(2));
+        return chk;
+    }
+
+    private void addLabeledRow(JPanel section, String label, JComponent comp) {
+        JPanel row = new JPanel(new BorderLayout(8, 0));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel lbl = new JLabel(label);
+        lbl.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 11));
+        row.add(lbl, BorderLayout.CENTER);
+        comp.setPreferredSize(new Dimension(160, 22));
+        row.add(comp, BorderLayout.EAST);
+        section.add(row);
+        section.add(Box.createVerticalStrut(2));
     }
 
     /** Called periodically to update generation, countdown, best-ever, history. */

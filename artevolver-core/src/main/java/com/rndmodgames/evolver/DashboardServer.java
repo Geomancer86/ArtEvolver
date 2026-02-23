@@ -23,7 +23,7 @@ import com.rndmodgames.evolver.clicker.ClickerState;
  * Endpoints:
  *   GET /            → dashboard HTML page
  *   GET /api/state   → JSON with full tournament state
- *   GET /api/image/{id}        → current best PNG thumbnail
+ *   GET /api/image/{id}        → current best PNG thumbnail (cached + ETag)
  *   GET /api/export/{id}       → high-quality PNG for eliminated contestants
  */
 public class DashboardServer {
@@ -37,6 +37,22 @@ public class DashboardServer {
     private final List<TournamentContestant> contestants;
     private final TournamentManagerWindow managerWindow;
     private final ClickerState clickerState = new ClickerState();
+
+    private static final int THUMBNAIL_CACHE_MAX = 100;
+    private final java.util.concurrent.ConcurrentHashMap<String, CachedThumbnail> thumbnailCache =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static class CachedThumbnail {
+        final byte[] pngBytes;
+        final double scoreAtGeneration;
+        final String etag;
+
+        CachedThumbnail(byte[] pngBytes, double score) {
+            this.pngBytes = pngBytes;
+            this.scoreAtGeneration = score;
+            this.etag = Long.toHexString(Double.doubleToLongBits(score));
+        }
+    }
 
     public DashboardServer(ArtEvolver artEvolver,
                            List<TournamentContestant> contestants,
@@ -129,7 +145,26 @@ public class DashboardServer {
         BufferedImage img = tc.getBestImage();
         if (img == null) { sendError(ex, 204); return; }
 
-        // Scale to thumbnail (max 300px wide)
+        double currentScore = tc.isFinished() ? tc.getFinalScore() : tc.getBestScore();
+
+        CachedThumbnail cached = thumbnailCache.get(id);
+        if (cached != null && cached.scoreAtGeneration == currentScore) {
+            String clientEtag = ex.getRequestHeaders().getFirst("If-None-Match");
+            if (clientEtag != null && clientEtag.equals(cached.etag)) {
+                ex.getResponseHeaders().set("ETag", cached.etag);
+                ex.sendResponseHeaders(304, -1);
+                ex.close();
+                return;
+            }
+            ex.getResponseHeaders().set("Content-Type", "image/png");
+            ex.getResponseHeaders().set("ETag", cached.etag);
+            ex.getResponseHeaders().set("Cache-Control", "no-cache");
+            ex.sendResponseHeaders(200, cached.pngBytes.length);
+            ex.getResponseBody().write(cached.pngBytes);
+            ex.close();
+            return;
+        }
+
         int thumbW = Math.min(300, img.getWidth());
         int thumbH = (int) ((double) img.getHeight() / img.getWidth() * thumbW);
         BufferedImage thumb = new BufferedImage(thumbW, thumbH, BufferedImage.TYPE_INT_RGB);
@@ -142,7 +177,14 @@ public class DashboardServer {
         ImageIO.write(thumb, "png", baos);
         byte[] data = baos.toByteArray();
 
+        CachedThumbnail newEntry = new CachedThumbnail(data, currentScore);
+        if (thumbnailCache.size() >= THUMBNAIL_CACHE_MAX) {
+            thumbnailCache.keySet().stream().findFirst().ifPresent(thumbnailCache::remove);
+        }
+        thumbnailCache.put(id, newEntry);
+
         ex.getResponseHeaders().set("Content-Type", "image/png");
+        ex.getResponseHeaders().set("ETag", newEntry.etag);
         ex.getResponseHeaders().set("Cache-Control", "no-cache");
         ex.sendResponseHeaders(200, data.length);
         ex.getResponseBody().write(data);

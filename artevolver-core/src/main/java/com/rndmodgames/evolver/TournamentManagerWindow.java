@@ -1487,6 +1487,7 @@ public class TournamentManagerWindow extends JFrame {
             evoTournament.setLineageWeight(((Number) spnWLin.getValue()).floatValue());
             evoTournament.setLineageDecay(((Number) spnLinDecay.getValue()).doubleValue());
             evoTournament.setVelocityWindowSeconds((int) spnVelWin.getValue());
+            saveEvoSettings();
             dlg.dispose();
         });
         btnPanel.add(btnOk);
@@ -1789,6 +1790,92 @@ public class TournamentManagerWindow extends JFrame {
     public void createEvoTournament() {
         if (evoTournament == null) {
             evoTournament = new EvolutionaryTournament(artEvolver, contestants);
+            loadEvoSettings();
+        }
+    }
+
+    public void saveEvoSettings() {
+        if (evoTournament == null) return;
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_CUTOFF, evoTournament.getCutoffSeconds());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_GRACE, evoTournament.getGracePeriodTicks());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_MIN_CONTESTANTS, evoTournament.getMinContestants());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_SPAWNS, evoTournament.getSpawnsPerTick());
+        SettingsManager.saveBoolean(SettingsManager.KEY_EVO_ADAPTIVE_CUTOFF, evoTournament.isAdaptiveCutoff());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_ADAPTIVE_MIN, evoTournament.getAdaptiveCutoffMin());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_ADAPTIVE_MAX, evoTournament.getAdaptiveCutoffMax());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_MAX_LIFESPAN, evoTournament.getMaxLifespanSeconds());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_STALE_THRESHOLD, evoTournament.getStaleThresholdSeconds());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_MAX_PROMOTED, evoTournament.getMaxPromoted());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_PRESET_INTERVAL, evoTournament.getPresetInjectionInterval());
+        SettingsManager.saveString(SettingsManager.KEY_EVO_RANKING_STRATEGY, evoTournament.getRankingStrategy().name());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_AUTO_TRANSITION, evoTournament.getAutoTransitionGen());
+        SettingsManager.saveFloat(SettingsManager.KEY_EVO_MUTATION_RATE, evoTournament.getMutationRate());
+        SettingsManager.saveFloat(SettingsManager.KEY_EVO_MUTATION_STRENGTH, evoTournament.getMutationStrength());
+        SettingsManager.saveBoolean(SettingsManager.KEY_EVO_ANCESTRAL_CROSSOVER, evoTournament.isUseAncestralCrossover());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_ANCESTRY_DEPTH, evoTournament.getAncestryDepth());
+        SettingsManager.saveFloat(SettingsManager.KEY_EVO_W_FITNESS, evoTournament.getFitnessWeight());
+        SettingsManager.saveFloat(SettingsManager.KEY_EVO_W_VELOCITY, evoTournament.getVelocityWeight());
+        SettingsManager.saveFloat(SettingsManager.KEY_EVO_W_ACCELERATION, evoTournament.getAccelerationWeight());
+        SettingsManager.saveFloat(SettingsManager.KEY_EVO_W_LINEAGE, evoTournament.getLineageWeight());
+        SettingsManager.saveDouble(SettingsManager.KEY_EVO_LINEAGE_DECAY, evoTournament.getLineageDecay());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_VELOCITY_WINDOW, evoTournament.getVelocityWindowSeconds());
+        SettingsManager.saveBoolean(SettingsManager.KEY_EVO_ADAPTIVE_LIFETIME, evoTournament.isAdaptiveLifetimeEnabled());
+        SettingsManager.saveString(SettingsManager.KEY_EVO_ADAPTIVE_LIFETIME_MODE, evoTournament.getAdaptiveLifetimeMode().name());
+        SettingsManager.saveDouble(SettingsManager.KEY_EVO_GROWTH_CAP, evoTournament.getAdaptiveLifetimeGrowthCap());
+        SettingsManager.saveDouble(SettingsManager.KEY_EVO_ANOMALY_THRESHOLD, evoTournament.getAdaptiveLifetimeAnomalyThreshold());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_ABSOLUTE_MAX_LIFESPAN, evoTournament.getAbsoluteMaxLifespanSeconds());
+        SettingsManager.saveDouble(SettingsManager.KEY_AUTOPILOT_CPU, maxCpuPercent);
+        SettingsManager.saveDouble(SettingsManager.KEY_AUTOPILOT_RAM, maxRamPercent);
+        SettingsManager.saveDouble(SettingsManager.KEY_AUTOPILOT_HEAP, maxHeapPercent);
+        SettingsManager.flush();
+    }
+
+    private void loadEvoSettings() {
+        if (evoTournament == null) return;
+        if (!SettingsManager.hasKey(SettingsManager.KEY_EVO_CUTOFF)) return;
+        try {
+            evoTournament.setCutoffSeconds(SettingsManager.loadInt(SettingsManager.KEY_EVO_CUTOFF, evoTournament.getCutoffSeconds()));
+            evoTournament.setGracePeriodTicks(SettingsManager.loadInt(SettingsManager.KEY_EVO_GRACE, evoTournament.getGracePeriodTicks()));
+            evoTournament.setMinContestants(SettingsManager.loadInt(SettingsManager.KEY_EVO_MIN_CONTESTANTS, evoTournament.getMinContestants()));
+            evoTournament.setSpawnsPerTick(SettingsManager.loadInt(SettingsManager.KEY_EVO_SPAWNS, evoTournament.getSpawnsPerTick()));
+            evoTournament.setAdaptiveCutoff(SettingsManager.loadBoolean(SettingsManager.KEY_EVO_ADAPTIVE_CUTOFF, evoTournament.isAdaptiveCutoff()));
+            evoTournament.setAdaptiveCutoffMin(SettingsManager.loadInt(SettingsManager.KEY_EVO_ADAPTIVE_MIN, evoTournament.getAdaptiveCutoffMin()));
+            evoTournament.setAdaptiveCutoffMax(SettingsManager.loadInt(SettingsManager.KEY_EVO_ADAPTIVE_MAX, evoTournament.getAdaptiveCutoffMax()));
+            evoTournament.setMaxLifespanSeconds(SettingsManager.loadInt(SettingsManager.KEY_EVO_MAX_LIFESPAN, evoTournament.getMaxLifespanSeconds()));
+            evoTournament.setStaleThresholdSeconds(SettingsManager.loadInt(SettingsManager.KEY_EVO_STALE_THRESHOLD, evoTournament.getStaleThresholdSeconds()));
+            evoTournament.setMaxPromoted(SettingsManager.loadInt(SettingsManager.KEY_EVO_MAX_PROMOTED, evoTournament.getMaxPromoted()));
+            evoTournament.setPresetInjectionInterval(SettingsManager.loadInt(SettingsManager.KEY_EVO_PRESET_INTERVAL, evoTournament.getPresetInjectionInterval()));
+            String stratName = SettingsManager.loadString(SettingsManager.KEY_EVO_RANKING_STRATEGY, null);
+            if (stratName != null) {
+                try { evoTournament.setRankingStrategy(EvolutionaryTournament.RankingStrategy.valueOf(stratName)); }
+                catch (IllegalArgumentException ignored) {}
+            }
+            evoTournament.setAutoTransitionGen(SettingsManager.loadInt(SettingsManager.KEY_EVO_AUTO_TRANSITION, evoTournament.getAutoTransitionGen()));
+            evoTournament.setMutationRate(SettingsManager.loadFloat(SettingsManager.KEY_EVO_MUTATION_RATE, evoTournament.getMutationRate()));
+            evoTournament.setMutationStrength(SettingsManager.loadFloat(SettingsManager.KEY_EVO_MUTATION_STRENGTH, evoTournament.getMutationStrength()));
+            evoTournament.setUseAncestralCrossover(SettingsManager.loadBoolean(SettingsManager.KEY_EVO_ANCESTRAL_CROSSOVER, evoTournament.isUseAncestralCrossover()));
+            evoTournament.setAncestryDepth(SettingsManager.loadInt(SettingsManager.KEY_EVO_ANCESTRY_DEPTH, evoTournament.getAncestryDepth()));
+            evoTournament.setFitnessWeight(SettingsManager.loadFloat(SettingsManager.KEY_EVO_W_FITNESS, evoTournament.getFitnessWeight()));
+            evoTournament.setVelocityWeight(SettingsManager.loadFloat(SettingsManager.KEY_EVO_W_VELOCITY, evoTournament.getVelocityWeight()));
+            evoTournament.setAccelerationWeight(SettingsManager.loadFloat(SettingsManager.KEY_EVO_W_ACCELERATION, evoTournament.getAccelerationWeight()));
+            evoTournament.setLineageWeight(SettingsManager.loadFloat(SettingsManager.KEY_EVO_W_LINEAGE, evoTournament.getLineageWeight()));
+            evoTournament.setLineageDecay(SettingsManager.loadDouble(SettingsManager.KEY_EVO_LINEAGE_DECAY, evoTournament.getLineageDecay()));
+            evoTournament.setVelocityWindowSeconds(SettingsManager.loadInt(SettingsManager.KEY_EVO_VELOCITY_WINDOW, evoTournament.getVelocityWindowSeconds()));
+            evoTournament.setAdaptiveLifetimeEnabled(SettingsManager.loadBoolean(SettingsManager.KEY_EVO_ADAPTIVE_LIFETIME, evoTournament.isAdaptiveLifetimeEnabled()));
+            String modeName = SettingsManager.loadString(SettingsManager.KEY_EVO_ADAPTIVE_LIFETIME_MODE, null);
+            if (modeName != null) {
+                try { evoTournament.setAdaptiveLifetimeMode(EvolutionaryTournament.AdaptiveLifetimeMode.valueOf(modeName)); }
+                catch (IllegalArgumentException ignored) {}
+            }
+            evoTournament.setAdaptiveLifetimeGrowthCap(SettingsManager.loadDouble(SettingsManager.KEY_EVO_GROWTH_CAP, evoTournament.getAdaptiveLifetimeGrowthCap()));
+            evoTournament.setAdaptiveLifetimeAnomalyThreshold(SettingsManager.loadDouble(SettingsManager.KEY_EVO_ANOMALY_THRESHOLD, evoTournament.getAdaptiveLifetimeAnomalyThreshold()));
+            evoTournament.setAbsoluteMaxLifespanSeconds(SettingsManager.loadInt(SettingsManager.KEY_EVO_ABSOLUTE_MAX_LIFESPAN, evoTournament.getAbsoluteMaxLifespanSeconds()));
+            maxCpuPercent = SettingsManager.loadDouble(SettingsManager.KEY_AUTOPILOT_CPU, maxCpuPercent);
+            maxRamPercent = SettingsManager.loadDouble(SettingsManager.KEY_AUTOPILOT_RAM, maxRamPercent);
+            maxHeapPercent = SettingsManager.loadDouble(SettingsManager.KEY_AUTOPILOT_HEAP, maxHeapPercent);
+            System.out.println("[Settings] Loaded evo tournament preferences");
+        } catch (Exception e) {
+            System.err.println("[Settings] Failed to load evo settings: " + e.getMessage());
         }
     }
 

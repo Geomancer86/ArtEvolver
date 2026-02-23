@@ -752,6 +752,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         mainFrame = this;
         mainFrame.setResizable(true);
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        loadSettings();
+
+        mainFrame.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                saveSettings();
+            }
+        });
         
         // init timer
 //        processTimer = new Timer(0, new ActionListener() { 
@@ -1127,9 +1136,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
       	setSize(winW, winH);
       	scrollPane.setPreferredSize(new Dimension(sidebarW, winH));
 
-		File defaultDir = new File("C:\\Media\\Art Evolver Stream");
-		if (!defaultDir.exists()) {
-			defaultDir = new File(System.getProperty("user.dir"));
+		String savedDir = SettingsManager.loadString(SettingsManager.KEY_LAST_IMAGE_DIR, null);
+		File defaultDir;
+		if (savedDir != null && new File(savedDir).exists()) {
+			defaultDir = new File(savedDir);
+		} else {
+			defaultDir = new File("C:\\Media\\Art Evolver Stream");
+			if (!defaultDir.exists()) {
+				defaultDir = new File(System.getProperty("user.dir"));
+			}
 		}
 		chooser = new JFileChooser(defaultDir);
 		chooser.setAcceptAllFileFilterUsed(false);
@@ -1143,7 +1158,6 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     private javax.swing.JMenuBar buildMenuBar() {
         javax.swing.JMenuBar menuBar = new javax.swing.JMenuBar();
 
-        // ── Help Menu ──
         javax.swing.JMenu helpMenu = new javax.swing.JMenu("Help");
         helpMenu.setMnemonic(java.awt.event.KeyEvent.VK_H);
 
@@ -1200,6 +1214,58 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
             JOptionPane.showMessageDialog(this,
                     "Could not open browser:\n" + url,
                     "Browser Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void loadSettings() {
+        widthTriangles = SettingsManager.loadInt(SettingsManager.KEY_GRID_WIDTH, widthTriangles);
+        heightTriangles = SettingsManager.loadInt(SettingsManager.KEY_GRID_HEIGHT, heightTriangles);
+        TOTAL_PALLETES = SettingsManager.loadInt(SettingsManager.KEY_PALETTES, TOTAL_PALLETES);
+        THREADS = SettingsManager.loadInt(SettingsManager.KEY_THREADS, THREADS);
+        POPULATION = SettingsManager.loadInt(SettingsManager.KEY_POPULATION, POPULATION);
+        CROSSOVER_MAX = SettingsManager.loadInt(SettingsManager.KEY_CROSSOVER_MAX, CROSSOVER_MAX);
+        ImageEvolver.INITIALIZATION_METHOD = SettingsManager.loadInt(SettingsManager.KEY_INIT_METHOD, ImageEvolver.INITIALIZATION_METHOD);
+        CrossOver.GRID_MUTATION_CHANCES = SettingsManager.loadInt(SettingsManager.KEY_GRID_MUTATIONS, (int) CrossOver.GRID_MUTATION_CHANCES);
+        CrossOver.TARGETED_SWAP_ATTEMPTS = SettingsManager.loadInt(SettingsManager.KEY_TARGETED_SWAPS, CrossOver.TARGETED_SWAP_ATTEMPTS);
+        CrossOver.RANDOM_MUTATION_CHANCES = SettingsManager.loadInt(SettingsManager.KEY_RANDOM_MUTATIONS, (int) CrossOver.RANDOM_MUTATION_CHANCES);
+        CrossOver.RANDOM_CLOSE_MUTATION_CHANCES = SettingsManager.loadInt(SettingsManager.KEY_CLOSE_MUTATIONS, (int) CrossOver.RANDOM_CLOSE_MUTATION_CHANCES);
+        BENCHMARK_LOGGING = SettingsManager.loadBoolean(SettingsManager.KEY_BENCHMARK_LOGGING, BENCHMARK_LOGGING);
+        EXPORT_VIDEO = SettingsManager.loadBoolean(SettingsManager.KEY_EXPORT_VIDEO, EXPORT_VIDEO);
+        System.out.println("[Settings] Loaded user preferences");
+    }
+
+    private void saveSettings() {
+        try {
+            if (spnGridWidth != null) SettingsManager.saveInt(SettingsManager.KEY_GRID_WIDTH, (int) spnGridWidth.getValue());
+            if (spnGridHeight != null) SettingsManager.saveInt(SettingsManager.KEY_GRID_HEIGHT, (int) spnGridHeight.getValue());
+            if (spnPalettes != null) SettingsManager.saveInt(SettingsManager.KEY_PALETTES, (int) spnPalettes.getValue());
+            if (spnThreads != null) SettingsManager.saveInt(SettingsManager.KEY_THREADS, (int) spnThreads.getValue());
+            if (spnPopulation != null) SettingsManager.saveInt(SettingsManager.KEY_POPULATION, (int) spnPopulation.getValue());
+            if (spnCrossoverMax != null) SettingsManager.saveInt(SettingsManager.KEY_CROSSOVER_MAX, (int) spnCrossoverMax.getValue());
+            if (cmbInitMethod != null) SettingsManager.saveInt(SettingsManager.KEY_INIT_METHOD, cmbInitMethod.getSelectedIndex());
+            if (cmbEvolveMethod != null) SettingsManager.saveInt(SettingsManager.KEY_EVOLVE_METHOD, cmbEvolveMethod.getSelectedIndex());
+            if (spnGridMutations != null) SettingsManager.saveInt(SettingsManager.KEY_GRID_MUTATIONS, (int) spnGridMutations.getValue());
+            if (spnTargetedSwaps != null) SettingsManager.saveInt(SettingsManager.KEY_TARGETED_SWAPS, (int) spnTargetedSwaps.getValue());
+            if (spnRandomMutations != null) SettingsManager.saveInt(SettingsManager.KEY_RANDOM_MUTATIONS, (int) spnRandomMutations.getValue());
+            if (spnCloseMutations != null) SettingsManager.saveInt(SettingsManager.KEY_CLOSE_MUTATIONS, (int) spnCloseMutations.getValue());
+            if (chkBenchmarkLogging != null) SettingsManager.saveBoolean(SettingsManager.KEY_BENCHMARK_LOGGING, chkBenchmarkLogging.isSelected());
+            if (chkExportVideo != null) SettingsManager.saveBoolean(SettingsManager.KEY_EXPORT_VIDEO, chkExportVideo.isSelected());
+            if (chkBlockCrossover != null) SettingsManager.saveBoolean(SettingsManager.KEY_BLOCK_CROSSOVER, chkBlockCrossover.isSelected());
+            if (cmbDrawMode != null) SettingsManager.saveInt(SettingsManager.KEY_DRAW_MODE, cmbDrawMode.getSelectedIndex());
+
+            if (chooser != null && chooser.getCurrentDirectory() != null) {
+                SettingsManager.saveString(SettingsManager.KEY_LAST_IMAGE_DIR, chooser.getCurrentDirectory().getAbsolutePath());
+            }
+
+            SettingsManager.saveInt(SettingsManager.KEY_MAIN_X, getX());
+            SettingsManager.saveInt(SettingsManager.KEY_MAIN_Y, getY());
+            SettingsManager.saveInt(SettingsManager.KEY_MAIN_W, getWidth());
+            SettingsManager.saveInt(SettingsManager.KEY_MAIN_H, getHeight());
+
+            SettingsManager.flush();
+            System.out.println("[Settings] Saved user preferences");
+        } catch (Exception e) {
+            System.err.println("[Settings] Failed to save: " + e.getMessage());
         }
     }
 

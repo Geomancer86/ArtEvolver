@@ -377,6 +377,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private BufferedImage originalImage;
 	private BufferedImage resizedOriginal;
 	private BufferedImage bestImage;
+	private final ImageDiskCache imageDiskCache = new ImageDiskCache();
+	private File lastLoadedFile;
 	
 	long start;
 	long steps;
@@ -1292,6 +1294,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         try {
             
             File imageFile = new File(imageName);
+            lastLoadedFile = imageFile;
             
             originalImage = ImageIO.read(imageFile);
             setPath((imageName));
@@ -1328,6 +1331,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 			try {
 				File selected = chooser.getSelectedFile();
+				lastLoadedFile = selected;
 				originalImage = ImageIO.read(selected);
 				setPath(selected.getAbsolutePath());
 				imageSourceName = selected.getName();
@@ -1342,39 +1346,52 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     }
     
     public void setSourceImage() {
-     // Ignore on Select File Window Close (without picking a file)
         if (originalImage == null) {
-            
             return;
         }
 
-        /**
-         * Resizing code seems to be OK
-         */
         int newWidth = (int) (width * widthTriangles);
-        int newHeight = (int) (((height * heightTriangles))  - height); // substract last serrated row
+        int newHeight = (int) (((height * heightTriangles))  - height);
 
-        // initialize currentImage and resizedOriginal
         if (getResizedOriginal() == null){
-            
-            BufferedImage resizedOriginal = new BufferedImage(newWidth, newHeight, IMAGE_TYPE);
-            
-            Graphics2D g = resizedOriginal.createGraphics();
-            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                               RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            
-            g.drawImage(originalImage,
-                        0, 0,
-                        newWidth, newHeight,
-                        0, 0,
-                        originalImage.getWidth(), 
-                        originalImage.getHeight(),
-                        null);
-            
-            g.dispose();
+            long loadStart = System.currentTimeMillis();
 
+            BufferedImage resizedOriginal = null;
+
+            // Try disk cache first (fast path for repeated loads of the same image)
+            if (lastLoadedFile != null && lastLoadedFile.exists()) {
+                String cacheKey = imageDiskCache.buildKey(lastLoadedFile, newWidth, newHeight);
+                resizedOriginal = imageDiskCache.get(cacheKey);
+            }
+
+            if (resizedOriginal == null) {
+                // Cache miss — perform the resize
+                resizedOriginal = new BufferedImage(newWidth, newHeight, IMAGE_TYPE);
+
+                Graphics2D g = resizedOriginal.createGraphics();
+                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                                   RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+
+                g.drawImage(originalImage,
+                            0, 0,
+                            newWidth, newHeight,
+                            0, 0,
+                            originalImage.getWidth(),
+                            originalImage.getHeight(),
+                            null);
+
+                g.dispose();
+
+                // Store in disk cache for next time
+                if (lastLoadedFile != null && lastLoadedFile.exists()) {
+                    String cacheKey = imageDiskCache.buildKey(lastLoadedFile, newWidth, newHeight);
+                    imageDiskCache.put(cacheKey, resizedOriginal);
+                }
+            }
+
+            long loadTime = System.currentTimeMillis() - loadStart;
             System.out.println("[ArtEvolver] Image loaded: " + originalImage.getWidth() + "x" + originalImage.getHeight()
-                    + " -> resized to " + newWidth + "x" + newHeight);
+                    + " -> resized to " + newWidth + "x" + newHeight + " (" + loadTime + "ms)");
             System.out.println("[ArtEvolver] Initializing " + evolvers.size() + " evolvers with "
                     + (widthTriangles * heightTriangles) + " triangles each...");
 

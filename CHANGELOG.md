@@ -7,59 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] (3.2.0-SNAPSHOT)
 
-### Planned — UI Coherence Pass (v3.2.0)
+### Added — UI Coherence Pass (v3.2.0)
 
-- **Evo Settings dialog rewrite**: Replace `JOptionPane.showConfirmDialog()` with a proper
-  resizable `JDialog`. Apply / OK / Cancel buttons, titled borders per section (Timing,
-  Adaptive Cutoff, Lifespan, Ranking, Breeding), 8px internal padding, 12px between sections.
-- **Normalized control sizes**: Spinners capped at 80px width (numeric) / 120px (float),
-  ComboBoxes at 200px. No more fields stretching across the entire dialog width.
-- **Consistent visual hierarchy**: Audit Quick Setup, Autopilot settings, and parameter
-  editor dialogs for uniform sizing, font, and theme. Match dark sidebar aesthetic.
-- **Multi-resolution support**: Evo Settings tested and usable on 1080p, 1440p, and 4K.
+- **Evo Settings dialog rewrite**: Replaced `JOptionPane.showConfirmDialog()` with a proper
+  resizable `JDialog`. OK / Cancel buttons, titled borders per section (Timing & Population,
+  Adaptive Cutoff, Contestant Lifespan, Adaptive Lifetime, Ranking Strategy, Base Weights,
+  Breeding & Mutation, Lineage & Velocity, Dashboard).
+- **Normalized control sizes**: Spinners capped at 90px width, ComboBoxes at 200px. Fields
+  no longer stretch across the entire dialog width.
+- **Consistent visual hierarchy**: `BoxLayout`-based sections with `TitledBorder`, 26px row
+  height, `BorderLayout` label-spinner rows for clean alignment.
 
-### Planned — Help System (v3.2.0)
+### Added — Help System (v3.2.0)
 
-- **Help menu** in the main ArtEvolver menu bar: About, Quick Start Guide, Parameter
-  Reference, Keyboard Shortcuts, Report Issue (opens GitHub).
-- **Context-sensitive tooltips** on every sidebar control with parameter explanation and
-  suggested starting values.
-- **Help icons (?)** next to complex sections that open brief explanatory popups.
-- **Dashboard help overlay**: Toggleable (?) icon explains leaderboard metrics, chart,
-  and status indicators.
+- **Help menu** in the main ArtEvolver menu bar: Quick Start Guide, Parameter Reference,
+  Keyboard Shortcuts, Report Issue (opens GitHub), About ArtEvolver.
+- **Context-sensitive tooltips** on every sidebar control and Evo Settings field with
+  parameter explanations and suggested starting values.
 
-### Planned — Persistent Settings (v3.2.0)
+### Added — Persistent Settings (v3.2.0)
 
 - **`SettingsManager` using `java.util.prefs.Preferences`**: Auto-save on exit, auto-load
-  on start. All sidebar parameters, Evo Settings (25+ fields), window positions/sizes,
-  last loaded image directory, display mode, and autopilot limits persist across sessions.
-- **Reset to Defaults**: One-click restore of all hardcoded default values.
+  on start. All sidebar parameters (grid size, palettes, GA params, threads, FPS), Evo
+  Settings (30+ fields), last loaded image directory, display mode, autopilot limits,
+  and main window position persist across sessions.
 - **Zero-config**: First launch behaves identically to current defaults; persistence is
   transparent to existing users.
 
-### Planned — Thumbnail Cache (v3.2.0)
+### Added — Thumbnail Cache (v3.2.0)
 
 - **In-memory thumbnail cache**: `ConcurrentHashMap<String, CachedThumbnail>` keyed by
-  contestant ID. Thumbnails only regenerated when `bestScore` changes. Eliminated
-  contestants cached permanently.
-- **HTTP ETag headers**: `ETag: {id}-{score}` on `/api/image/{id}` responses. `304 Not
-  Modified` for unchanged thumbnails. Browser-side caching eliminates redundant transfers.
-- **Memory bound**: Max 100 entries (~5MB). LRU eviction if needed.
+  contestant ID. Thumbnails only regenerated when `bestScore` changes.
+- **HTTP ETag headers**: `ETag` on `/api/image/{id}` responses. `304 Not Modified` for
+  unchanged thumbnails. Browser-side caching eliminates redundant transfers.
+- **Memory bound**: Max 100 entries. LRU eviction when full.
 
-### Planned — Fitness Chart Culling (v3.2.0)
+### Added — Fitness Chart Culling (v3.2.0)
 
-- **Default top-25 culling**: Chart renders only the top 25 contestants by fitness score,
-  plus any currently active (running) contestant. Configurable via checkbox + spinner
-  (range 5–100). "Showing top N of M" indicator in the chart.
-- **Series priority**: Active contestants always shown regardless of rank. Top N
-  promoted/eliminated by peak score. Below-cutoff eliminated contestants hidden entirely.
+- **Default top-25 culling**: Chart renders only the top 25 contestants by peak fitness
+  score, plus any currently active (running) contestant. Configurable via "Top" checkbox
+  + spinner (range 5–100). "N/M" indicator in the toolbar.
+- **Series priority**: Active contestants always shown regardless of rank. Remaining slots
+  filled by peak score.
 
-### Planned — Auto-Open Dashboard (v3.2.0)
+### Added — Auto-Open Dashboard (v3.2.0)
 
 - **Auto-open on tournament start**: Browser dashboard opens automatically when the
-  evolutionary tournament begins. Only opens once per session.
-- **Settings toggle**: "Auto-open dashboard on start" checkbox (default: enabled),
-  persisted via SettingsManager.
+  evolutionary tournament begins (manual start, auto-evolve, or autopilot). Only opens
+  once per session.
+- **Settings toggle**: "Auto-open browser dashboard on start" checkbox in Evo Settings
+  (default: enabled).
 
 ---
 

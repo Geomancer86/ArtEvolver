@@ -23,7 +23,7 @@ in thumbnail generation. Six features are planned, all driven by direct user fee
 
 **Priority**: HIGH
 **ETA**: 3–4 days
-**Status**: Planned
+**Status**: COMPLETE
 
 #### Problem
 
@@ -79,7 +79,7 @@ Settings" (Evo Settings) dialog — are difficult to use:
 
 **Priority**: MEDIUM
 **ETA**: 2–3 days
-**Status**: Planned
+**Status**: COMPLETE
 
 #### Problem
 
@@ -130,7 +130,7 @@ the main sidebar has minimal help, and there's no centralized help resource.
 
 **Priority**: HIGH
 **ETA**: 2–3 days
-**Status**: Planned
+**Status**: COMPLETE
 
 #### Problem
 
@@ -184,7 +184,7 @@ etc. on every launch. This is especially painful for the Evo Settings dialog whi
 
 **Priority**: MEDIUM-HIGH
 **ETA**: 1–2 days
-**Status**: Planned
+**Status**: COMPLETE
 
 #### Problem
 
@@ -235,7 +235,7 @@ every 2 seconds, consuming significant CPU that could be used for evolution.
 
 **Priority**: MEDIUM
 **ETA**: 1 day
-**Status**: Planned
+**Status**: COMPLETE
 
 #### Problem
 
@@ -284,7 +284,7 @@ chart becomes unreadable with overlapping series, a massive legend, and slow ren
 
 **Priority**: LOW
 **ETA**: 0.5 days
-**Status**: Planned
+**Status**: COMPLETE
 
 #### Problem
 
@@ -323,19 +323,17 @@ automatically when the tournament starts.
 
 ## Timeline & ETA Summary
 
-| # | Feature | Priority | ETA | Depends On |
-|---|---------|----------|-----|------------|
-| 1 | UI Coherence Pass | HIGH | 3–4 days | — |
-| 2 | Help System | MEDIUM | 2–3 days | — |
-| 3 | Persistent Settings | HIGH | 2–3 days | — |
-| 4 | Thumbnail Cache | MEDIUM-HIGH | 1–2 days | — |
-| 5 | Fitness Chart Culling | MEDIUM | 1 day | — |
-| 6 | Auto-Open Dashboard | LOW | 0.5 days | Feature 3 (optional) |
+| # | Feature | Priority | ETA | Status |
+|---|---------|----------|-----|--------|
+| 1 | UI Coherence Pass | HIGH | 3–4 days | COMPLETE |
+| 2 | Help System | MEDIUM | 2–3 days | COMPLETE |
+| 3 | Persistent Settings | HIGH | 2–3 days | COMPLETE |
+| 4 | Thumbnail Cache | MEDIUM-HIGH | 1–2 days | COMPLETE |
+| 5 | Fitness Chart Culling | MEDIUM | 1 day | COMPLETE |
+| 6 | Auto-Open Dashboard | LOW | 0.5 days | COMPLETE |
 
-**Total estimated development time**: 10–14 days
-**Target release date**: ~March 9–13, 2026
-**Buffer for testing and fixes**: 2–3 days
-**Release candidate target**: ~March 16, 2026
+**All 6 features implemented and merged to `develop`.**
+**Next step**: Testing, stabilization, then `release/v3.2.0` branch.
 
 ---
 
@@ -344,17 +342,17 @@ automatically when the tournament starts.
 ### Branch Strategy
 
 ```
-develop (current, 61 commits ahead)
-  ├── feature/ui-coherence        ← Feature 1
-  ├── feature/help-system         ← Feature 2
-  ├── feature/persistent-settings ← Feature 3
-  ├── feature/thumbnail-cache     ← Feature 4
-  ├── feature/chart-culling       ← Feature 5
-  └── feature/auto-dashboard      ← Feature 6
+develop (all 6 features merged)
+  ├── feature/ui-coherence        ← Feature 1 ✓ merged
+  ├── feature/help-system         ← Feature 2 ✓ merged
+  ├── feature/persistent-settings ← Feature 3 ✓ merged
+  ├── feature/thumbnail-cache     ← Feature 4 ✓ merged
+  ├── feature/chart-culling       ← Feature 5 ✓ merged
+  └── feature/auto-dashboard      ← Feature 6 ✓ merged
       │
-      └──→ develop (merge all features)
+      └──→ develop (all features integrated)
               │
-              └──→ release/v3.2.0 (stabilization)
+              └──→ release/v3.2.0 (stabilization — next step)
                       │
                       ├──→ master (release tag v3.2.0)
                       └──→ develop (merge back)

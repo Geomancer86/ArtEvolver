@@ -88,15 +88,15 @@ multi-generational breeding with ancestry tracking, adaptive cutoff, multi-stage
 prehistoric mode with 8 progressive eras, promoted hall of fame, 21 preset strategies, autopilot mode,
 and real-time browser dashboard with REST API.
 
-### Persistent Settings (v3.2 — planned)
+### Persistent Settings (v3.2)
 All user preferences (sidebar parameters, tournament settings, window positions, last loaded image)
 are saved automatically on exit and restored on next launch via `java.util.prefs.Preferences`.
 
-### Help System (v3.2 — planned)
+### Help System (v3.2)
 Help menu with Quick Start Guide and Parameter Reference. Context-sensitive tooltips on every
 control with suggested starting values. Dashboard help overlay for metric explanations.
 
-### Thumbnail Cache (v3.2 — planned)
+### Thumbnail Cache (v3.2)
 In-memory cache for dashboard image thumbnails with HTTP ETag support. Thumbnails only regenerate
 when contestant scores change, dramatically reducing CPU overhead during dashboard auto-refresh.
 
@@ -227,6 +227,7 @@ artevolver/                              # v3.2.0-SNAPSHOT
 │       ├── PrehistoricMode.java         # Genesis mode (8 progressive eras)
 │       ├── LineageNode.java             # Ancestry tree for breeding
 │       ├── SystemMonitor.java           # JMX-based CPU/RAM/Disk monitoring
+│       ├── SettingsManager.java         # Persistent user preferences (java.util.prefs)
 │       ├── ClickerState.java            # Evolution Clicker game logic
 │       ├── benchmark/
 │       │   ├── BenchmarkLogger.java     # Thread-safe CSV benchmark writer

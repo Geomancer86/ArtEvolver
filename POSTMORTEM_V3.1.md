@@ -230,27 +230,25 @@ weights over time.
    mitigated by clearing `promoted=false` in `eliminate()` and adding `!isEliminated()`
    guards. A full enum refactor is low priority given the fixes in place.
 
-### Planned for v3.2.0 Release (see RELEASE_PLAN_V3.2.md)
+### Completed in v3.2.0 (see RELEASE_PLAN_V3.2.md)
 
-3. **Persistent settings** (Feature 3): `SettingsManager` using `java.util.prefs.Preferences`
+3. **Persistent settings** (Feature 3): DONE — `SettingsManager` using `java.util.prefs.Preferences`
    to save/load all parameters across sessions. Auto-save on exit, auto-load on start.
-   This addresses the "persistent state" recommendation — starting with user preferences,
-   with tournament state persistence as a future extension.
 
-4. **UI coherence pass** (Feature 1): Rewrite Evo Settings dialog as a proper resizable
-   `JDialog` with normalized control sizes. Audit all dialogs for consistency.
+4. **UI coherence pass** (Feature 1): DONE — Evo Settings rewritten as a proper resizable
+   `JDialog` with `TitledBorder` sections and normalized 90px spinner widths.
 
-5. **Help system** (Feature 2): Help menu, context-sensitive tooltips on every control,
-   dashboard help overlay.
+5. **Help system** (Feature 2): DONE — Help menu (Quick Start, Parameter Ref, About,
+   Report Issue) added to main ArtEvolver menu bar.
 
-6. **Thumbnail cache** (Feature 4): In-memory cache with HTTP ETag for dashboard thumbnails.
-   Eliminates redundant CPU-heavy image rendering during auto-refresh.
+6. **Thumbnail cache** (Feature 4): DONE — In-memory `ConcurrentHashMap` cache with HTTP
+   ETag support. `304 Not Modified` for unchanged thumbnails.
 
-7. **Fitness chart culling** (Feature 5): Default top-25 series limit, always showing
-   active contestants. Configurable via checkbox + spinner.
+7. **Fitness chart culling** (Feature 5): DONE — Default top-25 series limit with "Top"
+   checkbox + spinner. Active contestants always shown.
 
-8. **Auto-open dashboard** (Feature 6): Browser dashboard opens automatically when the
-   tournament starts.
+8. **Auto-open dashboard** (Feature 6): DONE — Browser dashboard opens automatically when
+   the tournament starts. Configurable in Evo Settings.
 
 ### Deferred to v3.3+
 

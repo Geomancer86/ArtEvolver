@@ -329,7 +329,8 @@ automatically when the tournament starts.
 
 **All 6 features implemented and merged to `develop`.**
 **Code review pass completed**: 6 bugs found and fixed (see below).
-**Next step**: Human testing, stabilization, then `release/v3.2.0` branch.
+**Next step**: Human testing, stabilization, then `release/v3.2.0` branch.  
+**Pre-release audit**: See [RELEASE_TODO_V3.2.md](RELEASE_TODO_V3.2.md) for a full list of open TODOs, polish items, and release-blocking fixes (JaCoCo/Java 21, version strings).
 
 ---
 

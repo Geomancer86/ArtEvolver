@@ -30,11 +30,16 @@
     </profiles>
     
     <properties>
+    	<!-- Java (LTS) -->
+    	<maven.compiler.release>21</maven.compiler.release>
+    	<maven.compiler.source>21</maven.compiler.source>
+    	<maven.compiler.target>21</maven.compiler.target>
+
     	<!-- junit -->
    		<junit.version>5.8.1</junit.version>
    		
-   		<!-- JaCoCo -->
-   		<jacoco.version>0.8.8</jacoco.version>
+   		<!-- JaCoCo (0.8.11+ for Java 21; 0.8.14 current) -->
+   		<jacoco.version>0.8.14</jacoco.version>
     </properties>
 
 	<repositories>

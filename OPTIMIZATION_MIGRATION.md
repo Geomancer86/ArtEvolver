@@ -10,7 +10,7 @@
 ## Context
 
 The artevolver2019 repo (v2.02, Swing, Java 8) received 7 performance optimizations
-that have NOT been applied to the v3.0 repo (LibGDX, Java 17, multi-module). The core
+that have NOT been applied to the v3.0 repo (LibGDX, Java 21, multi-module). The core
 evolution engine files are nearly identical in structure, so these optimizations port
 directly to `artevolver-core`.
 

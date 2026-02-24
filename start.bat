@@ -13,7 +13,7 @@ echo.
 where java >nul 2>nul
 if %errorlevel% neq 0 (
     echo  [ERROR] Java not found on PATH.
-    echo          Install Java 17+ from https://adoptium.net/
+    echo          Install Java 21+ from https://adoptium.net/
     echo.
     pause
     exit /b 1

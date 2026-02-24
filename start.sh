@@ -12,7 +12,7 @@ echo ""
 # -------------------------------------------------------------------
 if ! command -v java &>/dev/null; then
     echo " [ERROR] Java not found on PATH."
-    echo "         Install Java 17+ from https://adoptium.net/"
+    echo "         Install Java 21+ from https://adoptium.net/"
     exit 1
 fi
 

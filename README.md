@@ -1,6 +1,6 @@
 # ArtEvolver
 
-[![Java](https://img.shields.io/badge/Java-17%2B-orange)](https://openjdk.org/)
+[![Java](https://img.shields.io/badge/Java-21%2B-orange)](https://openjdk.org/)
 [![Maven](https://img.shields.io/badge/Maven-3.6%2B-blue)](https://maven.apache.org/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-green.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Twitter](https://img.shields.io/twitter/follow/ArtEvolver?style=social)](https://twitter.com/ArtEvolver)

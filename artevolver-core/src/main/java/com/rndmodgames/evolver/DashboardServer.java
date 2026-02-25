@@ -75,6 +75,7 @@ public class DashboardServer {
         server.createContext("/api/clicker/buy", this::handleClickerBuy);
         server.createContext("/api/clicker/prestige", this::handleClickerPrestige);
         server.createContext("/api/clicker/complete", this::handleClickerComplete);
+        server.createContext("/api/clicker/gallery", this::handleClickerGallery);
         server.createContext("/api/clicker/image", this::handleClickerImage);
         server.createContext("/api/clicker/reference", this::handleClickerReference);
         server.createContext("/api/image/", this::handleImage);
@@ -252,7 +253,7 @@ public class DashboardServer {
             return;
         }
 
-        clickerState.initEngine(
+        String error = clickerState.initEngine(
                 sourceImage,
                 artEvolver.getPallete(),
                 artEvolver.getWidthTriangles(),
@@ -260,6 +261,17 @@ public class DashboardServer {
                 artEvolver.getTriangleWidth(),
                 artEvolver.getTriangleHeight(),
                 artEvolver.getTriangleScaleHeight());
+
+        if (error != null) {
+            String json = "{\"initialized\":false,\"error\":\"" + error.replace("\"", "\\\"") + "\"}";
+            byte[] data = json.getBytes(StandardCharsets.UTF_8);
+            ex.getResponseHeaders().set("Content-Type", "application/json");
+            ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+            ex.sendResponseHeaders(200, data.length);
+            ex.getResponseBody().write(data);
+            ex.close();
+            return;
+        }
 
         var engine = clickerState.getEngine();
         String json = "{\"initialized\":true,\"triangleCount\":" + engine.getTriangleCount()
@@ -344,9 +356,22 @@ public class DashboardServer {
     private void handleClickerPrestige(HttpExchange ex) throws IOException {
         boolean success = clickerState.ascend();
         String json = "{\"success\":" + success + ",\"gf\":" + clickerState.getGf()
-                + ",\"ascensions\":" + clickerState.getAscensionCount() + "}";
+                + ",\"ascensions\":" + clickerState.getAscensionCount()
+                + ",\"needsNewImage\":true"
+                + ",\"galleryCount\":" + clickerState.getGallery().size() + "}";
         byte[] data = json.getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().set("Content-Type", "application/json");
+        ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        ex.sendResponseHeaders(200, data.length);
+        ex.getResponseBody().write(data);
+        ex.close();
+    }
+
+    private void handleClickerGallery(HttpExchange ex) throws IOException {
+        if (!ex.getRequestMethod().equals("GET")) { sendError(ex, 405); return; }
+        String json = clickerState.getGalleryJson();
+        byte[] data = json.getBytes(StandardCharsets.UTF_8);
+        ex.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
         ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
         ex.sendResponseHeaders(200, data.length);
         ex.getResponseBody().write(data);

@@ -277,6 +277,29 @@ public class ClickerEngine {
         return cachedJpeg;
     }
 
+    public synchronized byte[] generateThumbnail(int maxDim) {
+        if (!initialized) return null;
+        BufferedImage full = getRenderedImage();
+        if (full == null) return null;
+        int w = full.getWidth(), h = full.getHeight();
+        double s = Math.min((double) maxDim / w, (double) maxDim / h);
+        if (s > 1.0) s = 1.0;
+        int tw = Math.max(1, (int) (w * s));
+        int th = Math.max(1, (int) (h * s));
+        BufferedImage thumb = new BufferedImage(tw, th, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = thumb.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(full, 0, 0, tw, th, null);
+        g.dispose();
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(4096);
+            ImageIO.write(thumb, "jpg", baos);
+            return baos.toByteArray();
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
     public synchronized void reset(int initMethod, Palette palette,
                                    int gridW, int gridH,
                                    float triWidth, float triHeight, float scale) {

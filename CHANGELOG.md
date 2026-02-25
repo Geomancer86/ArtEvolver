@@ -135,6 +135,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Auto-clicker visual**: When auto-clickers are active, animated hand icons and a
   clicks/second rate display appear below the image (Cookie Clicker style). Hand count
   scales with auto-clicker level (up to 10 hands).
+- **Gallery system**: Every ascension and masterpiece completion saves a thumbnail snapshot
+  of the evolved image with full stats (start/final fitness, gain, clicks, swaps, time,
+  ascensions). Gallery accessible via a button in the footer. Gallery overlay displays all
+  previous images in a responsive grid with per-image statistics.
+- **Prestige requires new image**: Ascending now saves the current canvas to the Gallery
+  and requires loading a new, never-before-used image in ArtEvolver. Prevents re-using
+  the same image — each prestige cycle is a fresh artistic challenge.
+- **Duplicate image prevention**: Image fingerprinting (dimensions + sampled pixel hash)
+  prevents initializing the clicker with an already-evolved image. Error shown in init overlay.
 
 ### Fixed — Click Target & Code Review Bug Fixes (v3.2.0)
 

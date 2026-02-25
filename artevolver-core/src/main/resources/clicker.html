@@ -139,6 +139,27 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .complete-card .btn-new{padding:10px 28px;background:linear-gradient(135deg,var(--cyan),var(--purple));border:none;border-radius:8px;color:#000;font-weight:700;font-size:15px;cursor:pointer}
 .complete-card .btn-new:hover{filter:brightness(1.2)}
 
+/* Gallery overlay */
+.gallery-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:90;animation:fadeIn .5s}
+.gallery-overlay.show{display:flex}
+.gallery-panel{background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:24px 32px;max-width:820px;width:90%;max-height:80vh;overflow-y:auto}
+.gallery-panel h2{color:var(--gold);font-size:22px;margin-bottom:12px;text-align:center}
+.gallery-panel .gallery-empty{color:var(--text2);text-align:center;padding:32px;font-size:14px}
+.gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.gallery-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .15s}
+.gallery-card:hover{border-color:var(--gold)}
+.gallery-card img{width:100%;aspect-ratio:1;object-fit:contain;background:#000;image-rendering:pixelated}
+.gallery-card .gc-stats{padding:8px;font-size:11px;color:var(--text2);display:grid;grid-template-columns:1fr 1fr;gap:2px 8px}
+.gallery-card .gc-label{color:var(--text2)}
+.gallery-card .gc-val{color:var(--text);font-weight:600;text-align:right}
+.gallery-card .gc-gain{color:var(--green);font-weight:700;font-size:13px;grid-column:1/-1;text-align:center;padding:2px 0}
+.gallery-card .gc-number{position:absolute;top:6px;left:6px;background:rgba(0,0,0,.7);color:var(--gold);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px}
+.gallery-card .gc-img-wrap{position:relative}
+.gallery-close{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text2);font-size:24px;cursor:pointer}
+.gallery-close:hover{color:var(--text)}
+.gallery-btn{cursor:pointer;color:var(--gold);text-decoration:underline;background:none;border:none;font-size:12px;font-family:inherit}
+.gallery-btn:hover{color:var(--cyan)}
+
 /* Auto-clicker visual (Cookie Clicker style) */
 .auto-display{display:none;align-items:center;gap:8px;padding:4px 0;flex-shrink:0;justify-content:center}
 .auto-display.active{display:flex}
@@ -213,6 +234,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   </div>
   <div class="footer">
     <a href="/">Dashboard</a>
+    <button class="gallery-btn" id="galleryBtn" onclick="openGallery()" style="display:none">Gallery (<span id="galleryCount">0</span>)</button>
     <span>ArtEvolver v3.2 &mdash; Evolution Clicker | <span id="footerCompleted">0</span> masterpieces</span>
     <a href="/clicker">Clicker</a>
   </div>
@@ -225,6 +247,14 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     <div class="gf-reward" id="completeReward">+0 GF</div>
     <p style="color:var(--text2);font-size:13px">Load a new image in ArtEvolver, then click below.</p>
     <div class="btn-row"><button class="btn-new" onclick="newCanvas()">New Canvas</button></div>
+  </div>
+</div>
+
+<div class="gallery-overlay" id="galleryOverlay">
+  <div class="gallery-panel" style="position:relative">
+    <button class="gallery-close" onclick="closeGallery()">&times;</button>
+    <h2>Gallery</h2>
+    <div class="gallery-grid" id="galleryGrid"></div>
   </div>
 </div>
 
@@ -417,6 +447,14 @@ function updateUI() {
   const fc = document.getElementById('footerCompleted');
   if (fc) fc.textContent = state.completedImages || 0;
 
+  // Gallery button visibility
+  const gc = state.galleryCount || 0;
+  const gBtn = document.getElementById('galleryBtn');
+  if (gc > 0) {
+    gBtn.style.display = '';
+    document.getElementById('galleryCount').textContent = gc;
+  }
+
   renderStore();
   renderAchievements();
   renderEvents();
@@ -603,12 +641,19 @@ function showAchToast(p) {
 // ── Prestige ──
 async function doPrestige() {
   if (!state || state.prestigeReward < 1) return;
-  if (!confirm('Ascend for ' + Math.floor(state.prestigeReward) + ' GF? EP, MC, and non-prestige upgrades will be reset.')) return;
+  if (!confirm('Ascend for ' + Math.floor(state.prestigeReward) + ' GF?\n\nYour current image will be saved to the Gallery.\nLoad a NEW image in ArtEvolver for your next canvas.')) return;
   try {
-    await fetch('/api/clicker/prestige', {method:'POST'});
+    const res = await fetch('/api/clicker/prestige', {method:'POST'});
+    const data = await res.json();
     hitMilestones.clear();
+    lastGainPct = 0;
+    if (data.needsNewImage) {
+      document.getElementById('initOverlay').style.display = 'flex';
+      document.getElementById('imageWrap').style.display = 'none';
+      document.getElementById('initError').textContent = '';
+      addLog('\u2B50 Ascension complete! +' + Math.floor(data.gf) + ' GF | Gallery: ' + (data.galleryCount || 0) + ' images');
+    }
     refresh();
-    refreshImage();
   } catch (e) {}
 }
 
@@ -643,6 +688,47 @@ function newCanvas() {
   document.getElementById('completeOverlay').classList.remove('show');
   document.getElementById('initOverlay').style.display = 'flex';
   document.getElementById('imageWrap').style.display = 'none';
+}
+
+// ── Gallery ──
+async function openGallery() {
+  const grid = document.getElementById('galleryGrid');
+  grid.innerHTML = '<div class="gallery-empty">Loading...</div>';
+  document.getElementById('galleryOverlay').classList.add('show');
+  try {
+    const res = await fetch('/api/clicker/gallery');
+    const entries = await res.json();
+    if (entries.length === 0) {
+      grid.innerHTML = '<div class="gallery-empty">No evolved images yet. Complete an ascension or masterpiece to populate your gallery.</div>';
+      return;
+    }
+    grid.innerHTML = '';
+    entries.forEach((e, i) => {
+      const card = document.createElement('div');
+      card.className = 'gallery-card';
+      const gainPct = (e.fitnessGain * 100).toFixed(2);
+      const finalPct = (e.finalFitness * 100).toFixed(2);
+      const startPct = (e.startFitness * 100).toFixed(2);
+      card.innerHTML =
+        '<div class="gc-img-wrap"><img src="' + esc(e.thumbnail) + '" alt="Image ' + (i + 1) + '"><div class="gc-number">#' + (i + 1) + '</div></div>' +
+        '<div class="gc-stats">' +
+          '<div class="gc-gain">+' + gainPct + '% gained</div>' +
+          '<div class="gc-label">Final</div><div class="gc-val">' + finalPct + '%</div>' +
+          '<div class="gc-label">Start</div><div class="gc-val">' + startPct + '%</div>' +
+          '<div class="gc-label">Clicks</div><div class="gc-val">' + fmtNum(e.clicks) + '</div>' +
+          '<div class="gc-label">Swaps</div><div class="gc-val">' + fmtNum(e.swaps) + '</div>' +
+          '<div class="gc-label">Time</div><div class="gc-val">' + fmtTime(e.playTimeMs) + '</div>' +
+          '<div class="gc-label">Ascensions</div><div class="gc-val">' + e.ascensions + '</div>' +
+        '</div>';
+      grid.appendChild(card);
+    });
+  } catch (e) {
+    grid.innerHTML = '<div class="gallery-empty">Failed to load gallery.</div>';
+  }
+}
+
+function closeGallery() {
+  document.getElementById('galleryOverlay').classList.remove('show');
 }
 
 // ── Log ──

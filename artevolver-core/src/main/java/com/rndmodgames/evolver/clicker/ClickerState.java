@@ -6,6 +6,7 @@ import com.rndmodgames.evolver.Palette;
 import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Base64;
 
 /**
  * Game state for the Evolution Clicker.
@@ -54,6 +55,11 @@ public class ClickerState {
     private int completedImages = 0;
     private double bestCompletionFitness = 0;
 
+    // Gallery — every image tells a story (Kojima: hidden narrative in progression)
+    private final List<GalleryEntry> gallery = Collections.synchronizedList(new ArrayList<>());
+    private final Set<Long> usedImageFingerprints = Collections.synchronizedSet(new HashSet<>());
+    private long currentImageFingerprint = 0;
+
     // Active events
     private final List<ActiveEvent> activeEvents = new ArrayList<>();
     private long lastEventCheckMs = 0;
@@ -73,6 +79,11 @@ public class ClickerState {
     private Palette palette;
     private int gridW, gridH;
     private float triWidth, triHeight, scale;
+
+    public record GalleryEntry(long fingerprint, String thumbnailBase64,
+            double startFitness, double finalFitness, double fitnessGain,
+            long totalClicks, long successSwaps, long playTimeMs,
+            int ascensionCount, long timestamp) {}
 
     // ════════════════════════════════════════════════════════════════
     //  UPGRADE DEFINITIONS
@@ -384,9 +395,16 @@ public class ClickerState {
 
     public ClickerEngine getEngine() { return engine; }
 
-    public void initEngine(BufferedImage sourceImage, Palette palette,
-                           int gridW, int gridH,
-                           float triWidth, float triHeight, float scale) {
+    public String initEngine(BufferedImage sourceImage, Palette palette,
+                             int gridW, int gridH,
+                             float triWidth, float triHeight, float scale) {
+        long fp = computeFingerprint(sourceImage);
+        if (usedImageFingerprints.contains(fp)) {
+            return "This image has already been evolved. Load a different one for your next canvas.";
+        }
+        usedImageFingerprints.add(fp);
+        currentImageFingerprint = fp;
+
         this.palette = palette;
         this.gridW = gridW;
         this.gridH = gridH;
@@ -419,6 +437,7 @@ public class ClickerState {
             engine = new ClickerEngine();
         }
         engine.init(sourceImage, palette, gridW, gridH, triWidth, triHeight, scale, getInitMethod());
+        return null;
     }
 
     /**
@@ -662,24 +681,28 @@ public class ClickerState {
         double reward = calcPrestigeReward();
         if (reward < 1) return false;
 
+        saveGallerySnapshot();
+
         gf += reward;
         ascensionCount++;
         ep = 0;
         totalEpEarned = 0;
         mc = 0;
+        totalClicks = 0;
+        totalAchievementsUnlocked = 0;
         autoClickAccumulator = 0;
         activeEvents.clear();
+        achievementQueue.clear();
 
         upgradeLevels.entrySet().removeIf(e -> {
             UpgradeDef def = findUpgrade(e.getKey());
             return def != null && !def.currency.equals("gf");
         });
         totalUpgradesBought = upgradeLevels.values().stream().mapToInt(Integer::intValue).sum();
+        unlockedAchievements.clear();
         computeEpPerSecond();
 
-        if (engine != null && palette != null) {
-            engine.reset(getInitMethod(), palette, gridW, gridH, triWidth, triHeight, scale);
-        }
+        engine = null;
 
         triggerDiscovery(3);
         return true;
@@ -707,6 +730,8 @@ public class ClickerState {
         if (engine == null || !engine.isInitialized()) return null;
         double fitness = engine.getFitness();
         if (fitness < MASTERPIECE_MIN_FITNESS) return null;
+
+        saveGallerySnapshot();
 
         double gfReward = Math.floor(fitness * 50 + completedImages * 5);
         gf += gfReward;
@@ -742,6 +767,67 @@ public class ClickerState {
 
     public int getCompletedImages() { return completedImages; }
     public double getBestCompletionFitness() { return bestCompletionFitness; }
+
+    // ════════════════════════════════════════════════════════════════
+    //  GALLERY — every evolved image is preserved
+    //
+    //  Todd Howard: "See that gallery? You filled it."
+    //  Each ascension and masterpiece saves a snapshot of your work.
+    // ════════════════════════════════════════════════════════════════
+
+    public static long computeFingerprint(BufferedImage img) {
+        if (img == null) return 0;
+        long hash = img.getWidth() * 31L + img.getHeight();
+        int total = img.getWidth() * img.getHeight();
+        int step = Math.max(1, total / 100);
+        for (int i = 0; i < total; i += step) {
+            int x = i % img.getWidth();
+            int y = i / img.getWidth();
+            hash = hash * 31 + img.getRGB(x, y);
+        }
+        return hash;
+    }
+
+    public boolean isImageAlreadyUsed(BufferedImage img) {
+        return usedImageFingerprints.contains(computeFingerprint(img));
+    }
+
+    private void saveGallerySnapshot() {
+        if (engine == null || !engine.isInitialized()) return;
+        byte[] thumb = engine.generateThumbnail(120);
+        if (thumb == null) return;
+        String b64 = Base64.getEncoder().encodeToString(thumb);
+        gallery.add(new GalleryEntry(
+                currentImageFingerprint, b64,
+                engine.getStartingFitness(), engine.getFitness(),
+                engine.getFitness() - engine.getStartingFitness(),
+                totalClicks, engine.getSuccessfulSwaps(), totalPlayTimeMs,
+                ascensionCount, System.currentTimeMillis()));
+    }
+
+    public List<GalleryEntry> getGallery() {
+        return Collections.unmodifiableList(gallery);
+    }
+
+    public String getGalleryJson() {
+        StringBuilder sb = new StringBuilder(4096);
+        sb.append("[");
+        for (int i = 0; i < gallery.size(); i++) {
+            GalleryEntry g = gallery.get(i);
+            sb.append("{\"thumbnail\":\"data:image/jpeg;base64,").append(g.thumbnailBase64).append("\",");
+            sb.append("\"startFitness\":").append(g.startFitness).append(",");
+            sb.append("\"finalFitness\":").append(g.finalFitness).append(",");
+            sb.append("\"fitnessGain\":").append(g.fitnessGain).append(",");
+            sb.append("\"clicks\":").append(g.totalClicks).append(",");
+            sb.append("\"swaps\":").append(g.successSwaps).append(",");
+            sb.append("\"playTimeMs\":").append(g.playTimeMs).append(",");
+            sb.append("\"ascensions\":").append(g.ascensionCount).append(",");
+            sb.append("\"timestamp\":").append(g.timestamp).append("}");
+            if (i < gallery.size() - 1) sb.append(",");
+        }
+        sb.append("]");
+        return sb.toString();
+    }
 
     // ════════════════════════════════════════════════════════════════
     //  COMPUTED VALUES
@@ -957,6 +1043,7 @@ public class ClickerState {
         sb.append("  \"bestCompletionFitness\":").append(bestCompletionFitness).append(",\n");
         sb.append("  \"masterpieceReward\":").append(calcMasterpieceReward()).append(",\n");
         sb.append("  \"masterpieceMinFitness\":").append(MASTERPIECE_MIN_FITNESS).append(",\n");
+        sb.append("  \"galleryCount\":").append(gallery.size()).append(",\n");
 
         // Upgrades
         sb.append("  \"upgrades\":[\n");

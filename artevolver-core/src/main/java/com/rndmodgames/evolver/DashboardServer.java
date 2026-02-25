@@ -10,7 +10,7 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
+
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -291,12 +291,15 @@ public class DashboardServer {
             sendError(ex, 405); return;
         }
         ClickerState.ClickResponse resp = clickerState.click();
+        var engine = clickerState.getEngine();
         String json = "{\"earned\":" + resp.earned()
                 + ",\"ep\":" + clickerState.getEp()
                 + ",\"fitness\":" + resp.newFitness()
                 + ",\"fitnessGain\":" + resp.fitnessGain()
-                + ",\"swapsApplied\":" + resp.swapsApplied()
-                + ",\"totalSwaps\":" + (clickerState.getEngine() != null ? clickerState.getEngine().getTotalSwaps() : 0)
+                + ",\"successCount\":" + resp.successCount()
+                + ",\"attemptCount\":" + resp.attemptCount()
+                + ",\"totalSwaps\":" + (engine != null ? engine.getTotalSwaps() : 0)
+                + ",\"successSwaps\":" + (engine != null ? engine.getSuccessfulSwaps() : 0)
                 + ",\"critical\":" + resp.critical() + "}";
         byte[] data = json.getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().set("Content-Type", "application/json");

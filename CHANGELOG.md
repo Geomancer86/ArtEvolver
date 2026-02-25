@@ -63,31 +63,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Rewritten — Evolution Clicker Game (v3.2.0)
 
-- **Click-to-evolve mechanic**: Each click performs real two-triangle color swaps on the
-  actual image using the DeltaFitnessEngine. The engine finds improving swaps in
-  O(pixels_per_triangle) — every click makes the image better.
-- **New `ClickerEngine` class**: Lightweight wrapper around DeltaFitnessEngine + ImageEvolver
-  triangle geometry. Supports configurable swap power, smart targeting, local search,
-  best-of-N candidate selection, and critical clicks.
-- **32 redesigned upgrades** across 5 categories (Click Power, Automation, Fitness
-  Engineering, Special, Prestige) — all directly affect the click-based mechanic instead
-  of mapping to unused EvolutionConfig parameters.
-- **Auto-clickers**: Unlockable automatic clicks that perform the same swap logic. Upgrades
-  for speed, power, intelligence, parallel streams, and turbo burst on manual click.
-- **Image-centric UI**: The evolving image is front-and-center. Click on it to evolve.
-  Live fitness progress bar, source image reference, combo indicator, EP popups.
-- **Independent from tournament**: Works with a single image, no tournament or population
-  needed. Initializes from the currently loaded source image in ArtEvolver.
-- **New API endpoints**: `POST /api/clicker/init`, `GET /api/clicker/image` (JPEG with ETag),
-  `GET /api/clicker/reference`. Modified click/state responses with fitness data.
-- **Rethemed events**: Swap Storm, Golden Hour, Crystal Rain, Auto Frenzy, Precision Wave,
-  Combo Freeze, Time Dilation, Lucky Streak.
-- **100+ achievements**: Fitness milestones, swap milestones, click milestones, EP earned,
-  auto-clicker milestones, prestige milestones, 10 hidden discovery achievements.
-- **Combo system**: Rapid clicks build a combo multiplier for bonus EP.
-- **MC generation**: Crystal Finder upgrade + Crystal Touch flat-per-click + event drops.
-- **Prestige resets image**: Ascending re-creates the triangle arrangement (with better init
-  from prestige upgrades) for a fresh optimization run with accumulated bonuses.
+- **Random swap core mechanic**: Each click attempts a random two-triangle color swap.
+  The swap may or may not improve fitness — there is no guaranteed success. This matches
+  the core design: clicks are atomic, outcomes are uncertain, and upgrades make clicks
+  smarter over time. No iterating until success; 1 click = 1 random swap attempt.
+- **Progression from zero**: Game always starts with RANDOM (shuffled) palette initialization
+  for very low starting fitness (~5–15%). Smart and LAP initialization are prestige unlocks.
+  All game state resets when a new image is loaded — no pre-earned progression.
+- **Cookie Clicker–style pacing**: Slow start with exponential cost growth. Achievement
+  popups are rate-limited (max 1 every 4 seconds, queued as toasts instead of modal
+  overlays). MC currency hidden until 2000+ EP earned. Prestige upgrades hidden until
+  first ascension. Event spawn rate reduced (10-second intervals, low base probability).
+- **Upgrade tree (18 upgrades, 5 categories)**:
+  - **Click Power**: Retry Cycles (try N random pairs, keep best improving), Multi-Swap
+    (extra swap attempts per click), Swap Range (limit distance for coherent local swaps),
+    Click Reward (base EP per click).
+  - **Automation**: Auto-Clicker (clicks/sec), Auto Retry, Auto Multi-Swap.
+  - **Intelligence**: Smart Pick (target worst triangles), Local Focus (nearby-only swaps).
+  - **Special (MC)**: Critical Swap, Crystal Finder, EP Overflow multiplier, Lucky Star
+    (event rate), Turbo Auto.
+  - **Prestige (GF)**: Eternal Cycles, Eternal Speed, Smart Genesis (Smart init unlock),
+    LAP Genesis (LAP Optimal init unlock).
+- **Success/fail click feedback**: Image border flashes green on improving swap, red on
+  miss. EP popups show "Miss" for failed clicks. Success rate tracked and displayed.
+- **`ClickerEngine` redesigned**: `performClick(swapsPerClick, retryCycles, swapDistance,
+  smartPct)` — supports retry cycles (best-of-N), swap distance limiting, and smart
+  targeting. Tracks both total swap attempts and successful (improving) swaps.
+- **Image-centric UI**: Evolving image front-and-center, source reference thumbnail,
+  fitness progress bar, swap success rate display, paced achievement toasts.
+- **Independent from tournament**: Single image, no population or tournament needed.
+  Initializes from the currently loaded source image in ArtEvolver.
+- **API endpoints**: `POST /api/clicker/init`, `GET /api/clicker/image` (JPEG + ETag),
+  `GET /api/clicker/reference`. Click response includes `successCount`, `attemptCount`.
+- **Events (6)**: Swap Storm, Golden Hour, Crystal Rain, Auto Frenzy, Precision Wave,
+  Lucky Streak — all with low spawn rates for meaningful impact.
+- **57 achievements**: Fitness milestones (5%–99%), click milestones, successful swap
+  milestones, EP earned, play time, upgrade count, prestige count, 5 hidden discoveries.
+- **Prestige resets image**: Ascending re-creates the triangle arrangement with potentially
+  better initialization (Smart/LAP if unlocked) for a fresh optimization run.
 
 ### Fixed — Code Review Bug Fixes (v3.2.0)
 

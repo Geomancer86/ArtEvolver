@@ -12,9 +12,13 @@ import java.util.SplittableRandom;
 /**
  * Lightweight evolution engine for the Clicker game.
  *
- * Each "click" finds and applies one or more improving two-triangle color swaps
- * using the DeltaFitnessEngine (O(pixels_per_triangle) per evaluation).
- * No tournament, no population — just hill-climbing via user clicks and auto-clickers.
+ * Core mechanic: each click attempts a SINGLE random two-triangle color swap.
+ * The swap may improve or worsen fitness — there is no guaranteed success.
+ * Upgrades unlock retry cycles (try N, keep best), multi-swap, distance control,
+ * and smart targeting — all starting from a pure-random baseline.
+ *
+ * Always starts with RANDOM (shuffled) initialization for low starting fitness.
+ * Smart/LAP initialization is a prestige unlock.
  */
 public class ClickerEngine {
 
@@ -32,6 +36,7 @@ public class ClickerEngine {
     private long jpegVersion = 0;
 
     private long totalSwaps = 0;
+    private long successfulSwaps = 0;
     private long totalClicks = 0;
     private boolean initialized = false;
 
@@ -39,17 +44,7 @@ public class ClickerEngine {
     private int imageHeight;
 
     /**
-     * Initializes the clicker engine by creating triangle geometry via ImageEvolver,
-     * then setting up a DeltaFitnessEngine for fast swap evaluation.
-     *
-     * @param sourceImage  The resized source/reference image
-     * @param palette      The color palette
-     * @param gridW        Triangle grid width (e.g. 80)
-     * @param gridH        Triangle grid height (e.g. 53)
-     * @param triWidth     Base triangle width in pixels
-     * @param triHeight    Base triangle height in pixels
-     * @param scale        Triangle scale factor
-     * @param initMethod   0=Random, 1=Smart, 2=LAP
+     * Initializes the clicker engine with RANDOM (shuffled) colors for low starting fitness.
      */
     public synchronized void init(BufferedImage sourceImage, Palette palette,
                                   int gridW, int gridH,
@@ -61,9 +56,12 @@ public class ClickerEngine {
 
         int savedMethod = ImageEvolver.INITIALIZATION_METHOD;
         boolean savedSmart = ImageEvolver.SMART_INITIALIZATION;
+        boolean savedShuffle = ImageEvolver.SHUFFLE_PALETTE;
         try {
             ImageEvolver.INITIALIZATION_METHOD = initMethod;
             ImageEvolver.SMART_INITIALIZATION = (initMethod == ImageEvolver.INIT_SMART);
+            // For random init (method 0), force palette shuffle for truly random low fitness
+            ImageEvolver.SHUFFLE_PALETTE = (initMethod == ImageEvolver.INIT_RANDOM);
 
             ImageEvolver evolver = new ImageEvolver(
                     1, gridW, 2, scale, palette,
@@ -75,10 +73,12 @@ public class ClickerEngine {
         } finally {
             ImageEvolver.INITIALIZATION_METHOD = savedMethod;
             ImageEvolver.SMART_INITIALIZATION = savedSmart;
+            ImageEvolver.SHUFFLE_PALETTE = savedShuffle;
         }
 
         this.deltaEngine = new DeltaFitnessEngine(triangles, sourceImage);
         this.totalSwaps = 0;
+        this.successfulSwaps = 0;
         this.totalClicks = 0;
         this.imageDirty = true;
         this.cachedJpeg = null;
@@ -86,21 +86,23 @@ public class ClickerEngine {
         this.initialized = true;
 
         System.out.println("[ClickerEngine] Initialized: " + triangles.size()
-                + " triangles, fitness=" + String.format("%.4f%%", deltaEngine.getScore() * 100));
+                + " triangles, init=" + initMethod
+                + ", fitness=" + String.format("%.4f%%", deltaEngine.getScore() * 100));
     }
 
     /**
-     * Performs a single click: finds and applies improving swaps.
+     * Core click mechanic. Each click:
+     * - Picks random triangle pairs
+     * - With retryCycles=1: tries ONE random swap, applies only if it improves
+     * - With retryCycles>1: tries N random swaps, applies the best improving one (if any)
+     * - swapDistance limits how far apart the two triangles can be (0 = unlimited)
+     * - swapsPerClick controls how many swap operations per click (base 1)
+     * - smartPct: probability of targeting worst triangle as candidate A
      *
-     * @param swapsPerClick  Number of improving swaps to find (1 = base)
-     * @param maxAttempts    Max random pairs to try per swap slot
-     * @param smartPct       0.0-1.0: probability of targeting worst triangle
-     * @param localPct       0.0-1.0: probability of preferring nearby triangle
-     * @param bestOfN        If > 1, try N candidates and pick the best improving swap
-     * @return result with fitness gain, swaps applied, new fitness
+     * @return result indicating what happened (success/fail, fitness change)
      */
-    public synchronized ClickResult performClick(int swapsPerClick, int maxAttempts,
-                                                  double smartPct, double localPct, int bestOfN) {
+    public synchronized ClickResult performClick(int swapsPerClick, int retryCycles,
+                                                  int swapDistance, double smartPct) {
         if (!initialized) return ClickResult.EMPTY;
 
         int n = triangles.size();
@@ -110,64 +112,43 @@ public class ClickerEngine {
         int applied = 0;
 
         for (int s = 0; s < swapsPerClick; s++) {
-            boolean found;
-            if (bestOfN > 1) {
-                found = findBestOfN(n, maxAttempts, bestOfN, smartPct, localPct);
-            } else {
-                found = findAndApplySwap(n, maxAttempts, smartPct, localPct);
-            }
-            if (found) {
-                applied++;
-            } else {
-                break;
-            }
+            boolean success = attemptSwap(n, retryCycles, swapDistance, smartPct);
+            if (success) applied++;
         }
 
         if (applied > 0) {
             imageDirty = true;
-            totalSwaps += applied;
+            successfulSwaps += applied;
         }
+        totalSwaps += swapsPerClick;
         totalClicks++;
 
         double newScore = deltaEngine.getScore();
-        return new ClickResult(applied, newScore - oldScore, newScore);
+        return new ClickResult(applied, swapsPerClick, newScore - oldScore, newScore);
     }
 
-    private boolean findAndApplySwap(int n, int maxAttempts, double smartPct, double localPct) {
-        for (int attempt = 0; attempt < maxAttempts; attempt++) {
-            int a = pickTriangleA(n, smartPct);
-            int b = pickTriangleB(n, a, localPct);
-
-            long delta = deltaEngine.computeSwapDelta(a, b);
-            if (delta < 0) {
-                deltaEngine.applySwapWithDelta(a, b, delta);
-                syncTriangleColors(a, b);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean findBestOfN(int n, int maxAttempts, int bestOfN, double smartPct, double localPct) {
+    /**
+     * Single swap attempt with optional retry cycles.
+     * With 1 cycle: pick a random pair, apply only if improving.
+     * With N cycles: pick N random pairs, apply the most improving one (if any improves).
+     */
+    private boolean attemptSwap(int n, int retryCycles, int swapDistance, double smartPct) {
         int bestA = -1, bestB = -1;
         long bestDelta = 0;
 
-        int attemptsPerCandidate = Math.max(1, maxAttempts / bestOfN);
-        for (int candidate = 0; candidate < bestOfN; candidate++) {
-            for (int attempt = 0; attempt < attemptsPerCandidate; attempt++) {
-                int a = pickTriangleA(n, smartPct);
-                int b = pickTriangleB(n, a, localPct);
+        for (int cycle = 0; cycle < Math.max(1, retryCycles); cycle++) {
+            int a = pickTriangleA(n, smartPct);
+            int b = pickTriangleB(n, a, swapDistance);
 
-                long delta = deltaEngine.computeSwapDelta(a, b);
-                if (delta < bestDelta) {
-                    bestDelta = delta;
-                    bestA = a;
-                    bestB = b;
-                }
+            long delta = deltaEngine.computeSwapDelta(a, b);
+            if (delta < bestDelta) {
+                bestDelta = delta;
+                bestA = a;
+                bestB = b;
             }
         }
 
-        if (bestDelta < 0) {
+        if (bestDelta < 0 && bestA >= 0) {
             deltaEngine.applySwapWithDelta(bestA, bestB, bestDelta);
             syncTriangleColors(bestA, bestB);
             return true;
@@ -177,15 +158,19 @@ public class ClickerEngine {
 
     private int pickTriangleA(int n, double smartPct) {
         if (smartPct > 0 && rng.nextDouble() < smartPct) {
-            return findWorstTriangle(n);
+            return sampleWorstTriangle(n);
         }
         return rng.nextInt(n);
     }
 
-    private int pickTriangleB(int n, int a, double localPct) {
-        if (localPct > 0 && rng.nextDouble() < localPct) {
-            int jump = rng.nextInt(1, Math.max(2, n / 20));
-            int b = (a + (rng.nextBoolean() ? jump : -jump) + n) % n;
+    /**
+     * Picks triangle B. swapDistance=0 means unlimited (any triangle).
+     * swapDistance>0 limits B to be within that index range of A.
+     */
+    private int pickTriangleB(int n, int a, int swapDistance) {
+        if (swapDistance > 0 && swapDistance < n) {
+            int offset = rng.nextInt(1, swapDistance + 1);
+            int b = (a + (rng.nextBoolean() ? offset : -offset) + n) % n;
             return b == a ? (a + 1) % n : b;
         }
         int b = rng.nextInt(n);
@@ -193,8 +178,8 @@ public class ClickerEngine {
         return b;
     }
 
-    private int findWorstTriangle(int n) {
-        int sampleSize = Math.min(50, n);
+    private int sampleWorstTriangle(int n) {
+        int sampleSize = Math.min(30, n);
         int worstIdx = rng.nextInt(n);
         long worstError = deltaEngine.getTriangleError(worstIdx);
 
@@ -222,9 +207,6 @@ public class ClickerEngine {
         triB.setPalleteColor(tmpPc);
     }
 
-    /**
-     * Renders the current triangle state to a BufferedImage.
-     */
     public synchronized BufferedImage getRenderedImage() {
         if (!initialized) return null;
         if (imageDirty || renderedImage == null) {
@@ -257,9 +239,6 @@ public class ClickerEngine {
         cachedJpeg = null;
     }
 
-    /**
-     * Returns the current rendered image as JPEG bytes, cached until image changes.
-     */
     public synchronized byte[] getRenderedImageAsJpeg() {
         if (!initialized) return null;
         getRenderedImage();
@@ -282,9 +261,6 @@ public class ClickerEngine {
         return cachedJpeg;
     }
 
-    /**
-     * Resets the engine for prestige: re-creates triangle colors with the given init method.
-     */
     public synchronized void reset(int initMethod, Palette palette,
                                    int gridW, int gridH,
                                    float triWidth, float triHeight, float scale) {
@@ -297,6 +273,7 @@ public class ClickerEngine {
     }
 
     public synchronized long getTotalSwaps() { return totalSwaps; }
+    public synchronized long getSuccessfulSwaps() { return successfulSwaps; }
     public synchronized long getTotalClicks() { return totalClicks; }
     public synchronized int getTriangleCount() { return initialized ? triangles.size() : 0; }
     public synchronized long getJpegVersion() { return jpegVersion; }
@@ -305,17 +282,19 @@ public class ClickerEngine {
     public BufferedImage getReferenceImage() { return referenceImage; }
 
     /**
-     * Result of a single click operation.
+     * Result of a single click. Tracks both attempted and successful swaps.
      */
     public static class ClickResult {
-        public static final ClickResult EMPTY = new ClickResult(0, 0, 0);
+        public static final ClickResult EMPTY = new ClickResult(0, 0, 0, 0);
 
-        public final int swapsApplied;
+        public final int successCount;
+        public final int attemptCount;
         public final double fitnessGain;
         public final double newFitness;
 
-        public ClickResult(int swapsApplied, double fitnessGain, double newFitness) {
-            this.swapsApplied = swapsApplied;
+        public ClickResult(int successCount, int attemptCount, double fitnessGain, double newFitness) {
+            this.successCount = successCount;
+            this.attemptCount = attemptCount;
             this.fitnessGain = fitnessGain;
             this.newFitness = newFitness;
         }

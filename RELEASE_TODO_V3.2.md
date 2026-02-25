@@ -149,12 +149,26 @@ None of these are release-blocking; they are product/design follow-ups.
 
 ---
 
-## 6. Completed — Evolution Clicker Redesign
+## 6. Completed — Evolution Clicker Redesign (v2 — Balanced)
 
-- **What was done**: Complete rewrite of the Evolution Clicker from a passive stat-observer into an interactive click-to-evolve game.
-- **New files**: `ClickerEngine.java` — lightweight DeltaFitnessEngine wrapper for click-based triangle color swapping.
-- **Rewritten files**: `ClickerState.java` (32 upgrades, 100+ achievements, 8 events, ClickerEngine integration), `DashboardServer.java` (new /init, /image, /reference endpoints), `clicker.html` (image-centric UI).
-- **Core mechanic**: Each click finds and applies improving two-triangle color swaps using the existing DeltaFitnessEngine. No tournament or population needed — single image hill-climbing via user clicks.
+- **What was done**: Second complete rewrite of the Clicker game after playtesting feedback.
+  The previous version guaranteed improving swaps on every click, leading to immediate high
+  fitness and broken progression. The new version uses **random swaps with no guaranteed
+  success**, properly paced progression, and an upgrade tree that starts from zero.
+- **Core mechanic**: 1 click = 1 random two-triangle swap attempt. If the swap improves
+  fitness, it's applied and the player earns EP. If not, nothing changes ("Miss"). Upgrades
+  unlock retry cycles, multi-swap, distance control, and smart targeting — all from a
+  zero-capability baseline.
+- **Initialization**: Always starts with RANDOM shuffled colors for low starting fitness
+  (~5–15%). Smart and LAP init are prestige-only unlocks. ALL game state resets when a
+  new image is loaded (no stale progression).
+- **Pacing**: Cookie Clicker–inspired. Achievement popups rate-limited (1 every 4s, toast
+  format). MC currency hidden until meaningful EP earned. Prestige hidden until first
+  ascension. Event spawn rates reduced.
+- **Files modified**: `ClickerEngine.java` (random swap mechanic, retry cycles, distance,
+  success tracking), `ClickerState.java` (18 upgrades, 57 achievements, 6 events, full
+  reset on init), `DashboardServer.java` (updated click response fields), `clicker.html`
+  (success/fail feedback, paced toasts, success rate display).
 - **Test suite**: Passes (`mvn test -pl artevolver-core`).
 
 ---

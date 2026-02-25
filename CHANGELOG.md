@@ -67,9 +67,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The swap may or may not improve fitness — there is no guaranteed success. This matches
   the core design: clicks are atomic, outcomes are uncertain, and upgrades make clicks
   smarter over time. No iterating until success; 1 click = 1 random swap attempt.
-- **Progression from zero**: Game always starts with RANDOM (shuffled) palette initialization
-  for very low starting fitness (~5–15%). Smart and LAP initialization are prestige unlocks.
-  All game state resets when a new image is loaded — no pre-earned progression.
+- **Always start from chaos**: Game ALWAYS initializes with RANDOM (shuffled) palette —
+  unordered triangles, natural starting fitness. Prestige upgrades (Smart Genesis, LAP
+  Genesis) unlock better initialization methods as earned rewards. All progress (EP,
+  achievements, milestones) is measured as **fitness GAIN from the starting point** — never
+  absolute fitness. An image that naturally starts at 65% fitness earns 0 EP and 0
+  achievements until the player improves it through their clicks. This prevents the
+  ~50K EP windfall that absolute-fitness achievements would grant on first tick.
 - **Cookie Clicker–style pacing**: Slow start with exponential cost growth. Achievement
   popups are rate-limited (max 1 every 4 seconds, queued as toasts instead of modal
   overlays). MC currency hidden until 2000+ EP earned. Prestige upgrades hidden until

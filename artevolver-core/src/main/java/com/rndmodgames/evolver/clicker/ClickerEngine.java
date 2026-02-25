@@ -51,8 +51,11 @@ public class ClickerEngine {
     private int imageHeight;
 
     /**
-     * Initializes with the given init method. For clicker, typically RANDOM (shuffled)
-     * to start with low fitness. Smart/LAP are prestige unlocks.
+     * Initializes with the given init method.
+     * Default: INIT_RANDOM with SHUFFLE_PALETTE — unordered triangles, lowest fitness.
+     * Prestige unlocks: INIT_SMART or INIT_LAP_OPTIMAL for better starting positions.
+     * {@code startingFitness} is captured after init, before any clicks — all
+     * progress (EP, achievements) is measured as gain from this baseline.
      */
     public synchronized void init(BufferedImage sourceImage, Palette palette,
                                   int gridW, int gridH,

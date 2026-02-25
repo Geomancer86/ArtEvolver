@@ -155,6 +155,12 @@ None of these are release-blocking; they are product/design follow-ups.
   game design philosophies of Miyamoto, Meier, Wright, Kojima, Miyazaki, et al.
 - **Core mechanic (unchanged)**: 1 click = 1 random two-triangle swap with LIMITED starting
   distance. May succeed (apply, earn EP) or miss. No iterating until success.
+- **Design rule: always start from chaos**: Default init is ALWAYS INIT_RANDOM (shuffled
+  palette, unordered triangles). Prestige unlocks (Smart/LAP Genesis) are earned rewards
+  that improve starting position. ALL progress is measured as fitness GAIN from the
+  starting point — never absolute fitness. Prevents ~50K EP windfall from natural palette
+  affinity (images start at 50-70% absolute fitness). Code enforced in `getInitMethod()`,
+  `checkAchievements()`, and frontend `gainMilestones`.
 
 ### 6a. Masterpiece Completion System (new)
 

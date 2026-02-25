@@ -18,9 +18,18 @@ import java.util.concurrent.ConcurrentHashMap;
  *   Wright   — emergence: the image evolving from chaos IS the reward.
  *   Yokoi    — one mechanic (swap), deeply explored through upgrades.
  *
- * Base mechanic: 1 click = 1 random swap attempt with LIMITED distance.
- * Upgrades expand reach, add retries, target intelligence, automate.
- * All state resets on new image (except prestige/GF).
+ * Starting position:
+ *   ALWAYS begins with INIT_RANDOM (shuffled palette) → unordered triangles,
+ *   low starting fitness. Prestige upgrades (Smart Genesis, LAP Genesis) unlock
+ *   better initialization methods as earned rewards. All progress (EP, achievements,
+ *   milestones) is measured as FITNESS GAIN from the starting point — never absolute
+ *   fitness. A player who starts at 65% with random init earns 0 EP and 0 achievements
+ *   until they improve the image through their own clicks.
+ *
+ * Three-tier loop:
+ *   Small:  Click → earn EP → buy upgrades → click better
+ *   Medium: Ascend → earn GF → buy prestige → restart same image with better init
+ *   Big:    Complete masterpiece → new canvas → permanent Canvas Mastery bonus
  */
 public class ClickerState {
 
@@ -179,8 +188,12 @@ public class ClickerState {
     //
     //  Hideo Kojima: hidden stories in the progression.
     //  Hironobu Sakaguchi: emotional milestones that mark your journey.
-    //  Each fitness achievement name tells the story of an image
-    //  emerging from chaos.
+    //
+    //  CRITICAL DESIGN RULE: Fitness achievements use FITNESS GAIN from
+    //  the starting point, NOT absolute fitness. Images naturally start
+    //  at 50-70% absolute fitness due to palette affinity. If milestones
+    //  were absolute, they'd pre-trigger instantly giving ~50K EP before
+    //  the player clicks once. Every achievement must be EARNED.
     // ════════════════════════════════════════════════════════════════
 
     public static final AchievementDef[] ACHIEVEMENTS = generateAchievements();
@@ -408,6 +421,11 @@ public class ClickerState {
         engine.init(sourceImage, palette, gridW, gridH, triWidth, triHeight, scale, getInitMethod());
     }
 
+    /**
+     * Default: INIT_RANDOM (shuffled palette) — always start from chaos.
+     * Prestige unlocks: Smart Genesis → INIT_SMART, LAP Genesis → INIT_LAP_OPTIMAL.
+     * Progress is always gain-based from whatever starting fitness this produces.
+     */
     private int getInitMethod() {
         if (getLevel("lap_init") > 0) return ImageEvolver.INIT_LAP_OPTIMAL;
         if (getLevel("smart_init") > 0) return ImageEvolver.INIT_SMART;

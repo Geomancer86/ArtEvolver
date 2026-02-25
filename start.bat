@@ -1,7 +1,14 @@
 @echo off
 setlocal enabledelayedexpansion
 
-for /f "delims=" %%v in ('mvn help:evaluate -Dexpression=project.version -q -DforceStdout 2^>nul') do set "PROJECT_VERSION=%%v"
+:: Extract version from POM (filter to lines starting with a digit to skip any Maven error output)
+for /f "delims=" %%v in ('mvn help:evaluate -Dexpression^=project.version -q -DforceStdout 2^>nul ^| findstr /r "^[0-9]"') do set "PROJECT_VERSION=%%v"
+if not defined PROJECT_VERSION (
+    :: Fallback: parse version directly from pom.xml
+    for /f "tokens=2 delims=<>" %%v in ('findstr /r "<version>[0-9]" pom.xml 2^>nul') do (
+        if not defined PROJECT_VERSION set "PROJECT_VERSION=%%v"
+    )
+)
 if not defined PROJECT_VERSION set "PROJECT_VERSION=unknown"
 
 echo.

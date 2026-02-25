@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout 2>/dev/null || echo "unknown")
+# Extract version from POM (filter to lines starting with a digit to skip any Maven error output)
+PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout 2>/dev/null | grep -E '^[0-9]' || true)
+if [ -z "$PROJECT_VERSION" ]; then
+    # Fallback: parse version directly from pom.xml
+    PROJECT_VERSION=$(grep -m1 '<version>' pom.xml 2>/dev/null | sed 's/.*<version>//;s/<\/version>.*//' || echo "unknown")
+fi
+[ -z "$PROJECT_VERSION" ] && PROJECT_VERSION="unknown"
 
 echo ""
 echo " ============================================"

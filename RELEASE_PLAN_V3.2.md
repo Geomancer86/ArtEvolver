@@ -2,7 +2,7 @@
 
 **Planned Release**: March 2026
 **Branch**: `develop` → `release/v3.2.0` (when feature-complete)
-**Current Base**: v3.2.0-SNAPSHOT (61 commits ahead of origin/develop)
+**Current Base**: v3.2.0-SNAPSHOT (develop)
 **Priority**: User-facing polish, persistence, and performance
 
 ---
@@ -372,7 +372,7 @@ A systematic review of all v3.2.0 code identified **6 bugs**, all fixed on `deve
 
 - [x] All 6 features implemented and merged to develop
 - [x] Code review pass completed — 6 bugs fixed
-- [ ] Full test suite passes (`mvn test -pl artevolver-core`)
+- [x] Full test suite passes (`mvn test -pl artevolver-core`) — JaCoCo 0.8.14
 - [ ] Manual testing on Threadripper 2950x / 128GB (primary test machine)
 - [ ] All documentation updated (README, CHANGELOG, ARCHITECTURE)
 - [ ] Version bumped to `3.2.0` in all POMs

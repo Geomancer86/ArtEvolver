@@ -1320,7 +1320,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
         } catch (Exception localException) {
             
-            JOptionPane.showMessageDialog(null, "Unable to Load Image", "Fail", 2);
+            JOptionPane.showMessageDialog(mainFrame, "Unable to Load Image", "Error", JOptionPane.ERROR_MESSAGE);
         }
         
         //
@@ -1348,7 +1348,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				imageSourceName = selected.getName();
 
 			} catch (Exception localException) {
-				JOptionPane.showMessageDialog(null, "Unable to Load Image: " + localException.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+				JOptionPane.showMessageDialog(mainFrame, "Unable to Load Image: " + localException.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 			}
 
 			setSourceImage();
@@ -1438,9 +1438,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     }
 
     /**
-     * TODO: this breaks processing if start is pressed twice (or after stopping)
+     * Starts the evolution. Guard against double-start when already running.
      */
     public void start(){
+    	if (isRunning) {
+    	    return;
+    	}
 
     	applyUISettings();
 

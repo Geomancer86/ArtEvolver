@@ -3,7 +3,7 @@ setlocal
 
 echo.
 echo  ============================================
-echo   ArtEvolver v3.1 - Benchmark Runner
+echo   ArtEvolver v3.2 - Benchmark Runner
 echo  ============================================
 echo.
 

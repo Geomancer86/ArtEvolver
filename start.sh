@@ -3,7 +3,7 @@ set -euo pipefail
 
 echo ""
 echo " ============================================"
-echo "  ArtEvolver v3.1 - Launcher"
+echo "  ArtEvolver v3.2 - Launcher"
 echo " ============================================"
 echo ""
 

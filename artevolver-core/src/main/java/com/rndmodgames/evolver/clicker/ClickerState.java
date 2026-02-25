@@ -471,7 +471,7 @@ public class ClickerState {
                 int autoClicks = (int) autoClickAccumulator;
                 autoClickAccumulator -= autoClicks;
 
-                if (autoClicks > 0) {
+        if (autoClicks > 0) {
                     int autoCycles = 1 + (int) eff("autoCycles") + (int) eff("permCycles");
                     int autoMulti = 1 + (int) eff("autoMulti");
                     int distance = computeSwapDistance();

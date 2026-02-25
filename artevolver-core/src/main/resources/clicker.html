@@ -177,6 +177,11 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .masterpiece-btn{padding:6px 20px;background:linear-gradient(135deg,var(--gold),#ff6f00);border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer;font-size:12px;transition:opacity .2s,filter .2s;flex-shrink:0;animation:masterGlow 2s ease-in-out infinite}
 @keyframes masterGlow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.3)}}
 
+/* Sound toggle */
+.sfx-toggle{background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;cursor:pointer;font-size:16px;color:var(--text2);transition:all .15s;line-height:1.2}
+.sfx-toggle:hover{border-color:var(--cyan);color:var(--text)}
+.sfx-toggle.muted{opacity:.4}
+
 ::-webkit-scrollbar{width:6px}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
@@ -184,12 +189,13 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 </head>
 <body>
 <div class="app">
-  <div class="header">
+<div class="header">
     <div class="currency"><span class="label">EP</span><span class="value ep-val" id="epVal">0</span><span class="ep-rate" id="epRate">(+0/s)</span></div>
     <div class="currency" id="mcWrap" style="display:none"><span class="label">MC</span><span class="value mc-val" id="mcVal">0</span></div>
     <div class="currency" id="gfWrap" style="display:none"><span class="label">GF</span><span class="value gf-val" id="gfVal">0</span></div>
     <div style="flex:1"></div>
     <div style="font-size:12px;color:var(--text2)"><span id="swapCount">0</span>/<span id="swapTotal">0</span> swaps | Reach: <span id="reachVal">5%</span></div>
+    <button class="sfx-toggle" id="sfxToggle" onclick="SFX.toggle()" title="Toggle Sound">&#x1F50A;</button>
   </div>
   <div class="sidebar-left">
     <div class="store-tabs" id="storeTabs"></div>
@@ -216,11 +222,11 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       <span>Upgrades: <span class="stat-val" id="statUpgrades">0</span></span>
       <span>Achievements: <span class="stat-val" id="statAch">0/0</span></span>
       <span>Time: <span class="stat-val" id="statTime">0:00</span></span>
-    </div>
+  </div>
     <div class="ref-area" id="refArea" style="display:none">
       <img id="refImg" alt="Reference">
       <div class="ref-label">Source Image</div>
-    </div>
+</div>
     <button class="prestige-btn" id="prestigeBtn" onclick="doPrestige()">Ascend (0 GF)</button>
     <button class="masterpiece-btn" id="masterpieceBtn" onclick="doMasterpiece()" style="display:none">Complete Masterpiece</button>
   </div>
@@ -255,7 +261,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     <button class="gallery-close" onclick="closeGallery()">&times;</button>
     <h2>Gallery</h2>
     <div class="gallery-grid" id="galleryGrid"></div>
-  </div>
+</div>
 </div>
 
 <div class="init-overlay" id="initOverlay">
@@ -283,6 +289,163 @@ let clickBusy = false;
 let lastGainPct = 0;
 let gainMilestones = [0.1,0.5,1,2,3,5,7,10,15,20,25,30,40,50,60];
 let hitMilestones = new Set();
+let lastEventCount = 0;
+
+// ═══════════════════════════════════════════════════════════════════════
+//  SFX ENGINE — procedural audio via Web Audio API
+//
+//  Yokoi:     Lateral thinking with withered technology — oscillators only,
+//             zero external files, zero network, zero latency.
+//  Miyamoto:  The click must SOUND satisfying. Sub-60ms, micro-varied pitch
+//             so repetition never grates.
+//  Kojima:    Audio reinforces emotion. Miss = weight. Hit = earned. Streak
+//             = escalation. Milestone = triumph.
+//  Carmack:   Minimal CPU. Each sound is a few oscillator nodes that self-
+//             destruct. No audio buffers, no decoding, no GC pressure.
+//  Sakaguchi: Achievement fanfares evoke RPG level-up. Masterpiece completion
+//             is a victory theme in miniature.
+// ═══════════════════════════════════════════════════════════════════════
+const SFX = {
+  ctx: null,
+  enabled: true,
+  vol: 0.35,
+
+  init() {
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) {}
+    const saved = localStorage.getItem('artevolver_sfx');
+    if (saved === 'off') { this.enabled = false; this._updateBtn(); }
+  },
+
+  toggle() {
+    this.enabled = !this.enabled;
+    localStorage.setItem('artevolver_sfx', this.enabled ? 'on' : 'off');
+    this._updateBtn();
+    if (this.enabled) this.play('click');
+  },
+
+  _updateBtn() {
+    const btn = document.getElementById('sfxToggle');
+    if (!btn) return;
+    btn.textContent = this.enabled ? '\uD83D\uDD0A' : '\uD83D\uDD07';
+    btn.classList.toggle('muted', !this.enabled);
+  },
+
+  _wake() {
+    if (!this.ctx) this.init();
+    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+  },
+
+  _master() {
+    const g = this.ctx.createGain();
+    g.gain.value = this.vol;
+    g.connect(this.ctx.destination);
+    return g;
+  },
+
+  _tone(freq, type, gain, dur, start, dest) {
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(gain, start);
+    g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+    o.connect(g);
+    g.connect(dest || this.ctx.destination);
+    o.start(start);
+    o.stop(start + dur + 0.05);
+  },
+
+  play(name) {
+    if (!this.enabled) return;
+    this._wake();
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const m = this._master();
+    try { this['_' + name](t, m); } catch (e) {}
+  },
+
+  // Click hit — short percussive pluck, pitch varies ±100Hz (Miyamoto: feel)
+  _click(t, m) {
+    const f = 780 + Math.random() * 220;
+    this._tone(f, 'square', 0.12, 0.045, t, m);
+    this._tone(f * 1.5, 'sine', 0.06, 0.035, t, m);
+  },
+
+  // Click miss — muted thud, lower register (Miyazaki: struggle has weight)
+  _miss(t, m) {
+    this._tone(180 + Math.random() * 40, 'sine', 0.08, 0.09, t, m);
+  },
+
+  // Critical hit — bright double-tap sparkle
+  _crit(t, m) {
+    this._tone(1100, 'square', 0.10, 0.04, t, m);
+    this._tone(1500, 'sine', 0.08, 0.06, t + 0.03, m);
+    this._tone(1900, 'sine', 0.05, 0.05, t + 0.055, m);
+  },
+
+  // Hit streak — ascending arpeggio, more notes for longer streaks
+  _streak(t, m) {
+    const notes = [660, 830, 990, 1175];
+    notes.forEach((f, i) => this._tone(f, 'sine', 0.06, 0.07, t + i * 0.04, m));
+  },
+
+  // Achievement unlock — RPG level-up jingle (Sakaguchi: triumph)
+  _achievement(t, m) {
+    [523, 659, 784, 1047].forEach((f, i) =>
+      this._tone(f, 'sine', 0.09, 0.14, t + i * 0.07, m));
+  },
+
+  // Upgrade purchase — satisfying coin chime (Sid Meier: the decision paid off)
+  _upgrade(t, m) {
+    this._tone(880, 'square', 0.07, 0.06, t, m);
+    this._tone(1175, 'sine', 0.06, 0.08, t + 0.04, m);
+  },
+
+  // Fitness milestone — ascending fanfare (Miyazaki: hard-earned victory)
+  _milestone(t, m) {
+    [440, 554, 659, 880, 1047].forEach((f, i) =>
+      this._tone(f, 'triangle', 0.10, 0.18, t + i * 0.09, m));
+  },
+
+  // Prestige / Ascension — dramatic rising sweep then chime
+  _prestige(t, m) {
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(200, t);
+    o.frequency.exponentialRampToValueAtTime(1800, t + 0.4);
+    g.gain.setValueAtTime(0.07, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    o.connect(g); g.connect(m);
+    o.start(t); o.stop(t + 0.55);
+    [880, 1047, 1319].forEach((f, i) =>
+      this._tone(f, 'sine', 0.07, 0.18, t + 0.45 + i * 0.07, m));
+  },
+
+  // Masterpiece — grand victory fanfare (Sakaguchi: final boss defeated)
+  _masterpiece(t, m) {
+    const melody = [523, 659, 784, 1047, 784, 1047, 1319, 1568];
+    melody.forEach((f, i) => {
+      this._tone(f, 'sine', 0.08, 0.22, t + i * 0.11, m);
+      this._tone(f * 0.5, 'triangle', 0.04, 0.25, t + i * 0.11, m);
+    });
+  },
+
+  // Random event appears — notification ping (Kojima: something is happening)
+  _event(t, m) {
+    this._tone(880, 'sine', 0.06, 0.08, t, m);
+    this._tone(1100, 'sine', 0.06, 0.08, t + 0.07, m);
+    this._tone(880, 'sine', 0.04, 0.08, t + 0.14, m);
+  },
+
+  // Gallery open — soft chime
+  _gallery(t, m) {
+    this._tone(660, 'sine', 0.05, 0.12, t, m);
+    this._tone(880, 'sine', 0.04, 0.12, t + 0.08, m);
+  }
+};
 
 async function initClicker() {
   const btn = document.getElementById('initBtn');
@@ -455,6 +618,11 @@ function updateUI() {
     document.getElementById('galleryCount').textContent = gc;
   }
 
+  // New event detection — play notification sound (Kojima: something is happening)
+  const evCount = (state.events || []).length;
+  if (evCount > lastEventCount && lastEventCount >= 0) SFX.play('event');
+  lastEventCount = evCount;
+
   renderStore();
   renderAchievements();
   renderEvents();
@@ -472,7 +640,7 @@ document.getElementById('evolveImg').addEventListener('click', async (e) => {
   const wrap = document.getElementById('imageWrap');
   try {
     const res = await fetch('/api/clicker/click', {method:'POST'});
-    const data = await res.json();
+  const data = await res.json();
 
     if (data.successCount > 0) {
       wrap.classList.add('hit');
@@ -480,9 +648,13 @@ document.getElementById('evolveImg').addEventListener('click', async (e) => {
           data.hitStreak >= 5);
       spawnTriangles(e.clientX, e.clientY, Math.min(data.successCount * 3, 12));
       refreshImage();
+      if (data.critical) SFX.play('crit');
+      else if (data.hitStreak >= 5) SFX.play('streak');
+      else SFX.play('click');
     } else {
       wrap.classList.add('miss');
       spawnPopup(e.clientX, e.clientY, data.earned, false, true, false);
+      SFX.play('miss');
     }
     setTimeout(() => wrap.classList.remove('hit', 'miss'), 150);
 
@@ -541,6 +713,7 @@ function showMilestone(gainPct) {
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 3000);
   addLog('\u2B50 Milestone: +' + gainPct + '% fitness gained!');
+  SFX.play('milestone');
 }
 
 // ── Store ──
@@ -576,10 +749,10 @@ function renderStore() {
 }
 
 async function buyUpgrade(id) {
-  try { await fetch('/api/clicker/buy?id=' + id); refresh(); } catch (e) {}
+  try { await fetch('/api/clicker/buy?id=' + id); SFX.play('upgrade'); refresh(); } catch (e) {}
 }
 async function buyMax(id) {
-  try { await fetch('/api/clicker/buy?id=' + id + '&max'); refresh(); } catch (e) {}
+  try { await fetch('/api/clicker/buy?id=' + id + '&max'); SFX.play('upgrade'); refresh(); } catch (e) {}
 }
 
 // ── Achievements ──
@@ -587,15 +760,15 @@ function renderAchievements() {
   if (!state) return;
   const grid = document.getElementById('achGrid');
   if (grid.childElementCount !== state.achievements.length) {
-    grid.innerHTML = '';
-    state.achievements.forEach(a => {
-      const el = document.createElement('div');
+  grid.innerHTML = '';
+  state.achievements.forEach(a => {
+    const el = document.createElement('div');
       el.className = 'ach-icon' + (a.unlocked ? ' unlocked' : '') + (!a.visible ? ' hidden' : '');
       el.textContent = a.visible ? a.icon : '?';
       el.innerHTML += '<div class="ach-tooltip">' + esc(a.visible ? a.name + ': ' + a.desc : '???') + '</div>';
       el.id = 'ach-' + a.id;
-      grid.appendChild(el);
-    });
+    grid.appendChild(el);
+  });
   } else {
     state.achievements.forEach(a => {
       const el = document.getElementById('ach-' + a.id);
@@ -636,6 +809,7 @@ function showAchToast(p) {
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 5000);
   addLog(p.icon + ' ' + p.name);
+  SFX.play('achievement');
 }
 
 // ── Prestige ──
@@ -645,6 +819,7 @@ async function doPrestige() {
   try {
     const res = await fetch('/api/clicker/prestige', {method:'POST'});
     const data = await res.json();
+    SFX.play('prestige');
     hitMilestones.clear();
     lastGainPct = 0;
     if (data.needsNewImage) {
@@ -653,7 +828,7 @@ async function doPrestige() {
       document.getElementById('initError').textContent = '';
       addLog('\u2B50 Ascension complete! +' + Math.floor(data.gf) + ' GF | Gallery: ' + (data.galleryCount || 0) + ' images');
     }
-    refresh();
+  refresh();
   } catch (e) {}
 }
 
@@ -667,6 +842,7 @@ async function doMasterpiece() {
     const res = await fetch('/api/clicker/complete', {method:'POST'});
     const data = await res.json();
     if (data.success) {
+      SFX.play('masterpiece');
       showCompletionOverlay(data);
     }
   } catch (e) {}
@@ -692,6 +868,7 @@ function newCanvas() {
 
 // ── Gallery ──
 async function openGallery() {
+  SFX.play('gallery');
   const grid = document.getElementById('galleryGrid');
   grid.innerHTML = '<div class="gallery-empty">Loading...</div>';
   document.getElementById('galleryOverlay').classList.add('show');
@@ -764,6 +941,7 @@ function esc(s) {
 }
 
 // ── Auto-init check ──
+SFX.init();
 (async function() {
   try {
     const res = await fetch('/api/clicker/state');
@@ -772,6 +950,7 @@ function esc(s) {
       document.getElementById('initOverlay').style.display = 'none';
       document.getElementById('imageWrap').style.display = 'block';
       lastGainPct = (d.fitnessGain || 0) * 100;
+      lastEventCount = (d.events || []).length;
       refreshImage();
       loadReference();
       startPolling();

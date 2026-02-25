@@ -188,34 +188,40 @@ public class ClickerState {
     private static AchievementDef[] generateAchievements() {
         List<AchievementDef> list = new ArrayList<>();
 
-        // Fitness milestones — the narrative arc of an evolving image
-        double[] fitTiers = {5, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 95, 99};
+        // Fitness GAIN milestones — measured from starting fitness, not absolute.
+        // Miyazaki: every fraction of a percent is EARNED through your clicks.
+        // An image that starts at 65% must GAIN these thresholds through swaps.
+        double[] fitTiers = {0.1, 0.5, 1, 2, 3, 5, 7, 10, 15, 20, 25, 30, 40, 50, 60};
         String[] fitNames = {
-            "First Light",          // barely perceptible difference from noise
-            "Faint Outline",        // you squint and see... something
-            "Seeing Colors",        // the palette starts making sense
-            "Taking Shape",         // contours emerge
-            "Quarter Way",          // clear progress, long road ahead
-            "Recognizable",         // "I can see what it is!"
-            "Getting Clearer",      // details forming
-            "Almost Half",          // commitment rewarded
-            "Halfway Home",         // the midpoint — the climb changes here
-            "Past the Peak",        // downhill optimization
-            "Masterwork",           // genuinely impressive
-            "Museum Quality",       // could hang on a wall
-            "Near Perfect",         // the last few percent are the hardest
-            "Pixel Master",         // obsessive perfection
-            "Transcendent"          // approaching the theoretical limit
+            "First Glimpse",        // the tiniest improvement — proof it works
+            "Visible Change",       // squint and you can tell
+            "One Percent",          // the first real milestone
+            "Noticeable",           // anyone can see the difference now
+            "Real Progress",        // commitment is paying off
+            "Five Percent Climb",   // a real transformation in progress
+            "Meaningful Gain",      // the image is distinctly better
+            "Ten Percent Better",   // a major achievement
+            "Major Improvement",    // the image is clearly evolving
+            "Transformation",       // unrecognizable from where you started
+            "Remarkable",           // approaching perfection
+            "Metamorphosis",        // the chrysalis has opened
+            "Reinvented",           // a completely new image
+            "Reborn",              // transcending the original chaos
+            "Transcendent"          // the theoretical limit of gain
         };
         String[] fitIcons = {"\uD83C\uDF31", "\u270F\uFE0F", "\uD83C\uDF08", "\uD83D\uDD8C\uFE0F",
                 "\uD83D\uDCCA", "\uD83D\uDC41\uFE0F", "\uD83D\uDCAA", "\uD83C\uDFA8",
                 "\uD83C\uDFC6", "\uD83D\uDD25", "\uD83D\uDC8E", "\uD83D\uDC51",
                 "\u2728", "\u269B\uFE0F", "\uD83C\uDF1F"};
+        double[] fitRewards = {25, 50, 100, 200, 400, 1000, 2000, 5000, 10000,
+                25000, 50000, 100000, 250000, 500000, 1000000};
         for (int i = 0; i < fitTiers.length; i++) {
-            double reward = 50 * Math.pow(2.0, i);
+            String desc = fitTiers[i] < 1
+                    ? "Gain " + fitTiers[i] + "% fitness from start"
+                    : "Gain " + (int) fitTiers[i] + "% fitness from start";
             list.add(new AchievementDef("fit_" + i, fitNames[i], fitIcons[i],
-                    "Reach " + (int) fitTiers[i] + "% fitness", "fitness", fitTiers[i],
-                    reward, 1 + i * 0.005, false));
+                    desc, "fitnessGain", fitTiers[i],
+                    fitRewards[i], 1 + i * 0.005, false));
         }
 
         // Click milestones — the persistence arc
@@ -804,6 +810,8 @@ public class ClickerState {
 
     private void checkAchievements(List<String> notifications) {
         double fitness = (engine != null && engine.isInitialized()) ? engine.getFitness() : 0;
+        double startFit = (engine != null && engine.isInitialized()) ? engine.getStartingFitness() : 0;
+        double fitnessGainPct = (fitness - startFit) * 100;
         long successSwaps = (engine != null) ? engine.getSuccessfulSwaps() : 0;
         int longestHit = (engine != null) ? engine.getLongestHitStreak() : 0;
         int longestMiss = (engine != null) ? engine.getLongestMissStreak() : 0;
@@ -813,7 +821,7 @@ public class ClickerState {
             if (unlockedAchievements.contains(ad.id)) continue;
 
             boolean unlocked = switch (ad.conditionType) {
-                case "fitness" -> fitness * 100 >= ad.threshold;
+                case "fitnessGain" -> fitnessGainPct >= ad.threshold;
                 case "successSwaps" -> successSwaps >= ad.threshold;
                 case "totalEp" -> totalEpEarned >= ad.threshold;
                 case "clicks" -> totalClicks >= ad.threshold;
@@ -910,6 +918,8 @@ public class ClickerState {
         sb.append("  \"initialized\":").append(engineReady).append(",\n");
         sb.append("  \"fitness\":").append(engineReady ? engine.getFitness() : 0).append(",\n");
         sb.append("  \"startingFitness\":").append(engineReady ? engine.getStartingFitness() : 0).append(",\n");
+        double fitnessGain = engineReady ? (engine.getFitness() - engine.getStartingFitness()) : 0;
+        sb.append("  \"fitnessGain\":").append(fitnessGain).append(",\n");
         sb.append("  \"totalSwaps\":").append(engineReady ? engine.getTotalSwaps() : 0).append(",\n");
         sb.append("  \"successSwaps\":").append(engineReady ? engine.getSuccessfulSwaps() : 0).append(",\n");
         sb.append("  \"triangleCount\":").append(engineReady ? engine.getTriangleCount() : 0).append(",\n");

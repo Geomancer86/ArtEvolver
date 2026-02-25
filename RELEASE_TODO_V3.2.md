@@ -180,13 +180,23 @@ None of these are release-blocking; they are product/design follow-ups.
 - **Focus Mode**: Swap distance halved, 2x retry cycles (20s).
 - **Inspiration**: 5x EP from all sources (15s).
 
-### 6d. New Achievements (75+, was 65)
+### 6d. Gain-Based Fitness Achievements (critical balance fix)
+
+- **Problem**: Images start at 60-70% absolute fitness due to natural palette affinity.
+  All fitness achievements based on absolute % triggered immediately, granting ~50K EP
+  before the player clicked once.
+- **Fix**: All fitness milestones now measure **fitness GAIN from start** (0.1%, 0.5%,
+  1%, 2%, 3%, 5%, 7%, 10%, 15%, 20%, 25%, 30%, 40%, 50%, 60%). A player starting at
+  65% fitness has 0 achievements and earns everything through swaps.
+- **Frontend milestones** also updated to gain-based with gain-specific celebration names.
+
+### 6e. New Achievements (75+)
 
 - **Masterpiece milestones**: First Canvas, Gallery Owner (3), Museum Curator (5), Grand Master (10).
 - **GF milestones**: Golden Start (10), Golden Hoard (50), Golden Age (200), Gilded Legend (1000).
 - **Hidden discoveries**: Completionist (first masterpiece), Perfectionist (99%+ completion).
 
-### 6e. Balance Pass
+### 6f. Balance Pass
 
 - Masterpiece reward halved from `fitness * 100` to `fitness * 50 + bonus` (85% → ~42 GF).
 - Ascension count NOT reset on masterpiece (prestige tab stays visible).

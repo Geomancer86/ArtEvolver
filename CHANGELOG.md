@@ -114,11 +114,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     **Eternal Reach** (permanent swap reach that persists through ascensions).
 - **Events (8)**: Swap Storm, Golden Hour, Crystal Rain, Auto Frenzy, Precision Wave,
   Lucky Streak, **Focus Mode** (halved distance, 2x retries), **Inspiration** (5x EP).
-- **75+ achievements**: Fitness milestones (5%–99%), click milestones, successful swap
-  milestones, EP earned, play time, upgrade count, hit/miss streak milestones, prestige
-  count, **masterpiece completion milestones** (First Canvas → Grand Master), **GF
-  accumulation milestones** (Golden Start → Gilded Legend), 8 hidden discoveries
-  (Drought Breaker, Completionist, Perfectionist).
+- **Gain-based fitness achievements**: All fitness milestones measure **fitness gain from
+  start**, not absolute fitness. An image starting at 65% begins with 0 achievements
+  and 0 EP — every reward is earned through your swaps. Thresholds: +0.1% through +60%.
+- **75+ achievements**: Gain-based fitness milestones (First Glimpse +0.1% → Transcendent
+  +60%), click milestones, successful swap milestones, EP earned, play time, upgrade
+  count, hit/miss streak milestones, prestige count, **masterpiece completion milestones**
+  (First Canvas → Grand Master), **GF accumulation milestones** (Golden Start → Gilded
+  Legend), 8 hidden discoveries (Drought Breaker, Completionist, Perfectionist).
 - **Golden frame effect**: At 80%+ fitness, the evolving image gains a golden glow/border
   effect — visual feedback that you're approaching masterpiece territory.
 - **Completion celebration overlay**: Stats summary (final fitness, GF earned, total

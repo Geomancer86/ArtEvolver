@@ -233,8 +233,8 @@ let logLines = [];
 let lastAchPopupMs = 0;
 let achPopupQueue = [];
 let clickBusy = false;
-let lastFitness = 0;
-let fitnessMilestones = [5,10,15,20,25,30,35,40,50,60,70,80,90,95,99];
+let lastGainPct = 0;
+let gainMilestones = [0.1,0.5,1,2,3,5,7,10,15,20,25,30,40,50,60];
 let hitMilestones = new Set();
 
 async function initClicker() {
@@ -250,7 +250,7 @@ async function initClicker() {
     if (data.initialized) {
       document.getElementById('initOverlay').style.display = 'none';
       document.getElementById('imageWrap').style.display = 'block';
-      lastFitness = data.initialFitness || 0;
+      lastGainPct = 0;
       refreshImage();
       loadReference();
       startPolling();
@@ -339,14 +339,15 @@ function updateUI() {
     sd.className = 'streak-display';
   }
 
-  // Check fitness milestones for flash
-  for (const m of fitnessMilestones) {
-    if (fitPct >= m && lastFitness * 100 < m && !hitMilestones.has(m)) {
+  // Check gain milestones for flash (Miyamoto: earned, not given)
+  const gainPct = (state.fitnessGain || 0) * 100;
+  for (const m of gainMilestones) {
+    if (gainPct >= m && lastGainPct < m && !hitMilestones.has(m)) {
       hitMilestones.add(m);
       showMilestone(m);
     }
   }
-  lastFitness = state.fitness;
+  lastGainPct = gainPct;
 
   document.getElementById('statUpgrades').textContent = state.totalUpgrades;
   document.getElementById('statAch').textContent = state.achievementsUnlocked + '/' + state.achievementsTotal;
@@ -446,20 +447,20 @@ function spawnTriangles(cx, cy, count) {
 }
 
 // ── Fitness milestone celebration ──
-function showMilestone(pct) {
+function showMilestone(gainPct) {
   const names = {
-    5:'First Light!',10:'Faint Outline!',15:'Seeing Colors!',
-    20:'Taking Shape!',25:'Quarter Way!',30:'Recognizable!',
-    35:'Getting Clearer!',40:'Almost Half!',50:'HALFWAY HOME!',
-    60:'Past the Peak!',70:'Masterwork!',80:'Museum Quality!',
-    90:'Near Perfect!',95:'Pixel Master!',99:'TRANSCENDENT!'
+    0.1:'First Glimpse!',0.5:'Visible Change!',1:'One Percent!',
+    2:'Noticeable!',3:'Real Progress!',5:'Five Percent Climb!',
+    7:'Meaningful Gain!',10:'TEN PERCENT BETTER!',15:'Major Improvement!',
+    20:'TRANSFORMATION!',25:'Remarkable!',30:'METAMORPHOSIS!',
+    40:'REINVENTED!',50:'REBORN!',60:'TRANSCENDENT!'
   };
   const el = document.createElement('div');
   el.className = 'milestone-flash';
-  el.textContent = (names[pct] || pct + '%!') + ' (' + pct + '%)';
+  el.textContent = (names[gainPct] || '+' + gainPct + '%!') + ' (+' + gainPct + '% gained)';
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 3000);
-  addLog('\u2B50 Milestone: ' + pct + '% fitness!');
+  addLog('\u2B50 Milestone: +' + gainPct + '% fitness gained!');
 }
 
 // ── Store ──
@@ -642,7 +643,7 @@ function esc(s) {
     if (d.initialized) {
       document.getElementById('initOverlay').style.display = 'none';
       document.getElementById('imageWrap').style.display = 'block';
-      lastFitness = d.fitness;
+      lastGainPct = (d.fitnessGain || 0) * 100;
       refreshImage();
       loadReference();
       startPolling();

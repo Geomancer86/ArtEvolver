@@ -76,29 +76,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   first ascension. Event spawn rate reduced (10-second intervals, low base probability).
 - **Upgrade tree (18 upgrades, 5 categories)**:
   - **Click Power**: Retry Cycles (try N random pairs, keep best improving), Multi-Swap
-    (extra swap attempts per click), Swap Range (limit distance for coherent local swaps),
-    Click Reward (base EP per click).
-  - **Automation**: Auto-Clicker (clicks/sec), Auto Retry, Auto Multi-Swap.
-  - **Intelligence**: Smart Pick (target worst triangles), Local Focus (nearby-only swaps).
+    (extra swap attempts per click), Swap Reach (extend distance from nearby-only to
+    grid-wide), Click Reward (base EP per click).
+  - **Automation**: Auto-Clicker (clicks/sec), Auto Precision, Auto Volume.
+  - **Intelligence**: Smart Pick (target worst triangles), Hot Hand (streak EP bonus).
   - **Special (MC)**: Critical Swap, Crystal Finder, EP Overflow multiplier, Lucky Star
     (event rate), Turbo Auto.
   - **Prestige (GF)**: Eternal Cycles, Eternal Speed, Smart Genesis (Smart init unlock),
     LAP Genesis (LAP Optimal init unlock).
-- **Success/fail click feedback**: Image border flashes green on improving swap, red on
-  miss. EP popups show "Miss" for failed clicks. Success rate tracked and displayed.
+- **Limited starting distance**: Base clicks swap only nearby triangles (~5% of grid).
+  Swap Reach upgrade extends range progressively to full grid. Nearby swaps have
+  naturally higher success rates — range is a meaningful strategic choice.
+- **Streak system (Miyazaki design)**: Engine tracks consecutive hits and misses.
+  Miss streaks build visible tension ("5 misses..."). Hit streaks show green excitement
+  ("8x Hit Streak!"). Hot Hand upgrade rewards long streaks with EP bonus. Drought
+  Breaker hidden achievement for success after 20+ misses.
+- **Click juice (Miyamoto feel)**: Triangle particle burst on successful swap (colored
+  CSS triangles explode from click point). Green/red border flash. Milestone celebrations
+  at each fitness threshold (centered screen flash with milestone name).
 - **`ClickerEngine` redesigned**: `performClick(swapsPerClick, retryCycles, swapDistance,
   smartPct)` — supports retry cycles (best-of-N), swap distance limiting, and smart
-  targeting. Tracks both total swap attempts and successful (improving) swaps.
+  targeting. Tracks total/successful swaps, miss/hit streaks, starting fitness.
 - **Image-centric UI**: Evolving image front-and-center, source reference thumbnail,
-  fitness progress bar, swap success rate display, paced achievement toasts.
+  fitness progress bar with "started at / gained" display, streak indicator, paced
+  achievement toasts (4s minimum gap).
 - **Independent from tournament**: Single image, no population or tournament needed.
   Initializes from the currently loaded source image in ArtEvolver.
 - **API endpoints**: `POST /api/clicker/init`, `GET /api/clicker/image` (JPEG + ETag),
-  `GET /api/clicker/reference`. Click response includes `successCount`, `attemptCount`.
+  `GET /api/clicker/reference`. Click response includes `successCount`, `attemptCount`,
+  `missStreak`, `hitStreak`.
 - **Events (6)**: Swap Storm, Golden Hour, Crystal Rain, Auto Frenzy, Precision Wave,
   Lucky Streak — all with low spawn rates for meaningful impact.
-- **57 achievements**: Fitness milestones (5%–99%), click milestones, successful swap
-  milestones, EP earned, play time, upgrade count, prestige count, 5 hidden discoveries.
+- **65 achievements**: Fitness milestones (5%–99%), click milestones, successful swap
+  milestones, EP earned, play time, upgrade count, hit/miss streak milestones, prestige
+  count, 6 hidden discoveries (including Drought Breaker).
 - **Prestige resets image**: Ascending re-creates the triangle arrangement with potentially
   better initialization (Smart/LAP if unlocked) for a fresh optimization run.
 

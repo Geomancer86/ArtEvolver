@@ -21,7 +21,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .ep-rate{color:var(--text2);font-size:12px;margin-left:2px}
 .sidebar-left{background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:8px}
 .sidebar-right{background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;padding:8px}
-.center{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:16px;overflow-y:auto;gap:12px}
+.center{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:16px;overflow-y:auto;gap:10px}
 .footer{grid-column:1/-1;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:20px;font-size:12px;color:var(--text2)}
 .footer a{color:var(--cyan);text-decoration:none}
 
@@ -36,24 +36,26 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* Image area */
-.image-wrap{position:relative;cursor:pointer;border-radius:8px;overflow:hidden;box-shadow:0 0 20px rgba(0,229,255,.15);transition:box-shadow .2s,outline-color .15s;outline:3px solid transparent}
+.image-wrap{position:relative;cursor:pointer;border-radius:8px;overflow:hidden;box-shadow:0 0 20px rgba(0,229,255,.15);transition:box-shadow .2s,outline-color .15s;outline:3px solid transparent;user-select:none;-webkit-user-select:none}
 .image-wrap:hover{box-shadow:0 0 30px rgba(0,229,255,.3)}
 .image-wrap:active{transform:scale(.98)}
-.image-wrap.hit-success{outline-color:var(--green)}
-.image-wrap.hit-fail{outline-color:var(--red)}
-.image-wrap img{display:block;max-width:100%;max-height:42vh;image-rendering:pixelated}
-.click-label{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);padding:4px 16px;border-radius:12px;font-size:12px;color:var(--text2);pointer-events:none}
+.image-wrap.hit{outline-color:var(--green);box-shadow:0 0 30px rgba(105,240,174,.3)}
+.image-wrap.miss{outline-color:var(--red);box-shadow:0 0 20px rgba(255,82,82,.15)}
+.image-wrap img{display:block;max-width:100%;max-height:38vh;image-rendering:pixelated}
+.click-hint{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);padding:4px 16px;border-radius:12px;font-size:12px;color:var(--text2);pointer-events:none}
 .fitness-area{text-align:center;width:100%;max-width:500px}
-.fitness-pct{font-size:48px;font-weight:700;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-variant-numeric:tabular-nums}
+.fitness-pct{font-size:44px;font-weight:700;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-variant-numeric:tabular-nums}
 .fitness-bar{width:100%;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-top:4px}
 .fitness-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));transition:width .3s ease;border-radius:4px}
-.stats-row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;font-size:13px;color:var(--text2)}
+.fitness-gain{font-size:12px;color:var(--text2);margin-top:2px;min-height:16px;font-variant-numeric:tabular-nums}
+.streak-display{font-size:13px;min-height:18px;text-align:center;font-weight:600}
+.streak-display.miss-streak{color:var(--red)}
+.streak-display.hit-streak{color:var(--green)}
+.stats-row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:12px;color:var(--text2)}
 .stats-row .stat-val{color:var(--text);font-weight:600}
-.success-rate{font-size:13px;color:var(--text2);text-align:center}
-.success-rate .rate-val{color:var(--green);font-weight:600}
 .ref-area{display:flex;align-items:center;gap:12px}
-.ref-area img{width:80px;height:auto;border-radius:4px;border:1px solid var(--border);image-rendering:pixelated}
-.ref-area .ref-label{font-size:12px;color:var(--text2)}
+.ref-area img{width:70px;height:auto;border-radius:4px;border:1px solid var(--border);image-rendering:pixelated}
+.ref-area .ref-label{font-size:11px;color:var(--text2)}
 
 /* Events bar */
 .events-bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
@@ -61,7 +63,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .event-pill .ev-time{color:var(--text2);margin-left:4px}
 
 /* Prestige button */
-.prestige-btn{padding:10px 28px;background:linear-gradient(135deg,var(--gold),#ff9100);border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer;font-size:14px;opacity:.5;transition:opacity .2s}
+.prestige-btn{padding:8px 24px;background:linear-gradient(135deg,var(--gold),#ff9100);border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer;font-size:13px;opacity:.5;transition:opacity .2s}
 .prestige-btn.available{opacity:1}
 .prestige-btn:hover{filter:brightness(1.1)}
 
@@ -69,7 +71,12 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .ep-popup{position:fixed;pointer-events:none;font-weight:700;font-size:16px;color:var(--cyan);text-shadow:0 0 8px rgba(0,229,255,.5);z-index:50;animation:epFloat 1.2s ease-out forwards}
 .ep-popup.crit{font-size:24px;color:var(--gold);text-shadow:0 0 12px rgba(255,215,64,.6)}
 .ep-popup.miss{font-size:13px;color:var(--red);text-shadow:0 0 6px rgba(255,82,82,.3)}
+.ep-popup.streak{font-size:20px;color:var(--green);text-shadow:0 0 10px rgba(105,240,174,.4)}
 @keyframes epFloat{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-60px) scale(1.2)}}
+
+/* Triangle particles — Miyamoto juice */
+.tri-particle{position:fixed;pointer-events:none;z-index:49;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:10px solid var(--green);animation:triExplode .7s ease-out forwards}
+@keyframes triExplode{0%{opacity:1;transform:translate(0,0) rotate(0deg) scale(1)}100%{opacity:0;transform:translate(var(--tx),var(--ty)) rotate(var(--rot)) scale(0.3)}}
 
 /* Store */
 .store-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
@@ -82,14 +89,14 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .upg-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}
 .upg-name{font-size:13px;font-weight:600}
 .upg-level{font-size:11px;color:var(--text2)}
-.upg-desc{font-size:11px;color:var(--text2);margin-bottom:4px}
+.upg-desc{font-size:11px;color:var(--text2);margin-bottom:4px;line-height:1.4}
 .upg-cost{font-size:12px;font-weight:600}
 .upg-cost.ep{color:var(--cyan)}.upg-cost.mc{color:var(--mc-blue)}.upg-cost.gf{color:var(--gold)}
 
 /* Achievements */
 .ach-section-title{font-size:13px;font-weight:600;color:var(--text2);margin:8px 0 6px;text-transform:uppercase;letter-spacing:1px}
 .ach-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
-.ach-icon{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:20px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);opacity:.3;cursor:default;position:relative}
+.ach-icon{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:18px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);opacity:.3;cursor:default;position:relative}
 .ach-icon.unlocked{opacity:1;border-color:var(--gold);box-shadow:0 0 6px rgba(255,215,64,.2)}
 .ach-icon.hidden{opacity:.15}
 .ach-icon:hover .ach-tooltip{display:block}
@@ -101,7 +108,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .log-entries{max-height:200px;overflow-y:auto;font-size:11px;color:var(--text2)}
 .log-entry{padding:2px 0;border-bottom:1px solid var(--border)}
 
-/* Achievement popup toast */
+/* Achievement toast */
 .ach-toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:2px solid var(--gold);border-radius:10px;padding:12px 20px;display:flex;align-items:center;gap:10px;z-index:60;animation:toastIn .4s ease-out,toastOut .4s ease-in 4s forwards;box-shadow:0 4px 20px rgba(0,0,0,.5)}
 .ach-toast .toast-icon{font-size:28px}
 .ach-toast .toast-text{display:flex;flex-direction:column}
@@ -110,7 +117,11 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 @keyframes toastIn{from{opacity:0;transform:translateX(80px)}to{opacity:1;transform:translateX(0)}}
 @keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateY(20px)}}
 
-/* Scrollbar */
+/* Milestone flash */
+.milestone-flash{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px;font-weight:700;color:var(--gold);text-shadow:0 0 20px rgba(255,215,64,.6);z-index:55;animation:milestoneIn .5s ease-out,milestoneOut .5s ease-in 2s forwards;pointer-events:none;white-space:nowrap}
+@keyframes milestoneIn{from{opacity:0;transform:translate(-50%,-50%) scale(.7)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes milestoneOut{from{opacity:1}to{opacity:0;transform:translate(-50%,-40%) scale(1.1)}}
+
 ::-webkit-scrollbar{width:6px}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
@@ -123,7 +134,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     <div class="currency" id="mcWrap" style="display:none"><span class="label">MC</span><span class="value mc-val" id="mcVal">0</span></div>
     <div class="currency" id="gfWrap" style="display:none"><span class="label">GF</span><span class="value gf-val" id="gfVal">0</span></div>
     <div style="flex:1"></div>
-    <div style="font-size:12px;color:var(--text2)">Clicks: <span id="clickCount">0</span> | Swaps: <span id="swapCount">0</span>/<span id="swapTotal">0</span></div>
+    <div style="font-size:12px;color:var(--text2)"><span id="swapCount">0</span>/<span id="swapTotal">0</span> swaps | Reach: <span id="reachVal">5%</span></div>
   </div>
   <div class="sidebar-left">
     <div class="store-tabs" id="storeTabs"></div>
@@ -133,14 +144,16 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     <div class="events-bar" id="eventsBar"></div>
     <div class="image-wrap" id="imageWrap" style="display:none">
       <img id="evolveImg" alt="Evolving Image" draggable="false">
-      <div class="click-label">Click to Swap Triangles!</div>
+      <div class="click-hint">Click to Swap Triangles</div>
     </div>
+    <div class="streak-display" id="streakDisplay"></div>
     <div class="fitness-area">
       <div class="fitness-pct" id="fitnessPct">0.0000%</div>
       <div class="fitness-bar"><div class="fitness-fill" id="fitnessFill" style="width:0%"></div></div>
+      <div class="fitness-gain" id="fitnessGain"></div>
     </div>
-    <div class="success-rate" id="successRate"></div>
     <div class="stats-row">
+      <span>Clicks: <span class="stat-val" id="clickCount">0</span></span>
       <span>Upgrades: <span class="stat-val" id="statUpgrades">0</span></span>
       <span>Achievements: <span class="stat-val" id="statAch">0/0</span></span>
       <span>Time: <span class="stat-val" id="statTime">0:00</span></span>
@@ -161,25 +174,26 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   </div>
   <div class="footer">
     <a href="/">Dashboard</a>
-    <span>ArtEvolver v3.2 - Evolution Clicker</span>
+    <span>ArtEvolver v3.2 &mdash; Evolution Clicker</span>
     <a href="/clicker">Clicker</a>
   </div>
 </div>
 
 <div class="init-overlay" id="initOverlay">
   <h2>Evolution Clicker</h2>
-  <p>Evolve an image by swapping triangle colors one click at a time.
-     Each click attempts a random swap &mdash; it might improve fitness or miss entirely.
-     Earn EP, unlock upgrades, and watch your image slowly emerge from chaos.</p>
-  <button class="btn" id="initBtn" onclick="initClicker()">Start Evolving</button>
+  <p>Evolve an image one triangle swap at a time.
+     Each click attempts a random color swap between two nearby triangles.
+     It might improve fitness &mdash; or miss entirely.
+     The grind is the game. Not for the hesitant.</p>
+  <button class="btn" id="initBtn" onclick="initClicker()">Begin</button>
   <div class="spinner" id="initSpinner" style="display:none"></div>
   <div class="error" id="initError"></div>
 </div>
 
 <script>
 const TICK_MS = 1000;
-const IMAGE_POLL_MS = 1000;
-const ACH_POPUP_MIN_GAP_MS = 4000;
+const IMAGE_POLL_MS = 1200;
+const ACH_POPUP_GAP_MS = 4000;
 
 let state = null;
 let activeTab = 'All';
@@ -187,6 +201,9 @@ let logLines = [];
 let lastAchPopupMs = 0;
 let achPopupQueue = [];
 let clickBusy = false;
+let lastFitness = 0;
+let fitnessMilestones = [5,10,15,20,25,30,35,40,50,60,70,80,90,95,99];
+let hitMilestones = new Set();
 
 async function initClicker() {
   const btn = document.getElementById('initBtn');
@@ -201,6 +218,7 @@ async function initClicker() {
     if (data.initialized) {
       document.getElementById('initOverlay').style.display = 'none';
       document.getElementById('imageWrap').style.display = 'block';
+      lastFitness = data.initialFitness || 0;
       refreshImage();
       loadReference();
       startPolling();
@@ -237,20 +255,18 @@ function refreshImage() {
 }
 
 function loadReference() {
-  const area = document.getElementById('refArea');
-  const img = document.getElementById('refImg');
-  img.src = '/api/clicker/reference';
-  area.style.display = 'flex';
+  document.getElementById('refImg').src = '/api/clicker/reference';
+  document.getElementById('refArea').style.display = 'flex';
 }
 
 function updateUI() {
   if (!state) return;
-
   document.getElementById('epVal').textContent = fmtNum(state.ep);
   document.getElementById('epRate').textContent = '(+' + fmtNum(state.epPerSecond) + '/s)';
   document.getElementById('clickCount').textContent = fmtNum(state.totalClicks);
   document.getElementById('swapCount').textContent = fmtNum(state.successSwaps);
   document.getElementById('swapTotal').textContent = fmtNum(state.totalSwaps);
+  document.getElementById('reachVal').textContent = state.swapReach || '5%';
 
   if (state.mc > 0 || state.totalEpEarned > 2000) {
     document.getElementById('mcWrap').style.display = 'flex';
@@ -261,18 +277,39 @@ function updateUI() {
     document.getElementById('gfVal').textContent = fmtNum(state.gf);
   }
 
-  const fitPct = (state.fitness * 100);
+  const fitPct = state.fitness * 100;
   document.getElementById('fitnessPct').textContent = fitPct.toFixed(4) + '%';
   document.getElementById('fitnessFill').style.width = fitPct + '%';
 
-  // Success rate
-  const sr = document.getElementById('successRate');
-  if (state.totalSwaps > 0) {
-    const rate = ((state.successSwaps / state.totalSwaps) * 100).toFixed(1);
-    sr.innerHTML = 'Swap success rate: <span class="rate-val">' + rate + '%</span>';
-  } else {
-    sr.textContent = '';
+  // Fitness gain since start
+  const startPct = state.startingFitness * 100;
+  const gained = fitPct - startPct;
+  if (gained > 0.001) {
+    document.getElementById('fitnessGain').textContent =
+      'Started: ' + startPct.toFixed(2) + '% | Gained: +' + gained.toFixed(4) + '%';
   }
+
+  // Streak display
+  const sd = document.getElementById('streakDisplay');
+  if (state.hitStreak >= 3) {
+    sd.className = 'streak-display hit-streak';
+    sd.textContent = state.hitStreak + 'x Hit Streak!';
+  } else if (state.missStreak >= 3) {
+    sd.className = 'streak-display miss-streak';
+    sd.textContent = state.missStreak + ' misses...';
+  } else {
+    sd.textContent = '';
+    sd.className = 'streak-display';
+  }
+
+  // Check fitness milestones for flash
+  for (const m of fitnessMilestones) {
+    if (fitPct >= m && lastFitness * 100 < m && !hitMilestones.has(m)) {
+      hitMilestones.add(m);
+      showMilestone(m);
+    }
+  }
+  lastFitness = state.fitness;
 
   document.getElementById('statUpgrades').textContent = state.totalUpgrades;
   document.getElementById('statAch').textContent = state.achievementsUnlocked + '/' + state.achievementsTotal;
@@ -287,13 +324,12 @@ function updateUI() {
   renderAchievements();
   renderEvents();
 
-  // Queue achievement popups from server (rate-limited)
   if (state.achievementPopups) {
     state.achievementPopups.forEach(p => achPopupQueue.push(p));
   }
 }
 
-// ── Click handling ──
+// ── Click handling — Miyamoto: the click must feel SATISFYING ──
 document.getElementById('imageWrap').addEventListener('click', async (e) => {
   if (clickBusy) return;
   clickBusy = true;
@@ -303,30 +339,72 @@ document.getElementById('imageWrap').addEventListener('click', async (e) => {
     const data = await res.json();
 
     if (data.successCount > 0) {
-      spawnPopup(e.clientX, e.clientY, data.earned, data.critical, false);
-      wrap.classList.add('hit-success');
+      wrap.classList.add('hit');
+      spawnPopup(e.clientX, e.clientY, data.earned, data.critical, false,
+          data.hitStreak >= 5);
+      spawnTriangles(e.clientX, e.clientY, Math.min(data.successCount * 3, 12));
       refreshImage();
     } else {
-      spawnPopup(e.clientX, e.clientY, data.earned, false, true);
-      wrap.classList.add('hit-fail');
+      wrap.classList.add('miss');
+      spawnPopup(e.clientX, e.clientY, data.earned, false, true, false);
     }
-    setTimeout(() => { wrap.classList.remove('hit-success', 'hit-fail'); }, 150);
+    setTimeout(() => wrap.classList.remove('hit', 'miss'), 150);
 
-    const fitPct = (data.fitness * 100);
+    const fitPct = data.fitness * 100;
     document.getElementById('fitnessPct').textContent = fitPct.toFixed(4) + '%';
     document.getElementById('fitnessFill').style.width = fitPct + '%';
   } catch (ex) {}
   clickBusy = false;
 });
 
-function spawnPopup(x, y, amount, crit, miss) {
+function spawnPopup(x, y, amount, crit, miss, streak) {
   const el = document.createElement('div');
-  el.className = 'ep-popup' + (crit ? ' crit' : '') + (miss ? ' miss' : '');
+  let cls = 'ep-popup';
+  if (crit) cls += ' crit';
+  else if (miss) cls += ' miss';
+  else if (streak) cls += ' streak';
+  el.className = cls;
   el.textContent = miss ? 'Miss' : '+' + fmtNum(amount);
   el.style.left = (x + (Math.random() - .5) * 30) + 'px';
   el.style.top = (y - 10) + 'px';
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 1200);
+}
+
+// Triangle particle burst on successful swap
+function spawnTriangles(cx, cy, count) {
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    el.className = 'tri-particle';
+    const angle = (Math.PI * 2 * i / count) + (Math.random() - .5) * 0.5;
+    const dist = 40 + Math.random() * 60;
+    const tx = Math.cos(angle) * dist;
+    const ty = Math.sin(angle) * dist;
+    const rot = Math.random() * 360;
+    const hue = Math.floor(Math.random() * 360);
+    el.style.cssText = 'left:' + cx + 'px;top:' + cy + 'px;'
+      + '--tx:' + tx + 'px;--ty:' + ty + 'px;--rot:' + rot + 'deg;'
+      + 'border-bottom-color:hsl(' + hue + ',80%,65%)';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 700);
+  }
+}
+
+// ── Fitness milestone celebration ──
+function showMilestone(pct) {
+  const names = {
+    5:'First Light!',10:'Faint Outline!',15:'Seeing Colors!',
+    20:'Taking Shape!',25:'Quarter Way!',30:'Recognizable!',
+    35:'Getting Clearer!',40:'Almost Half!',50:'HALFWAY HOME!',
+    60:'Past the Peak!',70:'Masterwork!',80:'Museum Quality!',
+    90:'Near Perfect!',95:'Pixel Master!',99:'TRANSCENDENT!'
+  };
+  const el = document.createElement('div');
+  el.className = 'milestone-flash';
+  el.textContent = (names[pct] || pct + '%!') + ' (' + pct + '%)';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+  addLog('\u2B50 Milestone: ' + pct + '% fitness!');
 }
 
 // ── Store ──
@@ -348,7 +426,6 @@ function renderStore() {
       t.classList.toggle('active', t.textContent === activeTab);
     });
   }
-
   const list = document.getElementById('storeList');
   list.innerHTML = '';
   state.upgrades.filter(u => u.visible && (activeTab === 'All' || u.cat === activeTab)).forEach(u => {
@@ -407,14 +484,12 @@ function renderEvents() {
   });
 }
 
-// ── Achievement popup queue with pacing ──
+// ── Achievement toast queue with pacing ──
 function processAchQueue() {
   if (achPopupQueue.length === 0) return;
-  const now = Date.now();
-  if (now - lastAchPopupMs < ACH_POPUP_MIN_GAP_MS) return;
-  const p = achPopupQueue.shift();
-  lastAchPopupMs = now;
-  showAchToast(p);
+  if (Date.now() - lastAchPopupMs < ACH_POPUP_GAP_MS) return;
+  lastAchPopupMs = Date.now();
+  showAchToast(achPopupQueue.shift());
 }
 
 function showAchToast(p) {
@@ -433,6 +508,7 @@ async function doPrestige() {
   if (!confirm('Ascend for ' + Math.floor(state.prestigeReward) + ' GF? EP, MC, and non-prestige upgrades will be reset.')) return;
   try {
     await fetch('/api/clicker/prestige', {method:'POST'});
+    hitMilestones.clear();
     refresh();
     refreshImage();
   } catch (e) {}
@@ -442,8 +518,8 @@ async function doPrestige() {
 function addLog(msg) {
   logLines.unshift(msg);
   if (logLines.length > 50) logLines.pop();
-  const el = document.getElementById('logEntries');
-  el.innerHTML = logLines.map(l => '<div class="log-entry">' + esc(l) + '</div>').join('');
+  document.getElementById('logEntries').innerHTML =
+    logLines.map(l => '<div class="log-entry">' + esc(l) + '</div>').join('');
 }
 
 // ── Helpers ──
@@ -478,6 +554,7 @@ function esc(s) {
     if (d.initialized) {
       document.getElementById('initOverlay').style.display = 'none';
       document.getElementById('imageWrap').style.display = 'block';
+      lastFitness = d.fitness;
       refreshImage();
       loadReference();
       startPolling();

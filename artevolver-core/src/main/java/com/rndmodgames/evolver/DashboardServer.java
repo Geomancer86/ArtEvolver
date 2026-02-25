@@ -300,7 +300,9 @@ public class DashboardServer {
                 + ",\"attemptCount\":" + resp.attemptCount()
                 + ",\"totalSwaps\":" + (engine != null ? engine.getTotalSwaps() : 0)
                 + ",\"successSwaps\":" + (engine != null ? engine.getSuccessfulSwaps() : 0)
-                + ",\"critical\":" + resp.critical() + "}";
+                + ",\"critical\":" + resp.critical()
+                + ",\"missStreak\":" + resp.missStreak()
+                + ",\"hitStreak\":" + resp.hitStreak() + "}";
         byte[] data = json.getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().set("Content-Type", "application/json");
         ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");

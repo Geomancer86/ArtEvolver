@@ -10,15 +10,15 @@ import java.io.IOException;
 import java.util.SplittableRandom;
 
 /**
- * Lightweight evolution engine for the Clicker game.
+ * Core evolution engine for the Clicker game.
  *
- * Core mechanic: each click attempts a SINGLE random two-triangle color swap.
- * The swap may improve or worsen fitness — there is no guaranteed success.
- * Upgrades unlock retry cycles (try N, keep best), multi-swap, distance control,
- * and smart targeting — all starting from a pure-random baseline.
+ * Philosophy (Gunpei Yokoi — lateral thinking with withered technology):
+ * One mechanic, deeply realized. Each click is a single random two-triangle
+ * color swap. The swap may improve or worsen fitness. There is no guarantee.
+ * Upgrades don't change the mechanic — they change the odds.
  *
- * Always starts with RANDOM (shuffled) initialization for low starting fitness.
- * Smart/LAP initialization is a prestige unlock.
+ * Streak tracking (Miyazaki): consecutive misses build tension,
+ * a success after a drought feels EARNED. The engine tracks both.
  */
 public class ClickerEngine {
 
@@ -40,11 +40,19 @@ public class ClickerEngine {
     private long totalClicks = 0;
     private boolean initialized = false;
 
+    // Streak tracking — the heartbeat of tension and reward
+    private int currentMissStreak = 0;
+    private int currentHitStreak = 0;
+    private int longestMissStreak = 0;
+    private int longestHitStreak = 0;
+    private double startingFitness = 0;
+
     private int imageWidth;
     private int imageHeight;
 
     /**
-     * Initializes the clicker engine with RANDOM (shuffled) colors for low starting fitness.
+     * Initializes with the given init method. For clicker, typically RANDOM (shuffled)
+     * to start with low fitness. Smart/LAP are prestige unlocks.
      */
     public synchronized void init(BufferedImage sourceImage, Palette palette,
                                   int gridW, int gridH,
@@ -60,7 +68,6 @@ public class ClickerEngine {
         try {
             ImageEvolver.INITIALIZATION_METHOD = initMethod;
             ImageEvolver.SMART_INITIALIZATION = (initMethod == ImageEvolver.INIT_SMART);
-            // For random init (method 0), force palette shuffle for truly random low fitness
             ImageEvolver.SHUFFLE_PALETTE = (initMethod == ImageEvolver.INIT_RANDOM);
 
             ImageEvolver evolver = new ImageEvolver(
@@ -80,26 +87,27 @@ public class ClickerEngine {
         this.totalSwaps = 0;
         this.successfulSwaps = 0;
         this.totalClicks = 0;
+        this.currentMissStreak = 0;
+        this.currentHitStreak = 0;
+        this.longestMissStreak = 0;
+        this.longestHitStreak = 0;
         this.imageDirty = true;
         this.cachedJpeg = null;
         this.jpegVersion = 0;
         this.initialized = true;
+        this.startingFitness = deltaEngine.getScore();
 
         System.out.println("[ClickerEngine] Initialized: " + triangles.size()
                 + " triangles, init=" + initMethod
-                + ", fitness=" + String.format("%.4f%%", deltaEngine.getScore() * 100));
+                + ", fitness=" + String.format("%.4f%%", startingFitness * 100));
     }
 
     /**
-     * Core click mechanic. Each click:
-     * - Picks random triangle pairs
-     * - With retryCycles=1: tries ONE random swap, applies only if it improves
-     * - With retryCycles>1: tries N random swaps, applies the best improving one (if any)
-     * - swapDistance limits how far apart the two triangles can be (0 = unlimited)
-     * - swapsPerClick controls how many swap operations per click (base 1)
-     * - smartPct: probability of targeting worst triangle as candidate A
+     * Core click. Each swap attempt picks two random triangles (within distance limit),
+     * evaluates the delta, and applies only if improving. With retryCycles > 1, tries
+     * multiple random pairs and picks the best one.
      *
-     * @return result indicating what happened (success/fail, fitness change)
+     * Returns a ClickResult with full context for the game layer to use.
      */
     public synchronized ClickResult performClick(int swapsPerClick, int retryCycles,
                                                   int swapDistance, double smartPct) {
@@ -119,19 +127,22 @@ public class ClickerEngine {
         if (applied > 0) {
             imageDirty = true;
             successfulSwaps += applied;
+            currentHitStreak += applied;
+            currentMissStreak = 0;
+            longestHitStreak = Math.max(longestHitStreak, currentHitStreak);
+        } else {
+            currentMissStreak++;
+            currentHitStreak = 0;
+            longestMissStreak = Math.max(longestMissStreak, currentMissStreak);
         }
         totalSwaps += swapsPerClick;
         totalClicks++;
 
         double newScore = deltaEngine.getScore();
-        return new ClickResult(applied, swapsPerClick, newScore - oldScore, newScore);
+        return new ClickResult(applied, swapsPerClick, newScore - oldScore, newScore,
+                currentMissStreak, currentHitStreak);
     }
 
-    /**
-     * Single swap attempt with optional retry cycles.
-     * With 1 cycle: pick a random pair, apply only if improving.
-     * With N cycles: pick N random pairs, apply the most improving one (if any improves).
-     */
     private boolean attemptSwap(int n, int retryCycles, int swapDistance, double smartPct) {
         int bestA = -1, bestB = -1;
         long bestDelta = 0;
@@ -165,7 +176,9 @@ public class ClickerEngine {
 
     /**
      * Picks triangle B. swapDistance=0 means unlimited (any triangle).
-     * swapDistance>0 limits B to be within that index range of A.
+     * swapDistance>0 limits B to within that index range of A.
+     * Since triangles are laid out in row-major grid order,
+     * index proximity approximates spatial proximity.
      */
     private int pickTriangleB(int n, int a, int swapDistance) {
         if (swapDistance > 0 && swapDistance < n) {
@@ -278,25 +291,35 @@ public class ClickerEngine {
     public synchronized int getTriangleCount() { return initialized ? triangles.size() : 0; }
     public synchronized long getJpegVersion() { return jpegVersion; }
     public boolean isInitialized() { return initialized; }
+    public double getStartingFitness() { return startingFitness; }
+    public int getCurrentMissStreak() { return currentMissStreak; }
+    public int getCurrentHitStreak() { return currentHitStreak; }
+    public int getLongestMissStreak() { return longestMissStreak; }
+    public int getLongestHitStreak() { return longestHitStreak; }
 
     public BufferedImage getReferenceImage() { return referenceImage; }
 
     /**
-     * Result of a single click. Tracks both attempted and successful swaps.
+     * Result of a single click. Contains everything the game layer needs.
      */
     public static class ClickResult {
-        public static final ClickResult EMPTY = new ClickResult(0, 0, 0, 0);
+        public static final ClickResult EMPTY = new ClickResult(0, 0, 0, 0, 0, 0);
 
         public final int successCount;
         public final int attemptCount;
         public final double fitnessGain;
         public final double newFitness;
+        public final int missStreak;
+        public final int hitStreak;
 
-        public ClickResult(int successCount, int attemptCount, double fitnessGain, double newFitness) {
+        public ClickResult(int successCount, int attemptCount, double fitnessGain,
+                           double newFitness, int missStreak, int hitStreak) {
             this.successCount = successCount;
             this.attemptCount = attemptCount;
             this.fitnessGain = fitnessGain;
             this.newFitness = newFitness;
+            this.missStreak = missStreak;
+            this.hitStreak = hitStreak;
         }
     }
 }

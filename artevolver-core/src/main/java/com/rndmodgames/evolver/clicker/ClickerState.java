@@ -8,17 +8,19 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Core game state for the Evolution Clicker.
+ * Game state for the Evolution Clicker.
  *
- * Design: each click attempts a random two-triangle color swap. The swap may or
- * may not improve fitness. Upgrades unlock retry cycles, more swaps per click,
- * distance control, and smart targeting — all starting from a pure-random baseline.
+ * Design philosophy:
+ *   Miyamoto — the click must feel satisfying. Miss streaks build tension,
+ *              hits after droughts feel EARNED.
+ *   Meier    — every upgrade is a meaningful decision, not a mandatory purchase.
+ *   Miyazaki — the grind is the game. Low starting fitness is fair difficulty.
+ *   Wright   — emergence: the image evolving from chaos IS the reward.
+ *   Yokoi    — one mechanic (swap), deeply explored through upgrades.
  *
- * All game state resets when a new image is loaded (initEngine). Prestige upgrades
- * persist across ascensions but not across image changes.
- *
- * Pacing modeled after Cookie Clicker: slow start, exponential growth, long gaps
- * between meaningful upgrades.
+ * Base mechanic: 1 click = 1 random swap attempt with LIMITED distance.
+ * Upgrades expand reach, add retries, target intelligence, automate.
+ * All state resets on new image (except prestige/GF).
  */
 public class ClickerState {
 
@@ -37,8 +39,6 @@ public class ClickerState {
     private int totalAchievementsUnlocked = 0;
 
     private double epPerSecond = 0;
-
-    // Auto-clicker accumulator
     private double autoClickAccumulator = 0;
 
     // Active events
@@ -62,77 +62,109 @@ public class ClickerState {
     private float triWidth, triHeight, scale;
 
     // ════════════════════════════════════════════════════════════════
-    //  UPGRADE DEFINITIONS — progression-focused, all start from zero
+    //  UPGRADE DEFINITIONS
+    //
+    //  Sid Meier: "A game is a series of interesting decisions."
+    //  Each upgrade changes HOW you click, not just how much you earn.
+    //  Categories create natural decision points: do I invest in
+    //  efficiency (Click Power), throughput (Automation), or
+    //  intelligence (smarter targeting)?
     // ════════════════════════════════════════════════════════════════
 
     public static final UpgradeDef[] UPGRADES = {
-        // ─── CLICK POWER (EP) ── unlocks gradually
+        // ─── CLICK POWER (EP) ───
+        // The core progression: make each click more effective.
         new UpgradeDef("retry_cycles", "Retry Cycles", "Click Power",
-                "Try multiple random swaps per click and keep the best one. More cycles = better odds.",
-                25, 1.25, 20, "ep", "retryCycles", 1, "flat"),
+                "Try N random pairs per click, keep the best improving swap. " +
+                "More cycles = higher chance of finding a good swap each click.",
+                25, 1.28, 25, "ep", "retryCycles", 1, "flat"),
         new UpgradeDef("multi_swap", "Multi-Swap", "Click Power",
-                "Perform additional swap attempts per click.",
-                100, 1.35, 15, "ep", "multiSwap", 1, "flat"),
-        new UpgradeDef("swap_distance", "Swap Range", "Click Power",
-                "Limit swap distance to nearby triangles for more coherent improvements.",
-                50, 1.20, 20, "ep", "swapDistance", 1, "flat"),
-        new UpgradeDef("click_value", "Click Reward", "Click Power",
-                "Increases base EP earned per click.",
-                10, 1.12, 50, "ep", "clickValue", 0.5, "flat"),
+                "Attempt additional swaps per click. Each swap is independent — " +
+                "some may hit, some may miss. Pairs well with Retry Cycles.",
+                120, 1.35, 15, "ep", "multiSwap", 1, "flat"),
+        new UpgradeDef("swap_reach", "Swap Reach", "Click Power",
+                "Extend the distance you can swap. Base range is nearby triangles only. " +
+                "Wider reach enables global color reorganization.",
+                40, 1.18, 25, "ep", "swapReach", 1, "flat"),
+        new UpgradeDef("click_ep", "Click Reward", "Click Power",
+                "Increases base EP earned per click, hit or miss.",
+                10, 1.14, 50, "ep", "clickEp", 0.5, "flat"),
 
         // ─── AUTOMATION (EP, expensive) ───
+        // The idle layer. Slow but steady. Manual clicks always superior.
         new UpgradeDef("auto_clicker", "Auto-Clicker", "Automation",
-                "Automatic clicks per second. Starts slow.",
-                500, 1.25, 15, "ep", "autoClicker", 0.2, "flat"),
-        new UpgradeDef("auto_cycles", "Auto Retry", "Automation",
-                "Auto-clickers get extra retry cycles.",
-                1000, 1.30, 10, "ep", "autoCycles", 1, "flat"),
-        new UpgradeDef("auto_multi", "Auto Multi-Swap", "Automation",
-                "Auto-clickers perform extra swaps per tick.",
-                2000, 1.35, 10, "ep", "autoMulti", 1, "flat"),
+                "Performs automatic clicks. Auto-clicks earn 50% EP " +
+                "and never trigger critical hits. Your hands are the real power.",
+                500, 1.22, 20, "ep", "autoRate", 0.2, "flat"),
+        new UpgradeDef("auto_cycles", "Auto Precision", "Automation",
+                "Auto-clickers gain retry cycles. Makes idle evolution " +
+                "smarter, not faster. Pairs with Retry Cycles.",
+                1200, 1.30, 10, "ep", "autoCycles", 1, "flat"),
+        new UpgradeDef("auto_multi", "Auto Volume", "Automation",
+                "Auto-clickers attempt extra swaps per tick. " +
+                "More volume compensates for lower auto EP rate.",
+                2500, 1.35, 10, "ep", "autoMulti", 1, "flat"),
 
         // ─── INTELLIGENCE (EP, mid-tier) ───
+        // Make your clicks smarter, not just more numerous.
         new UpgradeDef("smart_pick", "Smart Pick", "Intelligence",
-                "Chance to target the worst-matching triangle instead of random.",
-                200, 1.22, 15, "ep", "smartPick", 0.05, "flat"),
-        new UpgradeDef("local_focus", "Local Focus", "Intelligence",
-                "Prefer swapping nearby triangles for spatial coherence.",
-                150, 1.20, 15, "ep", "localFocus", 1, "flat"),
+                "Chance to target the worst-matching triangle instead of random. " +
+                "Worst triangles have the most to gain from a swap.",
+                200, 1.22, 20, "ep", "smartPct", 0.04, "flat"),
+        new UpgradeDef("streak_bonus", "Hot Hand", "Intelligence",
+                "Consecutive successful swaps increase EP bonus. " +
+                "Hit streaks become more rewarding the longer they last.",
+                300, 1.25, 15, "ep", "streakBonus", 0.10, "flat"),
 
         // ─── SPECIAL (MC — rare currency) ───
+        // Powerful but scarce. MC is precious.
         new UpgradeDef("critical_swap", "Critical Swap", "Special",
-                "Chance for a critical click that does 3x swap attempts.",
-                5, 1.45, 15, "mc", "criticalSwap", 0.02, "flat"),
+                "Chance for a critical click: 3x swap attempts. " +
+                "Feels like lightning striking.",
+                5, 1.45, 15, "mc", "critChance", 0.02, "flat"),
         new UpgradeDef("mc_finder", "Crystal Finder", "Special",
-                "Small chance to find Mutation Crystals per click.",
-                3, 1.40, 20, "mc", "mcFinder", 0.002, "flat"),
+                "Small chance to discover Mutation Crystals per click. " +
+                "The only reliable MC source outside events.",
+                3, 1.40, 20, "mc", "mcChance", 0.002, "flat"),
         new UpgradeDef("ep_multiplier", "EP Overflow", "Special",
-                "Multiplies ALL Evolution Point gains.",
-                15, 1.55, 30, "mc", "epMultiplier", 0.08, "mult"),
+                "Multiplies ALL Evolution Point gains from every source.",
+                15, 1.55, 30, "mc", "epMult", 0.08, "mult"),
         new UpgradeDef("lucky_events", "Lucky Star", "Special",
-                "Increases random event spawn rate.",
-                8, 1.35, 15, "mc", "luckyEvents", 0.05, "flat"),
+                "Increases random event spawn rate. Events are " +
+                "powerful but fleeting — make the most of them.",
+                8, 1.35, 15, "mc", "eventLuck", 0.05, "flat"),
         new UpgradeDef("auto_boost", "Turbo Auto", "Special",
-                "Auto-clicker speed increased by 50% per level.",
+                "Auto-clicker speed +50% per level. Turns idle " +
+                "trickle into a steady stream.",
                 20, 1.50, 10, "mc", "autoBoost", 0.5, "flat"),
 
         // ─── PRESTIGE (GF — after first ascension) ───
+        // Permanent power that transcends resets.
         new UpgradeDef("eternal_cycles", "Eternal Cycles", "Prestige",
-                "Permanent extra retry cycles that persist through ascensions.",
-                5, 1.65, 20, "gf", "eternalCycles", 1, "flat"),
+                "Permanent retry cycles that persist through ascensions. " +
+                "Every new run starts stronger.",
+                5, 1.65, 20, "gf", "permCycles", 1, "flat"),
         new UpgradeDef("eternal_auto", "Eternal Speed", "Prestige",
-                "Permanent auto-clicker speed bonus.",
-                8, 1.60, 20, "gf", "eternalAuto", 0.1, "flat"),
+                "Permanent auto-clicker speed bonus. Accumulates " +
+                "across multiple ascensions.",
+                8, 1.60, 20, "gf", "permAuto", 0.1, "flat"),
         new UpgradeDef("smart_init", "Smart Genesis", "Prestige",
-                "Start with Smart initialization after ascension (much better starting fitness).",
+                "Start with Smart initialization after ascension. " +
+                "Much better starting fitness — the image begins recognizable.",
                 25, 2.00, 1, "gf", "smartInit", 1, "flat"),
         new UpgradeDef("lap_init", "LAP Genesis", "Prestige",
-                "Start with LAP Optimal initialization (provably best starting arrangement).",
+                "Start with LAP Optimal initialization — provably the best " +
+                "possible starting arrangement. The ultimate prestige reward.",
                 100, 2.00, 1, "gf", "lapInit", 1, "flat"),
     };
 
     // ════════════════════════════════════════════════════════════════
-    //  ACHIEVEMENT DEFINITIONS — higher thresholds, slower pacing
+    //  ACHIEVEMENT DEFINITIONS
+    //
+    //  Hideo Kojima: hidden stories in the progression.
+    //  Hironobu Sakaguchi: emotional milestones that mark your journey.
+    //  Each fitness achievement name tells the story of an image
+    //  emerging from chaos.
     // ════════════════════════════════════════════════════════════════
 
     public static final AchievementDef[] ACHIEVEMENTS = generateAchievements();
@@ -140,30 +172,43 @@ public class ClickerState {
     private static AchievementDef[] generateAchievements() {
         List<AchievementDef> list = new ArrayList<>();
 
-        // Fitness milestones — these are HARD to reach from a random start
+        // Fitness milestones — the narrative arc of an evolving image
         double[] fitTiers = {5, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 95, 99};
-        String[] fitNames = {"First Light", "Faint Outline", "Seeing Colors", "Taking Shape",
-                "Quarter Way", "Recognizable", "Getting Clearer", "Almost Half",
-                "Halfway Home", "Past the Peak", "Masterwork", "Museum Quality",
-                "Near Perfect", "Pixel Master", "Transcendent"};
+        String[] fitNames = {
+            "First Light",          // barely perceptible difference from noise
+            "Faint Outline",        // you squint and see... something
+            "Seeing Colors",        // the palette starts making sense
+            "Taking Shape",         // contours emerge
+            "Quarter Way",          // clear progress, long road ahead
+            "Recognizable",         // "I can see what it is!"
+            "Getting Clearer",      // details forming
+            "Almost Half",          // commitment rewarded
+            "Halfway Home",         // the midpoint — the climb changes here
+            "Past the Peak",        // downhill optimization
+            "Masterwork",           // genuinely impressive
+            "Museum Quality",       // could hang on a wall
+            "Near Perfect",         // the last few percent are the hardest
+            "Pixel Master",         // obsessive perfection
+            "Transcendent"          // approaching the theoretical limit
+        };
         String[] fitIcons = {"\uD83C\uDF31", "\u270F\uFE0F", "\uD83C\uDF08", "\uD83D\uDD8C\uFE0F",
                 "\uD83D\uDCCA", "\uD83D\uDC41\uFE0F", "\uD83D\uDCAA", "\uD83C\uDFA8",
                 "\uD83C\uDFC6", "\uD83D\uDD25", "\uD83D\uDC8E", "\uD83D\uDC51",
                 "\u2728", "\u269B\uFE0F", "\uD83C\uDF1F"};
         for (int i = 0; i < fitTiers.length; i++) {
-            double reward = 50 * Math.pow(1.8, i);
+            double reward = 50 * Math.pow(2.0, i);
             list.add(new AchievementDef("fit_" + i, fitNames[i], fitIcons[i],
-                    "Reach " + fitTiers[i] + "% fitness", "fitness", fitTiers[i],
+                    "Reach " + (int) fitTiers[i] + "% fitness", "fitness", fitTiers[i],
                     reward, 1 + i * 0.005, false));
         }
 
-        // Click milestones — high numbers
+        // Click milestones — the persistence arc
         long[] clickTiers = {10, 50, 200, 500, 1000, 5000, 10000, 50000, 100000};
         String[] clickNames = {"First Clicks", "Getting Started", "Persistent", "Dedicated",
                 "Thousand Clicks", "Click Veteran", "Ten Thousand", "Fifty Thousand", "Click Legend"};
         for (int i = 0; i < clickTiers.length; i++) {
             list.add(new AchievementDef("click_" + i, clickNames[i], "\uD83D\uDC46",
-                    "Click " + formatBigNumber(clickTiers[i]) + " times", "clicks", clickTiers[i],
+                    clickTiers[i] + " clicks", "clicks", clickTiers[i],
                     clickTiers[i] * 0.3, 1 + i * 0.003, false));
         }
 
@@ -173,7 +218,7 @@ public class ClickerState {
                 "Swap Master", "Five Thousand", "Twenty Thousand", "Swap Legend"};
         for (int i = 0; i < swapTiers.length; i++) {
             list.add(new AchievementDef("swap_" + i, swapNames[i], "\uD83D\uDD00",
-                    formatBigNumber(swapTiers[i]) + " successful swaps", "successSwaps", swapTiers[i],
+                    swapTiers[i] + " successful swaps", "successSwaps", swapTiers[i],
                     swapTiers[i] * 0.5, 1 + i * 0.004, false));
         }
 
@@ -183,7 +228,7 @@ public class ClickerState {
                 "Millionaire", "Tycoon"};
         for (int i = 0; i < epTiers.length; i++) {
             list.add(new AchievementDef("ep_" + i, epNames[i], "\uD83D\uDCB0",
-                    "Earn " + formatBigNumber(epTiers[i]) + " total EP", "totalEp", epTiers[i],
+                    "Earn " + fmtBig(epTiers[i]) + " total EP", "totalEp", epTiers[i],
                     epTiers[i] * 0.05, 1 + i * 0.005, false));
         }
 
@@ -192,7 +237,7 @@ public class ClickerState {
         String[] timeNames = {"Five Minutes", "Half Hour", "Hour of Power", "Three Hours", "Half Day"};
         for (int i = 0; i < timeTiers.length; i++) {
             list.add(new AchievementDef("time_" + i, timeNames[i], "\u23F0",
-                    "Play for " + formatDuration(timeTiers[i]), "playTime", timeTiers[i],
+                    "Play for " + fmtDuration(timeTiers[i]), "playTime", timeTiers[i],
                     timeTiers[i] * 0.5, 1 + i * 0.005, false));
         }
 
@@ -205,6 +250,24 @@ public class ClickerState {
                     upgTiers[i] * 15, 1 + i * 0.008, false));
         }
 
+        // Streak milestones (Miyazaki: perseverance rewarded)
+        int[] streakTiers = {5, 10, 25, 50};
+        String[] streakNames = {"Hot Streak", "On Fire", "Untouchable", "Perfection"};
+        for (int i = 0; i < streakTiers.length; i++) {
+            list.add(new AchievementDef("streak_" + i, streakNames[i], "\uD83D\uDD25",
+                    streakTiers[i] + " consecutive successful swaps", "hitStreak", streakTiers[i],
+                    streakTiers[i] * 20, 1 + (i + 1) * 0.01, false));
+        }
+
+        // Miss streak milestones (Miyazaki: even failure is acknowledged)
+        int[] missTiers = {10, 25, 50, 100};
+        String[] missNames = {"Stubborn", "The Wall", "Unbreakable Will", "Sisyphus"};
+        for (int i = 0; i < missTiers.length; i++) {
+            list.add(new AchievementDef("miss_" + i, missNames[i], "\uD83E\uDDF1",
+                    "Endure " + missTiers[i] + " consecutive misses", "missStreak", missTiers[i],
+                    missTiers[i] * 5, 1 + i * 0.005, false));
+        }
+
         // Prestige milestones
         int[] presTiers = {1, 3, 5, 10};
         String[] presNames = {"First Ascension", "Triple Ascended", "Quintuple", "Decade"};
@@ -214,7 +277,7 @@ public class ClickerState {
                     presTiers[i] * 200, 1 + (i + 1) * 0.02, false));
         }
 
-        // Hidden discovery achievements
+        // Hidden discovery achievements (Kojima: surprises)
         list.add(new AchievementDef("disc_first_good", "Lucky Swap", "\uD83C\uDF40",
                 "Your first improving swap!", "discovery", 1, 25, 1.02, true));
         list.add(new AchievementDef("disc_auto", "Hands Free", "\uD83E\uDD16",
@@ -225,12 +288,14 @@ public class ClickerState {
                 "Land your first critical click", "discovery", 4, 200, 1.05, true));
         list.add(new AchievementDef("disc_mc", "Crystal Drop", "\uD83D\uDC8E",
                 "Find your first Mutation Crystal", "discovery", 5, 100, 1.05, true));
+        list.add(new AchievementDef("disc_drought_break", "Drought Breaker", "\uD83C\uDF27\uFE0F",
+                "Land a successful swap after 20+ consecutive misses", "discovery", 6, 300, 1.06, true));
 
         return list.toArray(new AchievementDef[0]);
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  EVENT DEFINITIONS — rare, impactful, slow spawn rate
+    //  EVENTS — rare and impactful
     // ════════════════════════════════════════════════════════════════
 
     public static final EventDef[] EVENTS = {
@@ -249,15 +314,11 @@ public class ClickerState {
     };
 
     // ════════════════════════════════════════════════════════════════
-    //  ENGINE INITIALIZATION — resets ALL game state
+    //  ENGINE INITIALIZATION — full state reset
     // ════════════════════════════════════════════════════════════════
 
     public ClickerEngine getEngine() { return engine; }
 
-    /**
-     * Initializes the clicker engine AND resets all game state.
-     * Called when a new image is loaded or the clicker page is opened.
-     */
     public void initEngine(BufferedImage sourceImage, Palette palette,
                            int gridW, int gridH,
                            float triWidth, float triHeight, float scale) {
@@ -268,11 +329,9 @@ public class ClickerState {
         this.triHeight = triHeight;
         this.scale = scale;
 
-        // Full reset of all currencies and progress
         ep = 0;
         totalEpEarned = 0;
         mc = 0;
-        // GF persists across inits (prestige currency)
         totalClicks = 0;
         totalUpgradesBought = 0;
         gameStartMs = System.currentTimeMillis();
@@ -284,23 +343,17 @@ public class ClickerState {
         lastEventCheckMs = 0;
         achievementQueue.clear();
 
-        // Clear non-prestige upgrades
         upgradeLevels.entrySet().removeIf(e -> {
             UpgradeDef def = findUpgrade(e.getKey());
             return def != null && !def.currency.equals("gf");
         });
-        // Recalculate totalUpgradesBought from remaining prestige upgrades
         totalUpgradesBought = upgradeLevels.values().stream().mapToInt(Integer::intValue).sum();
-
-        // Clear non-prestige achievements
         unlockedAchievements.clear();
 
         if (engine == null) {
             engine = new ClickerEngine();
         }
-
-        int initMethod = getInitMethod();
-        engine.init(sourceImage, palette, gridW, gridH, triWidth, triHeight, scale, initMethod);
+        engine.init(sourceImage, palette, gridW, gridH, triWidth, triHeight, scale, getInitMethod());
     }
 
     private int getInitMethod() {
@@ -310,7 +363,7 @@ public class ClickerState {
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  GAME TICK — called every ~1 second
+    //  GAME TICK — called every ~1 second from /api/clicker/state
     // ════════════════════════════════════════════════════════════════
 
     public List<String> tick() {
@@ -321,7 +374,7 @@ public class ClickerState {
         computeEpPerSecond();
         addEp(epPerSecond);
 
-        // Auto-clickers
+        // Auto-clickers (Yokoi: same mechanic, automated)
         if (engine != null && engine.isInitialized()) {
             double autoRate = computeAutoClickRate();
             if (autoRate > 0) {
@@ -330,32 +383,27 @@ public class ClickerState {
                 autoClickAccumulator -= autoClicks;
 
                 if (autoClicks > 0) {
-                    int autoCycles = 1 + (int) getEffectValue("autoCycles") + (int) getEffectValue("eternalCycles");
-                    int autoMulti = 1 + (int) getEffectValue("autoMulti");
+                    int autoCycles = 1 + (int) eff("autoCycles") + (int) eff("permCycles");
+                    int autoMulti = 1 + (int) eff("autoMulti");
                     int distance = computeSwapDistance();
-                    double smartPct = 0;
 
                     for (int c = 0; c < autoClicks; c++) {
                         ClickerEngine.ClickResult result = engine.performClick(
-                                autoMulti, autoCycles, distance, smartPct);
-                        if (result.fitnessGain > 0) {
-                            double epGain = computeEpForFitnessGain(result.fitnessGain) * 0.5;
-                            addEp(epGain);
-                        } else {
-                            addEp(0.1);
-                        }
+                                autoMulti, autoCycles, distance, 0);
+                        double autoEp = result.fitnessGain > 0
+                                ? computeEpForFitnessGain(result.fitnessGain) * 0.5
+                                : 0.1;
+                        addEp(autoEp);
                     }
                 }
             }
         }
 
-        // Events
         tickEvents(notifications);
 
-        // Random event spawning (every 10 seconds, not 5)
         if (now - lastEventCheckMs > 10000) {
             lastEventCheckMs = now;
-            double luckBonus = 1.0 + getEffectValue("luckyEvents");
+            double luckBonus = 1.0 + eff("eventLuck");
             for (EventDef def : EVENTS) {
                 if (Math.random() < def.baseChance * luckBonus) {
                     activeEvents.add(new ActiveEvent(def.id, def.name, def.icon,
@@ -366,62 +414,68 @@ public class ClickerState {
         }
 
         checkAchievements(notifications);
-
         return notifications;
     }
 
     private double computeAutoClickRate() {
-        double base = getEffectValue("autoClicker");
+        double base = eff("autoRate");
         if (base <= 0) return 0;
-        double boost = 1.0 + getEffectValue("autoBoost");
-        double eternal = 1.0 + getEffectValue("eternalAuto");
-        double eventMult = getEventMultiplier("auto_frenzy");
-        return base * boost * eternal * eventMult;
+        return base * (1.0 + eff("autoBoost")) * (1.0 + eff("permAuto"))
+                * getEventMult("auto_frenzy");
     }
 
+    /**
+     * Swap distance computation.
+     *
+     * Gunpei Yokoi: simple mechanic, deep implications.
+     * Base: nearby triangles only (~5% of grid).
+     * Each level of Swap Reach extends by ~5%.
+     * At high levels: unlimited (full grid).
+     */
     private int computeSwapDistance() {
-        int localFocus = (int) getEffectValue("localFocus");
-        if (localFocus <= 0) return 0;
         int n = (engine != null) ? engine.getTriangleCount() : 4000;
-        return Math.max(10, n / (2 + localFocus));
+        int reachLevel = (int) eff("swapReach");
+        int baseRange = Math.max(10, n / 20);
+        int totalRange = baseRange + (int) (reachLevel * n * 0.05);
+        return totalRange >= n ? 0 : totalRange;
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  CLICK — core mechanic
+    //  CLICK — the core mechanic
+    //
+    //  Shinji Mikami: every click carries tension.
+    //  Will it hit? Will the streak continue?
+    //  The answer is uncertain — that's the game.
     // ════════════════════════════════════════════════════════════════
 
     public ClickResponse click() {
         if (engine == null || !engine.isInitialized()) {
-            return new ClickResponse(0, 0, 0, 0, 0, false);
+            return new ClickResponse(0, 0, 0, 0, 0, false, 0, 0);
         }
 
         totalClicks++;
 
-        // Compute parameters from upgrades
-        int retryCycles = 1 + (int) getEffectValue("retryCycles") + (int) getEffectValue("eternalCycles");
-        int swapsPerClick = 1 + (int) getEffectValue("multiSwap");
+        int retryCycles = 1 + (int) eff("retryCycles") + (int) eff("permCycles");
+        int swapsPerClick = 1 + (int) eff("multiSwap");
         int swapDistance = computeSwapDistance();
-        double smartPct = getEffectValue("smartPick");
+        double smartPct = eff("smartPct");
 
-        // Critical swap check
         boolean critical = false;
-        double critChance = getEffectValue("criticalSwap");
-        critChance *= getEventMultiplier("lucky_streak");
+        double critChance = eff("critChance") * getEventMult("lucky_streak");
         if (critChance > 0 && Math.random() < critChance) {
             critical = true;
             swapsPerClick *= 3;
             triggerDiscovery(4);
         }
 
-        // Swap storm event
-        double stormMult = getEventMultiplier("swap_storm");
-        if (stormMult > 1) swapsPerClick = (int) (swapsPerClick * stormMult);
+        if (getEventMult("swap_storm") > 1)
+            swapsPerClick = (int) (swapsPerClick * getEventMult("swap_storm"));
+        if (getEventMult("precision_wave") > 1)
+            retryCycles += (int) getEventMult("precision_wave");
 
-        // Precision wave event adds cycles
-        double precisionMult = getEventMultiplier("precision_wave");
-        if (precisionMult > 1) retryCycles += (int) precisionMult;
+        // Record miss streak BEFORE the click for drought-break detection
+        int missStreakBefore = engine.getCurrentMissStreak();
 
-        // Perform the click
         ClickerEngine.ClickResult result = engine.performClick(
                 swapsPerClick, retryCycles, swapDistance, smartPct);
 
@@ -429,32 +483,42 @@ public class ClickerState {
         if (result.successCount > 0 && engine.getSuccessfulSwaps() <= result.successCount) {
             triggerDiscovery(1);
         }
-
-        // EP calculation — small base + bonus for fitness improvement
-        double baseEp = 1.0 + getEffectValue("clickValue");
-        double fitnessBonus = 0;
-        if (result.fitnessGain > 0) {
-            fitnessBonus = computeEpForFitnessGain(result.fitnessGain);
+        // Discovery: drought breaker (success after 20+ misses)
+        if (result.successCount > 0 && missStreakBefore >= 20) {
+            triggerDiscovery(6);
         }
-        double earned = (baseEp + fitnessBonus) * getEpMultiplier() * getPrestigeMultiplier()
-                * getEventMultiplier("golden_hour");
+
+        // EP calculation (Meier: reward meaningful outcomes)
+        double baseEp = 1.0 + eff("clickEp");
+        double fitnessBonus = result.fitnessGain > 0
+                ? computeEpForFitnessGain(result.fitnessGain) : 0;
+
+        // Streak bonus (Hot Hand upgrade)
+        double streakMult = 1.0;
+        double streakBonusPct = eff("streakBonus");
+        if (streakBonusPct > 0 && result.hitStreak > 1) {
+            streakMult = 1.0 + streakBonusPct * Math.min(result.hitStreak, 50);
+        }
+
+        double earned = (baseEp + fitnessBonus) * streakMult
+                * getEpMultiplier() * getPrestigeMultiplier()
+                * getEventMult("golden_hour");
         if (critical) earned *= 2;
         addEp(earned);
 
-        // MC generation (rare)
-        double mcChance = getEffectValue("mcFinder");
+        // MC generation
         double mcEarned = 0;
+        double mcChance = eff("mcChance");
         if (mcChance > 0 && Math.random() < mcChance) {
             mcEarned = 1;
             triggerDiscovery(5);
         }
-        if (isEventActive("crystal_rain")) {
-            mcEarned += 0.2;
-        }
+        if (isEventActive("crystal_rain")) mcEarned += 0.2;
         mc += mcEarned;
 
         return new ClickResponse(earned, result.fitnessGain, result.newFitness,
-                result.successCount, result.attemptCount, critical);
+                result.successCount, result.attemptCount, critical,
+                result.missStreak, result.hitStreak);
     }
 
     private double computeEpForFitnessGain(double gain) {
@@ -490,7 +554,6 @@ public class ClickerState {
         upgradeLevels.merge(upgradeId, 1, Integer::sum);
         totalUpgradesBought++;
         computeEpPerSecond();
-
         if (upgradeId.equals("auto_clicker") && getLevel("auto_clicker") == 1) {
             triggerDiscovery(2);
         }
@@ -520,15 +583,12 @@ public class ClickerState {
 
         gf += reward;
         ascensionCount++;
-
-        // Reset non-prestige state
         ep = 0;
         totalEpEarned = 0;
         mc = 0;
         autoClickAccumulator = 0;
         activeEvents.clear();
 
-        // Reset non-prestige upgrades
         upgradeLevels.entrySet().removeIf(e -> {
             UpgradeDef def = findUpgrade(e.getKey());
             return def != null && !def.currency.equals("gf");
@@ -536,7 +596,6 @@ public class ClickerState {
         totalUpgradesBought = upgradeLevels.values().stream().mapToInt(Integer::intValue).sum();
         computeEpPerSecond();
 
-        // Reset engine with potentially better init
         if (engine != null && palette != null) {
             engine.reset(getInitMethod(), palette, gridW, gridH, triWidth, triHeight, scale);
         }
@@ -549,20 +608,8 @@ public class ClickerState {
     //  COMPUTED VALUES
     // ════════════════════════════════════════════════════════════════
 
-    private void computeEpPerSecond() {
-        double base = 0;
-        for (UpgradeDef def : UPGRADES) {
-            int level = getLevel(def.id);
-            if (level > 0 && !def.currency.equals("gf")) {
-                base += level * 0.05 * (1 + def.baseCost / 200.0);
-            }
-        }
-        base *= getEpMultiplier() * getPrestigeMultiplier();
-        base *= getEventMultiplier("golden_hour");
-        epPerSecond = base;
-    }
-
-    public double getEffectValue(String effectId) {
+    /** Shorthand for getEffectValue */
+    private double eff(String effectId) {
         double total = 0;
         for (UpgradeDef def : UPGRADES) {
             if (def.effectTarget.equals(effectId)) {
@@ -572,10 +619,22 @@ public class ClickerState {
         return total;
     }
 
+    private void computeEpPerSecond() {
+        double base = 0;
+        for (UpgradeDef def : UPGRADES) {
+            int level = getLevel(def.id);
+            if (level > 0 && !def.currency.equals("gf")) {
+                base += level * 0.05 * (1 + def.baseCost / 200.0);
+            }
+        }
+        base *= getEpMultiplier() * getPrestigeMultiplier() * getEventMult("golden_hour");
+        epPerSecond = base;
+    }
+
     private double getEpMultiplier() {
         double total = 1.0;
         for (UpgradeDef def : UPGRADES) {
-            if (def.effectTarget.equals("epMultiplier") && def.effectType.equals("mult")) {
+            if (def.effectTarget.equals("epMult") && def.effectType.equals("mult")) {
                 total += getLevel(def.id) * def.effectPerLevel;
             }
         }
@@ -591,7 +650,7 @@ public class ClickerState {
         return 1.0 + gf * 0.005;
     }
 
-    private double getEventMultiplier(String eventId) {
+    private double getEventMult(String eventId) {
         double mult = 1.0;
         long now = System.currentTimeMillis();
         for (ActiveEvent ev : activeEvents) {
@@ -603,7 +662,7 @@ public class ClickerState {
     }
 
     private boolean isEventActive(String eventId) {
-        return getEventMultiplier(eventId) > 1.0;
+        return getEventMult(eventId) > 1.0;
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -626,6 +685,8 @@ public class ClickerState {
     private void checkAchievements(List<String> notifications) {
         double fitness = (engine != null && engine.isInitialized()) ? engine.getFitness() : 0;
         long successSwaps = (engine != null) ? engine.getSuccessfulSwaps() : 0;
+        int longestHit = (engine != null) ? engine.getLongestHitStreak() : 0;
+        int longestMiss = (engine != null) ? engine.getLongestMissStreak() : 0;
         int newUnlocks = 0;
 
         for (AchievementDef ad : ACHIEVEMENTS) {
@@ -639,6 +700,8 @@ public class ClickerState {
                 case "playTime" -> (totalPlayTimeMs / 1000) >= ad.threshold;
                 case "upgrades" -> totalUpgradesBought >= ad.threshold;
                 case "ascensions" -> ascensionCount >= ad.threshold;
+                case "hitStreak" -> longestHit >= ad.threshold;
+                case "missStreak" -> longestMiss >= ad.threshold;
                 default -> false;
             };
 
@@ -647,7 +710,6 @@ public class ClickerState {
                 totalAchievementsUnlocked++;
                 addEp(ad.epReward);
                 newUnlocks++;
-                // Rate limit: only queue a limited number of popups per tick
                 if (newUnlocks <= MAX_POPUPS_PER_TICK) {
                     achievementQueue.add(ad.id);
                 }
@@ -725,9 +787,20 @@ public class ClickerState {
         boolean engineReady = engine != null && engine.isInitialized();
         sb.append("  \"initialized\":").append(engineReady).append(",\n");
         sb.append("  \"fitness\":").append(engineReady ? engine.getFitness() : 0).append(",\n");
+        sb.append("  \"startingFitness\":").append(engineReady ? engine.getStartingFitness() : 0).append(",\n");
         sb.append("  \"totalSwaps\":").append(engineReady ? engine.getTotalSwaps() : 0).append(",\n");
         sb.append("  \"successSwaps\":").append(engineReady ? engine.getSuccessfulSwaps() : 0).append(",\n");
         sb.append("  \"triangleCount\":").append(engineReady ? engine.getTriangleCount() : 0).append(",\n");
+        sb.append("  \"missStreak\":").append(engineReady ? engine.getCurrentMissStreak() : 0).append(",\n");
+        sb.append("  \"hitStreak\":").append(engineReady ? engine.getCurrentHitStreak() : 0).append(",\n");
+        sb.append("  \"longestHitStreak\":").append(engineReady ? engine.getLongestHitStreak() : 0).append(",\n");
+        sb.append("  \"longestMissStreak\":").append(engineReady ? engine.getLongestMissStreak() : 0).append(",\n");
+
+        // Swap reach info
+        int swapDist = computeSwapDistance();
+        int n = engineReady ? engine.getTriangleCount() : 0;
+        String reachLabel = swapDist == 0 ? "Unlimited" : ((int)(100.0 * swapDist / Math.max(1, n)) + "%");
+        sb.append("  \"swapReach\":\"").append(reachLabel).append("\",\n");
 
         // Upgrades
         sb.append("  \"upgrades\":[\n");
@@ -843,7 +916,8 @@ public class ClickerState {
                               int durationSeconds, double strength, long startMs) {}
 
     public record ClickResponse(double earned, double fitnessGain, double newFitness,
-                                int successCount, int attemptCount, boolean critical) {}
+                                int successCount, int attemptCount, boolean critical,
+                                int missStreak, int hitStreak) {}
 
     // ════════════════════════════════════════════════════════════════
     //  HELPERS
@@ -864,7 +938,7 @@ public class ClickerState {
         return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
-    static String formatBigNumber(double n) {
+    static String fmtBig(double n) {
         if (n >= 1e12) return String.format("%.1fT", n / 1e12);
         if (n >= 1e9) return String.format("%.1fB", n / 1e9);
         if (n >= 1e6) return String.format("%.1fM", n / 1e6);
@@ -872,7 +946,7 @@ public class ClickerState {
         return String.format("%.0f", n);
     }
 
-    private static String formatDuration(long seconds) {
+    private static String fmtDuration(long seconds) {
         if (seconds >= 86400) return (seconds / 86400) + " day" + (seconds >= 172800 ? "s" : "");
         if (seconds >= 3600) return (seconds / 3600) + " hour" + (seconds >= 7200 ? "s" : "");
         if (seconds >= 60) return (seconds / 60) + " minute" + (seconds >= 120 ? "s" : "");

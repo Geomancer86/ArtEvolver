@@ -149,26 +149,28 @@ None of these are release-blocking; they are product/design follow-ups.
 
 ---
 
-## 6. Completed — Evolution Clicker Redesign (v2 — Balanced)
+## 6. Completed — Evolution Clicker Redesign (v3 — Polished)
 
-- **What was done**: Second complete rewrite of the Clicker game after playtesting feedback.
-  The previous version guaranteed improving swaps on every click, leading to immediate high
-  fitness and broken progression. The new version uses **random swaps with no guaranteed
-  success**, properly paced progression, and an upgrade tree that starts from zero.
-- **Core mechanic**: 1 click = 1 random two-triangle swap attempt. If the swap improves
-  fitness, it's applied and the player earns EP. If not, nothing changes ("Miss"). Upgrades
-  unlock retry cycles, multi-swap, distance control, and smart targeting — all from a
-  zero-capability baseline.
-- **Initialization**: Always starts with RANDOM shuffled colors for low starting fitness
-  (~5–15%). Smart and LAP init are prestige-only unlocks. ALL game state resets when a
-  new image is loaded (no stale progression).
-- **Pacing**: Cookie Clicker–inspired. Achievement popups rate-limited (1 every 4s, toast
-  format). MC currency hidden until meaningful EP earned. Prestige hidden until first
-  ascension. Event spawn rates reduced.
-- **Files modified**: `ClickerEngine.java` (random swap mechanic, retry cycles, distance,
-  success tracking), `ClickerState.java` (18 upgrades, 57 achievements, 6 events, full
-  reset on init), `DashboardServer.java` (updated click response fields), `clicker.html`
-  (success/fail feedback, paced toasts, success rate display).
+- **What was done**: Third iteration after playtesting. Previous v2 fixed the core mechanic
+  (random swaps, no guaranteed success) but had a dead upgrade (swap_distance), unlimited
+  starting range, and lacked game feel/juice.
+- **Core mechanic (unchanged)**: 1 click = 1 random two-triangle swap with LIMITED starting
+  distance. May succeed (apply, earn EP) or miss. No iterating until success.
+- **Key improvements in v3**:
+  - **Limited starting distance**: Base swaps restricted to nearby ~5% of grid. Swap Reach
+    upgrade progressively extends to full grid. Nearby swaps have higher natural success
+    rate — range is a real strategic decision.
+  - **Streak tracking**: Engine tracks consecutive hits/misses. Miss streaks build visible
+    tension, hit streaks feel rewarding. Hot Hand upgrade gives EP bonus for long streaks.
+    Drought Breaker hidden achievement (success after 20+ misses).
+  - **Click juice**: Triangle particle explosions on success. Green/red border flash.
+    Fitness milestone celebrations (screen flash at 5%, 10%, 15%... 99%).
+  - **Fixed dead upgrades**: Removed redundant swap_distance/local_focus, replaced with
+    single coherent Swap Reach upgrade. All upgrade effects properly wired.
+  - **Upgrade descriptions**: Strategic hints (e.g., "Pairs well with Retry Cycles").
+  - **65 achievements** (was 57): Added hit streak, miss streak, and Drought Breaker.
+- **Files modified**: `ClickerEngine.java`, `ClickerState.java`, `DashboardServer.java`,
+  `clicker.html`, `CHANGELOG.md`.
 - **Test suite**: Passes (`mvn test -pl artevolver-core`).
 
 ---

@@ -35,13 +35,13 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .init-overlay .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* Image area — the star of the show */
-.image-wrap{position:relative;cursor:pointer;border-radius:8px;overflow:hidden;box-shadow:0 0 20px rgba(0,229,255,.15);transition:box-shadow .2s,outline-color .15s;outline:3px solid transparent;user-select:none;-webkit-user-select:none;flex:1 1 auto;display:flex;align-items:center;justify-content:center;min-height:200px;max-height:calc(100vh - 280px)}
+/* Image area — the star of the show, fills all available space */
+.image-wrap{position:relative;cursor:pointer;border-radius:8px;overflow:hidden;box-shadow:0 0 20px rgba(0,229,255,.15);transition:box-shadow .2s,outline-color .15s;outline:3px solid transparent;user-select:none;-webkit-user-select:none;flex:1 1 0;min-height:0;width:100%}
 .image-wrap:hover{box-shadow:0 0 30px rgba(0,229,255,.3)}
 .image-wrap:active{transform:scale(.98)}
 .image-wrap.hit{outline-color:var(--green);box-shadow:0 0 30px rgba(105,240,174,.3)}
 .image-wrap.miss{outline-color:var(--red);box-shadow:0 0 20px rgba(255,82,82,.15)}
-.image-wrap img{display:block;max-width:100%;max-height:100%;object-fit:contain;image-rendering:pixelated}
+.image-wrap img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
 .click-hint{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);padding:4px 16px;border-radius:12px;font-size:12px;color:var(--text2);pointer-events:none}
 .fitness-area{text-align:center;width:100%;max-width:500px;flex-shrink:0}
 .fitness-pct{font-size:36px;font-weight:700;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-variant-numeric:tabular-nums;line-height:1.1}

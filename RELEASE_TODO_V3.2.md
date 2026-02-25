@@ -17,7 +17,7 @@
 | **Environment / platform notes** | 2 | No |
 | **Deferred (v3.3+)** | 3 | No |
 
-**Completed**: JaCoCo upgraded to 0.8.14 — test suite passes on Java 21 (see §0). Evolution Clicker fully redesigned with click-to-evolve mechanic (see §6).  
+**Completed**: JaCoCo upgraded to 0.8.14 — test suite passes on Java 21 (see §0). Evolution Clicker v4: content & polish pass with masterpiece completion system, 21 upgrades, 8 events, 75+ achievements (see §6).  
 **Recommendation**: Fix remaining **Critical** (version strings). Optionally fix **Should fix** and polish items. Then release with this document as the known-TODO appendix.
 
 ---
@@ -149,26 +149,50 @@ None of these are release-blocking; they are product/design follow-ups.
 
 ---
 
-## 6. Completed — Evolution Clicker Redesign (v3 — Polished)
+## 6. Completed — Evolution Clicker Redesign (v4 — Content & Polish Pass)
 
-- **What was done**: Third iteration after playtesting. Previous v2 fixed the core mechanic
-  (random swaps, no guaranteed success) but had a dead upgrade (swap_distance), unlimited
-  starting range, and lacked game feel/juice.
+- **What was done**: Fourth iteration — massive content and balance pass inspired by the
+  game design philosophies of Miyamoto, Meier, Wright, Kojima, Miyazaki, et al.
 - **Core mechanic (unchanged)**: 1 click = 1 random two-triangle swap with LIMITED starting
   distance. May succeed (apply, earn EP) or miss. No iterating until success.
-- **Key improvements in v3**:
-  - **Limited starting distance**: Base swaps restricted to nearby ~5% of grid. Swap Reach
-    upgrade progressively extends to full grid. Nearby swaps have higher natural success
-    rate — range is a real strategic decision.
-  - **Streak tracking**: Engine tracks consecutive hits/misses. Miss streaks build visible
-    tension, hit streaks feel rewarding. Hot Hand upgrade gives EP bonus for long streaks.
-    Drought Breaker hidden achievement (success after 20+ misses).
-  - **Click juice**: Triangle particle explosions on success. Green/red border flash.
-    Fitness milestone celebrations (screen flash at 5%, 10%, 15%... 99%).
-  - **Fixed dead upgrades**: Removed redundant swap_distance/local_focus, replaced with
-    single coherent Swap Reach upgrade. All upgrade effects properly wired.
-  - **Upgrade descriptions**: Strategic hints (e.g., "Pairs well with Retry Cycles").
-  - **65 achievements** (was 57): Added hit streak, miss streak, and Drought Breaker.
+
+### 6a. Masterpiece Completion System (new)
+
+- **The big loop**: When fitness reaches 85%+, the player can "Complete Masterpiece" —
+  earning GF based on final fitness (`floor(fitness * 50 + completedImages * 5)`),
+  incrementing the completed images counter, and performing a full reset. The player
+  then loads a new image in ArtEvolver for a fresh canvas.
+- **Three-tier progression**: Click → Upgrade → Ascend (medium loop) → Complete Image (big loop).
+- **Golden frame effect**: At 80%+ fitness, the evolving image gains a golden glow.
+- **Completion celebration overlay**: Stats summary, GF reward, "New Canvas" button.
+- **API endpoint**: `POST /api/clicker/complete`.
+
+### 6b. New Upgrades (21 total, was 18)
+
+- **Patience** (Intelligence): After 5+ consecutive misses, next success earns bonus EP.
+  Converts frustration into reward — Mikami-style tension/release.
+- **Canvas Mastery** (Prestige): +10% EP per completed masterpiece. Cross-image power
+  accumulation — the Wright emergent long-term loop.
+- **Eternal Reach** (Prestige): Permanent swap reach bonus that persists through ascensions.
+
+### 6c. New Events (8 total, was 6)
+
+- **Focus Mode**: Swap distance halved, 2x retry cycles (20s).
+- **Inspiration**: 5x EP from all sources (15s).
+
+### 6d. New Achievements (75+, was 65)
+
+- **Masterpiece milestones**: First Canvas, Gallery Owner (3), Museum Curator (5), Grand Master (10).
+- **GF milestones**: Golden Start (10), Golden Hoard (50), Golden Age (200), Gilded Legend (1000).
+- **Hidden discoveries**: Completionist (first masterpiece), Perfectionist (99%+ completion).
+
+### 6e. Balance Pass
+
+- Masterpiece reward halved from `fitness * 100` to `fitness * 50 + bonus` (85% → ~42 GF).
+- Ascension count NOT reset on masterpiece (prestige tab stays visible).
+- Achievement count properly reset on masterpiece for clean new-image experience.
+- Inspiration event (5x EP) is rare (0.05% per check) and short (15s) — impactful but not broken.
+
 - **Files modified**: `ClickerEngine.java`, `ClickerState.java`, `DashboardServer.java`,
   `clicker.html`, `CHANGELOG.md`.
 - **Test suite**: Passes (`mvn test -pl artevolver-core`).
@@ -190,7 +214,7 @@ No need to do these for v3.2.
 - [x] All 6 features implemented and merged to develop
 - [x] Code review pass — 6 bugs fixed
 - [x] **Full test suite passes** — JaCoCo 0.8.14 (see §0.1)
-- [x] Evolution Clicker redesign (click-to-evolve, 32 upgrades, image-centric UI) — see §6
+- [x] Evolution Clicker v4 (masterpiece system, 21 upgrades, 8 events, 75+ achievements) — see §6
 - [ ] Manual testing on primary machine
 - [ ] All documentation updated (README, CHANGELOG, ARCHITECTURE)
 - [ ] **Version bumped to 3.2.0** in POMs (currently 3.2.0-SNAPSHOT) and **version strings in launchers/HTML** (see 1.2)

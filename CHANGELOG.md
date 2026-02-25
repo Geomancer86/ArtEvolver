@@ -74,16 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   popups are rate-limited (max 1 every 4 seconds, queued as toasts instead of modal
   overlays). MC currency hidden until 2000+ EP earned. Prestige upgrades hidden until
   first ascension. Event spawn rate reduced (10-second intervals, low base probability).
-- **Upgrade tree (18 upgrades, 5 categories)**:
-  - **Click Power**: Retry Cycles (try N random pairs, keep best improving), Multi-Swap
-    (extra swap attempts per click), Swap Reach (extend distance from nearby-only to
-    grid-wide), Click Reward (base EP per click).
-  - **Automation**: Auto-Clicker (clicks/sec), Auto Precision, Auto Volume.
-  - **Intelligence**: Smart Pick (target worst triangles), Hot Hand (streak EP bonus).
-  - **Special (MC)**: Critical Swap, Crystal Finder, EP Overflow multiplier, Lucky Star
-    (event rate), Turbo Auto.
-  - **Prestige (GF)**: Eternal Cycles, Eternal Speed, Smart Genesis (Smart init unlock),
-    LAP Genesis (LAP Optimal init unlock).
+- **Upgrade tree (21 upgrades, 5 categories)** — see detailed breakdown below.
 - **Limited starting distance**: Base clicks swap only nearby triangles (~5% of grid).
   Swap Reach upgrade extends range progressively to full grid. Nearby swaps have
   naturally higher success rates — range is a meaningful strategic choice.
@@ -105,11 +96,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **API endpoints**: `POST /api/clicker/init`, `GET /api/clicker/image` (JPEG + ETag),
   `GET /api/clicker/reference`. Click response includes `successCount`, `attemptCount`,
   `missStreak`, `hitStreak`.
-- **Events (6)**: Swap Storm, Golden Hour, Crystal Rain, Auto Frenzy, Precision Wave,
-  Lucky Streak — all with low spawn rates for meaningful impact.
-- **65 achievements**: Fitness milestones (5%–99%), click milestones, successful swap
+- **Masterpiece completion system (the big loop)**: When fitness reaches 85%+, the player
+  can "Complete Masterpiece" — earning GF based on final fitness (`fitness * 50 + bonus`),
+  incrementing the completed images counter, and performing a full reset. The player then
+  loads a new image in ArtEvolver for a fresh canvas. This creates a three-tier progression:
+  click → upgrade → ascend (medium loop) → complete image (big loop). Each completed
+  masterpiece makes the next one faster via Canvas Mastery prestige upgrade.
+- **Upgrade tree (21 upgrades, 5 categories)**:
+  - **Click Power**: Retry Cycles, Multi-Swap, Swap Reach, Click Reward.
+  - **Automation**: Auto-Clicker, Auto Precision, Auto Volume.
+  - **Intelligence**: Smart Pick, Hot Hand (streak EP bonus), **Patience** (bonus EP after
+    5+ consecutive misses — even failure builds potential energy).
+  - **Special (MC)**: Critical Swap, Crystal Finder, EP Overflow multiplier, Lucky Star,
+    Turbo Auto.
+  - **Prestige (GF)**: Eternal Cycles, Eternal Speed, Smart Genesis, LAP Genesis,
+    **Canvas Mastery** (+10% EP per completed masterpiece — permanent cross-image power),
+    **Eternal Reach** (permanent swap reach that persists through ascensions).
+- **Events (8)**: Swap Storm, Golden Hour, Crystal Rain, Auto Frenzy, Precision Wave,
+  Lucky Streak, **Focus Mode** (halved distance, 2x retries), **Inspiration** (5x EP).
+- **75+ achievements**: Fitness milestones (5%–99%), click milestones, successful swap
   milestones, EP earned, play time, upgrade count, hit/miss streak milestones, prestige
-  count, 6 hidden discoveries (including Drought Breaker).
+  count, **masterpiece completion milestones** (First Canvas → Grand Master), **GF
+  accumulation milestones** (Golden Start → Gilded Legend), 8 hidden discoveries
+  (Drought Breaker, Completionist, Perfectionist).
+- **Golden frame effect**: At 80%+ fitness, the evolving image gains a golden glow/border
+  effect — visual feedback that you're approaching masterpiece territory.
+- **Completion celebration overlay**: Stats summary (final fitness, GF earned, total
+  completed), "New Canvas" button to seamlessly start the next image.
 - **Prestige resets image**: Ascending re-creates the triangle arrangement with potentially
   better initialization (Smart/LAP if unlocked) for a fresh optimization run.
 

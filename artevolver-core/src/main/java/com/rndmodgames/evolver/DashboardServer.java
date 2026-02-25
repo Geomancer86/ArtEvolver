@@ -74,6 +74,7 @@ public class DashboardServer {
         server.createContext("/api/clicker/click", this::handleClickerClick);
         server.createContext("/api/clicker/buy", this::handleClickerBuy);
         server.createContext("/api/clicker/prestige", this::handleClickerPrestige);
+        server.createContext("/api/clicker/complete", this::handleClickerComplete);
         server.createContext("/api/clicker/image", this::handleClickerImage);
         server.createContext("/api/clicker/reference", this::handleClickerReference);
         server.createContext("/api/image/", this::handleImage);
@@ -344,6 +345,25 @@ public class DashboardServer {
         boolean success = clickerState.ascend();
         String json = "{\"success\":" + success + ",\"gf\":" + clickerState.getGf()
                 + ",\"ascensions\":" + clickerState.getAscensionCount() + "}";
+        byte[] data = json.getBytes(StandardCharsets.UTF_8);
+        ex.getResponseHeaders().set("Content-Type", "application/json");
+        ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        ex.sendResponseHeaders(200, data.length);
+        ex.getResponseBody().write(data);
+        ex.close();
+    }
+
+    private void handleClickerComplete(HttpExchange ex) throws IOException {
+        ClickerState.MasterpieceResult result = clickerState.completeMasterpiece();
+        String json;
+        if (result != null) {
+            json = "{\"success\":true,\"gfReward\":" + result.gfReward()
+                    + ",\"finalFitness\":" + result.finalFitness()
+                    + ",\"completedImages\":" + result.totalCompleted()
+                    + ",\"totalGf\":" + clickerState.getGf() + "}";
+        } else {
+            json = "{\"success\":false}";
+        }
         byte[] data = json.getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().set("Content-Type", "application/json");
         ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");

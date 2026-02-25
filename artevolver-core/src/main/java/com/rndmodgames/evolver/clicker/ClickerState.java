@@ -41,6 +41,10 @@ public class ClickerState {
     private double epPerSecond = 0;
     private double autoClickAccumulator = 0;
 
+    // Masterpiece system — the big loop (Will Wright: emergent long-term goal)
+    private int completedImages = 0;
+    private double bestCompletionFitness = 0;
+
     // Active events
     private final List<ActiveEvent> activeEvents = new ArrayList<>();
     private long lastEventCheckMs = 0;
@@ -115,6 +119,10 @@ public class ClickerState {
                 "Consecutive successful swaps increase EP bonus. " +
                 "Hit streaks become more rewarding the longer they last.",
                 300, 1.25, 15, "ep", "streakBonus", 0.10, "flat"),
+        new UpgradeDef("patience", "Patience", "Intelligence",
+                "After 5+ consecutive misses, your next success earns bonus EP. " +
+                "Even failure has value — it builds up potential energy.",
+                180, 1.22, 10, "ep", "patienceBonus", 0.5, "flat"),
 
         // ─── SPECIAL (MC — rare currency) ───
         // Powerful but scarce. MC is precious.
@@ -156,6 +164,14 @@ public class ClickerState {
                 "Start with LAP Optimal initialization — provably the best " +
                 "possible starting arrangement. The ultimate prestige reward.",
                 100, 2.00, 1, "gf", "lapInit", 1, "flat"),
+        new UpgradeDef("canvas_mastery", "Canvas Mastery", "Prestige",
+                "Permanent +10% EP per completed masterpiece. " +
+                "Each finished image makes the next one easier.",
+                15, 1.70, 20, "gf", "canvasBonus", 0.10, "flat"),
+        new UpgradeDef("eternal_reach", "Eternal Reach", "Prestige",
+                "Permanent swap reach bonus that persists through ascensions. " +
+                "Your arm grows longer with each rebirth.",
+                10, 1.55, 15, "gf", "permReach", 1, "flat"),
     };
 
     // ════════════════════════════════════════════════════════════════
@@ -291,6 +307,32 @@ public class ClickerState {
         list.add(new AchievementDef("disc_drought_break", "Drought Breaker", "\uD83C\uDF27\uFE0F",
                 "Land a successful swap after 20+ consecutive misses", "discovery", 6, 300, 1.06, true));
 
+        // Masterpiece completion (Todd Howard: clear goals, freedom to pursue)
+        list.add(new AchievementDef("disc_complete", "Completionist", "\uD83D\uDDBC\uFE0F",
+                "Complete your first masterpiece", "discovery", 7, 500, 1.08, true));
+        list.add(new AchievementDef("disc_perfect", "Perfectionist", "\uD83D\uDC4C",
+                "Complete a masterpiece at 99%+ fitness", "discovery", 8, 2000, 1.15, true));
+
+        // Completed images milestones
+        int[] compTiers = {1, 3, 5, 10};
+        String[] compNames = {"First Canvas", "Gallery Owner", "Museum Curator", "Grand Master"};
+        String[] compIcons = {"\uD83D\uDDBC\uFE0F", "\uD83C\uDFDB\uFE0F", "\uD83C\uDFE0", "\uD83C\uDFF0"};
+        for (int i = 0; i < compTiers.length; i++) {
+            list.add(new AchievementDef("comp_" + i, compNames[i], compIcons[i],
+                    "Complete " + compTiers[i] + " masterpiece" + (compTiers[i] > 1 ? "s" : ""),
+                    "completedImages", compTiers[i],
+                    compTiers[i] * 500, 1 + (i + 1) * 0.02, false));
+        }
+
+        // GF accumulation milestones
+        double[] gfTiers = {10, 50, 200, 1000};
+        String[] gfNames = {"Golden Start", "Golden Hoard", "Golden Age", "Gilded Legend"};
+        for (int i = 0; i < gfTiers.length; i++) {
+            list.add(new AchievementDef("gf_" + i, gfNames[i], "\uD83E\uDE99",
+                    "Accumulate " + (int)gfTiers[i] + " GF", "totalGf", gfTiers[i],
+                    gfTiers[i] * 10, 1 + i * 0.01, false));
+        }
+
         return list.toArray(new AchievementDef[0]);
     }
 
@@ -311,6 +353,10 @@ public class ClickerState {
                 "Extra retry cycles!", 30, 3.0, 0.0005),
         new EventDef("lucky_streak", "Lucky Streak", "\uD83C\uDF40",
                 "2x critical chance!", 20, 2.0, 0.001),
+        new EventDef("focus_mode", "Focus Mode", "\uD83C\uDFAF",
+                "Swap distance halved, 2x retry cycles!", 20, 2.0, 0.0008),
+        new EventDef("inspiration", "Inspiration", "\uD83D\uDCA1",
+                "5x EP from all sources!", 15, 5.0, 0.0005),
     };
 
     // ════════════════════════════════════════════════════════════════
@@ -434,7 +480,7 @@ public class ClickerState {
      */
     private int computeSwapDistance() {
         int n = (engine != null) ? engine.getTriangleCount() : 4000;
-        int reachLevel = (int) eff("swapReach");
+        int reachLevel = (int) eff("swapReach") + (int) eff("permReach");
         int baseRange = Math.max(10, n / 20);
         int totalRange = baseRange + (int) (reachLevel * n * 0.05);
         return totalRange >= n ? 0 : totalRange;
@@ -472,6 +518,10 @@ public class ClickerState {
             swapsPerClick = (int) (swapsPerClick * getEventMult("swap_storm"));
         if (getEventMult("precision_wave") > 1)
             retryCycles += (int) getEventMult("precision_wave");
+        if (getEventMult("focus_mode") > 1) {
+            retryCycles *= 2;
+            swapDistance = Math.max(10, swapDistance / 2);
+        }
 
         // Record miss streak BEFORE the click for drought-break detection
         int missStreakBefore = engine.getCurrentMissStreak();
@@ -500,9 +550,16 @@ public class ClickerState {
             streakMult = 1.0 + streakBonusPct * Math.min(result.hitStreak, 50);
         }
 
-        double earned = (baseEp + fitnessBonus) * streakMult
+        // Patience bonus (Mikami: tension converts to reward)
+        double patienceMult = 1.0;
+        double patienceVal = eff("patienceBonus");
+        if (patienceVal > 0 && result.successCount > 0 && missStreakBefore >= 5) {
+            patienceMult = 1.0 + patienceVal;
+        }
+
+        double earned = (baseEp + fitnessBonus) * streakMult * patienceMult
                 * getEpMultiplier() * getPrestigeMultiplier()
-                * getEventMult("golden_hour");
+                * getEventMult("golden_hour") * getEventMult("inspiration");
         if (critical) earned *= 2;
         addEp(earned);
 
@@ -605,6 +662,64 @@ public class ClickerState {
     }
 
     // ════════════════════════════════════════════════════════════════
+    //  MASTERPIECE COMPLETION — the big loop
+    //
+    //  Will Wright: emergent long-term goals.
+    //  Todd Howard: "See that perfect image? You can complete it."
+    //  Complete the current image at high fitness, earn massive GF,
+    //  then load a new image for a fresh canvas with accumulated power.
+    // ════════════════════════════════════════════════════════════════
+
+    public static final double MASTERPIECE_MIN_FITNESS = 0.85;
+
+    public double calcMasterpieceReward() {
+        if (engine == null || !engine.isInitialized()) return 0;
+        double fitness = engine.getFitness();
+        if (fitness < MASTERPIECE_MIN_FITNESS) return 0;
+        return Math.floor(fitness * 50 + completedImages * 5);
+    }
+
+    public MasterpieceResult completeMasterpiece() {
+        if (engine == null || !engine.isInitialized()) return null;
+        double fitness = engine.getFitness();
+        if (fitness < MASTERPIECE_MIN_FITNESS) return null;
+
+        double gfReward = Math.floor(fitness * 50 + completedImages * 5);
+        gf += gfReward;
+        completedImages++;
+        bestCompletionFitness = Math.max(bestCompletionFitness, fitness);
+
+        triggerDiscovery(7);
+        if (fitness >= 0.99) triggerDiscovery(8);
+
+        // Full reset — new canvas required. Keep ascensionCount so prestige tab stays visible.
+        ep = 0;
+        totalEpEarned = 0;
+        mc = 0;
+        totalClicks = 0;
+        totalUpgradesBought = 0;
+        totalAchievementsUnlocked = 0;
+        epPerSecond = 0;
+        autoClickAccumulator = 0;
+        activeEvents.clear();
+        achievementQueue.clear();
+
+        upgradeLevels.entrySet().removeIf(e -> {
+            UpgradeDef def = findUpgrade(e.getKey());
+            return def != null && !def.currency.equals("gf");
+        });
+        totalUpgradesBought = upgradeLevels.values().stream().mapToInt(Integer::intValue).sum();
+        unlockedAchievements.clear();
+
+        engine = null;
+
+        return new MasterpieceResult(gfReward, fitness, completedImages);
+    }
+
+    public int getCompletedImages() { return completedImages; }
+    public double getBestCompletionFitness() { return bestCompletionFitness; }
+
+    // ════════════════════════════════════════════════════════════════
     //  COMPUTED VALUES
     // ════════════════════════════════════════════════════════════════
 
@@ -637,6 +752,11 @@ public class ClickerState {
             if (def.effectTarget.equals("epMult") && def.effectType.equals("mult")) {
                 total += getLevel(def.id) * def.effectPerLevel;
             }
+        }
+        // Canvas Mastery: bonus per completed masterpiece
+        double canvasVal = eff("canvasBonus");
+        if (canvasVal > 0 && completedImages > 0) {
+            total += completedImages * canvasVal;
         }
         for (AchievementDef ad : ACHIEVEMENTS) {
             if (unlockedAchievements.contains(ad.id)) {
@@ -702,6 +822,8 @@ public class ClickerState {
                 case "ascensions" -> ascensionCount >= ad.threshold;
                 case "hitStreak" -> longestHit >= ad.threshold;
                 case "missStreak" -> longestMiss >= ad.threshold;
+                case "completedImages" -> completedImages >= ad.threshold;
+                case "totalGf" -> gf >= ad.threshold;
                 default -> false;
             };
 
@@ -801,6 +923,10 @@ public class ClickerState {
         int n = engineReady ? engine.getTriangleCount() : 0;
         String reachLabel = swapDist == 0 ? "Unlimited" : ((int)(100.0 * swapDist / Math.max(1, n)) + "%");
         sb.append("  \"swapReach\":\"").append(reachLabel).append("\",\n");
+        sb.append("  \"completedImages\":").append(completedImages).append(",\n");
+        sb.append("  \"bestCompletionFitness\":").append(bestCompletionFitness).append(",\n");
+        sb.append("  \"masterpieceReward\":").append(calcMasterpieceReward()).append(",\n");
+        sb.append("  \"masterpieceMinFitness\":").append(MASTERPIECE_MIN_FITNESS).append(",\n");
 
         // Upgrades
         sb.append("  \"upgrades\":[\n");
@@ -918,6 +1044,8 @@ public class ClickerState {
     public record ClickResponse(double earned, double fitnessGain, double newFitness,
                                 int successCount, int attemptCount, boolean critical,
                                 int missStreak, int hitStreak) {}
+
+    public record MasterpieceResult(double gfReward, double finalFitness, int totalCompleted) {}
 
     // ════════════════════════════════════════════════════════════════
     //  HELPERS

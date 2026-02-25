@@ -122,6 +122,27 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 @keyframes milestoneIn{from{opacity:0;transform:translate(-50%,-50%) scale(.7)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 @keyframes milestoneOut{from{opacity:1}to{opacity:0;transform:translate(-50%,-40%) scale(1.1)}}
 
+/* Golden frame at high fitness (Sakaguchi: your masterpiece) */
+.image-wrap.golden-frame{box-shadow:0 0 30px rgba(255,215,64,.25),0 0 60px rgba(255,215,64,.1);outline:3px solid var(--gold)}
+.image-wrap.golden-frame:hover{box-shadow:0 0 40px rgba(255,215,64,.35),0 0 70px rgba(255,215,64,.15)}
+
+/* Masterpiece completion overlay */
+.complete-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:80;flex-direction:column;gap:16px;animation:fadeIn .5s}
+.complete-overlay.show{display:flex}
+.complete-card{background:linear-gradient(135deg,#1a1a2e,#2a1a3e);border:2px solid var(--gold);border-radius:16px;padding:32px 48px;text-align:center;max-width:500px}
+.complete-card h2{color:var(--gold);font-size:28px;margin-bottom:8px}
+.complete-card .complete-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin:16px 0;font-size:14px;text-align:left}
+.complete-card .cs-label{color:var(--text2)}
+.complete-card .cs-value{color:var(--text);font-weight:600;text-align:right}
+.complete-card .gf-reward{font-size:24px;color:var(--gold);font-weight:700;margin:12px 0}
+.complete-card .btn-row{display:flex;gap:12px;justify-content:center;margin-top:16px}
+.complete-card .btn-new{padding:10px 28px;background:linear-gradient(135deg,var(--cyan),var(--purple));border:none;border-radius:8px;color:#000;font-weight:700;font-size:15px;cursor:pointer}
+.complete-card .btn-new:hover{filter:brightness(1.2)}
+
+/* Masterpiece button */
+.masterpiece-btn{padding:6px 20px;background:linear-gradient(135deg,var(--gold),#ff6f00);border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer;font-size:12px;transition:opacity .2s,filter .2s;flex-shrink:0;animation:masterGlow 2s ease-in-out infinite}
+@keyframes masterGlow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.3)}}
+
 ::-webkit-scrollbar{width:6px}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
@@ -163,6 +184,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       <div class="ref-label">Source Image</div>
     </div>
     <button class="prestige-btn" id="prestigeBtn" onclick="doPrestige()">Ascend (0 GF)</button>
+    <button class="masterpiece-btn" id="masterpieceBtn" onclick="doMasterpiece()" style="display:none">Complete Masterpiece</button>
   </div>
   <div class="sidebar-right">
     <div class="ach-section-title">Achievements</div>
@@ -174,8 +196,18 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   </div>
   <div class="footer">
     <a href="/">Dashboard</a>
-    <span>ArtEvolver v3.2 &mdash; Evolution Clicker</span>
+    <span>ArtEvolver v3.2 &mdash; Evolution Clicker | <span id="footerCompleted">0</span> masterpieces</span>
     <a href="/clicker">Clicker</a>
+  </div>
+</div>
+
+<div class="complete-overlay" id="completeOverlay">
+  <div class="complete-card">
+    <h2>Masterpiece Complete!</h2>
+    <div id="completeStats" class="complete-stats"></div>
+    <div class="gf-reward" id="completeReward">+0 GF</div>
+    <p style="color:var(--text2);font-size:13px">Load a new image in ArtEvolver, then click below.</p>
+    <div class="btn-row"><button class="btn-new" onclick="newCanvas()">New Canvas</button></div>
   </div>
 </div>
 
@@ -245,6 +277,11 @@ async function refresh() {
   try {
     const res = await fetch('/api/clicker/state');
     state = await res.json();
+    if (!state.initialized) {
+      document.getElementById('initOverlay').style.display = 'flex';
+      document.getElementById('imageWrap').style.display = 'none';
+      return;
+    }
     updateUI();
   } catch (e) {}
 }
@@ -319,6 +356,24 @@ function updateUI() {
   const btn = document.getElementById('prestigeBtn');
   btn.textContent = 'Ascend (' + Math.floor(pr) + ' GF)';
   btn.classList.toggle('available', pr >= 1);
+
+  // Golden frame at high fitness (Sakaguchi: beauty emerging)
+  const wrap = document.getElementById('imageWrap');
+  wrap.classList.toggle('golden-frame', fitPct >= 80);
+
+  // Masterpiece button (Todd Howard: clear goal)
+  const mBtn = document.getElementById('masterpieceBtn');
+  const mReward = state.masterpieceReward || 0;
+  if (mReward >= 1 && fitPct >= (state.masterpieceMinFitness || 0.85) * 100) {
+    mBtn.style.display = '';
+    mBtn.textContent = 'Complete Masterpiece (+' + Math.floor(mReward) + ' GF)';
+  } else {
+    mBtn.style.display = 'none';
+  }
+
+  // Completed images counter
+  const fc = document.getElementById('footerCompleted');
+  if (fc) fc.textContent = state.completedImages || 0;
 
   renderStore();
   renderAchievements();
@@ -512,6 +567,39 @@ async function doPrestige() {
     refresh();
     refreshImage();
   } catch (e) {}
+}
+
+// ── Masterpiece completion (Will Wright: emergent long-term goal) ──
+async function doMasterpiece() {
+  if (!state) return;
+  const reward = state.masterpieceReward || 0;
+  if (reward < 1) return;
+  if (!confirm('Complete this masterpiece for ' + Math.floor(reward) + ' GF?\n\nEverything resets. Load a new image for your next canvas.')) return;
+  try {
+    const res = await fetch('/api/clicker/complete', {method:'POST'});
+    const data = await res.json();
+    if (data.success) {
+      showCompletionOverlay(data);
+    }
+  } catch (e) {}
+}
+
+function showCompletionOverlay(data) {
+  const stats = document.getElementById('completeStats');
+  stats.innerHTML =
+    '<div class="cs-label">Final Fitness</div><div class="cs-value">' + (data.finalFitness * 100).toFixed(2) + '%</div>' +
+    '<div class="cs-label">GF Earned</div><div class="cs-value" style="color:var(--gold)">+' + Math.floor(data.gfReward) + '</div>' +
+    '<div class="cs-label">Total GF</div><div class="cs-value">' + fmtNum(data.totalGf) + '</div>' +
+    '<div class="cs-label">Images Completed</div><div class="cs-value">' + data.completedImages + '</div>';
+  document.getElementById('completeReward').textContent = '+' + Math.floor(data.gfReward) + ' GF';
+  document.getElementById('completeOverlay').classList.add('show');
+  hitMilestones.clear();
+}
+
+function newCanvas() {
+  document.getElementById('completeOverlay').classList.remove('show');
+  document.getElementById('initOverlay').style.display = 'flex';
+  document.getElementById('imageWrap').style.display = 'none';
 }
 
 // ── Log ──

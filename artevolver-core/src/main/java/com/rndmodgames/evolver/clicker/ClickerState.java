@@ -929,6 +929,8 @@ public class ClickerState {
         sb.append("  \"achievementsUnlocked\":").append(totalAchievementsUnlocked).append(",\n");
         sb.append("  \"achievementsTotal\":").append(ACHIEVEMENTS.length).append(",\n");
         sb.append("  \"epPerSecond\":").append(epPerSecond).append(",\n");
+        sb.append("  \"autoClickRate\":").append(computeAutoClickRate()).append(",\n");
+        sb.append("  \"autoClickerLevel\":").append(getLevel("auto_clicker")).append(",\n");
         sb.append("  \"prestigeReward\":").append(calcPrestigeReward()).append(",\n");
         sb.append("  \"prestigeMultiplier\":").append(getPrestigeMultiplier()).append(",\n");
 

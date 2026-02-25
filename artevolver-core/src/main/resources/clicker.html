@@ -36,12 +36,12 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* Image area — the star of the show, fills all available space */
-.image-wrap{position:relative;cursor:pointer;border-radius:8px;overflow:hidden;box-shadow:0 0 20px rgba(0,229,255,.15);transition:box-shadow .2s,outline-color .15s;outline:3px solid transparent;user-select:none;-webkit-user-select:none;flex:1 1 0;min-height:0;width:100%}
+.image-wrap{position:relative;border-radius:8px;overflow:hidden;box-shadow:0 0 20px rgba(0,229,255,.15);transition:box-shadow .2s,outline-color .15s;outline:3px solid transparent;user-select:none;-webkit-user-select:none;flex:1 1 0;min-height:0;width:100%}
 .image-wrap:hover{box-shadow:0 0 30px rgba(0,229,255,.3)}
 .image-wrap:active{transform:scale(.98)}
 .image-wrap.hit{outline-color:var(--green);box-shadow:0 0 30px rgba(105,240,174,.3)}
 .image-wrap.miss{outline-color:var(--red);box-shadow:0 0 20px rgba(255,82,82,.15)}
-.image-wrap img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
+.image-wrap img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:pixelated;cursor:pointer}
 .click-hint{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);padding:4px 16px;border-radius:12px;font-size:12px;color:var(--text2);pointer-events:none}
 .fitness-area{text-align:center;width:100%;max-width:500px;flex-shrink:0}
 .fitness-pct{font-size:36px;font-weight:700;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-variant-numeric:tabular-nums;line-height:1.1}
@@ -139,6 +139,19 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .complete-card .btn-new{padding:10px 28px;background:linear-gradient(135deg,var(--cyan),var(--purple));border:none;border-radius:8px;color:#000;font-weight:700;font-size:15px;cursor:pointer}
 .complete-card .btn-new:hover{filter:brightness(1.2)}
 
+/* Auto-clicker visual (Cookie Clicker style) */
+.auto-display{display:none;align-items:center;gap:8px;padding:4px 0;flex-shrink:0;justify-content:center}
+.auto-display.active{display:flex}
+.auto-hands{display:flex;gap:2px;font-size:16px;line-height:1}
+.auto-hand{animation:autoClick 1s ease-in-out infinite;opacity:.7}
+.auto-hand:nth-child(2){animation-delay:.15s}
+.auto-hand:nth-child(3){animation-delay:.3s}
+.auto-hand:nth-child(4){animation-delay:.45s}
+.auto-hand:nth-child(5){animation-delay:.6s}
+.auto-hand:nth-child(6){animation-delay:.75s}
+@keyframes autoClick{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.2);opacity:1}}
+.auto-rate{font-size:11px;color:var(--cyan);font-weight:600;font-variant-numeric:tabular-nums}
+
 /* Masterpiece button */
 .masterpiece-btn{padding:6px 20px;background:linear-gradient(135deg,var(--gold),#ff6f00);border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer;font-size:12px;transition:opacity .2s,filter .2s;flex-shrink:0;animation:masterGlow 2s ease-in-out infinite}
 @keyframes masterGlow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.3)}}
@@ -168,6 +181,10 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       <div class="click-hint">Click to Swap Triangles</div>
     </div>
     <div class="streak-display" id="streakDisplay"></div>
+    <div class="auto-display" id="autoDisplay">
+      <div class="auto-hands" id="autoHands"></div>
+      <div class="auto-rate" id="autoRate"></div>
+    </div>
     <div class="fitness-area">
       <div class="fitness-pct" id="fitnessPct">0.0000%</div>
       <div class="fitness-bar"><div class="fitness-fill" id="fitnessFill" style="width:0%"></div></div>
@@ -305,6 +322,30 @@ function updateUI() {
   document.getElementById('swapTotal').textContent = fmtNum(state.totalSwaps);
   document.getElementById('reachVal').textContent = state.swapReach || '5%';
 
+  // Auto-clicker visual (Cookie Clicker hands)
+  const autoRate = state.autoClickRate || 0;
+  const autoLevel = state.autoClickerLevel || 0;
+  const autoEl = document.getElementById('autoDisplay');
+  if (autoRate > 0) {
+    autoEl.classList.add('active');
+    const handsEl = document.getElementById('autoHands');
+    const handCount = Math.min(autoLevel, 10);
+    if (handsEl.childElementCount !== handCount) {
+      handsEl.innerHTML = '';
+      for (let i = 0; i < handCount; i++) {
+        const h = document.createElement('span');
+        h.className = 'auto-hand';
+        h.textContent = '\uD83D\uDC46';
+        h.style.animationDelay = (i * 0.12) + 's';
+        handsEl.appendChild(h);
+      }
+    }
+    document.getElementById('autoRate').textContent =
+      autoRate.toFixed(1) + ' clicks/s';
+  } else {
+    autoEl.classList.remove('active');
+  }
+
   if (state.mc > 0 || state.totalEpEarned > 2000) {
     document.getElementById('mcWrap').style.display = 'flex';
     document.getElementById('mcVal').textContent = fmtNum(state.mc);
@@ -386,7 +427,8 @@ function updateUI() {
 }
 
 // ── Click handling — Miyamoto: the click must feel SATISFYING ──
-document.getElementById('imageWrap').addEventListener('click', async (e) => {
+// ONLY the <img> element registers clicks — not the wrapper, stats, or other UI.
+document.getElementById('evolveImg').addEventListener('click', async (e) => {
   if (clickBusy) return;
   clickBusy = true;
   const wrap = document.getElementById('imageWrap');

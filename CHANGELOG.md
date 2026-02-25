@@ -132,8 +132,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   completed), "New Canvas" button to seamlessly start the next image.
 - **Prestige resets image**: Ascending re-creates the triangle arrangement with potentially
   better initialization (Smart/LAP if unlocked) for a fresh optimization run.
+- **Auto-clicker visual**: When auto-clickers are active, animated hand icons and a
+  clicks/second rate display appear below the image (Cookie Clicker style). Hand count
+  scales with auto-clicker level (up to 10 hands).
 
-### Fixed — Code Review Bug Fixes (v3.2.0)
+### Fixed — Click Target & Code Review Bug Fixes (v3.2.0)
+
+- **Click target restricted to image only**: Game clicks now register only on the `<img>`
+  element, not the surrounding wrapper div. Prevents accidental clicks when interacting
+  with fitness stats, streak display, buttons, or other center-column UI elements.
 
 - **`autoOpenDashboard` now persisted**: The "Auto-open browser dashboard" setting was
   not saved/loaded between sessions despite having a `SettingsManager` key. Fixed in

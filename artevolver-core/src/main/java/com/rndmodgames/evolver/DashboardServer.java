@@ -69,10 +69,13 @@ public class DashboardServer {
         server.createContext("/", this::handleDashboard);
         server.createContext("/clicker", this::handleClicker);
         server.createContext("/api/state", this::handleState);
+        server.createContext("/api/clicker/init", this::handleClickerInit);
         server.createContext("/api/clicker/state", this::handleClickerState);
         server.createContext("/api/clicker/click", this::handleClickerClick);
         server.createContext("/api/clicker/buy", this::handleClickerBuy);
         server.createContext("/api/clicker/prestige", this::handleClickerPrestige);
+        server.createContext("/api/clicker/image", this::handleClickerImage);
+        server.createContext("/api/clicker/reference", this::handleClickerReference);
         server.createContext("/api/image/", this::handleImage);
         server.createContext("/api/export/", this::handleExport);
 
@@ -235,24 +238,43 @@ public class DashboardServer {
         ex.close();
     }
 
+    private void handleClickerInit(HttpExchange ex) throws IOException {
+        java.awt.image.BufferedImage sourceImage = artEvolver.getResizedOriginal();
+        if (sourceImage == null) {
+            String json = "{\"initialized\":false,\"error\":\"No source image loaded. Load an image in ArtEvolver first.\"}";
+            byte[] data = json.getBytes(StandardCharsets.UTF_8);
+            ex.getResponseHeaders().set("Content-Type", "application/json");
+            ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+            ex.sendResponseHeaders(200, data.length);
+            ex.getResponseBody().write(data);
+            ex.close();
+            return;
+        }
+
+        clickerState.initEngine(
+                sourceImage,
+                artEvolver.getPallete(),
+                artEvolver.getWidthTriangles(),
+                artEvolver.getHeightTriangles(),
+                artEvolver.getTriangleWidth(),
+                artEvolver.getTriangleHeight(),
+                artEvolver.getTriangleScaleHeight());
+
+        var engine = clickerState.getEngine();
+        String json = "{\"initialized\":true,\"triangleCount\":" + engine.getTriangleCount()
+                + ",\"initialFitness\":" + engine.getFitness() + "}";
+        byte[] data = json.getBytes(StandardCharsets.UTF_8);
+        ex.getResponseHeaders().set("Content-Type", "application/json");
+        ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        ex.sendResponseHeaders(200, data.length);
+        ex.getResponseBody().write(data);
+        ex.close();
+    }
+
     private void handleClickerState(HttpExchange ex) throws IOException {
         if (!ex.getRequestMethod().equals("GET")) { sendError(ex, 405); return; }
 
-        // Tick the game with real evolution data
-        double fitness = 0;
-        long iterPerSec = 0;
-        int generation = 0;
-        for (TournamentContestant c : contestants) {
-            if (!c.isFinished()) {
-                fitness = Math.max(fitness, c.getBestScore());
-                long elapsed = System.currentTimeMillis() - c.getStartTimeMs();
-                if (elapsed > 0) iterPerSec += c.getTotalIterations() * 1000 / elapsed;
-            }
-        }
-        EvolutionaryTournament evo = managerWindow.getEvoTournament();
-        if (evo != null) generation = evo.getGeneration();
-
-        clickerState.tick(fitness, iterPerSec, generation);
+        clickerState.tick();
 
         String json = clickerState.toJson();
         byte[] data = json.getBytes(StandardCharsets.UTF_8);
@@ -268,8 +290,14 @@ public class DashboardServer {
         if (!ex.getRequestMethod().equals("POST") && !ex.getRequestMethod().equals("GET")) {
             sendError(ex, 405); return;
         }
-        double earned = clickerState.click();
-        String json = "{\"earned\":" + earned + ",\"ep\":" + clickerState.getEp() + "}";
+        ClickerState.ClickResponse resp = clickerState.click();
+        String json = "{\"earned\":" + resp.earned()
+                + ",\"ep\":" + clickerState.getEp()
+                + ",\"fitness\":" + resp.newFitness()
+                + ",\"fitnessGain\":" + resp.fitnessGain()
+                + ",\"swapsApplied\":" + resp.swapsApplied()
+                + ",\"totalSwaps\":" + (clickerState.getEngine() != null ? clickerState.getEngine().getTotalSwaps() : 0)
+                + ",\"critical\":" + resp.critical() + "}";
         byte[] data = json.getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().set("Content-Type", "application/json");
         ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
@@ -313,6 +341,51 @@ public class DashboardServer {
                 + ",\"ascensions\":" + clickerState.getAscensionCount() + "}";
         byte[] data = json.getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().set("Content-Type", "application/json");
+        ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        ex.sendResponseHeaders(200, data.length);
+        ex.getResponseBody().write(data);
+        ex.close();
+    }
+
+    private void handleClickerImage(HttpExchange ex) throws IOException {
+        if (!ex.getRequestMethod().equals("GET")) { sendError(ex, 405); return; }
+
+        var engine = clickerState.getEngine();
+        if (engine == null || !engine.isInitialized()) { sendError(ex, 404); return; }
+
+        String clientEtag = ex.getRequestHeaders().getFirst("If-None-Match");
+        String currentEtag = Long.toHexString(engine.getJpegVersion());
+        if (clientEtag != null && clientEtag.equals(currentEtag)) {
+            ex.getResponseHeaders().set("ETag", currentEtag);
+            ex.sendResponseHeaders(304, -1);
+            ex.close();
+            return;
+        }
+
+        byte[] jpeg = engine.getRenderedImageAsJpeg();
+        if (jpeg == null) { sendError(ex, 500); return; }
+
+        ex.getResponseHeaders().set("Content-Type", "image/jpeg");
+        ex.getResponseHeaders().set("ETag", Long.toHexString(engine.getJpegVersion()));
+        ex.getResponseHeaders().set("Cache-Control", "no-cache");
+        ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        ex.sendResponseHeaders(200, jpeg.length);
+        ex.getResponseBody().write(jpeg);
+        ex.close();
+    }
+
+    private void handleClickerReference(HttpExchange ex) throws IOException {
+        if (!ex.getRequestMethod().equals("GET")) { sendError(ex, 405); return; }
+
+        var engine = clickerState.getEngine();
+        if (engine == null || engine.getReferenceImage() == null) { sendError(ex, 404); return; }
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(engine.getReferenceImage(), "jpg", baos);
+        byte[] data = baos.toByteArray();
+
+        ex.getResponseHeaders().set("Content-Type", "image/jpeg");
+        ex.getResponseHeaders().set("Cache-Control", "max-age=3600");
         ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
         ex.sendResponseHeaders(200, data.length);
         ex.getResponseBody().write(data);

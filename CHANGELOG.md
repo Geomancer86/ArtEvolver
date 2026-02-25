@@ -61,6 +61,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Settings toggle**: "Auto-open browser dashboard on start" checkbox in Evo Settings
   (default: enabled).
 
+### Rewritten — Evolution Clicker Game (v3.2.0)
+
+- **Click-to-evolve mechanic**: Each click performs real two-triangle color swaps on the
+  actual image using the DeltaFitnessEngine. The engine finds improving swaps in
+  O(pixels_per_triangle) — every click makes the image better.
+- **New `ClickerEngine` class**: Lightweight wrapper around DeltaFitnessEngine + ImageEvolver
+  triangle geometry. Supports configurable swap power, smart targeting, local search,
+  best-of-N candidate selection, and critical clicks.
+- **32 redesigned upgrades** across 5 categories (Click Power, Automation, Fitness
+  Engineering, Special, Prestige) — all directly affect the click-based mechanic instead
+  of mapping to unused EvolutionConfig parameters.
+- **Auto-clickers**: Unlockable automatic clicks that perform the same swap logic. Upgrades
+  for speed, power, intelligence, parallel streams, and turbo burst on manual click.
+- **Image-centric UI**: The evolving image is front-and-center. Click on it to evolve.
+  Live fitness progress bar, source image reference, combo indicator, EP popups.
+- **Independent from tournament**: Works with a single image, no tournament or population
+  needed. Initializes from the currently loaded source image in ArtEvolver.
+- **New API endpoints**: `POST /api/clicker/init`, `GET /api/clicker/image` (JPEG with ETag),
+  `GET /api/clicker/reference`. Modified click/state responses with fitness data.
+- **Rethemed events**: Swap Storm, Golden Hour, Crystal Rain, Auto Frenzy, Precision Wave,
+  Combo Freeze, Time Dilation, Lucky Streak.
+- **100+ achievements**: Fitness milestones, swap milestones, click milestones, EP earned,
+  auto-clicker milestones, prestige milestones, 10 hidden discovery achievements.
+- **Combo system**: Rapid clicks build a combo multiplier for bonus EP.
+- **MC generation**: Crystal Finder upgrade + Crystal Touch flat-per-click + event drops.
+- **Prestige resets image**: Ascending re-creates the triangle arrangement (with better init
+  from prestige upgrades) for a fresh optimization run with accumulated bonuses.
+
 ### Fixed — Code Review Bug Fixes (v3.2.0)
 
 - **`autoOpenDashboard` now persisted**: The "Auto-open browser dashboard" setting was

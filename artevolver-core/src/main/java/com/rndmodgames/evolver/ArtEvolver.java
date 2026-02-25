@@ -447,7 +447,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
     public ArtEvolver() throws IOException, URISyntaxException {
         
-        super("ArtEvolver v3.1");
+        super("ArtEvolver v3.2");
 
         //
         df.setMaximumFractionDigits(2);

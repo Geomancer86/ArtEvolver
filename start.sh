@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout 2>/dev/null || echo "unknown")
+
 echo ""
 echo " ============================================"
-echo "  ArtEvolver v3.2 - Launcher"
+echo "  ArtEvolver $PROJECT_VERSION - Launcher"
 echo " ============================================"
 echo ""
 
@@ -30,12 +32,19 @@ fi
 echo " [OK] Maven found"
 
 # -------------------------------------------------------------------
-# Build (skip if already compiled)
+# Build (skip if already compiled for this version)
 # -------------------------------------------------------------------
-if [ "$1" = "--rebuild" ] 2>/dev/null || \
-   [ ! -f "artevolver-core/target/classes/com/rndmodgames/evolver/ArtEvolver.class" ]; then
+NEED_BUILD=0
+[ ! -f "artevolver-core/target/classes/com/rndmodgames/evolver/ArtEvolver.class" ] && NEED_BUILD=1
+CACHED_VERSION=""
+[ -f "artevolver-core/target/.build-version" ] && CACHED_VERSION=$(cat "artevolver-core/target/.build-version")
+[ "$CACHED_VERSION" != "$PROJECT_VERSION" ] && NEED_BUILD=1
+
+if [ "$1" = "--rebuild" ] 2>/dev/null || [ "$NEED_BUILD" = "1" ]; then
     echo ""
     echo " Building ArtEvolver..."
+    [ -n "$CACHED_VERSION" ] && [ "$CACHED_VERSION" != "$PROJECT_VERSION" ] && \
+        echo " (Cache from $CACHED_VERSION - rebuilding for $PROJECT_VERSION)"
     echo ""
     mvn compile -pl artevolver-core -q || {
         echo " [ERROR] Build failed. Trying full rebuild..."
@@ -44,6 +53,7 @@ if [ "$1" = "--rebuild" ] 2>/dev/null || \
             exit 1
         }
     }
+    echo "$PROJECT_VERSION" > "artevolver-core/target/.build-version"
     echo " [OK] Build complete"
 else
     echo " [OK] Build exists (use --rebuild to force)"

@@ -17,7 +17,7 @@
 | **Environment / platform notes** | 2 | No |
 | **Deferred (v3.3+)** | 3 | No |
 
-**Completed**: JaCoCo upgraded to 0.8.14 — test suite passes on Java 21 (see §0).  
+**Completed**: JaCoCo upgraded to 0.8.14 — test suite passes on Java 21 (see §0). Evolution Clicker fully redesigned with click-to-evolve mechanic (see §6).  
 **Recommendation**: Fix remaining **Critical** (version strings). Optionally fix **Should fix** and polish items. Then release with this document as the known-TODO appendix.
 
 ---
@@ -149,7 +149,17 @@ None of these are release-blocking; they are product/design follow-ups.
 
 ---
 
-## 6. Deferred to v3.3+ (From POSTMORTEM_V3.1)
+## 6. Completed — Evolution Clicker Redesign
+
+- **What was done**: Complete rewrite of the Evolution Clicker from a passive stat-observer into an interactive click-to-evolve game.
+- **New files**: `ClickerEngine.java` — lightweight DeltaFitnessEngine wrapper for click-based triangle color swapping.
+- **Rewritten files**: `ClickerState.java` (32 upgrades, 100+ achievements, 8 events, ClickerEngine integration), `DashboardServer.java` (new /init, /image, /reference endpoints), `clicker.html` (image-centric UI).
+- **Core mechanic**: Each click finds and applies improving two-triangle color swaps using the existing DeltaFitnessEngine. No tournament or population needed — single image hill-climbing via user clicks.
+- **Test suite**: Passes (`mvn test -pl artevolver-core`).
+
+---
+
+## 6b. Deferred to v3.3+ (From POSTMORTEM_V3.1)
 
 - Separate autopilot from tournament (thin resource manager).
 - Statistical benchmarking (A/B with confidence intervals).
@@ -164,6 +174,7 @@ No need to do these for v3.2.
 - [x] All 6 features implemented and merged to develop
 - [x] Code review pass — 6 bugs fixed
 - [x] **Full test suite passes** — JaCoCo 0.8.14 (see §0.1)
+- [x] Evolution Clicker redesign (click-to-evolve, 32 upgrades, image-centric UI) — see §6
 - [ ] Manual testing on primary machine
 - [ ] All documentation updated (README, CHANGELOG, ARCHITECTURE)
 - [ ] **Version bumped to 3.2.0** in POMs (currently 3.2.0-SNAPSHOT) and **version strings in launchers/HTML** (see 1.2)

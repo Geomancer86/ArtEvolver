@@ -1,9 +1,12 @@
 @echo off
 setlocal enabledelayedexpansion
 
+for /f "delims=" %%v in ('mvn help:evaluate -Dexpression=project.version -q -DforceStdout 2^>nul') do set "PROJECT_VERSION=%%v"
+if not defined PROJECT_VERSION set "PROJECT_VERSION=unknown"
+
 echo.
 echo  ============================================
-echo   ArtEvolver v3.2 - Launcher
+echo   ArtEvolver %PROJECT_VERSION% - Launcher
 echo  ============================================
 echo.
 
@@ -38,23 +41,36 @@ if %errorlevel% neq 0 (
 echo  [OK] Maven found
 
 :: -------------------------------------------------------------------
-:: Build (skip if already compiled)
+:: Build (skip if already compiled for this version)
 :: -------------------------------------------------------------------
-if not exist "artevolver-core\target\classes\com\rndmodgames\evolver\ArtEvolver.class" (
+set "NEED_BUILD=0"
+if not exist "artevolver-core\target\classes\com\rndmodgames\evolver\ArtEvolver.class" set "NEED_BUILD=1"
+if exist "artevolver-core\target\.build-version" (
+    set /p "CACHED_VERSION=" <"artevolver-core\target\.build-version"
+) else (
+    set "CACHED_VERSION="
+)
+if not "!CACHED_VERSION!"=="%PROJECT_VERSION%" set "NEED_BUILD=1"
+
+if "!NEED_BUILD!"=="1" (
     echo.
     echo  Building ArtEvolver...
+    if defined CACHED_VERSION if not "!CACHED_VERSION!"=="%PROJECT_VERSION%" (
+        echo  (Cache from !CACHED_VERSION! - rebuilding for %PROJECT_VERSION%)
+    )
     echo.
     call mvn compile -pl artevolver-core -q
-    if %errorlevel% neq 0 (
+    if !errorlevel! neq 0 (
         echo.
         echo  [ERROR] Build failed. Trying full rebuild...
         call mvn clean compile -pl artevolver-core
-        if %errorlevel% neq 0 (
+        if !errorlevel! neq 0 (
             echo  [ERROR] Build failed. Check errors above.
             pause
             exit /b 1
         )
     )
+    echo %PROJECT_VERSION%> "artevolver-core\target\.build-version"
     echo  [OK] Build complete
 ) else (
     echo  [OK] Build exists (use --rebuild to force)
@@ -65,6 +81,7 @@ if "%1"=="--rebuild" (
     echo.
     echo  Forcing rebuild...
     call mvn clean compile -pl artevolver-core -q
+    echo %PROJECT_VERSION%> "artevolver-core\target\.build-version"
     echo  [OK] Rebuild complete
 )
 

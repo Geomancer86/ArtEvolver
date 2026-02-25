@@ -3,359 +3,368 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Evolution Clicker - ArtEvolver</title>
+<title>ArtEvolver v3.2 | Evolution Clicker</title>
 <style>
-:root {
-  --bg: #0a0e17;
-  --surface: #111827;
-  --surface2: #1a2236;
-  --surface3: #222d44;
-  --border: #2a3550;
-  --text: #e2e8f0;
-  --text-dim: #64748b;
-  --ep-color: #22d3ee;
-  --mc-color: #f472b6;
-  --gf-color: #fbbf24;
-  --green: #34d399;
-  --red: #f87171;
-  --blue: #60a5fa;
-  --purple: #a78bfa;
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a12;--surface:#12121f;--surface2:#1a1a2e;--border:#2a2a40;
+  --text:#e0e0f0;--text2:#8888aa;--cyan:#00e5ff;--purple:#b388ff;
+  --gold:#ffd740;--green:#69f0ae;--red:#ff5252;--mc-blue:#40c4ff;
 }
-* { margin:0; padding:0; box-sizing:border-box; }
-body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; font-size:13px; overflow:hidden; height:100vh; }
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;overflow-x:hidden}
+.app{display:grid;grid-template-columns:320px 1fr 300px;grid-template-rows:56px 1fr 40px;height:100vh;gap:0}
+.header{grid-column:1/-1;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:24px;z-index:10}
+.currency{display:flex;align-items:center;gap:6px;font-size:15px;font-weight:600}
+.currency .label{color:var(--text2);font-weight:400;font-size:12px}
+.currency .value{font-variant-numeric:tabular-nums}
+.ep-val{color:var(--cyan)}.mc-val{color:var(--mc-blue)}.gf-val{color:var(--gold)}
+.ep-rate{color:var(--text2);font-size:12px;margin-left:2px}
+.sidebar-left{background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:8px}
+.sidebar-right{background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;padding:8px}
+.center{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:16px;overflow-y:auto;gap:12px}
+.footer{grid-column:1/-1;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:20px;font-size:12px;color:var(--text2)}
+.footer a{color:var(--cyan);text-decoration:none}
 
-/* LAYOUT */
-.app { display:grid; grid-template-columns:320px 1fr 360px; grid-template-rows:auto 1fr auto; height:100vh; }
-.header { grid-column:1/-1; background:linear-gradient(135deg,#0f172a,#1e1b4b); border-bottom:1px solid var(--border); padding:8px 16px; display:flex; align-items:center; gap:12px; }
-.header h1 { font-size:16px; color:#fff; white-space:nowrap; }
-.header h1 em { font-style:normal; color:var(--ep-color); }
-.currency-bar { display:flex; gap:16px; margin-left:auto; }
-.curr { display:flex; align-items:center; gap:4px; padding:4px 12px; border-radius:8px; background:rgba(255,255,255,0.05); }
-.curr-icon { font-size:16px; }
-.curr-val { font-size:16px; font-weight:800; font-family:'Cascadia Mono',monospace; }
-.curr-ep .curr-val { color:var(--ep-color); }
-.curr-mc .curr-val { color:var(--mc-color); }
-.curr-gf .curr-val { color:var(--gf-color); }
-.curr-rate { font-size:10px; color:var(--text-dim); }
+/* Init overlay */
+.init-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:100;flex-direction:column;gap:16px}
+.init-overlay h2{color:var(--cyan);font-size:24px}
+.init-overlay p{color:var(--text2);max-width:400px;text-align:center;line-height:1.5}
+.init-overlay .btn{padding:12px 32px;background:linear-gradient(135deg,var(--cyan),var(--purple));border:none;border-radius:8px;color:#000;font-weight:700;font-size:16px;cursor:pointer}
+.init-overlay .btn:hover{filter:brightness(1.2)}
+.init-overlay .error{color:var(--red);margin-top:8px}
+.init-overlay .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-/* LEFT: UPGRADE STORE */
-.store { grid-column:1; background:var(--surface); border-right:1px solid var(--border); overflow-y:auto; }
-.store-tabs { display:flex; flex-wrap:wrap; gap:2px; padding:6px; background:var(--surface2); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:5; }
-.store-tab { padding:3px 8px; font-size:10px; border-radius:4px; cursor:pointer; background:transparent; border:1px solid var(--border); color:var(--text-dim); transition:all 0.2s; }
-.store-tab:hover { background:var(--surface3); color:var(--text); }
-.store-tab.active { background:var(--ep-color); color:#000; border-color:var(--ep-color); font-weight:700; }
-.store-list { padding:6px; }
-.upgrade-card { padding:8px 10px; margin-bottom:4px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); cursor:pointer; transition:all 0.15s; }
-.upgrade-card:hover { border-color:var(--ep-color); background:var(--surface3); transform:translateX(2px); }
-.upgrade-card.cant-afford { opacity:0.4; }
-.upgrade-card.maxed { opacity:0.5; border-color:var(--green); }
-.upgrade-card.hidden { display:none; }
-.upg-header { display:flex; justify-content:space-between; align-items:center; }
-.upg-name { font-size:12px; font-weight:700; }
-.upg-level { font-size:10px; color:var(--text-dim); font-family:monospace; }
-.upg-desc { font-size:10px; color:var(--text-dim); margin-top:2px; line-height:1.3; }
-.upg-cost { display:flex; align-items:center; gap:4px; margin-top:4px; font-size:11px; font-weight:700; }
-.upg-cost.ep { color:var(--ep-color); }
-.upg-cost.mc { color:var(--mc-color); }
-.upg-cost.gf { color:var(--gf-color); }
-
-/* CENTER: CLICK AREA */
-.center { grid-column:2; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; overflow:hidden; }
-.click-zone { position:relative; width:280px; height:280px; border-radius:50%; background:radial-gradient(circle,#1e3a5f,#0a0e17); border:3px solid var(--border); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-direction:column; transition:transform 0.1s,box-shadow 0.2s; user-select:none; }
-.click-zone:hover { box-shadow:0 0 40px rgba(34,211,238,0.15); }
-.click-zone:active { transform:scale(0.96); }
-.click-zone .big-fitness { font-size:42px; font-weight:900; background:linear-gradient(135deg,var(--ep-color),var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-align:center; }
-.click-zone .label { font-size:11px; color:var(--text-dim); margin-top:4px; }
-.click-zone .click-label { font-size:10px; color:var(--ep-color); margin-top:8px; opacity:0.7; }
-.ep-popup { position:absolute; pointer-events:none; font-weight:900; font-size:18px; color:var(--ep-color); text-shadow:0 0 8px rgba(34,211,238,0.5); animation:epFloat 1s ease-out forwards; z-index:10; }
-@keyframes epFloat { 0%{opacity:1;transform:translateY(0) scale(1)} 100%{opacity:0;transform:translateY(-60px) scale(1.3)} }
-.crit-popup { color:var(--gf-color)!important; font-size:28px!important; text-shadow:0 0 16px rgba(251,191,36,0.8)!important; }
-
-/* Stats below click zone */
-.stats-row { display:flex; gap:12px; margin-top:16px; flex-wrap:wrap; justify-content:center; }
-.stat-box { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:6px 12px; text-align:center; min-width:80px; }
-.stat-box .val { font-size:14px; font-weight:800; font-family:monospace; color:var(--ep-color); }
-.stat-box .lbl { font-size:9px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px; }
+/* Image area */
+.image-wrap{position:relative;cursor:pointer;border-radius:8px;overflow:hidden;box-shadow:0 0 20px rgba(0,229,255,.15);transition:box-shadow .2s}
+.image-wrap:hover{box-shadow:0 0 30px rgba(0,229,255,.3)}
+.image-wrap:active{transform:scale(.98)}
+.image-wrap img{display:block;max-width:100%;max-height:45vh;image-rendering:pixelated}
+.click-label{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);padding:4px 16px;border-radius:12px;font-size:12px;color:var(--text2);pointer-events:none}
+.fitness-area{text-align:center;width:100%;max-width:500px}
+.fitness-pct{font-size:48px;font-weight:700;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-variant-numeric:tabular-nums}
+.fitness-bar{width:100%;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-top:4px}
+.fitness-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));transition:width .3s ease;border-radius:4px}
+.stats-row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;font-size:13px;color:var(--text2)}
+.stats-row .stat-val{color:var(--text);font-weight:600}
+.ref-area{display:flex;align-items:center;gap:12px}
+.ref-area img{width:80px;height:auto;border-radius:4px;border:1px solid var(--border);image-rendering:pixelated}
+.ref-area .ref-label{font-size:12px;color:var(--text2)}
 
 /* Events bar */
-.events-bar { position:absolute; top:8px; left:8px; right:8px; display:flex; gap:4px; flex-wrap:wrap; }
-.event-pill { padding:3px 10px; border-radius:12px; font-size:10px; font-weight:700; background:rgba(251,191,36,0.15); border:1px solid rgba(251,191,36,0.3); color:var(--gf-color); animation:eventGlow 2s infinite; }
-@keyframes eventGlow { 0%,100%{box-shadow:0 0 4px rgba(251,191,36,0.2)} 50%{box-shadow:0 0 12px rgba(251,191,36,0.4)} }
+.events-bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.event-pill{display:flex;align-items:center;gap:4px;background:var(--surface2);padding:4px 10px;border-radius:16px;font-size:12px;border:1px solid var(--gold);color:var(--gold)}
+.event-pill .ev-time{color:var(--text2);margin-left:4px}
 
-/* Prestige bar */
-.prestige-bar { position:absolute; bottom:8px; left:16px; right:16px; }
-.prestige-btn { width:100%; padding:8px; border:1px solid rgba(251,191,36,0.3); border-radius:8px; background:rgba(251,191,36,0.05); color:var(--gf-color); font-size:11px; font-weight:700; cursor:pointer; text-align:center; transition:all 0.2s; }
-.prestige-btn:hover { background:rgba(251,191,36,0.15); box-shadow:0 0 20px rgba(251,191,36,0.2); }
-.prestige-btn.disabled { opacity:0.3; cursor:not-allowed; }
+/* Prestige button */
+.prestige-btn{padding:10px 28px;background:linear-gradient(135deg,var(--gold),#ff9100);border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer;font-size:14px;opacity:.5;transition:opacity .2s}
+.prestige-btn.available{opacity:1}
+.prestige-btn:hover{filter:brightness(1.1)}
 
-/* RIGHT: ACHIEVEMENTS */
-.sidebar { grid-column:3; background:var(--surface); border-left:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
-.sidebar-header { padding:8px 12px; background:var(--surface2); border-bottom:1px solid var(--border); font-size:12px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; }
-.achievements-grid { flex:1; overflow-y:auto; padding:8px; display:grid; grid-template-columns:repeat(auto-fill,minmax(48px,1fr)); gap:4px; align-content:start; }
-.ach { width:48px; height:48px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:22px; background:var(--surface2); border:1px solid var(--border); cursor:default; position:relative; transition:all 0.2s; }
-.ach.locked { filter:grayscale(1) brightness(0.3); }
-.ach.unlocked { border-color:var(--gf-color); box-shadow:0 0 8px rgba(251,191,36,0.2); }
-.ach:hover .ach-tooltip { display:block; }
-.ach-tooltip { display:none; position:absolute; bottom:54px; left:50%; transform:translateX(-50%); background:var(--surface3); border:1px solid var(--border); border-radius:6px; padding:6px 8px; white-space:nowrap; z-index:50; font-size:10px; min-width:120px; text-align:center; }
-.ach-tooltip .ach-t-name { font-weight:700; }
-.ach-tooltip .ach-t-desc { color:var(--text-dim); }
+/* EP popup */
+.ep-popup{position:fixed;pointer-events:none;font-weight:700;font-size:18px;color:var(--cyan);text-shadow:0 0 8px rgba(0,229,255,.5);z-index:50;animation:epFloat 1s ease-out forwards}
+.ep-popup.crit{font-size:26px;color:var(--gold);text-shadow:0 0 12px rgba(255,215,64,.6)}
+@keyframes epFloat{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-60px) scale(1.3)}}
 
-/* Notification log */
-.notif-log { height:160px; border-top:1px solid var(--border); overflow-y:auto; padding:8px; font-size:10px; font-family:monospace; color:var(--text-dim); }
-.notif-entry { padding:2px 0; border-bottom:1px solid rgba(42,53,80,0.5); }
-.notif-entry.achievement { color:var(--gf-color); }
-.notif-entry.event { color:var(--green); }
-.notif-entry.event-end { color:var(--red); opacity:0.7; }
+/* Combo indicator */
+.combo-indicator{font-size:14px;font-weight:700;color:var(--gold);text-align:center;min-height:20px}
 
-/* FOOTER */
-.footer { grid-column:1/-1; padding:4px 16px; background:var(--surface2); border-top:1px solid var(--border); font-size:10px; color:var(--text-dim); display:flex; justify-content:space-between; align-items:center; }
-.footer a { color:var(--ep-color); text-decoration:none; }
+/* Store */
+.store-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.store-tab{padding:4px 10px;border-radius:12px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--text2);transition:all .15s}
+.store-tab.active{border-color:var(--cyan);color:var(--cyan);background:var(--surface2)}
+.upgrade-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;cursor:pointer;transition:all .15s}
+.upgrade-card:hover{border-color:var(--cyan);background:rgba(0,229,255,.05)}
+.upgrade-card.cant-afford{opacity:.45;cursor:default}
+.upgrade-card.maxed{border-color:var(--green);opacity:.7}
+.upg-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}
+.upg-name{font-size:13px;font-weight:600}
+.upg-level{font-size:11px;color:var(--text2)}
+.upg-desc{font-size:11px;color:var(--text2);margin-bottom:4px}
+.upg-cost{font-size:12px;font-weight:600}
+.upg-cost.ep{color:var(--cyan)}.upg-cost.mc{color:var(--mc-blue)}.upg-cost.gf{color:var(--gold)}
 
-/* Achievement popup animation */
-.ach-popup { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--surface3); border:2px solid var(--gf-color); border-radius:16px; padding:24px 40px; text-align:center; z-index:1000; box-shadow:0 0 60px rgba(251,191,36,0.3); animation:achPop 0.4s ease-out; }
-.ach-popup .ach-popup-icon { font-size:48px; }
-.ach-popup .ach-popup-title { font-size:18px; font-weight:900; color:var(--gf-color); margin-top:8px; }
-.ach-popup .ach-popup-desc { font-size:12px; color:var(--text-dim); margin-top:4px; }
-@keyframes achPop { 0%{transform:translate(-50%,-50%) scale(0.5); opacity:0} 100%{transform:translate(-50%,-50%) scale(1); opacity:1} }
+/* Achievements */
+.ach-section-title{font-size:13px;font-weight:600;color:var(--text2);margin:8px 0 6px;text-transform:uppercase;letter-spacing:1px}
+.ach-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.ach-icon{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:20px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);opacity:.3;cursor:default;position:relative}
+.ach-icon.unlocked{opacity:1;border-color:var(--gold);box-shadow:0 0 6px rgba(255,215,64,.2)}
+.ach-icon.hidden{opacity:.15}
+.ach-icon:hover .ach-tooltip{display:block}
+.ach-tooltip{display:none;position:absolute;bottom:110%;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:11px;white-space:nowrap;z-index:20;color:var(--text)}
+
+/* Activity log */
+.log-section{margin-top:12px}
+.log-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
+.log-entries{max-height:200px;overflow-y:auto;font-size:11px;color:var(--text2)}
+.log-entry{padding:2px 0;border-bottom:1px solid var(--border)}
+
+/* Achievement popup */
+.ach-popup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:60;animation:fadeIn .3s}
+.ach-popup{background:var(--surface);border:2px solid var(--gold);border-radius:12px;padding:24px 32px;text-align:center;animation:popIn .3s}
+.ach-popup .icon{font-size:48px;margin-bottom:8px}
+.ach-popup .name{font-size:18px;font-weight:700;color:var(--gold);margin-bottom:4px}
+.ach-popup .desc{font-size:13px;color:var(--text2)}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes popIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
 
 /* Scrollbar */
-::-webkit-scrollbar { width:5px; }
-::-webkit-scrollbar-track { background:transparent; }
-::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
-
-@media(max-width:1100px) {
-  .app { grid-template-columns:280px 1fr; }
-  .sidebar { display:none; }
-}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 </style>
 </head>
 <body>
 <div class="app">
-
-<!-- HEADER -->
-<div class="header">
-  <h1><em>Evolution</em> Clicker</h1>
-  <div class="currency-bar">
-    <div class="curr curr-ep">
-      <span class="curr-icon">&#x26A1;</span>
-      <span class="curr-val" id="epVal">0</span>
-      <span class="curr-rate" id="epRate">0/s</span>
+  <div class="header">
+    <div class="currency"><span class="label">EP</span><span class="value ep-val" id="epVal">0</span><span class="ep-rate" id="epRate">(+0/s)</span></div>
+    <div class="currency" id="mcWrap" style="display:none"><span class="label">MC</span><span class="value mc-val" id="mcVal">0</span></div>
+    <div class="currency" id="gfWrap" style="display:none"><span class="label">GF</span><span class="value gf-val" id="gfVal">0</span></div>
+    <div style="flex:1"></div>
+    <div style="font-size:12px;color:var(--text2)">Clicks: <span id="clickCount">0</span> | Swaps: <span id="swapCount">0</span></div>
+  </div>
+  <div class="sidebar-left">
+    <div class="store-tabs" id="storeTabs"></div>
+    <div id="storeList"></div>
+  </div>
+  <div class="center">
+    <div class="events-bar" id="eventsBar"></div>
+    <div class="image-wrap" id="imageWrap" style="display:none">
+      <img id="evolveImg" alt="Evolving Image" draggable="false">
+      <div class="click-label">Click to Evolve!</div>
     </div>
-    <div class="curr curr-mc">
-      <span class="curr-icon">&#x1F48E;</span>
-      <span class="curr-val" id="mcVal">0</span>
+    <div class="combo-indicator" id="comboIndicator"></div>
+    <div class="fitness-area">
+      <div class="fitness-pct" id="fitnessPct">0.0000%</div>
+      <div class="fitness-bar"><div class="fitness-fill" id="fitnessFill" style="width:0%"></div></div>
     </div>
-    <div class="curr curr-gf" id="gfCurr" style="display:none">
-      <span class="curr-icon">&#x1F31F;</span>
-      <span class="curr-val" id="gfVal">0</span>
+    <div class="stats-row">
+      <span>Upgrades: <span class="stat-val" id="statUpgrades">0</span></span>
+      <span>Achievements: <span class="stat-val" id="statAch">0/0</span></span>
+      <span>Time: <span class="stat-val" id="statTime">0:00</span></span>
+    </div>
+    <div class="ref-area" id="refArea" style="display:none">
+      <img id="refImg" alt="Reference">
+      <div class="ref-label">Source Image</div>
+    </div>
+    <button class="prestige-btn" id="prestigeBtn" onclick="doPrestige()">Ascend (0 GF)</button>
+  </div>
+  <div class="sidebar-right">
+    <div class="ach-section-title">Achievements</div>
+    <div class="ach-grid" id="achGrid"></div>
+    <div class="log-section">
+      <div class="log-title">Activity Log</div>
+      <div class="log-entries" id="logEntries"></div>
     </div>
   </div>
-</div>
-
-<!-- LEFT STORE -->
-<div class="store">
-  <div class="store-tabs" id="storeTabs"></div>
-  <div class="store-list" id="storeList"></div>
-</div>
-
-<!-- CENTER CLICK ZONE -->
-<div class="center" id="centerArea">
-  <div class="events-bar" id="eventsBar"></div>
-  <div class="click-zone" id="clickZone">
-    <div class="big-fitness" id="bigFitness">0.00%</div>
-    <div class="label">Best Fitness</div>
-    <div class="click-label">Click to Evolve!</div>
-  </div>
-  <div class="stats-row">
-    <div class="stat-box"><div class="val" id="sClicks">0</div><div class="lbl">Clicks</div></div>
-    <div class="stat-box"><div class="val" id="sEpClick">1</div><div class="lbl">EP/Click</div></div>
-    <div class="stat-box"><div class="val" id="sUpgrades">0</div><div class="lbl">Upgrades</div></div>
-    <div class="stat-box"><div class="val" id="sAch">0/0</div><div class="lbl">Achievements</div></div>
-    <div class="stat-box"><div class="val" id="sTime">0:00</div><div class="lbl">Play Time</div></div>
-  </div>
-  <div class="prestige-bar" id="prestigeBar">
-    <button class="prestige-btn disabled" id="btnPrestige" onclick="doPrestige()">
-      &#x1F31F; ASCEND (earn 0 Genome Fragments)
-    </button>
+  <div class="footer">
+    <a href="/">Dashboard</a>
+    <span>ArtEvolver v3.2 - Clicker</span>
+    <a href="/clicker">Clicker</a>
   </div>
 </div>
 
-<!-- RIGHT SIDEBAR -->
-<div class="sidebar">
-  <div class="sidebar-header">Achievements (<span id="achCount">0</span>/<span id="achTotal">0</span>)</div>
-  <div class="achievements-grid" id="achGrid"></div>
-  <div class="sidebar-header">Activity Log</div>
-  <div class="notif-log" id="notifLog"></div>
+<div class="init-overlay" id="initOverlay">
+  <h2>Evolution Clicker</h2>
+  <p>Click to evolve an image by swapping triangle colors. Each click finds an improving swap — watch the image come alive!</p>
+  <button class="btn" id="initBtn" onclick="initClicker()">Initialize</button>
+  <div class="spinner" id="initSpinner" style="display:none"></div>
+  <div class="error" id="initError"></div>
 </div>
-
-<!-- FOOTER -->
-<div class="footer">
-  <span>ArtEvolver v3.2 | <a href="/">Dashboard</a> | <a href="/clicker">Clicker</a></span>
-  <span id="footerInfo">Refresh: 1s</span>
-</div>
-</div>
-
-<!-- Achievement popup overlay -->
-<div id="achPopupOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:999" onclick="dismissAchPopup()"></div>
-<div id="achPopup" class="ach-popup" style="display:none"></div>
 
 <script>
 const TICK_MS = 1000;
+const IMAGE_POLL_MS = 500;
 let state = null;
-let selectedTab = 'All';
-let achPopupQueue = [];
-let showingPopup = false;
+let activeTab = 'All';
+let imageVersion = 0;
+let logLines = [];
 
-// ─── FORMAT HELPERS ───
-function fmt(n) {
-  if (n >= 1e15) return (n/1e15).toFixed(2)+'Q';
-  if (n >= 1e12) return (n/1e12).toFixed(2)+'T';
-  if (n >= 1e9) return (n/1e9).toFixed(2)+'B';
-  if (n >= 1e6) return (n/1e6).toFixed(2)+'M';
-  if (n >= 1e3) return (n/1e3).toFixed(1)+'K';
-  if (n >= 100) return Math.floor(n).toString();
-  if (n >= 1) return n.toFixed(1);
-  return n.toFixed(2);
-}
-function fmtTime(ms) {
-  const s = Math.floor(ms/1000);
-  const h = Math.floor(s/3600);
-  const m = Math.floor((s%3600)/60);
-  const sec = s%60;
-  if (h > 0) return h+'h '+m+'m';
-  return m+':'+String(sec).padStart(2,'0');
-}
-
-// ─── CLICK HANDLER ───
-document.getElementById('clickZone').addEventListener('click', async (e) => {
-  const res = await fetch('/api/clicker/click');
-  const data = await res.json();
-  spawnEpPopup(e.clientX, e.clientY, data.earned);
-});
-
-function spawnEpPopup(x, y, amount) {
-  const el = document.createElement('div');
-  el.className = 'ep-popup' + (amount > 50 ? ' crit-popup' : '');
-  el.textContent = '+' + fmt(amount);
-  el.style.left = (x + (Math.random()-0.5)*40) + 'px';
-  el.style.top = (y - 10) + 'px';
-  document.getElementById('centerArea').appendChild(el);
-  setTimeout(() => el.remove(), 1000);
-}
-
-// ─── STORE ───
-function buildTabs(upgrades) {
-  const cats = ['All', ...new Set(upgrades.map(u => u.cat))];
-  const container = document.getElementById('storeTabs');
-  container.innerHTML = '';
-  cats.forEach(cat => {
-    const btn = document.createElement('div');
-    btn.className = 'store-tab' + (cat === selectedTab ? ' active' : '');
-    btn.textContent = cat;
-    btn.onclick = () => { selectedTab = cat; renderStore(); };
-    container.appendChild(btn);
-  });
-}
-
-function renderStore() {
-  if (!state) return;
-  const container = document.getElementById('storeList');
-  const tabs = document.getElementById('storeTabs');
-
-  // Update tab active state
-  tabs.querySelectorAll('.store-tab').forEach(t => {
-    t.className = 'store-tab' + (t.textContent === selectedTab ? ' active' : '');
-  });
-
-  container.innerHTML = '';
-  state.upgrades.forEach(u => {
-    if (!u.visible) return;
-    if (selectedTab !== 'All' && u.cat !== selectedTab) return;
-
-    const maxed = u.max > 0 && u.level >= u.max;
-    const card = document.createElement('div');
-    card.className = 'upgrade-card' + (!u.affordable && !maxed ? ' cant-afford' : '') + (maxed ? ' maxed' : '');
-
-    const costStr = maxed ? 'MAXED' : fmt(u.cost);
-    const currClass = u.currency;
-    const currSymbol = u.currency === 'ep' ? '\u26A1' : u.currency === 'mc' ? '\uD83D\uDC8E' : '\uD83C\uDF1F';
-
-    card.innerHTML = `
-      <div class="upg-header">
-        <span class="upg-name">${u.name}</span>
-        <span class="upg-level">${u.level}${u.max > 0 ? '/' + u.max : ''}</span>
-      </div>
-      <div class="upg-desc">${u.desc}</div>
-      <div class="upg-cost ${currClass}">${currSymbol} ${costStr}</div>
-    `;
-
-    if (!maxed) {
-      card.onclick = async () => {
-        await fetch('/api/clicker/buy?id=' + u.id);
-        refresh();
-      };
-      card.oncontextmenu = async (e) => {
-        e.preventDefault();
-        await fetch('/api/clicker/buy?id=' + u.id + '&max');
-        refresh();
-      };
+async function initClicker() {
+  const btn = document.getElementById('initBtn');
+  const spinner = document.getElementById('initSpinner');
+  const err = document.getElementById('initError');
+  btn.style.display = 'none';
+  spinner.style.display = 'block';
+  err.textContent = '';
+  try {
+    const res = await fetch('/api/clicker/init', {method:'POST'});
+    const data = await res.json();
+    if (data.initialized) {
+      document.getElementById('initOverlay').style.display = 'none';
+      document.getElementById('imageWrap').style.display = 'block';
+      refreshImage();
+      loadReference();
+      startPolling();
+    } else {
+      err.textContent = data.error || 'Failed to initialize';
+      btn.style.display = 'block';
+      spinner.style.display = 'none';
     }
-    container.appendChild(card);
-  });
-}
-
-// ─── ACHIEVEMENTS ───
-function renderAchievements() {
-  if (!state) return;
-  const grid = document.getElementById('achGrid');
-  grid.innerHTML = '';
-  state.achievements.forEach(a => {
-    if (!a.visible && !a.unlocked) return;
-    const el = document.createElement('div');
-    el.className = 'ach ' + (a.unlocked ? 'unlocked' : 'locked');
-    el.innerHTML = `<span>${a.unlocked ? a.icon : '?'}</span>
-      <div class="ach-tooltip">
-        <div class="ach-t-name">${a.unlocked ? a.name : '???'}</div>
-        <div class="ach-t-desc">${a.unlocked ? a.desc : 'Hidden achievement'}</div>
-      </div>`;
-    grid.appendChild(el);
-  });
-}
-
-// ─── ACHIEVEMENT POPUPS ───
-function showAchPopup(popup) {
-  showingPopup = true;
-  const el = document.getElementById('achPopup');
-  const overlay = document.getElementById('achPopupOverlay');
-  el.innerHTML = `<div class="ach-popup-icon">${popup.icon}</div>
-    <div class="ach-popup-title">${popup.name}</div>
-    <div class="ach-popup-desc">${popup.desc}</div>`;
-  el.style.display = 'block';
-  overlay.style.display = 'block';
-  setTimeout(dismissAchPopup, 3000);
-}
-
-function dismissAchPopup() {
-  document.getElementById('achPopup').style.display = 'none';
-  document.getElementById('achPopupOverlay').style.display = 'none';
-  showingPopup = false;
-  if (achPopupQueue.length > 0) {
-    setTimeout(() => showAchPopup(achPopupQueue.shift()), 300);
+  } catch (e) {
+    err.textContent = 'Connection error: ' + e.message;
+    btn.style.display = 'block';
+    spinner.style.display = 'none';
   }
 }
 
-// ─── NOTIFICATIONS ───
-function addNotification(text, type) {
-  const log = document.getElementById('notifLog');
-  const entry = document.createElement('div');
-  entry.className = 'notif-entry ' + type;
-  const time = new Date().toLocaleTimeString();
-  entry.textContent = '[' + time + '] ' + text;
-  log.insertBefore(entry, log.firstChild);
-  while (log.children.length > 100) log.removeChild(log.lastChild);
+function startPolling() {
+  refresh();
+  setInterval(refresh, TICK_MS);
+  setInterval(refreshImage, IMAGE_POLL_MS);
 }
 
-// ─── EVENTS BAR ───
+async function refresh() {
+  try {
+    const res = await fetch('/api/clicker/state');
+    state = await res.json();
+    updateUI();
+  } catch (e) {}
+}
+
+function refreshImage() {
+  const img = document.getElementById('evolveImg');
+  img.src = '/api/clicker/image?v=' + Date.now();
+}
+
+function loadReference() {
+  const area = document.getElementById('refArea');
+  const img = document.getElementById('refImg');
+  img.src = '/api/clicker/reference';
+  area.style.display = 'flex';
+}
+
+function updateUI() {
+  if (!state) return;
+
+  document.getElementById('epVal').textContent = fmtNum(state.ep);
+  document.getElementById('epRate').textContent = '(+' + fmtNum(state.epPerSecond) + '/s)';
+  document.getElementById('clickCount').textContent = fmtNum(state.totalClicks);
+  document.getElementById('swapCount').textContent = fmtNum(state.totalSwaps);
+
+  if (state.mc > 0 || state.totalEpEarned > 500) {
+    document.getElementById('mcWrap').style.display = 'flex';
+    document.getElementById('mcVal').textContent = fmtNum(state.mc);
+  }
+  if (state.gf > 0 || state.ascensionCount > 0) {
+    document.getElementById('gfWrap').style.display = 'flex';
+    document.getElementById('gfVal').textContent = fmtNum(state.gf);
+  }
+
+  const fitPct = (state.fitness * 100);
+  document.getElementById('fitnessPct').textContent = fitPct.toFixed(4) + '%';
+  document.getElementById('fitnessFill').style.width = fitPct + '%';
+
+  document.getElementById('statUpgrades').textContent = state.totalUpgrades;
+  document.getElementById('statAch').textContent = state.achievementsUnlocked + '/' + state.achievementsTotal;
+  document.getElementById('statTime').textContent = fmtTime(state.playTimeMs);
+
+  const pr = state.prestigeReward;
+  const btn = document.getElementById('prestigeBtn');
+  btn.textContent = 'Ascend (' + Math.floor(pr) + ' GF)';
+  btn.classList.toggle('available', pr >= 1);
+
+  if (state.combo > 1) {
+    document.getElementById('comboIndicator').textContent = state.combo + 'x Combo!';
+  } else {
+    document.getElementById('comboIndicator').textContent = '';
+  }
+
+  renderStore();
+  renderAchievements();
+  renderEvents();
+  processPopups();
+}
+
+// ── Click handling ──
+document.getElementById('imageWrap').addEventListener('click', async (e) => {
+  try {
+    const res = await fetch('/api/clicker/click', {method:'POST'});
+    const data = await res.json();
+    spawnPopup(e.clientX, e.clientY, data.earned, data.critical);
+    refreshImage();
+    const fitPct = (data.fitness * 100);
+    document.getElementById('fitnessPct').textContent = fitPct.toFixed(4) + '%';
+    document.getElementById('fitnessFill').style.width = fitPct + '%';
+  } catch (e) {}
+});
+
+function spawnPopup(x, y, amount, crit) {
+  const el = document.createElement('div');
+  el.className = 'ep-popup' + (crit ? ' crit' : '');
+  el.textContent = '+' + fmtNum(amount);
+  el.style.left = (x + (Math.random() - .5) * 40) + 'px';
+  el.style.top = (y - 10) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+// ── Store ──
+function renderStore() {
+  if (!state) return;
+  const cats = ['All', ...new Set(state.upgrades.filter(u => u.visible).map(u => u.cat))];
+  const tabsEl = document.getElementById('storeTabs');
+  if (tabsEl.childElementCount !== cats.length) {
+    tabsEl.innerHTML = '';
+    cats.forEach(cat => {
+      const t = document.createElement('div');
+      t.className = 'store-tab' + (cat === activeTab ? ' active' : '');
+      t.textContent = cat;
+      t.onclick = () => { activeTab = cat; renderStore(); };
+      tabsEl.appendChild(t);
+    });
+  } else {
+    tabsEl.querySelectorAll('.store-tab').forEach(t => {
+      t.classList.toggle('active', t.textContent === activeTab);
+    });
+  }
+
+  const list = document.getElementById('storeList');
+  list.innerHTML = '';
+  state.upgrades.filter(u => u.visible && (activeTab === 'All' || u.cat === activeTab)).forEach(u => {
+    const card = document.createElement('div');
+    const maxed = u.max > 0 && u.level >= u.max;
+    card.className = 'upgrade-card' + (maxed ? ' maxed' : (!u.affordable ? ' cant-afford' : ''));
+    card.innerHTML = `<div class="upg-header"><span class="upg-name">${esc(u.name)}</span><span class="upg-level">${u.level}/${u.max}</span></div><div class="upg-desc">${esc(u.desc)}</div><div class="upg-cost ${u.currency}">${maxed ? 'MAXED' : fmtNum(u.cost) + ' ' + u.currency.toUpperCase()}</div>`;
+    card.onclick = () => buyUpgrade(u.id);
+    card.oncontextmenu = (e) => { e.preventDefault(); buyMax(u.id); };
+    list.appendChild(card);
+  });
+}
+
+async function buyUpgrade(id) {
+  try { await fetch('/api/clicker/buy?id=' + id); refresh(); } catch (e) {}
+}
+async function buyMax(id) {
+  try { await fetch('/api/clicker/buy?id=' + id + '&max'); refresh(); } catch (e) {}
+}
+
+// ── Achievements ──
+function renderAchievements() {
+  if (!state) return;
+  const grid = document.getElementById('achGrid');
+  if (grid.childElementCount !== state.achievements.length) {
+    grid.innerHTML = '';
+    state.achievements.forEach(a => {
+      const el = document.createElement('div');
+      el.className = 'ach-icon' + (a.unlocked ? ' unlocked' : '') + (!a.visible ? ' hidden' : '');
+      el.textContent = a.visible ? a.icon : '?';
+      el.innerHTML += `<div class="ach-tooltip">${esc(a.visible ? a.name + ': ' + a.desc : '???')}</div>`;
+      el.id = 'ach-' + a.id;
+      grid.appendChild(el);
+    });
+  } else {
+    state.achievements.forEach(a => {
+      const el = document.getElementById('ach-' + a.id);
+      if (el) {
+        el.className = 'ach-icon' + (a.unlocked ? ' unlocked' : '') + (!a.visible ? ' hidden' : '');
+        el.firstChild.textContent = a.visible ? a.icon : '?';
+      }
+    });
+  }
+}
+
+// ── Events ──
 function renderEvents() {
   if (!state) return;
   const bar = document.getElementById('eventsBar');
@@ -363,79 +372,84 @@ function renderEvents() {
   state.events.forEach(ev => {
     const pill = document.createElement('div');
     pill.className = 'event-pill';
-    pill.textContent = ev.icon + ' ' + ev.name + ' (' + ev.remainSec + 's)';
+    pill.innerHTML = `${esc(ev.icon)} ${esc(ev.name)} <span class="ev-time">${ev.remainSec}s</span>`;
     bar.appendChild(pill);
   });
 }
 
-// ─── PRESTIGE ───
+// ── Achievement popups ──
+function processPopups() {
+  if (!state || !state.achievementPopups) return;
+  state.achievementPopups.forEach(p => showAchPopup(p));
+}
+
+function showAchPopup(p) {
+  const overlay = document.createElement('div');
+  overlay.className = 'ach-popup-overlay';
+  overlay.innerHTML = `<div class="ach-popup"><div class="icon">${esc(p.icon)}</div><div class="name">${esc(p.name)}</div><div class="desc">${esc(p.desc)}</div></div>`;
+  overlay.onclick = () => overlay.remove();
+  document.body.appendChild(overlay);
+  setTimeout(() => overlay.remove(), 3000);
+  addLog(p.icon + ' ' + p.name);
+}
+
+// ── Prestige ──
 async function doPrestige() {
   if (!state || state.prestigeReward < 1) return;
-  if (!confirm('ASCEND?\n\nYou will reset all progress except achievements and prestige upgrades.\nYou will earn ' + fmt(state.prestigeReward) + ' Genome Fragments.\n\nAre you sure?')) return;
-  await fetch('/api/clicker/prestige');
-  refresh();
-  addNotification('ASCENDED! Earned Genome Fragments.', 'achievement');
+  if (!confirm('Ascend for ' + Math.floor(state.prestigeReward) + ' GF? EP, MC, and non-prestige upgrades will be reset.')) return;
+  try {
+    await fetch('/api/clicker/prestige', {method:'POST'});
+    refresh();
+    refreshImage();
+  } catch (e) {}
 }
 
-// ─── MAIN UPDATE ───
-async function refresh() {
+// ── Log ──
+function addLog(msg) {
+  logLines.unshift(msg);
+  if (logLines.length > 50) logLines.pop();
+  const el = document.getElementById('logEntries');
+  el.innerHTML = logLines.map(l => `<div class="log-entry">${esc(l)}</div>`).join('');
+}
+
+// ── Helpers ──
+function fmtNum(n) {
+  if (n == null || isNaN(n)) return '0';
+  if (n >= 1e12) return (n/1e12).toFixed(1) + 'T';
+  if (n >= 1e9) return (n/1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  if (n >= 100) return Math.floor(n).toString();
+  if (n >= 1) return n.toFixed(1);
+  return n.toFixed(2);
+}
+function fmtTime(ms) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return h + ':' + String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
+  return m + ':' + String(sec).padStart(2,'0');
+}
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Auto-init check ──
+(async function() {
   try {
     const res = await fetch('/api/clicker/state');
-    state = await res.json();
-  } catch(e) { return; }
-
-  // Currencies
-  document.getElementById('epVal').textContent = fmt(state.ep);
-  document.getElementById('epRate').textContent = fmt(state.epPerSecond) + '/s';
-  document.getElementById('mcVal').textContent = fmt(state.mc);
-  if (state.ascensionCount > 0 || state.gf > 0) {
-    document.getElementById('gfCurr').style.display = '';
-    document.getElementById('gfVal').textContent = fmt(state.gf);
-  }
-
-  // Big fitness
-  document.getElementById('bigFitness').textContent = state.highestFitness > 0
-    ? (state.highestFitness * 100).toFixed(2) + '%' : '0.00%';
-
-  // Stats
-  document.getElementById('sClicks').textContent = fmt(state.totalClicks);
-  document.getElementById('sEpClick').textContent = fmt(state.epPerClick);
-  document.getElementById('sUpgrades').textContent = state.totalUpgrades;
-  document.getElementById('sAch').textContent = state.achievementsUnlocked + '/' + state.achievementsTotal;
-  document.getElementById('sTime').textContent = fmtTime(state.playTimeMs);
-  document.getElementById('achCount').textContent = state.achievementsUnlocked;
-  document.getElementById('achTotal').textContent = state.achievementsTotal;
-
-  // Prestige
-  const btn = document.getElementById('btnPrestige');
-  if (state.prestigeReward >= 1) {
-    btn.className = 'prestige-btn';
-    btn.innerHTML = '\uD83C\uDF1F ASCEND (earn ' + fmt(state.prestigeReward) + ' Genome Fragments)';
-  } else {
-    btn.className = 'prestige-btn disabled';
-    btn.innerHTML = '\uD83C\uDF1F ASCEND (need more EP to earn fragments)';
-  }
-
-  // Store
-  if (!document.getElementById('storeTabs').children.length) buildTabs(state.upgrades);
-  renderStore();
-  renderAchievements();
-  renderEvents();
-
-  // Achievement popups
-  if (state.achievementPopups && state.achievementPopups.length > 0) {
-    state.achievementPopups.forEach(p => {
-      addNotification(p.icon + ' ' + p.name + ' - ' + p.desc, 'achievement');
-      achPopupQueue.push(p);
-    });
-    if (!showingPopup && achPopupQueue.length > 0) {
-      showAchPopup(achPopupQueue.shift());
+    const d = await res.json();
+    if (d.initialized) {
+      document.getElementById('initOverlay').style.display = 'none';
+      document.getElementById('imageWrap').style.display = 'block';
+      refreshImage();
+      loadReference();
+      startPolling();
     }
-  }
-}
-
-refresh();
-setInterval(refresh, TICK_MS);
+  } catch (e) {}
+})();
 </script>
 </body>
 </html>

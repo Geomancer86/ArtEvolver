@@ -41,13 +41,14 @@ public class DashboardServer {
     private final boolean standaloneMode;
 
     // Standalone mode: image uploaded via browser
+    // Defaults match the full app's QUALITY_MODE_FULL_THREADS preset (720x468 canvas)
     private volatile BufferedImage uploadedImage;
     private volatile Palette uploadedPalette;
     private static final int DEFAULT_WIDTH_TRI = 80;
     private static final int DEFAULT_HEIGHT_TRI = 53;
-    private static final float DEFAULT_TRI_WIDTH = 2.5f;
-    private static final float DEFAULT_TRI_HEIGHT = 2.5f;
-    private static final float DEFAULT_TRI_SCALE = 1.0f;
+    private static final float DEFAULT_TRI_WIDTH = 9.0f;
+    private static final float DEFAULT_TRI_HEIGHT = 9.0f;
+    private static final float DEFAULT_TRI_SCALE = 3.0f;
     private static final int DEFAULT_PALETTES = 4;
 
     private static final int THUMBNAIL_CACHE_MAX = 100;

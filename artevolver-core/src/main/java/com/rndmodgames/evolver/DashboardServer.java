@@ -397,7 +397,7 @@ public class DashboardServer {
         boolean success = clickerState.ascend();
         String json = "{\"success\":" + success + ",\"gf\":" + clickerState.getGf()
                 + ",\"ascensions\":" + clickerState.getAscensionCount()
-                + ",\"needsNewImage\":true"
+                + ",\"needsNewImage\":" + success
                 + ",\"galleryCount\":" + clickerState.getGallery().size() + "}";
         byte[] data = json.getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().set("Content-Type", "application/json");

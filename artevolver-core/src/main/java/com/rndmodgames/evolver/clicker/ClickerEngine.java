@@ -57,6 +57,8 @@ public class ClickerEngine {
      * {@code startingFitness} is captured after init, before any clicks — all
      * progress (EP, achievements) is measured as gain from this baseline.
      */
+    private static final int LAP_MAX_TRIANGLES = 2000;
+
     public synchronized void init(BufferedImage sourceImage, Palette palette,
                                   int gridW, int gridH,
                                   float triWidth, float triHeight, float scale,
@@ -65,13 +67,21 @@ public class ClickerEngine {
         this.imageWidth = sourceImage.getWidth();
         this.imageHeight = sourceImage.getHeight();
 
+        int effectiveMethod = initMethod;
+        int estimatedTriangles = gridW * gridH * 2;
+        if (effectiveMethod == ImageEvolver.INIT_LAP_OPTIMAL && estimatedTriangles > LAP_MAX_TRIANGLES) {
+            System.out.println("[ClickerEngine] LAP too expensive for " + estimatedTriangles
+                    + " triangles (limit " + LAP_MAX_TRIANGLES + "), falling back to SMART");
+            effectiveMethod = ImageEvolver.INIT_SMART;
+        }
+
         int savedMethod = ImageEvolver.INITIALIZATION_METHOD;
         boolean savedSmart = ImageEvolver.SMART_INITIALIZATION;
         boolean savedShuffle = ImageEvolver.SHUFFLE_PALETTE;
         try {
-            ImageEvolver.INITIALIZATION_METHOD = initMethod;
-            ImageEvolver.SMART_INITIALIZATION = (initMethod == ImageEvolver.INIT_SMART);
-            ImageEvolver.SHUFFLE_PALETTE = (initMethod == ImageEvolver.INIT_RANDOM);
+            ImageEvolver.INITIALIZATION_METHOD = effectiveMethod;
+            ImageEvolver.SMART_INITIALIZATION = (effectiveMethod == ImageEvolver.INIT_SMART);
+            ImageEvolver.SHUFFLE_PALETTE = (effectiveMethod == ImageEvolver.INIT_RANDOM);
 
             ImageEvolver evolver = new ImageEvolver(
                     1, gridW, 2, scale, palette,

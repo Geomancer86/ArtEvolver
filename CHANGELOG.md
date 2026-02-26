@@ -199,6 +199,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Gallery Play again**: Custom-image gallery cards (standalone mode) have "Play again" button to
   load stored image and start a fresh run without browsing folders.
 
+### Fixed — Masterpiece Completion Flow (v3.2.0)
+
+- **Completion overlay hidden by init overlay**: After completing a masterpiece, the polling
+  `refresh()` would show the init overlay (because `state.initialized` becomes false) and
+  cover the completion overlay (z-index 80 vs 100). Users never saw the masterpiece stats.
+  Fix: `refresh()` no longer shows init overlay when the completion overlay is visible.
+  Completion overlay z-index raised to 120 so it stays on top.
+- **Stuck on loading spinner**: Race between completion and poll could leave the UI in an
+  inconsistent state. `newCanvas()` now explicitly resets init button, spinner, and error
+  state when opening the init overlay.
+- **Standalone mode after masterpiece**: `uploadedImage`/`uploadedPalette` now cleared on
+  masterpiece completion so users must drop or pick a new image. Completion hint text
+  updated: standalone shows "Click New Canvas to drop or pick a new image"; non-standalone
+  shows "Load a new image in ArtEvolver".
+- **POST body consumption**: `handleClickerComplete` now consumes the request body to
+  prevent potential connection hangs with HTTP keep-alive.
+
 ### Fixed — Click Target & Code Review Bug Fixes (v3.2.0)
 
 - **Click target restricted to image only**: Game clicks now register only on the `<img>`

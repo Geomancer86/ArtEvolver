@@ -81,8 +81,9 @@ philosophies of Miyamoto, Meier, Wright, Kojima, Miyazaki, et al.
 - Full reset, then player loads a new image for a fresh canvas.
 - Three-tier progression: Click -> Upgrade -> Ascend -> Complete Image.
 - Golden frame effect at 80%+ fitness.
-- Completion celebration overlay with stats, GF reward, "New Canvas" button.
+- Completion celebration overlay with stats (final fitness, GF earned, total GF, images completed), GF reward, "New Canvas" button.
 - API endpoint: `POST /api/clicker/complete`.
+- **Flow**: Completion overlay stays on top (z-index 120); poll does not show init overlay while completion is visible. New Canvas → init overlay → drop/pick image → Begin. Standalone: `uploadedImage` cleared so user must explicitly pick a new image.
 
 ### Upgrades (21 total)
 

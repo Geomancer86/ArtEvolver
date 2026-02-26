@@ -506,13 +506,19 @@ public class DashboardServer {
     }
 
     private void handleClickerComplete(HttpExchange ex) throws IOException {
+        consumeRequestBody(ex);
         ClickerState.MasterpieceResult result = clickerState.completeMasterpiece();
         String json;
         if (result != null) {
+            if (standaloneMode) {
+                uploadedImage = null;
+                uploadedPalette = null;
+            }
             json = "{\"success\":true,\"gfReward\":" + result.gfReward()
                     + ",\"finalFitness\":" + result.finalFitness()
                     + ",\"completedImages\":" + result.totalCompleted()
-                    + ",\"totalGf\":" + clickerState.getGf() + "}";
+                    + ",\"totalGf\":" + clickerState.getGf()
+                    + ",\"standaloneMode\":" + standaloneMode + "}";
         } else {
             json = "{\"success\":false}";
         }
@@ -964,6 +970,12 @@ public class DashboardServer {
         ex.sendResponseHeaders(200, data.length);
         ex.getResponseBody().write(data);
         ex.close();
+    }
+
+    private void consumeRequestBody(HttpExchange ex) throws IOException {
+        try (InputStream is = ex.getRequestBody()) {
+            is.readAllBytes();
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════

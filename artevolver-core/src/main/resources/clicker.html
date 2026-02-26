@@ -140,7 +140,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .image-wrap.golden-frame:hover{box-shadow:0 0 40px rgba(255,215,64,.35),0 0 70px rgba(255,215,64,.15)}
 
 /* Masterpiece completion overlay */
-.complete-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:80;flex-direction:column;gap:16px;animation:fadeIn .5s}
+.complete-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:120;flex-direction:column;gap:16px;animation:fadeIn .5s}
 .complete-overlay.show{display:flex}
 .complete-card{background:linear-gradient(135deg,#1a1a2e,#2a1a3e);border:2px solid var(--gold);border-radius:16px;padding:32px 48px;text-align:center;max-width:500px}
 .complete-card h2{color:var(--gold);font-size:28px;margin-bottom:8px}
@@ -298,7 +298,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     <h2>Masterpiece Complete!</h2>
     <div id="completeStats" class="complete-stats"></div>
     <div class="gf-reward" id="completeReward">+0 GF</div>
-    <p style="color:var(--text2);font-size:13px">Load a new image in ArtEvolver, then click below.</p>
+    <p style="color:var(--text2);font-size:13px" id="completeHint">Click New Canvas to pick your next image and start again.</p>
     <div class="btn-row"><button class="btn-new" onclick="newCanvas()">New Canvas</button></div>
   </div>
 </div>
@@ -707,8 +707,11 @@ async function refresh() {
     state = await res.json();
     isStandalone = !!state.standaloneMode;
     if (!state.initialized) {
-      document.getElementById('initOverlay').style.display = 'flex';
-      document.getElementById('imageWrap').style.display = 'none';
+      const completeShown = document.getElementById('completeOverlay').classList.contains('show');
+      if (!completeShown) {
+        document.getElementById('initOverlay').style.display = 'flex';
+        document.getElementById('imageWrap').style.display = 'none';
+      }
       return;
     }
     updateUI();
@@ -1078,8 +1081,12 @@ async function doMasterpiece() {
     if (data.success) {
       SFX.play('masterpiece');
       showCompletionOverlay(data);
+    } else {
+      alert('Masterpiece completion failed. Fitness may have changed.');
     }
-  } catch (e) {}
+  } catch (e) {
+    alert('Connection error: ' + (e.message || 'Unknown error'));
+  }
 }
 
 function showCompletionOverlay(data) {
@@ -1090,6 +1097,10 @@ function showCompletionOverlay(data) {
     '<div class="cs-label">Total GF</div><div class="cs-value">' + fmtNum(data.totalGf) + '</div>' +
     '<div class="cs-label">Images Completed</div><div class="cs-value">' + data.completedImages + '</div>';
   document.getElementById('completeReward').textContent = '+' + Math.floor(data.gfReward) + ' GF';
+  const hint = document.getElementById('completeHint');
+  hint.textContent = (data.standaloneMode || isStandalone)
+    ? 'Click New Canvas to drop or pick a new image, then click Begin.'
+    : 'Load a new image in ArtEvolver, then click New Canvas.';
   document.getElementById('completeOverlay').classList.add('show');
   hitMilestones.clear();
 }
@@ -1098,7 +1109,11 @@ function newCanvas() {
   document.getElementById('completeOverlay').classList.remove('show');
   document.getElementById('initOverlay').style.display = 'flex';
   document.getElementById('imageWrap').style.display = 'none';
+  document.getElementById('initBtn').style.display = 'block';
+  document.getElementById('initSpinner').style.display = 'none';
+  document.getElementById('initError').textContent = '';
   selectedSample = null;
+  pendingFile = null;
   loadSamples();
 }
 

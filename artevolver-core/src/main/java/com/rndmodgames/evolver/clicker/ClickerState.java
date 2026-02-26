@@ -85,7 +85,12 @@ public class ClickerState {
             long totalClicks, long successSwaps, long playTimeMs,
             int ascensionCount, long timestamp) {}
 
-    public record SampleProgress(double bestFitness, double bestGain, int playCount, boolean completed) {}
+    public record SampleProgress(double bestFitness, double bestGain, int playCount, boolean completed,
+                                int ascensionsCount, long totalPlayTimeMs, long totalClicks) {
+        public SampleProgress(double bestFitness, double bestGain, int playCount, boolean completed) {
+            this(bestFitness, bestGain, playCount, completed, 0, 0, 0);
+        }
+    }
 
     private long lifetimeClicks;
     private double lifetimeEpEarned;
@@ -485,6 +490,19 @@ public class ClickerState {
             engine = new ClickerEngine();
         }
         engine.init(sourceImage, palette, gridW, gridH, triWidth, triHeight, scale, getInitMethod());
+
+        if (currentSampleId != null) {
+            SampleProgress prev = sampleProgress.get(currentSampleId);
+            int plays = prev != null ? prev.playCount() + 1 : 1;
+            sampleProgress.put(currentSampleId, new SampleProgress(
+                    prev != null ? prev.bestFitness() : 0,
+                    prev != null ? prev.bestGain() : 0,
+                    plays,
+                    prev != null ? prev.completed() : false,
+                    prev != null ? prev.ascensionsCount() : 0,
+                    prev != null ? prev.totalPlayTimeMs() : 0,
+                    prev != null ? prev.totalClicks() : 0));
+        }
         return null;
     }
 
@@ -540,10 +558,13 @@ public class ClickerState {
             double f = engine.getFitness(), g = f - engine.getStartingFitness();
             SampleProgress prev = sampleProgress.get(currentSampleId);
             sampleProgress.put(currentSampleId, new SampleProgress(
-                    Math.max(prev != null ? prev.bestFitness : 0, f),
-                    Math.max(prev != null ? prev.bestGain : 0, g),
-                    prev != null ? prev.playCount : 1,
-                    (prev != null && prev.completed) || f >= MASTERPIECE_MIN_FITNESS));
+                    Math.max(prev != null ? prev.bestFitness() : 0, f),
+                    Math.max(prev != null ? prev.bestGain() : 0, g),
+                    prev != null ? prev.playCount() : 1,
+                    (prev != null && prev.completed()) || f >= MASTERPIECE_MIN_FITNESS,
+                    prev != null ? prev.ascensionsCount() : 0,
+                    prev != null ? prev.totalPlayTimeMs() : 0,
+                    prev != null ? prev.totalClicks() : 0));
         }
 
         tickEvents(notifications);
@@ -776,7 +797,7 @@ public class ClickerState {
         double reward = calcPrestigeReward();
         if (reward < 1) return false;
 
-        saveGallerySnapshot();
+        saveGallerySnapshot(true);
 
         gf += reward;
         ascensionCount++;
@@ -888,17 +909,25 @@ public class ClickerState {
     }
 
     private void saveGallerySnapshot() {
+        saveGallerySnapshot(false);
+    }
+
+    private void saveGallerySnapshot(boolean fromAscension) {
         if (engine == null || !engine.isInitialized()) return;
         double finalFit = engine.getFitness();
         double gain = finalFit - engine.getStartingFitness();
         if (currentSampleId != null) {
             SampleProgress prev = sampleProgress.get(currentSampleId);
-            int plays = prev != null ? prev.playCount + 1 : 1;
+            int plays = prev != null ? prev.playCount() : 1;
             boolean completed = finalFit >= MASTERPIECE_MIN_FITNESS;
+            int asc = (prev != null ? prev.ascensionsCount() : 0) + (fromAscension ? 1 : 0);
+            long totTime = (prev != null ? prev.totalPlayTimeMs() : 0) + totalPlayTimeMs;
+            long totClicks = (prev != null ? prev.totalClicks() : 0) + totalClicks;
             sampleProgress.put(currentSampleId, new SampleProgress(
-                    Math.max(prev != null ? prev.bestFitness : 0, finalFit),
-                    Math.max(prev != null ? prev.bestGain : 0, gain),
-                    plays, prev != null ? prev.completed || completed : completed));
+                    Math.max(prev != null ? prev.bestFitness() : 0, finalFit),
+                    Math.max(prev != null ? prev.bestGain() : 0, gain),
+                    plays, prev != null ? prev.completed() || completed : completed,
+                    asc, totTime, totClicks));
         }
         byte[] thumb = engine.generateThumbnail(120);
         if (thumb == null) return;
@@ -919,7 +948,8 @@ public class ClickerState {
         sb.append("[");
         for (int i = 0; i < gallery.size(); i++) {
             GalleryEntry g = gallery.get(i);
-            sb.append("{\"thumbnail\":\"data:image/jpeg;base64,").append(g.thumbnailBase64).append("\",");
+            sb.append("{\"fingerprint\":").append(g.fingerprint()).append(",");
+            sb.append("\"thumbnail\":\"data:image/jpeg;base64,").append(g.thumbnailBase64).append("\",");
             sb.append("\"startFitness\":").append(g.startFitness).append(",");
             sb.append("\"finalFitness\":").append(g.finalFitness).append(",");
             sb.append("\"fitnessGain\":").append(g.fitnessGain).append(",");
@@ -1012,6 +1042,9 @@ public class ClickerState {
             sb.append("\"bestFitness\":").append(prog != null ? prog.bestFitness() : 0).append(",");
             sb.append("\"bestGain\":").append(prog != null ? prog.bestGain() : 0).append(",");
             sb.append("\"playCount\":").append(prog != null ? prog.playCount() : 0).append(",");
+            sb.append("\"ascensionsCount\":").append(prog != null ? prog.ascensionsCount() : 0).append(",");
+            sb.append("\"totalPlayTimeMs\":").append(prog != null ? prog.totalPlayTimeMs() : 0).append(",");
+            sb.append("\"totalClicks\":").append(prog != null ? prog.totalClicks() : 0).append(",");
             sb.append("\"completed\":").append(prog != null && prog.completed()).append("}");
             if (i < defs.size() - 1) sb.append(",");
         }

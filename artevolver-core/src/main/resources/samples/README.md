@@ -2,9 +2,22 @@
 
 *Miyamoto: discovery. Wright: multiple paths. Kojima: secrets. Sid Meier: meaningful gates.*
 
-## Iconic Art (Legendary Tier)
+## Real Images (Recommended)
 
-Replace placeholders with public-domain images from Wikimedia Commons:
+Run `DownloadSampleImages` to fetch CC0 images from Picsum (landscapes, nature) and Wikimedia Commons (iconic art):
+
+```bash
+# From artevolver-core
+mvn exec:java -Dexec.mainClass="com.rndmodgames.evolver.clicker.DownloadSampleImages"
+```
+
+- **Picsum** — Starter and Apprentice samples (landscape, ocean, forest, sunset, flowers, mountain, canyon, lake, meadow, beach) get real photos.
+- **Wikimedia** — Legendary art (Mona Lisa, Starry Night, Great Wave, etc.). May hit rate limits (HTTP 429); add delays or retries if needed.
+- Stored in `samples/{id}.jpg`. Missing files fall back to `GenerateSamplePlaceholders` (gradient placeholders).
+
+## Iconic Art (Legendary Tier) — Manual Replacement
+
+Replace placeholders with public-domain images from Wikimedia Commons if downloads fail:
 
 | ID | Title | Artist | Source |
 |----|-------|--------|--------|
@@ -40,3 +53,7 @@ Secret: secret_suffer, secret_grind, secret_ascended, secret_gilded, secret_omeg
 ## Generated Samples
 
 The **Generated** category (gradient_sunset, circles, checker, etc.) uses programmatic fallbacks. Always available for testing.
+
+## Custom Images (My Images)
+
+Custom uploads are saved to `~/.artevolver/clicker-uploads/{fingerprint}.png` on first use. They appear in the init overlay under "My Images" and in the Gallery with a "Play again" button for easy re-use.

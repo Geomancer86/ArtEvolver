@@ -168,6 +168,8 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .gallery-card .gc-gain{color:var(--green);font-weight:700;font-size:13px;grid-column:1/-1;text-align:center;padding:2px 0}
 .gallery-card .gc-number{position:absolute;top:6px;left:6px;background:rgba(0,0,0,.7);color:var(--gold);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px}
 .gallery-card .gc-img-wrap{position:relative}
+.gallery-play-btn{margin-top:6px;padding:4px 12px;background:var(--cyan);border:none;border-radius:6px;color:#000;font-size:11px;font-weight:600;cursor:pointer;width:100%}
+.gallery-play-btn:hover{filter:brightness(1.2)}
 .gallery-close{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text2);font-size:24px;cursor:pointer}
 .gallery-close:hover{color:var(--text)}
 .gallery-btn{cursor:pointer;color:var(--gold);text-decoration:underline;background:none;border:none;font-size:12px;font-family:inherit}
@@ -330,6 +332,10 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     <input type="file" id="fileInput" accept="image/*">
     <img class="drop-preview" id="dropPreview" alt="Preview">
     <div class="drop-name" id="dropName"></div>
+  </div>
+  <div class="sample-section" id="myImagesSection" style="display:none">
+    <div class="sample-section-title">My Images (easy to find again)</div>
+    <div class="sample-grid" id="myImagesGrid"></div>
   </div>
   <div class="sample-section" id="sampleSection">
     <div class="sample-section-title">Or pick a sample</div>
@@ -1116,6 +1122,8 @@ async function openGallery() {
       const gainPct = (e.fitnessGain * 100).toFixed(2);
       const finalPct = (e.finalFitness * 100).toFixed(2);
       const startPct = (e.startFitness * 100).toFixed(2);
+      const playAgainBtn = (e.fingerprint != null && state && state.standaloneMode) ?
+        '<button class="gallery-play-btn" onclick="playAgainFromGallery(\'' + e.fingerprint + '\')">Play again</button>' : '';
       card.innerHTML =
         '<div class="gc-img-wrap"><img src="' + esc(e.thumbnail) + '" alt="Image ' + (i + 1) + '"><div class="gc-number">#' + (i + 1) + '</div></div>' +
         '<div class="gc-stats">' +
@@ -1126,6 +1134,7 @@ async function openGallery() {
           '<div class="gc-label">Swaps</div><div class="gc-val">' + fmtNum(e.swaps) + '</div>' +
           '<div class="gc-label">Time</div><div class="gc-val">' + fmtTime(e.playTimeMs) + '</div>' +
           '<div class="gc-label">Ascensions</div><div class="gc-val">' + e.ascensions + '</div>' +
+          playAgainBtn +
         '</div>';
       grid.appendChild(card);
     });
@@ -1138,12 +1147,66 @@ function closeGallery() {
   document.getElementById('galleryOverlay').classList.remove('show');
 }
 
+async function playAgainFromGallery(fingerprint) {
+  closeGallery();
+  selectedSample = 'custom:' + fingerprint;
+  document.getElementById('initOverlay').style.display = 'flex';
+  document.getElementById('imageWrap').style.display = 'none';
+  loadSamples();
+  document.getElementById('initBtn').textContent = 'Begin with My Image';
+  document.getElementById('initError').textContent = '';
+}
+
+let myImagesData = [];
+
 async function loadSamples() {
   try {
-    const res = await fetch('/api/clicker/samples');
-    samplesData = await res.json();
+    const [samplesRes, myRes] = await Promise.all([
+      fetch('/api/clicker/samples'),
+      fetch('/api/clicker/my-images')
+    ]);
+    samplesData = await samplesRes.json();
+    const myJson = await myRes.json();
+    myImagesData = myJson.images || [];
     renderSampleGrid();
+    renderMyImagesGrid();
+    const sec = document.getElementById('myImagesSection');
+    if (sec) sec.style.display = myImagesData.length > 0 ? 'block' : 'none';
   } catch (e) {}
+}
+
+function renderMyImagesGrid() {
+  const grid = document.getElementById('myImagesGrid');
+  if (!grid || myImagesData.length === 0) return;
+  grid.innerHTML = '';
+  const baseUrl = window.location.origin || '';
+  myImagesData.forEach(img => {
+    const fp = img.fingerprint;
+    const id = 'custom:' + fp;
+    const card = document.createElement('div');
+    card.className = 'sample-card' + (selectedSample === id ? ' selected' : '');
+    card.title = 'Your uploaded image';
+    const imgEl = document.createElement('img');
+    imgEl.src = baseUrl + '/api/clicker/my-image/' + fp + '?thumb=1';
+    imgEl.alt = 'My image';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'sc-name';
+    nameEl.textContent = 'My Image';
+    card.appendChild(imgEl);
+    card.appendChild(nameEl);
+    card.onclick = () => {
+      selectedSample = id;
+      pendingFile = null;
+      document.getElementById('dropPreview').style.display = 'none';
+      document.getElementById('dropName').style.display = 'none';
+      document.querySelectorAll('.sample-card').forEach(c => c.classList.remove('selected'));
+      document.querySelectorAll('#myImagesGrid .sample-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      document.getElementById('initBtn').textContent = 'Begin with My Image';
+      document.getElementById('initError').textContent = '';
+    };
+    grid.appendChild(card);
+  });
 }
 
 function renderSampleGrid() {
@@ -1163,8 +1226,13 @@ function renderSampleGrid() {
     nameEl.textContent = s.name;
     const progEl = document.createElement('div');
     progEl.className = 'sc-progress';
-    if (s.completed) progEl.textContent = '\u2713 Done';
-    else if (s.bestGain > 0) progEl.textContent = '+' + (s.bestGain * 100).toFixed(1) + '%';
+    const parts = [];
+    if (s.completed) parts.push('\u2713 Done');
+    if (s.bestGain > 0) parts.push('+' + (s.bestGain * 100).toFixed(1) + '%');
+    if (s.playCount > 0) parts.push(s.playCount + ' play' + (s.playCount !== 1 ? 's' : ''));
+    if (s.ascensionsCount > 0) parts.push(s.ascensionsCount + ' asc');
+    if (s.bestFitness > 0) parts.push('max ' + (s.bestFitness * 100).toFixed(1) + '%');
+    progEl.textContent = parts.join(' | ') || '';
     card.appendChild(img);
     card.appendChild(nameEl);
     card.appendChild(progEl);
@@ -1175,6 +1243,8 @@ function renderSampleGrid() {
         document.getElementById('dropPreview').style.display = 'none';
         document.getElementById('dropName').style.display = 'none';
         document.querySelectorAll('.sample-card').forEach(c => c.classList.remove('selected'));
+        const mi = document.getElementById('myImagesGrid');
+        if (mi) mi.querySelectorAll('.sample-card').forEach(c => c.classList.remove('selected'));
         card.classList.add('selected');
         document.getElementById('initBtn').textContent = 'Begin with ' + s.name;
         document.getElementById('initError').textContent = '';
@@ -1204,7 +1274,7 @@ async function openAtlas() {
       info.className = 'ac-info';
       info.innerHTML = '<div class="ac-name">' + esc(s.name) + '</div><div class="ac-desc">' + esc(s.desc) + '</div>' +
         (s.locked ? '<div class="ac-unlock">' + esc(s.unlockHint || (s.unlockType + ' \u2265 ' + s.unlockValue)) + '</div>' : '') +
-        (!s.locked && (s.bestGain > 0 || s.completed) ? '<div class="ac-stats">' + (s.completed ? '\u2713 ' : '') + 'Best: +' + (s.bestGain * 100).toFixed(1) + '% | ' + s.playCount + ' play(s)</div>' : '');
+        (!s.locked && (s.bestGain > 0 || s.completed || s.playCount > 0) ? '<div class="ac-stats">' + (s.completed ? '\u2713 ' : '') + 'Best: +' + (s.bestGain * 100).toFixed(1) + '% | ' + s.playCount + ' play(s)' + (s.ascensionsCount > 0 ? ' | ' + s.ascensionsCount + ' asc' : '') + (s.bestFitness > 0 ? ' | max ' + (s.bestFitness * 100).toFixed(1) + '%' : '') + '</div>' : '');
       card.appendChild(img);
       card.appendChild(info);
       if (s.unlocked) {

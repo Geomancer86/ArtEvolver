@@ -8,6 +8,8 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.InetSocketAddress;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 
@@ -94,6 +96,8 @@ public class DashboardServer {
         server.createContext("/api/clicker/samples", this::handleClickerSamples);
         server.createContext("/api/clicker/sample/", this::handleClickerSampleImage);
         server.createContext("/api/clicker/upload", this::handleClickerUpload);
+        server.createContext("/api/clicker/my-images", this::handleClickerMyImages);
+        server.createContext("/api/clicker/my-image/", this::handleClickerMyImage);
         server.createContext("/api/clicker/image", this::handleClickerImage);
         server.createContext("/api/clicker/reference", this::handleClickerReference);
         server.createContext("/api/image/", this::handleImage);
@@ -277,14 +281,23 @@ public class DashboardServer {
         float triW, triH, triScale;
 
         if (sampleId != null) {
-            var def = SampleImageProvider.getDef(sampleId);
-            if (def == null || !clickerState.isSampleUnlocked(def)) {
-                String msg = def == null ? "Unknown sample." : "Sample not unlocked yet.";
-                String json = "{\"initialized\":false,\"error\":\"" + msg + "\"}";
-                sendJsonResponse(ex, json);
-                return;
+            if (sampleId.startsWith("custom:")) {
+                String fp = sampleId.substring(7);
+                Path file = getCustomImagesDir().resolve(fp + ".png");
+                if (!Files.exists(file)) {
+                    sendJsonResponse(ex, "{\"initialized\":false,\"error\":\"Custom image not found.\"}");
+                    return;
+                }
+                sourceImage = ImageIO.read(file.toFile());
+            } else {
+                var def = SampleImageProvider.getDef(sampleId);
+                if (def == null || !clickerState.isSampleUnlocked(def)) {
+                    String msg = def == null ? "Unknown sample." : "Sample not unlocked yet.";
+                    sendJsonResponse(ex, "{\"initialized\":false,\"error\":\"" + msg + "\"}");
+                    return;
+                }
+                sourceImage = SampleImageProvider.generate(sampleId);
             }
-            sourceImage = SampleImageProvider.generate(sampleId);
             try {
                 palette = new Palette("Sherwin-Williams", DEFAULT_PALETTES);
             } catch (Exception e) {
@@ -761,6 +774,84 @@ public class DashboardServer {
     //  IMAGE UPLOAD (standalone / clicker-only mode)
     // ═══════════════════════════════════════════════════════════════
 
+    private static Path getCustomImagesDir() {
+        Path dir = Path.of(System.getProperty("user.home", "."), ".artevolver", "clicker-uploads");
+        try {
+            Files.createDirectories(dir);
+        } catch (IOException ignored) {}
+        return dir;
+    }
+
+    private void saveCustomImageToGallery(BufferedImage img) {
+        if (img == null) return;
+        long fp = ClickerState.computeFingerprint(img);
+        Path dir = getCustomImagesDir();
+        Path file = dir.resolve(fp + ".png");
+        if (Files.exists(file)) return;
+        try {
+            ImageIO.write(img, "png", file.toFile());
+        } catch (IOException e) {
+            System.err.println("[Clicker] Could not save custom image: " + e.getMessage());
+        }
+    }
+
+    private void handleClickerMyImages(HttpExchange ex) throws IOException {
+        if (!ex.getRequestMethod().equals("GET")) { sendError(ex, 405); return; }
+        Path dir = getCustomImagesDir();
+        List<Map<String, Object>> list = new ArrayList<>();
+        try (var stream = Files.list(dir)) {
+            for (Path p : stream.filter(f -> f.toString().endsWith(".png")).toList()) {
+                String name = p.getFileName().toString();
+                String fp = name.replace(".png", "");
+                if (!fp.matches("\\d+")) continue;
+                list.add(Map.<String, Object>of("fingerprint", fp));
+            }
+        } catch (IOException e) {
+            // empty list
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("{\"images\":[");
+        for (int i = 0; i < list.size(); i++) {
+            if (i > 0) sb.append(",");
+            sb.append("{\"fingerprint\":\"").append(list.get(i).get("fingerprint")).append("\"}");
+        }
+        sb.append("]}");
+        byte[] data = sb.toString().getBytes(StandardCharsets.UTF_8);
+        ex.getResponseHeaders().set("Content-Type", "application/json");
+        ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        ex.sendResponseHeaders(200, data.length);
+        ex.getResponseBody().write(data);
+        ex.close();
+    }
+
+    private void handleClickerMyImage(HttpExchange ex) throws IOException {
+        if (!ex.getRequestMethod().equals("GET")) { sendError(ex, 405); return; }
+        String path = ex.getRequestURI().getPath();
+        String fp = path.replace("/api/clicker/my-image/", "").split("/")[0].trim();
+        if (!fp.matches("\\d+")) { sendError(ex, 400); return; }
+        Path file = getCustomImagesDir().resolve(fp + ".png");
+        if (!Files.exists(file)) { sendError(ex, 404); return; }
+        BufferedImage img = ImageIO.read(file.toFile());
+        if (img == null) { sendError(ex, 500); return; }
+        String query = ex.getRequestURI().getQuery();
+        if (query != null && query.contains("thumb=1")) {
+            BufferedImage thumb = new BufferedImage(120, 78, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = thumb.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g.drawImage(img, 0, 0, 120, 78, null);
+            g.dispose();
+            img = thumb;
+        }
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(65536);
+        ImageIO.write(img, "png", baos);
+        byte[] data = baos.toByteArray();
+        ex.getResponseHeaders().set("Content-Type", "image/png");
+        ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        ex.sendResponseHeaders(200, data.length);
+        ex.getResponseBody().write(data);
+        ex.close();
+    }
+
     private void handleClickerUpload(HttpExchange ex) throws IOException {
         if (!ex.getRequestMethod().equals("POST")) { sendError(ex, 405); return; }
 
@@ -814,6 +905,8 @@ public class DashboardServer {
 
         this.uploadedImage = resized;
         this.uploadedPalette = palette;
+
+        saveCustomImageToGallery(resized);
 
         System.out.println("[Clicker] Image uploaded: " + original.getWidth() + "x" + original.getHeight()
                 + " -> resized to " + newWidth + "x" + newHeight);

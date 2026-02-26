@@ -61,12 +61,31 @@ Gamedev-designed sample tree with **iconic art** (Mona Lisa, Starry Night, Great
 - **Best gain** — highest fitness gain from start
 - **Play count** — how many times the sample has been played
 - **Completed** — whether the sample was finished as a masterpiece (≥85% fitness)
+- **ascensionsCount** — total ascensions on that sample
+- **totalPlayTimeMs** — cumulative play time in milliseconds
+- **totalClicks** — total clicks across all plays
+
+These stats are shown in the init picker and Sample Atlas (e.g. "5 plays | 2 asc | max 78.3%").
+
+## Real Sample Images
+
+- **DownloadSampleImages** — Downloads real CC0 images from Picsum (landscapes, nature) and optionally Wikimedia Commons (iconic art).
+- Starter and Apprentice samples use actual photos (landscape, ocean, forest, sunset, flowers, etc.).
+- Legendary art (Mona Lisa, Starry Night, etc.) may use placeholders if Wikimedia rate limits; replace manually or run with delays.
+- See `samples/README.md` and `DownloadSampleImages.java`.
+
+## Custom Images (My Images)
+
+- **First-time upload** — Custom images are saved to `~/.artevolver/clicker-uploads/{fingerprint}.png` on first use.
+- **My Images section** — Init overlay shows stored custom images (thumbnails) when available. No need to browse folders again.
+- **Gallery "Play again"** — Gallery cards for custom images show a "Play again" button (standalone mode). Loads the stored image and opens the init overlay for a fresh run.
+- **API**: `GET /api/clicker/my-images`, `GET /api/clicker/my-image/{fingerprint}?thumb=1`
 
 ## UI
 
-- **Init overlay**: Sample picker grid below the drop zone. Locked samples show `???`. Unlocked show thumbnail and name. Click to select, then Begin.
+- **Init overlay**: Sample picker grid below the drop zone. Locked samples show `???`. Unlocked show thumbnail, name, and stats. "My Images" section when custom uploads exist. Click to select, then Begin.
 - **Sample Atlas** (footer button): Full overlay with all samples. Shows unlock condition for locked, progress stats for played. Click unlocked sample to start a game with it.
-- **Gallery**: Continues to show user-completed images (ascensions/masterpieces). Separate from Atlas.
+- **Gallery**: User-completed images (ascensions/masterpieces). Custom images have "Play again" for quick re-use. Separate from Atlas.
 
 ## Fitness Curation (75–80%+)
 
@@ -75,8 +94,12 @@ Good images reach **75–80%+ fitness** with the default palette (Sherwin-Willia
 ## Implementation
 
 - `SampleImageProvider` — loads from `samples/{id}.jpg|.png` first, falls back to programmatic for Generated ids
-- `GenerateSamplePlaceholders` — run once to create placeholder JPGs; replace with curated CC0 images
-- `ClickerState` — tracks lifetimeClicks, lifetimeEpEarned, discoveredSamples, sampleProgress; **samples bypass usedImageFingerprints** (always re-pickable)
-- `GET /api/clicker/samples` — JSON with all samples, unlock status, progress
+- `DownloadSampleImages` — run to fetch real images from Picsum/Wikimedia; stores in `samples/`
+- `GenerateSamplePlaceholders` — fallback for missing files; creates gradient JPGs
+- `ClickerState` — tracks lifetimeClicks, lifetimeEpEarned, discoveredSamples, sampleProgress (incl. ascensionsCount, totalPlayTimeMs, totalClicks); **samples bypass usedImageFingerprints** (always re-pickable)
+- `saveCustomImageToGallery(BufferedImage)` — saves uploads to `~/.artevolver/clicker-uploads/` on first use
+- `GET /api/clicker/samples` — JSON with all samples, unlock status, progress stats
 - `GET /api/clicker/sample/{id}?thumb=1` — image (full or 120x78 thumbnail)
-- `POST /api/clicker/init?sample={id}` — start game with sample (bypasses fingerprint duplicate check)
+- `GET /api/clicker/my-images` — list of stored custom images
+- `GET /api/clicker/my-image/{fingerprint}?thumb=1` — serve stored custom image
+- `POST /api/clicker/init?sample={id}` — start game with sample (bypasses fingerprint duplicate check); `sampleId=custom:{fingerprint}` for My Images

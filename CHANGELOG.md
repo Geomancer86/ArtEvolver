@@ -189,6 +189,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `unlockTypeAlt`, `unlockValueAlt`. `unlockHint` in JSON for UI. `lifetimeLongestMissStreak` for
   secret_suffer. Generated (25) programmatic fallbacks always available. See `SAMPLE_ATLAS_DESIGN.md`,
   `samples/README.md`.
+- **Real sample images**: `DownloadSampleImages` fetches CC0 photos from Picsum (landscapes, nature)
+  and Wikimedia Commons (iconic art). Replaces gradient placeholders with real imagery.
+- **Per-sample stats**: Sample progress tracks `ascensionsCount`, `totalPlayTimeMs`, `totalClicks`.
+  Init picker and Sample Atlas show stats like "5 plays | 2 asc | max 78.3%".
+- **My Images**: Custom uploads saved to `~/.artevolver/clicker-uploads/` on first use. Init overlay
+  shows "My Images" section with thumbnails for easy re-picking. `GET /api/clicker/my-images`,
+  `GET /api/clicker/my-image/{fingerprint}`.
+- **Gallery Play again**: Custom-image gallery cards (standalone mode) have "Play again" button to
+  load stored image and start a fresh run without browsing folders.
 
 ### Fixed — Click Target & Code Review Bug Fixes (v3.2.0)
 

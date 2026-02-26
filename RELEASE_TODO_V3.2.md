@@ -165,6 +165,8 @@ philosophies of Miyamoto, Meier, Wright, Kojima, Miyazaki, et al.
 - [x] Renderer export logging, dialog fix, start guard
 - [x] Sound engine V2 (noise-layered, compressed, 13 distinct sounds, distinct upgrade feedback)
 - [x] Upgrade tree (progressive unlock, no text selection, UPGRADE_TREE_DESIGN.md)
+- [x] Four new upgrades (Chain Lightning, Resonance, Eternal Fortune, Genesis Boost)
+- [x] Sample Atlas (25 samples, unlock tree, progress tracking, init picker, SAMPLE_ATLAS_DESIGN.md)
 - [x] **Manual testing — testers approved**
 - [x] All documentation updated (README, CHANGELOG, RELEASE_TODO)
 - [ ] Version bumped to 3.2.0 in POMs (currently 3.2.0-SNAPSHOT)

@@ -85,6 +85,14 @@ public class ClickerState {
             long totalClicks, long successSwaps, long playTimeMs,
             int ascensionCount, long timestamp) {}
 
+    public record SampleProgress(double bestFitness, double bestGain, int playCount, boolean completed) {}
+
+    private long lifetimeClicks;
+    private double lifetimeEpEarned;
+    private final Set<String> discoveredSamples = Collections.synchronizedSet(new LinkedHashSet<>());
+    private final Map<String, SampleProgress> sampleProgress = new java.util.concurrent.ConcurrentHashMap<>();
+    private String currentSampleId;
+
     // ════════════════════════════════════════════════════════════════
     //  UPGRADE DEFINITIONS
     //
@@ -165,6 +173,14 @@ public class ClickerState {
                 "Auto-clicker speed +50% per level. Turns idle " +
                 "trickle into a steady stream.",
                 20, 1.50, 10, "mc", "autoBoost", 0.5, "flat"),
+        new UpgradeDef("chain_lightning", "Chain Lightning", "Special",
+                "Critical hits have 15% chance to chain — trigger another critical burst. " +
+                "Lightning can strike twice.",
+                25, 1.60, 10, "mc", "chainChance", 0.15, "flat"),
+        new UpgradeDef("resonance", "Resonance", "Special",
+                "MC finder chance scales with EP Overflow level. Synergy between " +
+                "power and discovery.",
+                18, 1.50, 15, "mc", "resonance", 1, "flat"),
 
         // ─── PRESTIGE (GF — after first ascension) ───
         // Permanent power that transcends resets.
@@ -196,6 +212,14 @@ public class ClickerState {
                 "+5% EP from all sources per level. Unlocks after your first masterpiece. " +
                 "Master artists convert effort into exponential gains.",
                 20, 1.55, 10, "gf", "epMult", 0.05, "mult"),
+        new UpgradeDef("eternal_fortune", "Eternal Fortune", "Prestige",
+                "+3% EP per ascension per level. Your past lives compound. " +
+                "Each rebirth makes the next run richer.",
+                12, 1.70, 15, "gf", "ascensionEpBonus", 0.03, "flat"),
+        new UpgradeDef("genesis_boost", "Genesis Boost", "Prestige",
+                "+5% EP from fitness gains per level. Smart and LAP Genesis " +
+                "starts pay dividends on every improvement.",
+                30, 1.65, 10, "gf", "fitnessEpBonus", 0.05, "flat"),
 
         // ─── TREE UNLOCKS (deeper branches) ───
         new UpgradeDef("deep_focus", "Deep Focus", "Click Power",
@@ -412,11 +436,20 @@ public class ClickerState {
     public String initEngine(BufferedImage sourceImage, Palette palette,
                              int gridW, int gridH,
                              float triWidth, float triHeight, float scale) {
+        return initEngine(sourceImage, palette, gridW, gridH, triWidth, triHeight, scale, null);
+    }
+
+    public String initEngine(BufferedImage sourceImage, Palette palette,
+                             int gridW, int gridH,
+                             float triWidth, float triHeight, float scale, String sampleId) {
+        currentSampleId = sampleId;
         long fp = computeFingerprint(sourceImage);
-        if (usedImageFingerprints.contains(fp)) {
+        if (sampleId == null && usedImageFingerprints.contains(fp)) {
             return "This image has already been evolved. Load a different one for your next canvas.";
         }
-        usedImageFingerprints.add(fp);
+        if (sampleId == null) {
+            usedImageFingerprints.add(fp);
+        }
         currentImageFingerprint = fp;
 
         this.palette = palette;
@@ -502,6 +535,16 @@ public class ClickerState {
             }
         }
 
+        if (currentSampleId != null && engine != null && engine.isInitialized()) {
+            double f = engine.getFitness(), g = f - engine.getStartingFitness();
+            SampleProgress prev = sampleProgress.get(currentSampleId);
+            sampleProgress.put(currentSampleId, new SampleProgress(
+                    Math.max(prev != null ? prev.bestFitness : 0, f),
+                    Math.max(prev != null ? prev.bestGain : 0, g),
+                    prev != null ? prev.playCount : 1,
+                    (prev != null && prev.completed) || f >= MASTERPIECE_MIN_FITNESS));
+        }
+
         tickEvents(notifications);
 
         if (now - lastEventCheckMs > 10000) {
@@ -557,6 +600,7 @@ public class ClickerState {
         }
 
         totalClicks++;
+        lifetimeClicks++;
 
         int retryCycles = 1 + (int) eff("retryCycles") + (int) eff("permCycles");
         int swapsPerClick = 1 + (int) eff("multiSwap");
@@ -614,15 +658,41 @@ public class ClickerState {
             patienceMult = 1.0 + patienceVal;
         }
 
+        // Genesis Boost: fitness-based EP gains scale up
+        double genesisMult = 1.0 + eff("fitnessEpBonus");
+        fitnessBonus *= genesisMult;
+
         double earned = (baseEp + fitnessBonus) * streakMult * patienceMult
                 * getEpMultiplier() * getPrestigeMultiplier()
                 * getEventMult("golden_hour") * getEventMult("inspiration");
         if (critical) earned *= 2;
+
+        // Chain Lightning: critical hits can chain (15% per level)
+        double chainChance = eff("chainChance");
+        if (critical && chainChance > 0 && Math.random() < chainChance) {
+            int extraSwaps = swapsPerClick;
+            ClickerEngine.ClickResult chainResult = engine.performClick(
+                    extraSwaps, retryCycles, swapDistance, smartPct);
+            double chainEp = (1.0 + eff("clickEp")) * 2 * getEpMultiplier() * getPrestigeMultiplier()
+                    * getEventMult("golden_hour") * getEventMult("inspiration");
+            if (chainResult.fitnessGain > 0) {
+                chainEp += computeEpForFitnessGain(chainResult.fitnessGain) * genesisMult
+                        * getEpMultiplier() * getPrestigeMultiplier()
+                        * getEventMult("golden_hour") * getEventMult("inspiration");
+            }
+            earned += chainEp;
+        }
+
         addEp(earned);
 
-        // MC generation
+        // MC generation (Resonance: MC chance scales with EP Overflow level)
         double mcEarned = 0;
         double mcChance = eff("mcChance");
+        double resonanceMult = 1.0;
+        if (getLevel("resonance") >= 1 && getLevel("ep_multiplier") >= 1) {
+            resonanceMult = 1.0 + getLevel("ep_multiplier") * 0.1;
+        }
+        mcChance *= resonanceMult;
         if (mcChance > 0 && Math.random() < mcChance) {
             mcEarned = 1;
             triggerDiscovery(5);
@@ -813,13 +883,23 @@ public class ClickerState {
 
     private void saveGallerySnapshot() {
         if (engine == null || !engine.isInitialized()) return;
+        double finalFit = engine.getFitness();
+        double gain = finalFit - engine.getStartingFitness();
+        if (currentSampleId != null) {
+            SampleProgress prev = sampleProgress.get(currentSampleId);
+            int plays = prev != null ? prev.playCount + 1 : 1;
+            boolean completed = finalFit >= MASTERPIECE_MIN_FITNESS;
+            sampleProgress.put(currentSampleId, new SampleProgress(
+                    Math.max(prev != null ? prev.bestFitness : 0, finalFit),
+                    Math.max(prev != null ? prev.bestGain : 0, gain),
+                    plays, prev != null ? prev.completed || completed : completed));
+        }
         byte[] thumb = engine.generateThumbnail(120);
         if (thumb == null) return;
         String b64 = Base64.getEncoder().encodeToString(thumb);
         gallery.add(new GalleryEntry(
                 currentImageFingerprint, b64,
-                engine.getStartingFitness(), engine.getFitness(),
-                engine.getFitness() - engine.getStartingFitness(),
+                engine.getStartingFitness(), finalFit, gain,
                 totalClicks, engine.getSuccessfulSwaps(), totalPlayTimeMs,
                 ascensionCount, System.currentTimeMillis()));
     }
@@ -845,6 +925,56 @@ public class ClickerState {
             if (i < gallery.size() - 1) sb.append(",");
         }
         sb.append("]");
+        return sb.toString();
+    }
+
+    public boolean isSampleUnlocked(SampleImageProvider.SampleDef def) {
+        return switch (def.unlockType()) {
+            case "always" -> true;
+            case "clicks" -> lifetimeClicks >= (long) def.unlockValue();
+            case "ep" -> lifetimeEpEarned >= def.unlockValue();
+            case "ascensions" -> ascensionCount >= (int) def.unlockValue();
+            case "masterpieces" -> completedImages >= (int) def.unlockValue();
+            case "gf" -> gf >= def.unlockValue();
+            default -> false;
+        };
+    }
+
+    public boolean isSampleDiscovered(SampleImageProvider.SampleDef def) {
+        if (!def.secret()) return true;
+        if (discoveredSamples.contains(def.id())) return true;
+        if (isSampleUnlocked(def)) {
+            discoveredSamples.add(def.id());
+            return true;
+        }
+        return false;
+    }
+
+    public String getSamplesJson() {
+        StringBuilder sb = new StringBuilder(8192);
+        sb.append("{\"samples\":[");
+        var defs = SampleImageProvider.getAllDefs().stream().sorted(Comparator.comparingInt(SampleImageProvider.SampleDef::sortOrder)).toList();
+        for (int i = 0; i < defs.size(); i++) {
+            var d = defs.get(i);
+            boolean discovered = isSampleDiscovered(d);
+            boolean unlocked = isSampleUnlocked(d);
+            SampleProgress prog = sampleProgress.get(d.id());
+            sb.append("{\"id\":\"").append(d.id()).append("\",");
+            sb.append("\"name\":\"").append(jsonEsc(discovered ? d.name() : "???")).append("\",");
+            sb.append("\"desc\":\"").append(jsonEsc(discovered ? d.description() : "Meet the condition to reveal.")).append("\",");
+            sb.append("\"category\":\"").append(d.category()).append("\",");
+            sb.append("\"unlockType\":\"").append(d.unlockType()).append("\",");
+            sb.append("\"unlockValue\":").append(d.unlockValue()).append(",");
+            sb.append("\"secret\":").append(d.secret()).append(",");
+            sb.append("\"discovered\":").append(discovered).append(",");
+            sb.append("\"unlocked\":").append(unlocked).append(",");
+            sb.append("\"bestFitness\":").append(prog != null ? prog.bestFitness() : 0).append(",");
+            sb.append("\"bestGain\":").append(prog != null ? prog.bestGain() : 0).append(",");
+            sb.append("\"playCount\":").append(prog != null ? prog.playCount() : 0).append(",");
+            sb.append("\"completed\":").append(prog != null && prog.completed()).append("}");
+            if (i < defs.size() - 1) sb.append(",");
+        }
+        sb.append("]}");
         return sb.toString();
     }
 
@@ -881,6 +1011,11 @@ public class ClickerState {
             if (def.effectTarget.equals("epMult") && def.effectType.equals("mult")) {
                 total += getLevel(def.id) * def.effectPerLevel;
             }
+        }
+        // Eternal Fortune: +3% EP per ascension per level
+        double ascBonus = eff("ascensionEpBonus");
+        if (ascBonus > 0 && ascensionCount > 0) {
+            total *= 1.0 + ascensionCount * ascBonus;
         }
         // Canvas Mastery: bonus per completed masterpiece
         double canvasVal = eff("canvasBonus");
@@ -997,6 +1132,7 @@ public class ClickerState {
     private void addEp(double amount) {
         ep += amount;
         totalEpEarned += amount;
+        lifetimeEpEarned += amount;
     }
 
     private double getCurrency(String type) {
@@ -1167,6 +1303,8 @@ public class ClickerState {
                     case "critical_swap", "mc_finder" -> true;
                     case "ep_multiplier", "lucky_events" -> getLevel("critical_swap") >= 1 || getLevel("mc_finder") >= 1;
                     case "auto_boost" -> getLevel("ep_multiplier") >= 1 || getLevel("lucky_events") >= 1;
+                    case "chain_lightning" -> getLevel("auto_boost") >= 3;
+                    case "resonance" -> getLevel("ep_multiplier") >= 1 && getLevel("mc_finder") >= 1;
                     default -> true;
                 };
             }
@@ -1178,6 +1316,8 @@ public class ClickerState {
                     case "lap_init" -> getLevel("smart_init") >= 1;
                     case "canvas_mastery" -> completedImages >= 1;
                     case "golden_touch" -> getLevel("canvas_mastery") >= 1;
+                    case "eternal_fortune" -> getLevel("eternal_auto") >= 5;
+                    case "genesis_boost" -> getLevel("lap_init") >= 1;
                     default -> true;
                 };
             }

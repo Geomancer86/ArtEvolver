@@ -173,6 +173,37 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .gallery-btn{cursor:pointer;color:var(--gold);text-decoration:underline;background:none;border:none;font-size:12px;font-family:inherit}
 .gallery-btn:hover{color:var(--cyan)}
 
+/* Sample picker (init overlay) */
+.sample-section{margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+.sample-section-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+.sample-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;max-height:200px;overflow-y:auto}
+.sample-card{background:var(--surface2);border:2px solid var(--border);border-radius:8px;padding:4px;cursor:pointer;transition:all .15s;text-align:center}
+.sample-card:hover{border-color:var(--cyan)}
+.sample-card.selected{border-color:var(--gold);box-shadow:0 0 8px rgba(255,215,64,.3)}
+.sample-card.locked{opacity:.5;cursor:not-allowed;filter:grayscale(1)}
+.sample-card.locked:hover{border-color:var(--border)}
+.sample-card img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:4px;image-rendering:pixelated}
+.sample-card .sc-name{font-size:10px;color:var(--text2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sample-card .sc-progress{font-size:9px;color:var(--green);margin-top:1px}
+
+/* Sample Atlas overlay */
+.atlas-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:90;animation:fadeIn .5s}
+.atlas-overlay.show{display:flex}
+.atlas-panel{background:var(--surface);border:2px solid var(--purple);border-radius:16px;padding:24px 32px;max-width:900px;width:92%;max-height:85vh;overflow-y:auto}
+.atlas-panel h2{color:var(--purple);font-size:22px;margin-bottom:8px;text-align:center}
+.atlas-panel .atlas-sub{color:var(--text2);font-size:12px;text-align:center;margin-bottom:16px}
+.atlas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+.atlas-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:all .15s}
+.atlas-card.unlocked{border-color:var(--cyan)}
+.atlas-card.completed{border-color:var(--gold)}
+.atlas-card.locked{opacity:.6;filter:grayscale(.8)}
+.atlas-card .ac-img{width:100%;aspect-ratio:1;object-fit:cover;background:#000;image-rendering:pixelated}
+.atlas-card .ac-info{padding:8px;font-size:11px}
+.atlas-card .ac-name{font-weight:600;color:var(--text);margin-bottom:2px}
+.atlas-card .ac-desc{color:var(--text2);font-size:10px;margin-bottom:4px}
+.atlas-card .ac-unlock{color:var(--red);font-size:10px;margin-bottom:2px}
+.atlas-card .ac-stats{color:var(--green);font-size:10px}
+
 /* Auto-clicker visual (Cookie Clicker style) */
 .auto-display{display:none;align-items:center;gap:8px;padding:4px 0;flex-shrink:0;justify-content:center}
 .auto-display.active{display:flex}
@@ -253,6 +284,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   </div>
   <div class="footer">
     <a href="/">Dashboard</a>
+    <button class="gallery-btn" id="atlasBtn" onclick="openAtlas()" title="Sample Atlas">Atlas</button>
     <button class="gallery-btn" id="galleryBtn" onclick="openGallery()" style="display:none">Gallery (<span id="galleryCount">0</span>)</button>
     <span>ArtEvolver v3.2 &mdash; Evolution Clicker | <span id="footerCompleted">0</span> masterpieces</span>
     <a href="/clicker">Clicker</a>
@@ -274,7 +306,16 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     <button class="gallery-close" onclick="closeGallery()">&times;</button>
     <h2>Gallery</h2>
     <div class="gallery-grid" id="galleryGrid"></div>
+  </div>
 </div>
+
+<div class="atlas-overlay" id="atlasOverlay">
+  <div class="atlas-panel" style="position:relative">
+    <button class="gallery-close" onclick="closeAtlas()">&times;</button>
+    <h2>Sample Atlas</h2>
+    <div class="atlas-sub">Unlock samples by playing. Best results and progress shown.</div>
+    <div class="atlas-grid" id="atlasGrid"></div>
+  </div>
 </div>
 
 <div class="init-overlay" id="initOverlay">
@@ -285,10 +326,14 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
      The grind is the game. Not for the hesitant.</p>
   <div class="drop-zone" id="dropZone">
     <div class="drop-icon">&#x1F5BC;</div>
-    <div class="drop-text"><strong>Drop an image here</strong>or click to pick a file (JPG, PNG)</div>
+    <div class="drop-text"><strong>Drop an image here</strong> or click to pick a file (JPG, PNG)</div>
     <input type="file" id="fileInput" accept="image/*">
     <img class="drop-preview" id="dropPreview" alt="Preview">
     <div class="drop-name" id="dropName"></div>
+  </div>
+  <div class="sample-section" id="sampleSection">
+    <div class="sample-section-title">Or pick a sample</div>
+    <div class="sample-grid" id="sampleGrid"></div>
   </div>
   <button class="btn" id="initBtn" onclick="initClicker()">Begin</button>
   <div class="spinner" id="initSpinner" style="display:none"></div>
@@ -310,6 +355,8 @@ let lastGainPct = 0;
 let gainMilestones = [0.1,0.5,1,2,3,5,7,10,15,20,25,30,40,50,60];
 let hitMilestones = new Set();
 let lastEventCount = 0;
+let selectedSample = null;
+let samplesData = null;
 
 // ═══════════════════════════════════════════════════════════════════════
 //  SFX ENGINE — procedural audio via Web Audio API
@@ -581,6 +628,8 @@ let isStandalone = false;
       return;
     }
     pendingFile = file;
+    selectedSample = null;
+    document.querySelectorAll('.sample-card.selected').forEach(c => c.classList.remove('selected'));
     const url = URL.createObjectURL(file);
     preview.src = url;
     preview.style.display = 'block';
@@ -600,8 +649,11 @@ async function initClicker() {
   err.textContent = '';
 
   try {
-    // If we have a file to upload (standalone or user picked one), upload it first
-    if (pendingFile) {
+    let initUrl = '/api/clicker/init';
+    if (selectedSample) {
+      initUrl += '?sample=' + encodeURIComponent(selectedSample);
+      selectedSample = null;
+    } else if (pendingFile) {
       const form = new FormData();
       form.append('image', pendingFile);
       const upRes = await fetch('/api/clicker/upload', {method:'POST', body: form});
@@ -615,7 +667,7 @@ async function initClicker() {
       pendingFile = null;
     }
 
-    const res = await fetch('/api/clicker/init', {method:'POST'});
+    const res = await fetch(initUrl, {method:'POST'});
     const data = await res.json();
     if (data.initialized) {
       document.getElementById('initOverlay').style.display = 'none';
@@ -1000,6 +1052,8 @@ async function doPrestige() {
       document.getElementById('initOverlay').style.display = 'flex';
       document.getElementById('imageWrap').style.display = 'none';
       document.getElementById('initError').textContent = '';
+      selectedSample = null;
+      loadSamples();
       addLog('\u2B50 Ascension complete! +' + Math.floor(data.gf) + ' GF | Gallery: ' + (data.galleryCount || 0) + ' images');
     }
   refresh();
@@ -1038,6 +1092,8 @@ function newCanvas() {
   document.getElementById('completeOverlay').classList.remove('show');
   document.getElementById('initOverlay').style.display = 'flex';
   document.getElementById('imageWrap').style.display = 'none';
+  selectedSample = null;
+  loadSamples();
 }
 
 // ── Gallery ──
@@ -1080,6 +1136,90 @@ async function openGallery() {
 
 function closeGallery() {
   document.getElementById('galleryOverlay').classList.remove('show');
+}
+
+async function loadSamples() {
+  try {
+    const res = await fetch('/api/clicker/samples');
+    samplesData = await res.json();
+    renderSampleGrid();
+  } catch (e) {}
+}
+
+function renderSampleGrid() {
+  const grid = document.getElementById('sampleGrid');
+  if (!grid || !samplesData || !samplesData.samples) return;
+  grid.innerHTML = '';
+  const baseUrl = window.location.origin || 'http://localhost:' + (window.location.port || '80');
+  samplesData.samples.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'sample-card' + (s.locked ? ' locked' : '') + (selectedSample === s.id ? ' selected' : '');
+    card.title = s.discovered ? s.desc : 'Unlock: ' + s.unlockType + ' >= ' + s.unlockValue;
+    const img = document.createElement('img');
+    img.src = s.unlocked ? baseUrl + '/api/clicker/sample/' + s.id + '?thumb=1' : 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%232a2a40" width="100" height="100"/><text x="50" y="55" fill="%238888aa" font-size="24" text-anchor="middle">?</text></svg>';
+    img.alt = s.name;
+    const nameEl = document.createElement('div');
+    nameEl.className = 'sc-name';
+    nameEl.textContent = s.name;
+    const progEl = document.createElement('div');
+    progEl.className = 'sc-progress';
+    if (s.completed) progEl.textContent = '\u2713 Done';
+    else if (s.bestGain > 0) progEl.textContent = '+' + (s.bestGain * 100).toFixed(1) + '%';
+    card.appendChild(img);
+    card.appendChild(nameEl);
+    card.appendChild(progEl);
+    if (!s.locked) {
+      card.onclick = () => {
+        selectedSample = s.id;
+        pendingFile = null;
+        document.getElementById('dropPreview').style.display = 'none';
+        document.getElementById('dropName').style.display = 'none';
+        document.querySelectorAll('.sample-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        document.getElementById('initBtn').textContent = 'Begin with ' + s.name;
+        document.getElementById('initError').textContent = '';
+      };
+    }
+    grid.appendChild(card);
+  });
+}
+
+async function openAtlas() {
+  SFX.play('gallery');
+  const grid = document.getElementById('atlasGrid');
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text2)">Loading...</div>';
+  document.getElementById('atlasOverlay').classList.add('show');
+  try {
+    const res = await fetch('/api/clicker/samples');
+    const data = await res.json();
+    grid.innerHTML = '';
+    const baseUrl = window.location.origin || '';
+    (data.samples || []).forEach(s => {
+      const card = document.createElement('div');
+      card.className = 'atlas-card' + (s.locked ? ' locked' : ' unlocked') + (s.completed ? ' completed' : '');
+      const img = document.createElement('img');
+      img.className = 'ac-img';
+      img.src = s.discovered ? (baseUrl + '/api/clicker/sample/' + s.id + '?thumb=1') : 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140"><rect fill="%231a1a2e" width="140" height="140"/><text x="70" y="80" fill="%238888aa" font-size="32" text-anchor="middle">???</text></svg>';
+      const info = document.createElement('div');
+      info.className = 'ac-info';
+      info.innerHTML = '<div class="ac-name">' + esc(s.name) + '</div><div class="ac-desc">' + esc(s.desc) + '</div>' +
+        (s.locked ? '<div class="ac-unlock">Unlock: ' + esc(s.unlockType) + ' \u2265 ' + s.unlockValue + '</div>' : '') +
+        (!s.locked && (s.bestGain > 0 || s.completed) ? '<div class="ac-stats">' + (s.completed ? '\u2713 ' : '') + 'Best: +' + (s.bestGain * 100).toFixed(1) + '% | ' + s.playCount + ' play(s)</div>' : '');
+      card.appendChild(img);
+      card.appendChild(info);
+      if (s.unlocked) {
+        card.style.cursor = 'pointer';
+        card.onclick = () => { closeAtlas(); selectedSample = s.id; document.getElementById('initOverlay').style.display = 'flex'; document.getElementById('imageWrap').style.display = 'none'; loadSamples(); };
+      }
+      grid.appendChild(card);
+    });
+  } catch (e) {
+    grid.innerHTML = '<div style="grid-column:1/-1;color:var(--red)">Failed to load.</div>';
+  }
+}
+
+function closeAtlas() {
+  document.getElementById('atlasOverlay').classList.remove('show');
 }
 
 // ── Log ──
@@ -1129,9 +1269,11 @@ SFX.init();
       refreshImage();
       loadReference();
       startPolling();
-    } else if (!isStandalone) {
-      // Full mode: hide drop zone, show "Begin" directly (image loaded in Java UI)
-      document.getElementById('dropZone').style.display = 'none';
+    } else {
+      loadSamples();
+      if (!isStandalone) {
+        document.getElementById('dropZone').style.display = 'none';
+      }
     }
   } catch (e) {}
 })();

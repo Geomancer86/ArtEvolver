@@ -88,12 +88,12 @@ canvas_mastery ─────────► (completedImages >= 1 — first ma
 
 ---
 
-## Future Expansion Ideas
+## Implemented (v3.2)
 
-- **Chain Lightning** (MC): Critical hits can chain. Requires auto_boost >= 3.
+- **Chain Lightning** (MC): Critical hits 15% chance to chain. Requires auto_boost >= 3.
 - **Resonance** (MC): MC finder scales with EP Overflow level. Requires both.
-- **Eternal Fortune** (GF): +3% EP per ascension. Requires eternal_auto >= 5.
-- **Genesis Boost** (GF): Start with +2% fitness when using Smart/LAP. Requires lap_init.
+- **Eternal Fortune** (GF): +3% EP per ascension per level. Requires eternal_auto >= 5.
+- **Genesis Boost** (GF): +5% EP from fitness gains per level. Requires lap_init >= 1.
 
 ---
 

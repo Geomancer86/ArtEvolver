@@ -179,6 +179,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   See `UPGRADE_TREE_DESIGN.md`.
 - **Text selection disabled**: `user-select: none` and transparent `::selection` across the entire
   UI to prevent accidental text highlight when clicking upgrade cards or other controls.
+- **Four new upgrades**: Chain Lightning (MC, crit chain), Resonance (MC+EP synergy), Eternal Fortune
+  (GF, +3% EP per ascension), Genesis Boost (GF, +5% fitness EP). See `UPGRADE_TREE_DESIGN.md`.
+- **Sample Atlas**: 25 built-in sample images (programmatically generated). Unlock by EP, ascensions,
+  masterpieces. Secret samples hidden until discovered. Sample picker in init overlay; Atlas overlay
+  shows progress (best fitness, gain, play count, completed). `GET /api/clicker/samples`,
+  `GET /api/clicker/sample/{id}`, `POST /api/clicker/init?sample={id}`. See `SAMPLE_ATLAS_DESIGN.md`.
 
 ### Fixed — Click Target & Code Review Bug Fixes (v3.2.0)
 

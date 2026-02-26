@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.*;
 import java.util.concurrent.Executors;
 import com.rndmodgames.evolver.clicker.ClickerState;
+import com.rndmodgames.evolver.clicker.SampleImageProvider;
 import java.net.URISyntaxException;
 
 /**
@@ -90,6 +91,8 @@ public class DashboardServer {
         server.createContext("/api/clicker/prestige", this::handleClickerPrestige);
         server.createContext("/api/clicker/complete", this::handleClickerComplete);
         server.createContext("/api/clicker/gallery", this::handleClickerGallery);
+        server.createContext("/api/clicker/samples", this::handleClickerSamples);
+        server.createContext("/api/clicker/sample/", this::handleClickerSampleImage);
         server.createContext("/api/clicker/upload", this::handleClickerUpload);
         server.createContext("/api/clicker/image", this::handleClickerImage);
         server.createContext("/api/clicker/reference", this::handleClickerReference);
@@ -256,12 +259,44 @@ public class DashboardServer {
     }
 
     private void handleClickerInit(HttpExchange ex) throws IOException {
+        String sampleId = null;
+        String query = ex.getRequestURI().getQuery();
+        if (query != null) {
+            for (String param : query.split("&")) {
+                String[] kv = param.split("=", 2);
+                if (kv.length == 2 && kv[0].equals("sample") && !kv[1].isEmpty()) {
+                    sampleId = kv[1];
+                    break;
+                }
+            }
+        }
+
         BufferedImage sourceImage;
         Palette palette;
         int gridW, gridH;
         float triW, triH, triScale;
 
-        if (standaloneMode) {
+        if (sampleId != null) {
+            var def = SampleImageProvider.getDef(sampleId);
+            if (def == null || !clickerState.isSampleUnlocked(def)) {
+                String msg = def == null ? "Unknown sample." : "Sample not unlocked yet.";
+                String json = "{\"initialized\":false,\"error\":\"" + msg + "\"}";
+                sendJsonResponse(ex, json);
+                return;
+            }
+            sourceImage = SampleImageProvider.generate(sampleId);
+            try {
+                palette = new Palette("Sherwin-Williams", DEFAULT_PALETTES);
+            } catch (Exception e) {
+                sendJsonResponse(ex, "{\"initialized\":false,\"error\":\"Palette failed.\"}");
+                return;
+            }
+            gridW = DEFAULT_WIDTH_TRI;
+            gridH = DEFAULT_HEIGHT_TRI;
+            triW = DEFAULT_TRI_WIDTH;
+            triH = DEFAULT_TRI_HEIGHT;
+            triScale = DEFAULT_TRI_SCALE;
+        } else if (standaloneMode) {
             sourceImage = uploadedImage;
             palette = uploadedPalette;
             gridW = DEFAULT_WIDTH_TRI;
@@ -293,7 +328,7 @@ public class DashboardServer {
             return;
         }
 
-        String error = clickerState.initEngine(sourceImage, palette, gridW, gridH, triW, triH, triScale);
+        String error = clickerState.initEngine(sourceImage, palette, gridW, gridH, triW, triH, triScale, sampleId);
 
         if (error != null) {
             String json = "{\"initialized\":false,\"error\":\"" + error.replace("\"", "\\\"") + "\"}";
@@ -412,6 +447,45 @@ public class DashboardServer {
         String json = clickerState.getGalleryJson();
         byte[] data = json.getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+        ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        ex.sendResponseHeaders(200, data.length);
+        ex.getResponseBody().write(data);
+        ex.close();
+    }
+
+    private void handleClickerSamples(HttpExchange ex) throws IOException {
+        if (!ex.getRequestMethod().equals("GET")) { sendError(ex, 405); return; }
+        String json = clickerState.getSamplesJson();
+        byte[] data = json.getBytes(StandardCharsets.UTF_8);
+        ex.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+        ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        ex.sendResponseHeaders(200, data.length);
+        ex.getResponseBody().write(data);
+        ex.close();
+    }
+
+    private void handleClickerSampleImage(HttpExchange ex) throws IOException {
+        if (!ex.getRequestMethod().equals("GET")) { sendError(ex, 405); return; }
+        String path = ex.getRequestURI().getPath();
+        String id = path.replace("/api/clicker/sample/", "").split("/")[0].trim();
+        if (id.isEmpty()) { sendError(ex, 400); return; }
+        var def = SampleImageProvider.getDef(id);
+        if (def == null) { sendError(ex, 404); return; }
+        BufferedImage img = SampleImageProvider.generate(id);
+        String query = ex.getRequestURI().getQuery();
+        if (query != null && query.contains("thumb=1")) {
+            int tw = 120, th = 78;
+            BufferedImage thumb = new BufferedImage(tw, th, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = thumb.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g.drawImage(img, 0, 0, tw, th, null);
+            g.dispose();
+            img = thumb;
+        }
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(65536);
+        ImageIO.write(img, "png", baos);
+        byte[] data = baos.toByteArray();
+        ex.getResponseHeaders().set("Content-Type", "image/png");
         ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
         ex.sendResponseHeaders(200, data.length);
         ex.getResponseBody().write(data);

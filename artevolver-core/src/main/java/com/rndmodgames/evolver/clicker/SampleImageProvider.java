@@ -1,14 +1,24 @@
 package com.rndmodgames.evolver.clicker;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
- * Provides programmatically generated sample images for the Evolution Clicker.
+ * Provides sample images for the Evolution Clicker.
  * Miyamoto: discovery and collection. Wright: meaningful unlock progression.
- * No external assets — all images generated in-code for portability.
+ *
+ * <p><b>Default tree (25 samples):</b> Real-life photos from open-source/free sources.
+ * Images load from {@code samples/{id}.jpg} or {@code samples/{id}.png}. Replace
+ * placeholders with curated CC0 images that achieve 75–80%+ fitness. See samples/README.md.
+ *
+ * <p><b>Generated samples (25):</b> Programmatic fallbacks kept for testing. Always pickable
+ * even after completion — samples never go into usedImageFingerprints.
  */
 public final class SampleImageProvider {
 
@@ -19,68 +29,124 @@ public final class SampleImageProvider {
                            String unlockType, double unlockValue, String category,
                            boolean secret, int sortOrder) {}
 
+    private static final Set<String> PROGRAMMATIC_IDS = Set.of(
+            "gradient_sunset", "circles", "checker", "stripes", "diamond",
+            "spiral", "rings", "grid_grad", "waves", "maze",
+            "starfield", "hexagons", "voronoi", "noise_cloud", "mandala",
+            "rose", "fractal_tree", "kaleidoscope", "aurora", "portal",
+            "easter_egg", "hidden_gem", "legendary", "mythic", "omega"
+    );
+
     private static final List<SampleDef> DEFS = new ArrayList<>();
 
     static {
-        // ─── STARTER (always available) ───
-        DEFS.add(new SampleDef("gradient_sunset", "Sunset Gradient", "A warm gradient from orange to purple.",
+        // ─── REAL TREE: file-based (samples/*.jpg or .png). Curate for 75–80%+ fitness. ───
+        DEFS.add(new SampleDef("landscape_01", "Landscape", "Open-source landscape photo.",
                 "always", 0, "Starter", false, 1));
-        DEFS.add(new SampleDef("circles", "Concentric Circles", "Nested circles for clean evolution.",
+        DEFS.add(new SampleDef("ocean_01", "Ocean", "Free ocean / seascape.",
                 "always", 0, "Starter", false, 2));
-        DEFS.add(new SampleDef("checker", "Checkerboard", "Classic black and white pattern.",
+        DEFS.add(new SampleDef("forest_01", "Forest", "Nature forest scene.",
                 "always", 0, "Starter", false, 3));
-        DEFS.add(new SampleDef("stripes", "Rainbow Stripes", "Horizontal color bands.",
+        DEFS.add(new SampleDef("sunset_01", "Sunset", "Golden hour sky.",
                 "always", 0, "Starter", false, 4));
-        DEFS.add(new SampleDef("diamond", "Diamond Shape", "A central diamond on gradient.",
+        DEFS.add(new SampleDef("flowers_01", "Flowers", "Floral photography.",
                 "always", 0, "Starter", false, 5));
 
-        // ─── APPRENTICE (unlock by EP this run) ───
-        DEFS.add(new SampleDef("spiral", "Spiral", "Archimedean spiral pattern.",
+        DEFS.add(new SampleDef("mountain_01", "Mountain", "Mountain vista.",
                 "ep", 500, "Apprentice", false, 10));
-        DEFS.add(new SampleDef("rings", "Ripple Rings", "Expanding rings from center.",
+        DEFS.add(new SampleDef("canyon_01", "Canyon", "Desert canyon.",
                 "ep", 2000, "Apprentice", false, 11));
-        DEFS.add(new SampleDef("grid_grad", "Grid Gradient", "Mesh with smooth gradients.",
+        DEFS.add(new SampleDef("lake_01", "Lake", "Calm lake reflection.",
                 "ep", 5000, "Apprentice", false, 12));
-        DEFS.add(new SampleDef("waves", "Sine Waves", "Overlapping wave patterns.",
+        DEFS.add(new SampleDef("meadow_01", "Meadow", "Green meadow.",
                 "ep", 10000, "Apprentice", false, 13));
-        DEFS.add(new SampleDef("maze", "Mini Maze", "A simple labyrinth pattern.",
+        DEFS.add(new SampleDef("beach_01", "Beach", "Beach shoreline.",
                 "ep", 20000, "Apprentice", false, 14));
 
-        // ─── VETERAN (unlock by ascensions) ───
-        DEFS.add(new SampleDef("starfield", "Starfield", "Scattered points like stars.",
+        DEFS.add(new SampleDef("cityscape_01", "Cityscape", "Urban skyline.",
                 "ascensions", 1, "Veteran", false, 20));
-        DEFS.add(new SampleDef("hexagons", "Honeycomb", "Hexagonal tessellation.",
+        DEFS.add(new SampleDef("portrait_01", "Portrait", "People / portrait.",
                 "ascensions", 2, "Veteran", false, 21));
-        DEFS.add(new SampleDef("voronoi", "Voronoi", "Cell-like subdivision.",
+        DEFS.add(new SampleDef("architecture_01", "Architecture", "Building / structure.",
                 "ascensions", 3, "Veteran", false, 22));
-        DEFS.add(new SampleDef("noise_cloud", "Cloud Noise", "Soft perlin-like texture.",
+        DEFS.add(new SampleDef("wildlife_01", "Wildlife", "Animal photography.",
                 "ascensions", 5, "Veteran", false, 23));
-        DEFS.add(new SampleDef("mandala", "Mandala", "Radial symmetry pattern.",
+        DEFS.add(new SampleDef("night_01", "Night", "Night scene.",
                 "ascensions", 7, "Veteran", false, 24));
 
-        // ─── MASTER (unlock by masterpieces) ───
-        DEFS.add(new SampleDef("rose", "Rose Curve", "Mathematical rose pattern.",
+        DEFS.add(new SampleDef("abstract_01", "Abstract", "Abstract art.",
                 "masterpieces", 1, "Master", false, 30));
-        DEFS.add(new SampleDef("fractal_tree", "Fractal Tree", "Recursive branch structure.",
+        DEFS.add(new SampleDef("macro_01", "Macro", "Close-up detail.",
                 "masterpieces", 2, "Master", false, 31));
-        DEFS.add(new SampleDef("kaleidoscope", "Kaleidoscope", "Multi-fold symmetry.",
+        DEFS.add(new SampleDef("aerial_01", "Aerial", "Aerial / drone view.",
                 "masterpieces", 3, "Master", false, 32));
-        DEFS.add(new SampleDef("aurora", "Aurora", "Northern lights simulation.",
+        DEFS.add(new SampleDef("street_01", "Street", "Street photography.",
                 "masterpieces", 5, "Master", false, 33));
-        DEFS.add(new SampleDef("portal", "Portal", "Swirling vortex effect.",
+        DEFS.add(new SampleDef("still_life_01", "Still Life", "Still life composition.",
                 "masterpieces", 7, "Master", false, 34));
 
-        // ─── SECRET (hidden until discovered) ───
-        DEFS.add(new SampleDef("easter_egg", "???", "You found something.",
+        DEFS.add(new SampleDef("secret_01", "???", "You found something.",
                 "clicks", 5000, "Secret", true, 40));
-        DEFS.add(new SampleDef("hidden_gem", "???", "Something stirs.",
+        DEFS.add(new SampleDef("secret_02", "???", "Something stirs.",
                 "ep", 30000, "Secret", true, 41));
-        DEFS.add(new SampleDef("legendary", "???", "A legend awakens.",
+        DEFS.add(new SampleDef("secret_03", "???", "A legend awakens.",
                 "ascensions", 10, "Secret", true, 42));
-        DEFS.add(new SampleDef("mythic", "???", "Beyond the veil.",
+        DEFS.add(new SampleDef("secret_04", "???", "Beyond the veil.",
                 "masterpieces", 10, "Secret", true, 43));
-        DEFS.add(new SampleDef("omega", "???", "The final canvas.",
+        DEFS.add(new SampleDef("secret_05", "???", "The final canvas.",
                 "gf", 100, "Secret", true, 44));
+
+        // ─── GENERATED: programmatic samples, always available for testing. ───
+        DEFS.add(new SampleDef("gradient_sunset", "Sunset Gradient", "A warm gradient from orange to purple.",
+                "always", 0, "Generated", false, 50));
+        DEFS.add(new SampleDef("circles", "Concentric Circles", "Nested circles for clean evolution.",
+                "always", 0, "Generated", false, 51));
+        DEFS.add(new SampleDef("checker", "Checkerboard", "Classic black and white pattern.",
+                "always", 0, "Generated", false, 52));
+        DEFS.add(new SampleDef("stripes", "Rainbow Stripes", "Horizontal color bands.",
+                "always", 0, "Generated", false, 53));
+        DEFS.add(new SampleDef("diamond", "Diamond Shape", "A central diamond on gradient.",
+                "always", 0, "Generated", false, 54));
+        DEFS.add(new SampleDef("spiral", "Spiral", "Archimedean spiral pattern.",
+                "always", 0, "Generated", false, 55));
+        DEFS.add(new SampleDef("rings", "Ripple Rings", "Expanding rings from center.",
+                "always", 0, "Generated", false, 56));
+        DEFS.add(new SampleDef("grid_grad", "Grid Gradient", "Mesh with smooth gradients.",
+                "always", 0, "Generated", false, 57));
+        DEFS.add(new SampleDef("waves", "Sine Waves", "Overlapping wave patterns.",
+                "always", 0, "Generated", false, 58));
+        DEFS.add(new SampleDef("maze", "Mini Maze", "A simple labyrinth pattern.",
+                "always", 0, "Generated", false, 59));
+        DEFS.add(new SampleDef("starfield", "Starfield", "Scattered points like stars.",
+                "always", 0, "Generated", false, 60));
+        DEFS.add(new SampleDef("hexagons", "Honeycomb", "Hexagonal tessellation.",
+                "always", 0, "Generated", false, 61));
+        DEFS.add(new SampleDef("voronoi", "Voronoi", "Cell-like subdivision.",
+                "always", 0, "Generated", false, 62));
+        DEFS.add(new SampleDef("noise_cloud", "Cloud Noise", "Soft perlin-like texture.",
+                "always", 0, "Generated", false, 63));
+        DEFS.add(new SampleDef("mandala", "Mandala", "Radial symmetry pattern.",
+                "always", 0, "Generated", false, 64));
+        DEFS.add(new SampleDef("rose", "Rose Curve", "Mathematical rose pattern.",
+                "always", 0, "Generated", false, 65));
+        DEFS.add(new SampleDef("fractal_tree", "Fractal Tree", "Recursive branch structure.",
+                "always", 0, "Generated", false, 66));
+        DEFS.add(new SampleDef("kaleidoscope", "Kaleidoscope", "Multi-fold symmetry.",
+                "always", 0, "Generated", false, 67));
+        DEFS.add(new SampleDef("aurora", "Aurora", "Northern lights simulation.",
+                "always", 0, "Generated", false, 68));
+        DEFS.add(new SampleDef("portal", "Portal", "Swirling vortex effect.",
+                "always", 0, "Generated", false, 69));
+        DEFS.add(new SampleDef("easter_egg", "???", "You found something.",
+                "always", 0, "Generated", true, 70));
+        DEFS.add(new SampleDef("hidden_gem", "???", "Something stirs.",
+                "always", 0, "Generated", true, 71));
+        DEFS.add(new SampleDef("legendary", "???", "A legend awakens.",
+                "always", 0, "Generated", true, 72));
+        DEFS.add(new SampleDef("mythic", "???", "Beyond the veil.",
+                "always", 0, "Generated", true, 73));
+        DEFS.add(new SampleDef("omega", "???", "The final canvas.",
+                "always", 0, "Generated", true, 74));
     }
 
     public static List<SampleDef> getAllDefs() {
@@ -94,35 +160,70 @@ public final class SampleImageProvider {
         return null;
     }
 
+    /**
+     * Try loading from resources: samples/{id}.jpg or samples/{id}.png.
+     * Returns null if not found.
+     */
+    private static BufferedImage loadFromResources(String id) {
+        ClassLoader cl = SampleImageProvider.class.getClassLoader();
+        for (String ext : new String[]{"jpg", "jpeg", "png"}) {
+            String path = "samples/" + id + "." + ext;
+            try (InputStream is = cl.getResourceAsStream(path)) {
+                if (is != null) {
+                    BufferedImage img = ImageIO.read(is);
+                    if (img != null && (img.getWidth() != WIDTH || img.getHeight() != HEIGHT)) {
+                        BufferedImage resized = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
+                        Graphics2D g = resized.createGraphics();
+                        g.drawImage(img, 0, 0, WIDTH, HEIGHT, null);
+                        g.dispose();
+                        return resized;
+                    }
+                    return img;
+                }
+            } catch (IOException ignored) { /* try next */ }
+        }
+        return null;
+    }
+
+    /** Placeholder for real-photo ids when no file exists yet. */
+    private static BufferedImage placeholderPhoto() {
+        return gradientSunset();
+    }
+
     public static BufferedImage generate(String id) {
-        return switch (id) {
-            case "gradient_sunset" -> gradientSunset();
-            case "circles" -> circles();
-            case "checker" -> checker();
-            case "stripes" -> stripes();
-            case "diamond" -> diamond();
-            case "spiral" -> spiral();
-            case "rings" -> rings();
-            case "grid_grad" -> gridGrad();
-            case "waves" -> waves();
-            case "maze" -> maze();
-            case "starfield" -> starfield();
-            case "hexagons" -> hexagons();
-            case "voronoi" -> voronoi();
-            case "noise_cloud" -> noiseCloud();
-            case "mandala" -> mandala();
-            case "rose" -> rose();
-            case "fractal_tree" -> fractalTree();
-            case "kaleidoscope" -> kaleidoscope();
-            case "aurora" -> aurora();
-            case "portal" -> portal();
-            case "easter_egg" -> easterEgg();
-            case "hidden_gem" -> hiddenGem();
-            case "legendary" -> legendary();
-            case "mythic" -> mythic();
-            case "omega" -> omega();
-            default -> gradientSunset();
-        };
+        BufferedImage fromFile = loadFromResources(id);
+        if (fromFile != null) return fromFile;
+        if (PROGRAMMATIC_IDS.contains(id)) {
+            return switch (id) {
+                case "gradient_sunset" -> gradientSunset();
+                case "circles" -> circles();
+                case "checker" -> checker();
+                case "stripes" -> stripes();
+                case "diamond" -> diamond();
+                case "spiral" -> spiral();
+                case "rings" -> rings();
+                case "grid_grad" -> gridGrad();
+                case "waves" -> waves();
+                case "maze" -> maze();
+                case "starfield" -> starfield();
+                case "hexagons" -> hexagons();
+                case "voronoi" -> voronoi();
+                case "noise_cloud" -> noiseCloud();
+                case "mandala" -> mandala();
+                case "rose" -> rose();
+                case "fractal_tree" -> fractalTree();
+                case "kaleidoscope" -> kaleidoscope();
+                case "aurora" -> aurora();
+                case "portal" -> portal();
+                case "easter_egg" -> easterEgg();
+                case "hidden_gem" -> hiddenGem();
+                case "legendary" -> legendary();
+                case "mythic" -> mythic();
+                case "omega" -> omega();
+                default -> gradientSunset();
+            };
+        }
+        return placeholderPhoto();
     }
 
     private static BufferedImage create(int w, int h) {

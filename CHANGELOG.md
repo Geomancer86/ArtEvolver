@@ -181,10 +181,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   UI to prevent accidental text highlight when clicking upgrade cards or other controls.
 - **Four new upgrades**: Chain Lightning (MC, crit chain), Resonance (MC+EP synergy), Eternal Fortune
   (GF, +3% EP per ascension), Genesis Boost (GF, +5% fitness EP). See `UPGRADE_TREE_DESIGN.md`.
-- **Sample Atlas**: 25 built-in sample images (programmatically generated). Unlock by EP, ascensions,
-  masterpieces. Secret samples hidden until discovered. Sample picker in init overlay; Atlas overlay
-  shows progress (best fitness, gain, play count, completed). `GET /api/clicker/samples`,
-  `GET /api/clicker/sample/{id}`, `POST /api/clicker/init?sample={id}`. See `SAMPLE_ATLAS_DESIGN.md`.
+- **Sample Atlas**: 50 samples in two groups. (1) **Default tree (25):** Real-life, open-source, free
+  photos from `samples/*.jpg|.png`. Curate for 75–80%+ fitness. (2) **Generated (25):** Programmatic
+  fallbacks (gradient_sunset, circles, checker, etc.) always available for testing. Samples are
+  always re-pickable — never added to usedImageFingerprints. `GenerateSamplePlaceholders` creates
+  placeholder JPGs; replace with CC0 images (Unsplash, Pexels, Pixabay). See `SAMPLE_ATLAS_DESIGN.md`,
+  `artevolver-core/src/main/resources/samples/README.md`.
 
 ### Fixed — Click Target & Code Review Bug Fixes (v3.2.0)
 

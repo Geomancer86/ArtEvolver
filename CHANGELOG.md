@@ -168,8 +168,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (coin cha-ching), can't-afford error (descending minor buzz), already-maxed (gentle bloop),
   fitness milestone (brass fanfare + noise wash), prestige (dramatic sweep + resolution chord),
   masterpiece (multi-layer victory fanfare), random event (two-tone boop), gallery open
-  (museum chime). Mute toggle in header persists to localStorage. Backend now returns
+  (  museum chime). Mute toggle in header persists to localStorage. Backend now returns
   buy failure reason (`maxed` vs `poor`) for distinct audio feedback.
+- **Tree-based upgrade progression**: Upgrades now unlock progressively instead of all-at-once.
+  Click Power branches (click_ep, retry_cycles → swap_reach → multi_swap → deep_focus; smart_pick
+  → streak_bonus → patience). Automation unlocks at 400 EP (auto_clicker → auto_cycles → auto_multi
+  → idle_mastery). MC tiered (critical_swap/mc_finder → ep_multiplier/lucky_events → auto_boost).
+  Prestige tab hidden until first ascension; GF upgrades tree (eternal_* → smart_init → lap_init;
+  canvas_mastery → golden_touch). Three new upgrades: Deep Focus, Idle Mastery, Golden Touch.
+  See `UPGRADE_TREE_DESIGN.md`.
+- **Text selection disabled**: `user-select: none` and transparent `::selection` across the entire
+  UI to prevent accidental text highlight when clicking upgrade cards or other controls.
 
 ### Fixed — Click Target & Code Review Bug Fixes (v3.2.0)
 

@@ -164,6 +164,7 @@ philosophies of Miyamoto, Meier, Wright, Kojima, Miyazaki, et al.
 - [x] Version strings updated (dynamic version in start scripts)
 - [x] Renderer export logging, dialog fix, start guard
 - [x] Sound engine V2 (noise-layered, compressed, 13 distinct sounds, distinct upgrade feedback)
+- [x] Upgrade tree (progressive unlock, no text selection, UPGRADE_TREE_DESIGN.md)
 - [x] **Manual testing — testers approved**
 - [x] All documentation updated (README, CHANGELOG, RELEASE_TODO)
 - [ ] Version bumped to 3.2.0 in POMs (currently 3.2.0-SNAPSHOT)

@@ -192,6 +192,20 @@ public class ClickerState {
                 "Permanent swap reach bonus that persists through ascensions. " +
                 "Your arm grows longer with each rebirth.",
                 10, 1.55, 15, "gf", "permReach", 1, "flat"),
+        new UpgradeDef("golden_touch", "Golden Touch", "Prestige",
+                "+5% EP from all sources per level. Unlocks after your first masterpiece. " +
+                "Master artists convert effort into exponential gains.",
+                20, 1.55, 10, "gf", "epMult", 0.05, "mult"),
+
+        // ─── TREE UNLOCKS (deeper branches) ───
+        new UpgradeDef("deep_focus", "Deep Focus", "Click Power",
+                "Additional retry cycles per click. Unlocks when Multi-Swap is strong. " +
+                "More attempts = more chances to find the perfect swap.",
+                500, 1.35, 5, "ep", "retryCycles", 1, "flat"),
+        new UpgradeDef("idle_mastery", "Idle Mastery", "Automation",
+                "+0.15 auto-click rate per level. Unlocks when automation is mature. " +
+                "Your idle evolution becomes a force of nature.",
+                5000, 1.40, 5, "ep", "autoRate", 0.15, "flat"),
     };
 
     // ════════════════════════════════════════════════════════════════
@@ -1125,10 +1139,50 @@ public class ClickerState {
         return sb.toString();
     }
 
+    /**
+     * Tree-based visibility: upgrades unlock only when their conditions are met.
+     * Miyamoto: discovery beats overwhelming choice. Will Wright: meaningful gates.
+     */
     private boolean isUpgradeVisible(UpgradeDef u) {
-        if (u.currency.equals("gf") && ascensionCount == 0) return false;
-        if (u.currency.equals("mc") && mc <= 0 && totalEpEarned < 2000) return false;
-        return true;
+        switch (u.currency) {
+            case "ep" -> {
+                return switch (u.id) {
+                    case "click_ep", "retry_cycles" -> true;
+                    case "swap_reach" -> getLevel("retry_cycles") >= 1;
+                    case "multi_swap" -> getLevel("swap_reach") >= 1;
+                    case "deep_focus" -> getLevel("multi_swap") >= 5;
+                    case "auto_clicker" -> totalEpEarned >= 400 || getLevel("retry_cycles") >= 5;
+                    case "auto_cycles" -> getLevel("auto_clicker") >= 1;
+                    case "auto_multi" -> getLevel("auto_cycles") >= 1;
+                    case "idle_mastery" -> getLevel("auto_multi") >= 3;
+                    case "smart_pick" -> getLevel("retry_cycles") >= 3;
+                    case "streak_bonus" -> getLevel("smart_pick") >= 1;
+                    case "patience" -> getLevel("streak_bonus") >= 1;
+                    default -> true;
+                };
+            }
+            case "mc" -> {
+                if (mc <= 0 && totalEpEarned < 2000) return false;
+                return switch (u.id) {
+                    case "critical_swap", "mc_finder" -> true;
+                    case "ep_multiplier", "lucky_events" -> getLevel("critical_swap") >= 1 || getLevel("mc_finder") >= 1;
+                    case "auto_boost" -> getLevel("ep_multiplier") >= 1 || getLevel("lucky_events") >= 1;
+                    default -> true;
+                };
+            }
+            case "gf" -> {
+                if (ascensionCount == 0) return false;
+                return switch (u.id) {
+                    case "eternal_cycles", "eternal_auto", "eternal_reach" -> true;
+                    case "smart_init" -> getLevel("eternal_cycles") >= 1 || getLevel("eternal_auto") >= 1 || getLevel("eternal_reach") >= 1;
+                    case "lap_init" -> getLevel("smart_init") >= 1;
+                    case "canvas_mastery" -> completedImages >= 1;
+                    case "golden_touch" -> getLevel("canvas_mastery") >= 1;
+                    default -> true;
+                };
+            }
+            default -> { return true; }
+        }
     }
 
     // ════════════════════════════════════════════════════════════════

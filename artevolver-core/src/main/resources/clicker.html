@@ -363,6 +363,9 @@ let hitMilestones = new Set();
 let lastEventCount = 0;
 let selectedSample = null;
 let samplesData = null;
+let refreshTimer = null;
+let imageTimer = null;
+let achTimer = null;
 
 // ═══════════════════════════════════════════════════════════════════════
 //  SFX ENGINE — procedural audio via Web Audio API
@@ -695,10 +698,20 @@ async function initClicker() {
 }
 
 function startPolling() {
+  stopPolling();
   refresh();
-  setInterval(refresh, TICK_MS);
-  setInterval(refreshImage, IMAGE_POLL_MS);
-  setInterval(processAchQueue, 500);
+  refreshTimer = setInterval(refresh, TICK_MS);
+  imageTimer = setInterval(refreshImage, IMAGE_POLL_MS);
+  achTimer = setInterval(processAchQueue, 500);
+}
+
+function stopPolling() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  if (imageTimer) clearInterval(imageTimer);
+  if (achTimer) clearInterval(achTimer);
+  refreshTimer = null;
+  imageTimer = null;
+  achTimer = null;
 }
 
 async function refresh() {
@@ -712,6 +725,7 @@ async function refresh() {
         document.getElementById('initOverlay').style.display = 'flex';
         document.getElementById('imageWrap').style.display = 'none';
       }
+      stopPolling();
       return;
     }
     updateUI();
@@ -719,6 +733,7 @@ async function refresh() {
 }
 
 function refreshImage() {
+  if (!state || !state.initialized) return;
   const img = document.getElementById('evolveImg');
   img.src = '/api/clicker/image?v=' + Date.now();
 }

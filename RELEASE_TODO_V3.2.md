@@ -84,6 +84,7 @@ philosophies of Miyamoto, Meier, Wright, Kojima, Miyazaki, et al.
 - Completion celebration overlay with stats (final fitness, GF earned, total GF, images completed), GF reward, "New Canvas" button.
 - API endpoint: `POST /api/clicker/complete`.
 - **Flow**: Completion overlay stays on top (z-index 120); poll does not show init overlay while completion is visible. New Canvas → init overlay → drop/pick image → Begin. Standalone: `uploadedImage` cleared so user must explicitly pick a new image.
+- **Polling**: When `state.initialized` becomes false, image polling stops to avoid 404 spam on `/api/clicker/image`.
 
 ### Upgrades (21 total)
 

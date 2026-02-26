@@ -215,6 +215,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   shows "Load a new image in ArtEvolver".
 - **POST body consumption**: `handleClickerComplete` now consumes the request body to
   prevent potential connection hangs with HTTP keep-alive.
+- **Image polling after completion**: When the engine is cleared, `/api/clicker/image`
+  returns 404s. Polling now stops when `state.initialized` is false, preventing console
+  spam and unnecessary requests.
 
 ### Fixed — Click Target & Code Review Bug Fixes (v3.2.0)
 

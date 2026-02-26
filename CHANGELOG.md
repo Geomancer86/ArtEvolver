@@ -160,12 +160,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the same image — each prestige cycle is a fresh artistic challenge.
 - **Duplicate image prevention**: Image fingerprinting (dimensions + sampled pixel hash)
   prevents initializing the clicker with an already-evolved image. Error shown in init overlay.
-- **Procedural sound design**: Full sound engine using Web Audio API — zero external files,
-  zero latency. 10 distinct sounds: click hit (pitch-varied), miss (muted thud), critical
-  hit (sparkle), hit streak (ascending arpeggio), achievement unlock (RPG jingle), upgrade
-  purchase (coin chime), fitness milestone (fanfare), prestige/ascension (dramatic sweep),
-  masterpiece completion (victory theme), random event (notification ping). Mute toggle
-  in header persists to localStorage.
+- **Procedural sound engine (V2)**: Complete rewrite using Web Audio API with noise-layered
+  synthesis, DynamicsCompressor for loudness/punch, bandpass-filtered white-noise transients,
+  and pitch randomization. 13 distinct sounds: click hit (noise pop + pitched pluck), miss
+  (filtered thud + sub rumble), critical hit (metallic ching + sparkle noise), hit streak
+  (cascading shimmer), achievement unlock (RPG jingle + noise wash), upgrade purchase
+  (coin cha-ching), can't-afford error (descending minor buzz), already-maxed (gentle bloop),
+  fitness milestone (brass fanfare + noise wash), prestige (dramatic sweep + resolution chord),
+  masterpiece (multi-layer victory fanfare), random event (two-tone boop), gallery open
+  (museum chime). Mute toggle in header persists to localStorage. Backend now returns
+  buy failure reason (`maxed` vs `poor`) for distinct audio feedback.
 
 ### Fixed — Click Target & Code Review Bug Fixes (v3.2.0)
 

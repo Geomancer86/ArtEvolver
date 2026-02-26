@@ -322,14 +322,32 @@ let lastEventCount = 0;
 //  Sakaguchi: Achievement fanfares evoke RPG level-up. Masterpiece completion
 //             is a victory theme in miniature.
 // ═══════════════════════════════════════════════════════════════════════
+// SFX Engine V2 — Noise-layered, compressed, punchy procedural audio
+// Techniques: white-noise transients, bandpass-filtered bursts,
+// DynamicsCompressor for loudness, sharp ADSR, pitch randomization.
+// ═══════════════════════════════════════════════════════════════════════
 const SFX = {
   ctx: null,
   enabled: true,
-  vol: 1.0,
+  vol: 0.85,
+  noiseBuf: null,
+  comp: null,
 
   init() {
     try {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const sr = this.ctx.sampleRate;
+      const buf = this.ctx.createBuffer(1, sr * 2, sr);
+      const ch = buf.getChannelData(0);
+      for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+      this.noiseBuf = buf;
+      this.comp = this.ctx.createDynamicsCompressor();
+      this.comp.threshold.value = -20;
+      this.comp.knee.value = 6;
+      this.comp.ratio.value = 10;
+      this.comp.attack.value = 0.001;
+      this.comp.release.value = 0.06;
+      this.comp.connect(this.ctx.destination);
     } catch (e) {}
     const saved = localStorage.getItem('artevolver_sfx');
     if (saved === 'off') { this.enabled = false; this._updateBtn(); }
@@ -354,24 +372,46 @@ const SFX = {
     if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
   },
 
-  _master() {
+  _out() {
     const g = this.ctx.createGain();
     g.gain.value = this.vol;
-    g.connect(this.ctx.destination);
+    g.connect(this.comp || this.ctx.destination);
     return g;
   },
 
   _tone(freq, type, gain, dur, start, dest) {
     const o = this.ctx.createOscillator();
     const g = this.ctx.createGain();
-    o.type = type;
-    o.frequency.value = freq;
+    o.type = type; o.frequency.value = freq;
     g.gain.setValueAtTime(gain, start);
     g.gain.exponentialRampToValueAtTime(0.001, start + dur);
-    o.connect(g);
-    g.connect(dest || this.ctx.destination);
-    o.start(start);
-    o.stop(start + dur + 0.05);
+    o.connect(g); g.connect(dest);
+    o.start(start); o.stop(start + dur + 0.05);
+  },
+
+  _noise(gain, dur, freq, Q, start, dest) {
+    if (!this.noiseBuf) return;
+    const s = this.ctx.createBufferSource();
+    s.buffer = this.noiseBuf;
+    const bp = this.ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = Q;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(gain, start);
+    g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+    s.connect(bp); bp.connect(g); g.connect(dest);
+    s.start(start); s.stop(start + dur + 0.05);
+  },
+
+  _sweep(fStart, fEnd, type, gain, dur, start, dest) {
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(fStart, start);
+    o.frequency.exponentialRampToValueAtTime(fEnd, start + dur);
+    g.gain.setValueAtTime(gain, start);
+    g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+    o.connect(g); g.connect(dest);
+    o.start(start); o.stop(start + dur + 0.05);
   },
 
   play(name) {
@@ -379,102 +419,134 @@ const SFX = {
     this._wake();
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
-    const m = this._master();
+    const m = this._out();
     try { this['_' + name](t, m); } catch (e) {}
   },
 
-  // Click hit — short percussive pluck, pitch varies ±100Hz (Miyamoto: feel)
+  // ── Click hit: snappy pop + noise transient + sub thump ──
   _click(t, m) {
-    const f = 780 + Math.random() * 220;
-    this._tone(f, 'square', 0.45, 0.06, t, m);
-    this._tone(f * 1.5, 'sine', 0.25, 0.04, t, m);
-    this._tone(f * 0.5, 'triangle', 0.15, 0.05, t, m);
+    const f = 800 + Math.random() * 400;
+    this._noise(0.6, 0.025, f * 3, 3, t, m);
+    this._tone(f, 'square', 0.5, 0.035, t, m);
+    this._tone(f * 0.5, 'sine', 0.35, 0.05, t, m);
   },
 
-  // Click miss — muted thud, lower register (Miyazaki: struggle has weight)
+  // ── Click miss: low dull thud with rumble ──
   _miss(t, m) {
-    this._tone(160 + Math.random() * 40, 'sine', 0.30, 0.12, t, m);
-    this._tone(80, 'triangle', 0.15, 0.08, t, m);
+    this._noise(0.4, 0.06, 250, 1.2, t, m);
+    this._tone(100 + Math.random() * 30, 'sine', 0.4, 0.1, t, m);
+    this._tone(60, 'triangle', 0.2, 0.08, t, m);
   },
 
-  // Critical hit — bright double-tap sparkle
+  // ── Critical hit: metallic ching + high sparkle noise ──
   _crit(t, m) {
-    this._tone(1100, 'square', 0.40, 0.05, t, m);
-    this._tone(1500, 'sine', 0.35, 0.07, t + 0.03, m);
-    this._tone(1900, 'sine', 0.25, 0.06, t + 0.055, m);
-    this._tone(2400, 'sine', 0.15, 0.05, t + 0.08, m);
+    this._noise(0.55, 0.05, 6000, 5, t, m);
+    this._noise(0.4, 0.04, 10000, 3, t + 0.01, m);
+    this._tone(1200, 'square', 0.45, 0.04, t, m);
+    this._tone(1600, 'sine', 0.35, 0.06, t + 0.025, m);
+    this._tone(2100, 'sine', 0.2, 0.05, t + 0.05, m);
   },
 
-  // Hit streak — ascending arpeggio, more notes for longer streaks
+  // ── Hit streak: cascading sparkle notes with shimmer noise ──
   _streak(t, m) {
-    const notes = [660, 830, 990, 1175];
+    const notes = [660, 880, 1100, 1320];
     notes.forEach((f, i) => {
-      this._tone(f, 'sine', 0.30, 0.09, t + i * 0.04, m);
-      this._tone(f * 2, 'sine', 0.10, 0.06, t + i * 0.04, m);
+      const s = t + i * 0.035;
+      this._tone(f, 'sine', 0.35, 0.08, s, m);
+      this._noise(0.2, 0.03, f * 4, 6, s, m);
     });
   },
 
-  // Achievement unlock — RPG level-up jingle (Sakaguchi: triumph)
+  // ── Achievement: triumphant ascending major chord + shimmer wash ──
   _achievement(t, m) {
+    this._noise(0.35, 0.06, 4000, 2, t, m);
     [523, 659, 784, 1047].forEach((f, i) => {
-      this._tone(f, 'sine', 0.35, 0.18, t + i * 0.08, m);
-      this._tone(f * 0.5, 'triangle', 0.15, 0.20, t + i * 0.08, m);
+      const s = t + i * 0.075;
+      this._tone(f, 'sine', 0.4, 0.2, s, m);
+      this._tone(f * 2, 'sine', 0.12, 0.15, s, m);
+      this._tone(f * 0.5, 'triangle', 0.15, 0.22, s, m);
     });
+    this._noise(0.2, 0.15, 8000, 2, t + 0.2, m);
   },
 
-  // Upgrade purchase — satisfying coin chime (Sid Meier: the decision paid off)
+  // ── Upgrade success: bright coin cha-ching with metallic noise ──
   _upgrade(t, m) {
-    this._tone(880, 'square', 0.30, 0.07, t, m);
-    this._tone(1175, 'sine', 0.25, 0.10, t + 0.04, m);
-    this._tone(1400, 'sine', 0.12, 0.08, t + 0.07, m);
+    this._noise(0.5, 0.03, 5000, 5, t, m);
+    this._tone(1047, 'square', 0.4, 0.04, t, m);
+    this._tone(1319, 'sine', 0.35, 0.06, t + 0.03, m);
+    this._noise(0.3, 0.04, 8000, 4, t + 0.03, m);
+    this._tone(1568, 'sine', 0.2, 0.05, t + 0.06, m);
   },
 
-  // Fitness milestone — ascending fanfare (Miyazaki: hard-earned victory)
+  // ── Can't afford: short descending minor buzz ──
+  _cantafford(t, m) {
+    this._tone(350, 'sawtooth', 0.3, 0.06, t, m);
+    this._tone(280, 'sawtooth', 0.25, 0.08, t + 0.04, m);
+    this._noise(0.15, 0.05, 400, 1, t, m);
+  },
+
+  // ── Already maxed: gentle completion bloop ──
+  _maxed(t, m) {
+    this._tone(600, 'sine', 0.25, 0.08, t, m);
+    this._tone(500, 'sine', 0.15, 0.06, t + 0.04, m);
+    this._noise(0.1, 0.03, 1000, 2, t, m);
+  },
+
+  // ── Fitness milestone: brass-like ascending fanfare + noise wash ──
   _milestone(t, m) {
+    this._noise(0.4, 0.08, 2000, 1.5, t, m);
     [440, 554, 659, 880, 1047].forEach((f, i) => {
-      this._tone(f, 'triangle', 0.40, 0.22, t + i * 0.09, m);
-      this._tone(f * 2, 'sine', 0.15, 0.18, t + i * 0.09, m);
+      const s = t + i * 0.085;
+      this._tone(f, 'sawtooth', 0.3, 0.2, s, m);
+      this._tone(f, 'sine', 0.25, 0.22, s, m);
+      this._tone(f * 2, 'sine', 0.1, 0.16, s, m);
     });
+    this._noise(0.25, 0.25, 6000, 2, t + 0.15, m);
   },
 
-  // Prestige / Ascension — dramatic rising sweep then chime
+  // ── Prestige: dramatic rising sweep -> resolution chord ──
   _prestige(t, m) {
-    const o = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-    o.type = 'sawtooth';
-    o.frequency.setValueAtTime(200, t);
-    o.frequency.exponentialRampToValueAtTime(1800, t + 0.4);
-    g.gain.setValueAtTime(0.30, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-    o.connect(g); g.connect(m);
-    o.start(t); o.stop(t + 0.55);
-    [880, 1047, 1319].forEach((f, i) => {
-      this._tone(f, 'sine', 0.30, 0.22, t + 0.45 + i * 0.07, m);
-      this._tone(f * 0.5, 'triangle', 0.12, 0.25, t + 0.45 + i * 0.07, m);
+    this._sweep(100, 2400, 'sawtooth', 0.35, 0.45, t, m);
+    this._noise(0.3, 0.5, 3000, 1, t, m);
+    this._sweep(80, 1200, 'square', 0.15, 0.4, t + 0.02, m);
+    [880, 1047, 1319, 1568].forEach((f, i) => {
+      const s = t + 0.5 + i * 0.065;
+      this._tone(f, 'sine', 0.35, 0.25, s, m);
+      this._tone(f * 0.5, 'triangle', 0.15, 0.28, s, m);
     });
+    this._noise(0.2, 0.2, 8000, 3, t + 0.5, m);
   },
 
-  // Masterpiece — grand victory fanfare (Sakaguchi: final boss defeated)
+  // ── Masterpiece: grand multi-layer victory fanfare ──
   _masterpiece(t, m) {
+    this._sweep(80, 3000, 'sawtooth', 0.25, 0.3, t, m);
+    this._noise(0.35, 0.4, 2500, 1, t, m);
     const melody = [523, 659, 784, 1047, 784, 1047, 1319, 1568];
     melody.forEach((f, i) => {
-      this._tone(f, 'sine', 0.35, 0.28, t + i * 0.11, m);
-      this._tone(f * 0.5, 'triangle', 0.18, 0.30, t + i * 0.11, m);
-      this._tone(f * 2, 'sine', 0.08, 0.20, t + i * 0.11, m);
+      const s = t + 0.3 + i * 0.1;
+      this._tone(f, 'sine', 0.35, 0.28, s, m);
+      this._tone(f, 'sawtooth', 0.1, 0.25, s, m);
+      this._tone(f * 0.5, 'triangle', 0.18, 0.3, s, m);
+      this._tone(f * 2, 'sine', 0.06, 0.2, s, m);
+      if (i % 2 === 0) this._noise(0.15, 0.06, f * 6, 5, s, m);
     });
+    this._noise(0.2, 0.6, 10000, 2, t + 0.8, m);
   },
 
-  // Random event appears — notification ping (Kojima: something is happening)
+  // ── Random event: attention-getting two-tone boop ──
   _event(t, m) {
-    this._tone(880, 'sine', 0.30, 0.10, t, m);
-    this._tone(1100, 'sine', 0.30, 0.10, t + 0.07, m);
-    this._tone(880, 'sine', 0.20, 0.10, t + 0.14, m);
+    this._noise(0.3, 0.03, 3000, 4, t, m);
+    this._tone(880, 'sine', 0.4, 0.08, t, m);
+    this._tone(1175, 'sine', 0.4, 0.08, t + 0.065, m);
+    this._noise(0.2, 0.03, 5000, 4, t + 0.065, m);
   },
 
-  // Gallery open — soft chime
+  // ── Gallery: gentle museum chime ──
   _gallery(t, m) {
-    this._tone(660, 'sine', 0.25, 0.15, t, m);
-    this._tone(880, 'sine', 0.20, 0.15, t + 0.08, m);
+    this._tone(660, 'sine', 0.3, 0.18, t, m);
+    this._tone(880, 'sine', 0.25, 0.18, t + 0.09, m);
+    this._noise(0.12, 0.1, 4000, 3, t, m);
+    this._tone(1100, 'sine', 0.1, 0.12, t + 0.16, m);
   }
 };
 
@@ -835,10 +907,23 @@ function renderStore() {
 }
 
 async function buyUpgrade(id) {
-  try { await fetch('/api/clicker/buy?id=' + id); SFX.play('upgrade'); refresh(); } catch (e) {}
+  try {
+    const res = await fetch('/api/clicker/buy?id=' + id);
+    const data = await res.json();
+    if (data.success) SFX.play('upgrade');
+    else if (data.reason === 'maxed') SFX.play('maxed');
+    else SFX.play('cantafford');
+    refresh();
+  } catch (e) {}
 }
 async function buyMax(id) {
-  try { await fetch('/api/clicker/buy?id=' + id + '&max'); SFX.play('upgrade'); refresh(); } catch (e) {}
+  try {
+    const res = await fetch('/api/clicker/buy?id=' + id + '&max');
+    const data = await res.json();
+    if (data.bought > 0) SFX.play('upgrade');
+    else SFX.play('cantafford');
+    refresh();
+  } catch (e) {}
 }
 
 // ── Achievements ──

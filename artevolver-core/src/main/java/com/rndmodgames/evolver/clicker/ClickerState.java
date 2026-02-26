@@ -639,11 +639,16 @@ public class ClickerState {
         return def.baseCost * Math.pow(def.costGrowth, getLevel(upgradeId));
     }
 
+    public boolean isMaxed(String upgradeId) {
+        UpgradeDef def = findUpgrade(upgradeId);
+        if (def == null) return false;
+        return def.maxLevel > 0 && getLevel(upgradeId) >= def.maxLevel;
+    }
+
     public boolean canAfford(String upgradeId) {
         UpgradeDef def = findUpgrade(upgradeId);
         if (def == null) return false;
-        int level = getLevel(upgradeId);
-        if (def.maxLevel > 0 && level >= def.maxLevel) return false;
+        if (isMaxed(upgradeId)) return false;
         return getCurrency(def.currency) >= getCost(upgradeId);
     }
 

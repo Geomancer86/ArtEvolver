@@ -379,7 +379,11 @@ public class DashboardServer {
             json = "{\"bought\":" + count + ",\"ep\":" + clickerState.getEp() + "}";
         } else {
             boolean success = clickerState.buyUpgrade(id);
-            json = "{\"success\":" + success + ",\"ep\":" + clickerState.getEp() + "}";
+            String reason = "ok";
+            if (!success) {
+                reason = clickerState.isMaxed(id) ? "maxed" : "poor";
+            }
+            json = "{\"success\":" + success + ",\"reason\":\"" + reason + "\",\"ep\":" + clickerState.getEp() + "}";
         }
         byte[] data = json.getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().set("Content-Type", "application/json");

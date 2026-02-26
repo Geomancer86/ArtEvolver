@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.*;
 import java.util.concurrent.Executors;
 import com.rndmodgames.evolver.clicker.ClickerState;
+import java.net.URISyntaxException;
 
 /**
  * Embedded HTTP server that serves a real-time leaderboard dashboard.
@@ -37,6 +38,17 @@ public class DashboardServer {
     private final List<TournamentContestant> contestants;
     private final TournamentManagerWindow managerWindow;
     private final ClickerState clickerState = new ClickerState();
+    private final boolean standaloneMode;
+
+    // Standalone mode: image uploaded via browser
+    private volatile BufferedImage uploadedImage;
+    private volatile Palette uploadedPalette;
+    private static final int DEFAULT_WIDTH_TRI = 80;
+    private static final int DEFAULT_HEIGHT_TRI = 53;
+    private static final float DEFAULT_TRI_WIDTH = 2.5f;
+    private static final float DEFAULT_TRI_HEIGHT = 2.5f;
+    private static final float DEFAULT_TRI_SCALE = 1.0f;
+    private static final int DEFAULT_PALETTES = 4;
 
     private static final int THUMBNAIL_CACHE_MAX = 100;
     private final java.util.concurrent.ConcurrentHashMap<String, CachedThumbnail> thumbnailCache =
@@ -58,8 +70,9 @@ public class DashboardServer {
                            List<TournamentContestant> contestants,
                            TournamentManagerWindow managerWindow) {
         this.artEvolver = artEvolver;
-        this.contestants = contestants;
+        this.contestants = contestants != null ? contestants : Collections.emptyList();
         this.managerWindow = managerWindow;
+        this.standaloneMode = (artEvolver == null);
     }
 
     public void start() throws IOException {
@@ -76,6 +89,7 @@ public class DashboardServer {
         server.createContext("/api/clicker/prestige", this::handleClickerPrestige);
         server.createContext("/api/clicker/complete", this::handleClickerComplete);
         server.createContext("/api/clicker/gallery", this::handleClickerGallery);
+        server.createContext("/api/clicker/upload", this::handleClickerUpload);
         server.createContext("/api/clicker/image", this::handleClickerImage);
         server.createContext("/api/clicker/reference", this::handleClickerReference);
         server.createContext("/api/image/", this::handleImage);
@@ -241,9 +255,34 @@ public class DashboardServer {
     }
 
     private void handleClickerInit(HttpExchange ex) throws IOException {
-        java.awt.image.BufferedImage sourceImage = artEvolver.getResizedOriginal();
-        if (sourceImage == null) {
-            String json = "{\"initialized\":false,\"error\":\"No source image loaded. Load an image in ArtEvolver first.\"}";
+        BufferedImage sourceImage;
+        Palette palette;
+        int gridW, gridH;
+        float triW, triH, triScale;
+
+        if (standaloneMode) {
+            sourceImage = uploadedImage;
+            palette = uploadedPalette;
+            gridW = DEFAULT_WIDTH_TRI;
+            gridH = DEFAULT_HEIGHT_TRI;
+            triW = DEFAULT_TRI_WIDTH;
+            triH = DEFAULT_TRI_HEIGHT;
+            triScale = DEFAULT_TRI_SCALE;
+        } else {
+            sourceImage = artEvolver.getResizedOriginal();
+            palette = artEvolver.getPallete();
+            gridW = artEvolver.getWidthTriangles();
+            gridH = artEvolver.getHeightTriangles();
+            triW = artEvolver.getTriangleWidth();
+            triH = artEvolver.getTriangleHeight();
+            triScale = artEvolver.getTriangleScaleHeight();
+        }
+
+        if (sourceImage == null || palette == null) {
+            String msg = standaloneMode
+                    ? "Drop or pick an image above to begin."
+                    : "No source image loaded. Load an image in ArtEvolver first.";
+            String json = "{\"initialized\":false,\"error\":\"" + msg + "\"}";
             byte[] data = json.getBytes(StandardCharsets.UTF_8);
             ex.getResponseHeaders().set("Content-Type", "application/json");
             ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
@@ -253,14 +292,7 @@ public class DashboardServer {
             return;
         }
 
-        String error = clickerState.initEngine(
-                sourceImage,
-                artEvolver.getPallete(),
-                artEvolver.getWidthTriangles(),
-                artEvolver.getHeightTriangles(),
-                artEvolver.getTriangleWidth(),
-                artEvolver.getTriangleHeight(),
-                artEvolver.getTriangleScaleHeight());
+        String error = clickerState.initEngine(sourceImage, palette, gridW, gridH, triW, triH, triScale);
 
         if (error != null) {
             String json = "{\"initialized\":false,\"error\":\"" + error.replace("\"", "\\\"") + "\"}";
@@ -289,7 +321,10 @@ public class DashboardServer {
 
         clickerState.tick();
 
-        String json = clickerState.toJson();
+        String raw = clickerState.toJson();
+        String json = raw.startsWith("{")
+                ? "{\"standaloneMode\":" + standaloneMode + "," + raw.substring(1)
+                : raw;
         byte[] data = json.getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
         ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
@@ -449,6 +484,10 @@ public class DashboardServer {
     // ═══════════════════════════════════════════════════════════════
 
     private String buildStateJson() {
+        if (managerWindow == null) {
+            return "{\"standaloneMode\":true,\"timestamp\":" + System.currentTimeMillis()
+                    + ",\"contestants\":[]}";
+        }
         StringBuilder sb = new StringBuilder(8192);
         sb.append("{\n");
 
@@ -640,8 +679,126 @@ public class DashboardServer {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    //  IMAGE UPLOAD (standalone / clicker-only mode)
+    // ═══════════════════════════════════════════════════════════════
+
+    private void handleClickerUpload(HttpExchange ex) throws IOException {
+        if (!ex.getRequestMethod().equals("POST")) { sendError(ex, 405); return; }
+
+        byte[] body = ex.getRequestBody().readAllBytes();
+        if (body.length == 0) {
+            sendJsonResponse(ex, "{\"success\":false,\"error\":\"No image data received.\"}");
+            return;
+        }
+
+        // Parse multipart boundary from Content-Type header
+        String contentType = ex.getRequestHeaders().getFirst("Content-Type");
+        byte[] imageBytes;
+        if (contentType != null && contentType.contains("multipart/form-data")) {
+            imageBytes = extractMultipartFile(body, contentType);
+            if (imageBytes == null) {
+                sendJsonResponse(ex, "{\"success\":false,\"error\":\"Could not parse multipart upload.\"}");
+                return;
+            }
+        } else {
+            imageBytes = body;
+        }
+
+        BufferedImage original;
+        try {
+            original = ImageIO.read(new ByteArrayInputStream(imageBytes));
+        } catch (Exception e) {
+            sendJsonResponse(ex, "{\"success\":false,\"error\":\"Invalid image format.\"}");
+            return;
+        }
+        if (original == null) {
+            sendJsonResponse(ex, "{\"success\":false,\"error\":\"Could not decode image. Supported: JPG, PNG, BMP, GIF.\"}");
+            return;
+        }
+
+        int newWidth = (int) (DEFAULT_TRI_WIDTH * DEFAULT_WIDTH_TRI);
+        int newHeight = (int) (DEFAULT_TRI_HEIGHT * DEFAULT_HEIGHT_TRI - DEFAULT_TRI_HEIGHT);
+        BufferedImage resized = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = resized.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(original, 0, 0, newWidth, newHeight,
+                0, 0, original.getWidth(), original.getHeight(), null);
+        g.dispose();
+
+        Palette palette;
+        try {
+            palette = new Palette("Sherwin-Williams", DEFAULT_PALETTES);
+        } catch (URISyntaxException e) {
+            sendJsonResponse(ex, "{\"success\":false,\"error\":\"Palette loading failed: " + e.getMessage() + "\"}");
+            return;
+        }
+
+        this.uploadedImage = resized;
+        this.uploadedPalette = palette;
+
+        System.out.println("[Clicker] Image uploaded: " + original.getWidth() + "x" + original.getHeight()
+                + " -> resized to " + newWidth + "x" + newHeight);
+
+        String json = "{\"success\":true,\"width\":" + newWidth + ",\"height\":" + newHeight
+                + ",\"triangles\":" + (DEFAULT_WIDTH_TRI * DEFAULT_HEIGHT_TRI) + "}";
+        sendJsonResponse(ex, json);
+    }
+
+    private byte[] extractMultipartFile(byte[] body, String contentType) {
+        String boundary = null;
+        for (String part : contentType.split(";")) {
+            part = part.trim();
+            if (part.startsWith("boundary=")) {
+                boundary = part.substring("boundary=".length()).trim();
+                if (boundary.startsWith("\"") && boundary.endsWith("\""))
+                    boundary = boundary.substring(1, boundary.length() - 1);
+                break;
+            }
+        }
+        if (boundary == null) return null;
+
+        byte[] sep = ("--" + boundary).getBytes(StandardCharsets.UTF_8);
+        int start = indexOf(body, new byte[]{13, 10, 13, 10}, 0);
+        if (start < 0) start = indexOf(body, new byte[]{10, 10}, 0);
+        if (start < 0) return null;
+        start += (body[start] == 13 ? 4 : 2);
+
+        byte[] endSep = ("\r\n--" + boundary).getBytes(StandardCharsets.UTF_8);
+        int end = indexOf(body, endSep, start);
+        if (end < 0) {
+            endSep = ("\n--" + boundary).getBytes(StandardCharsets.UTF_8);
+            end = indexOf(body, endSep, start);
+        }
+        if (end < 0) end = body.length;
+
+        return Arrays.copyOfRange(body, start, end);
+    }
+
+    private static int indexOf(byte[] data, byte[] pattern, int from) {
+        outer:
+        for (int i = from; i <= data.length - pattern.length; i++) {
+            for (int j = 0; j < pattern.length; j++) {
+                if (data[i + j] != pattern[j]) continue outer;
+            }
+            return i;
+        }
+        return -1;
+    }
+
+    private void sendJsonResponse(HttpExchange ex, String json) throws IOException {
+        byte[] data = json.getBytes(StandardCharsets.UTF_8);
+        ex.getResponseHeaders().set("Content-Type", "application/json");
+        ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        ex.sendResponseHeaders(200, data.length);
+        ex.getResponseBody().write(data);
+        ex.close();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     //  HELPERS
     // ═══════════════════════════════════════════════════════════════
+
+    public boolean isStandaloneMode() { return standaloneMode; }
 
     private TournamentContestant findContestant(String id) {
         for (TournamentContestant c : contestants) {

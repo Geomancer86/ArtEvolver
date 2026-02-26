@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] (3.2.0-SNAPSHOT)
 
+### Added — Standalone Clicker Mode (v3.2.0)
+
+- **`clicker.bat` / `clicker.sh` launcher scripts**: One-click launch that builds the project,
+  starts the server in clicker-only mode, and opens the browser directly. No Java UI knowledge
+  needed — users just pick an image in the browser and play.
+- **`--clicker` command-line flag**: Starts ArtEvolver in headless clicker mode — skips the
+  Swing GUI entirely, boots the HTTP server, and auto-opens the browser to `/clicker`.
+- **Browser-based image upload**: Drag-and-drop or file picker in the clicker init overlay.
+  Images are uploaded to `POST /api/clicker/upload`, resized to match the triangle grid, and
+  a Sherwin-Williams palette is created automatically. No Java UI interaction required.
+- **Standalone mode**: `DashboardServer` now supports running without `ArtEvolver` or
+  `TournamentManagerWindow`. In standalone mode, the clicker game is fully self-contained.
+- **Java 21 + Maven install guide**: README Getting Started section now includes one-liner
+  install commands for Windows (winget), macOS (Homebrew), and Linux (apt), with links to
+  Adoptium Temurin JDK 21 and Maven downloads.
+
 ### Added — UI Coherence Pass (v3.2.0)
 
 - **Evo Settings dialog rewrite**: Replaced `JOptionPane.showConfirmDialog()` with a proper

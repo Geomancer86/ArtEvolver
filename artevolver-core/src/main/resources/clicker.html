@@ -35,6 +35,16 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .init-overlay .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* Drop zone for image upload (standalone mode) */
+.drop-zone{width:340px;min-height:160px;border:2px dashed var(--border);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:all .2s;padding:20px;text-align:center}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--cyan);background:rgba(0,229,255,.05)}
+.drop-zone .drop-icon{font-size:40px;opacity:.6}
+.drop-zone .drop-text{color:var(--text2);font-size:13px;line-height:1.5}
+.drop-zone .drop-text strong{color:var(--text);display:block;font-size:15px;margin-bottom:4px}
+.drop-zone input[type="file"]{display:none}
+.drop-zone .drop-preview{max-width:200px;max-height:120px;border-radius:6px;border:1px solid var(--border);margin-top:6px;display:none}
+.drop-zone .drop-name{font-size:11px;color:var(--cyan);margin-top:2px;display:none}
+
 /* Image area — the star of the show, fills all available space */
 .image-wrap{position:relative;border-radius:8px;overflow:hidden;box-shadow:0 0 20px rgba(0,229,255,.15);transition:box-shadow .2s,outline-color .15s;outline:3px solid transparent;user-select:none;-webkit-user-select:none;flex:1 1 0;min-height:0;width:100%}
 .image-wrap:hover{box-shadow:0 0 30px rgba(0,229,255,.3)}
@@ -270,6 +280,13 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
      Each click attempts a random color swap between two nearby triangles.
      It might improve fitness &mdash; or miss entirely.
      The grind is the game. Not for the hesitant.</p>
+  <div class="drop-zone" id="dropZone">
+    <div class="drop-icon">&#x1F5BC;</div>
+    <div class="drop-text"><strong>Drop an image here</strong>or click to pick a file (JPG, PNG)</div>
+    <input type="file" id="fileInput" accept="image/*">
+    <img class="drop-preview" id="dropPreview" alt="Preview">
+    <div class="drop-name" id="dropName"></div>
+  </div>
   <button class="btn" id="initBtn" onclick="initClicker()">Begin</button>
   <div class="spinner" id="initSpinner" style="display:none"></div>
   <div class="error" id="initError"></div>
@@ -447,6 +464,44 @@ const SFX = {
   }
 };
 
+let pendingFile = null;
+let isStandalone = false;
+
+// ── Drop zone logic ──
+(function setupDropZone() {
+  const zone = document.getElementById('dropZone');
+  const input = document.getElementById('fileInput');
+  const preview = document.getElementById('dropPreview');
+  const nameEl = document.getElementById('dropName');
+
+  zone.addEventListener('click', () => input.click());
+  zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+  });
+  input.addEventListener('change', () => {
+    if (input.files.length > 0) handleFile(input.files[0]);
+  });
+
+  function handleFile(file) {
+    if (!file.type.startsWith('image/')) {
+      document.getElementById('initError').textContent = 'Please select an image file (JPG, PNG, etc).';
+      return;
+    }
+    pendingFile = file;
+    const url = URL.createObjectURL(file);
+    preview.src = url;
+    preview.style.display = 'block';
+    nameEl.textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+    nameEl.style.display = 'block';
+    document.getElementById('initError').textContent = '';
+    document.getElementById('initBtn').textContent = 'Begin with ' + file.name;
+  }
+})();
+
 async function initClicker() {
   const btn = document.getElementById('initBtn');
   const spinner = document.getElementById('initSpinner');
@@ -454,7 +509,23 @@ async function initClicker() {
   btn.style.display = 'none';
   spinner.style.display = 'block';
   err.textContent = '';
+
   try {
+    // If we have a file to upload (standalone or user picked one), upload it first
+    if (pendingFile) {
+      const form = new FormData();
+      form.append('image', pendingFile);
+      const upRes = await fetch('/api/clicker/upload', {method:'POST', body: form});
+      const upData = await upRes.json();
+      if (!upData.success) {
+        err.textContent = upData.error || 'Upload failed';
+        btn.style.display = 'block';
+        spinner.style.display = 'none';
+        return;
+      }
+      pendingFile = null;
+    }
+
     const res = await fetch('/api/clicker/init', {method:'POST'});
     const data = await res.json();
     if (data.initialized) {
@@ -487,6 +558,7 @@ async function refresh() {
   try {
     const res = await fetch('/api/clicker/state');
     state = await res.json();
+    isStandalone = !!state.standaloneMode;
     if (!state.initialized) {
       document.getElementById('initOverlay').style.display = 'flex';
       document.getElementById('imageWrap').style.display = 'none';
@@ -946,6 +1018,7 @@ SFX.init();
   try {
     const res = await fetch('/api/clicker/state');
     const d = await res.json();
+    isStandalone = !!d.standaloneMode;
     if (d.initialized) {
       document.getElementById('initOverlay').style.display = 'none';
       document.getElementById('imageWrap').style.display = 'block';
@@ -954,6 +1027,9 @@ SFX.init();
       refreshImage();
       loadReference();
       startPolling();
+    } else if (!isStandalone) {
+      // Full mode: hide drop zone, show "Begin" directly (image loaded in Java UI)
+      document.getElementById('dropZone').style.display = 'none';
     }
   } catch (e) {}
 })();

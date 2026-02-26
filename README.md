@@ -107,10 +107,57 @@ In-memory cache for dashboard thumbnails with HTTP ETag support reduces CPU duri
 
 ### Prerequisites
 
-| Dependency | Version  |
-|------------|----------|
-| Java JDK   | 17+      |
-| Apache Maven | 3.6+   |
+| Dependency | Version | Download |
+|------------|---------|----------|
+| Java JDK   | 21+     | [Adoptium Temurin JDK 21](https://adoptium.net/temurin/releases/?version=21) |
+| Apache Maven | 3.6+  | [Maven Downloads](https://maven.apache.org/download.cgi) |
+
+#### Installing Java 21
+
+**Windows** (via winget):
+```bash
+winget install EclipseAdoptium.Temurin.21.JDK
+```
+
+**macOS** (via Homebrew):
+```bash
+brew install --cask temurin@21
+```
+
+**Linux (Debian/Ubuntu)**:
+```bash
+sudo apt install temurin-21-jdk
+```
+
+Or download the installer for your platform directly from
+[Adoptium](https://adoptium.net/temurin/releases/?version=21) — pick the `.msi` (Windows),
+`.pkg` (macOS), or `.tar.gz` (Linux) for JDK 21 LTS.
+
+#### Installing Maven
+
+**Windows** (via winget):
+```bash
+winget install Apache.Maven
+```
+
+**macOS** (via Homebrew):
+```bash
+brew install maven
+```
+
+**Linux (Debian/Ubuntu)**:
+```bash
+sudo apt install maven
+```
+
+Or download from [maven.apache.org](https://maven.apache.org/download.cgi) and add `bin/` to your PATH.
+
+#### Verify Installation
+
+```bash
+java -version    # Should show 21.x.x or higher
+mvn -version     # Should show 3.6.x or higher
+```
 
 ### Clone
 
@@ -119,16 +166,34 @@ git clone https://github.com/Geomancer86/ArtEvolver.git
 cd ArtEvolver
 ```
 
-### Quick Start (Recommended)
+### Quick Start — Evolution Clicker (Browser)
 
-On Windows, double-click or run from a terminal:
+The fastest way to play. No Java UI knowledge needed — pick an image in your browser and start evolving.
 
+**Windows:**
+```bash
+clicker.bat
+```
+
+**Linux/Mac:**
+```bash
+chmod +x clicker.sh
+./clicker.sh
+```
+
+This builds the project, starts the server, and opens the clicker game in your browser.
+Drop or pick an image, click to evolve.
+
+### Quick Start — Full Application (Swing GUI)
+
+For the complete ArtEvolver experience with tournaments, benchmarks, and all advanced features.
+
+**Windows:**
 ```bash
 start.bat
 ```
 
-On Linux/Mac:
-
+**Linux/Mac:**
 ```bash
 chmod +x start.sh
 ./start.sh

@@ -1285,6 +1285,11 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
     public static void main(String[] args) {
 
+        if (args.length > 0 && "--clicker".equals(args[0])) {
+            launchClickerMode();
+            return;
+        }
+
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
@@ -1293,11 +1298,35 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				} catch (IOException e) {
 					e.printStackTrace();
 				} catch (URISyntaxException e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             }
         });
+    }
+
+    private static void launchClickerMode() {
+        System.out.println("╔════════════════════════════════════════════╗");
+        System.out.println("║   ArtEvolver — Evolution Clicker          ║");
+        System.out.println("║   Browser-based clicker game              ║");
+        System.out.println("╚════════════════════════════════════════════╝");
+        try {
+            DashboardServer server = new DashboardServer(null, null, null);
+            server.start();
+            String url = server.getUrl() + "/clicker";
+            System.out.println("[Clicker] Game ready at " + url);
+            System.out.println("[Clicker] Opening browser...");
+            try {
+                java.awt.Desktop.getDesktop().browse(java.net.URI.create(url));
+            } catch (Exception e) {
+                System.out.println("[Clicker] Could not auto-open browser. Please navigate to: " + url);
+            }
+            System.out.println("[Clicker] Press Ctrl+C to stop the server.");
+            Thread.currentThread().join();
+        } catch (Exception e) {
+            System.err.println("[Clicker] Failed to start: " + e.getMessage());
+            e.printStackTrace();
+            System.exit(1);
+        }
     }
 
     public void setOfflineSourceImage(String imageName) throws IOException {

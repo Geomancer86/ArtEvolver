@@ -89,6 +89,7 @@ public class ClickerState {
 
     private long lifetimeClicks;
     private double lifetimeEpEarned;
+    private int lifetimeLongestMissStreak = 0;
     private final Set<String> discoveredSamples = Collections.synchronizedSet(new LinkedHashSet<>());
     private final Map<String, SampleProgress> sampleProgress = new java.util.concurrent.ConcurrentHashMap<>();
     private String currentSampleId;
@@ -685,6 +686,11 @@ public class ClickerState {
 
         addEp(earned);
 
+        // Lifetime miss streak for secret unlocks (Kojima: suffering rewards)
+        if (engine != null && engine.getLongestMissStreak() > lifetimeLongestMissStreak) {
+            lifetimeLongestMissStreak = engine.getLongestMissStreak();
+        }
+
         // MC generation (Resonance: MC chance scales with EP Overflow level)
         double mcEarned = 0;
         double mcChance = eff("mcChance");
@@ -929,14 +935,46 @@ public class ClickerState {
     }
 
     public boolean isSampleUnlocked(SampleImageProvider.SampleDef def) {
-        return switch (def.unlockType()) {
+        boolean primary = checkUnlock(def.unlockType(), def.unlockValue());
+        if (primary) return true;
+        if (def.unlockTypeAlt() != null && !def.unlockTypeAlt().isEmpty() && def.unlockValueAlt() >= 0) {
+            return checkUnlock(def.unlockTypeAlt(), def.unlockValueAlt());
+        }
+        return false;
+    }
+
+    private boolean checkUnlock(String type, double value) {
+        return switch (type) {
             case "always" -> true;
-            case "clicks" -> lifetimeClicks >= (long) def.unlockValue();
-            case "ep" -> lifetimeEpEarned >= def.unlockValue();
-            case "ascensions" -> ascensionCount >= (int) def.unlockValue();
-            case "masterpieces" -> completedImages >= (int) def.unlockValue();
-            case "gf" -> gf >= def.unlockValue();
+            case "clicks" -> lifetimeClicks >= (long) value;
+            case "ep" -> lifetimeEpEarned >= value;
+            case "ascensions" -> ascensionCount >= (int) value;
+            case "masterpieces" -> completedImages >= (int) value;
+            case "gf" -> gf >= value;
+            case "miss_streak" -> lifetimeLongestMissStreak >= (int) value;
             default -> false;
+        };
+    }
+
+    private String formatUnlockHint(SampleImageProvider.SampleDef d) {
+        if ("always".equals(d.unlockType())) return "";
+        String a = fmtCond(d.unlockType(), d.unlockValue());
+        if (d.unlockTypeAlt() != null && !d.unlockTypeAlt().isEmpty() && d.unlockValueAlt() >= 0) {
+            String b = fmtCond(d.unlockTypeAlt(), d.unlockValueAlt());
+            return a + " or " + b;
+        }
+        return a;
+    }
+
+    private String fmtCond(String type, double val) {
+        return switch (type) {
+            case "clicks" -> String.format("%,d clicks", (long) val);
+            case "ep" -> String.format("%,.0f EP", val);
+            case "ascensions" -> (int) val + " ascensions";
+            case "masterpieces" -> (int) val + " masterpieces";
+            case "gf" -> (int) val + " GF";
+            case "miss_streak" -> (int) val + " miss streak";
+            default -> type + " ≥ " + val;
         };
     }
 
@@ -965,6 +1003,9 @@ public class ClickerState {
             sb.append("\"category\":\"").append(d.category()).append("\",");
             sb.append("\"unlockType\":\"").append(d.unlockType()).append("\",");
             sb.append("\"unlockValue\":").append(d.unlockValue()).append(",");
+            sb.append("\"unlockTypeAlt\":\"").append(d.unlockTypeAlt() != null ? d.unlockTypeAlt() : "").append("\",");
+            sb.append("\"unlockValueAlt\":").append(d.unlockValueAlt() >= 0 ? d.unlockValueAlt() : -1).append(",");
+            sb.append("\"unlockHint\":\"").append(jsonEsc(formatUnlockHint(d))).append("\",");
             sb.append("\"secret\":").append(d.secret()).append(",");
             sb.append("\"discovered\":").append(discovered).append(",");
             sb.append("\"unlocked\":").append(unlocked).append(",");

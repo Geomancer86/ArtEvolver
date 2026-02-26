@@ -181,12 +181,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   UI to prevent accidental text highlight when clicking upgrade cards or other controls.
 - **Four new upgrades**: Chain Lightning (MC, crit chain), Resonance (MC+EP synergy), Eternal Fortune
   (GF, +3% EP per ascension), Genesis Boost (GF, +5% fitness EP). See `UPGRADE_TREE_DESIGN.md`.
-- **Sample Atlas**: 50 samples in two groups. (1) **Default tree (25):** Real-life, open-source, free
-  photos from `samples/*.jpg|.png`. Curate for 75–80%+ fitness. (2) **Generated (25):** Programmatic
-  fallbacks (gradient_sunset, circles, checker, etc.) always available for testing. Samples are
-  always re-pickable — never added to usedImageFingerprints. `GenerateSamplePlaceholders` creates
-  placeholder JPGs; replace with CC0 images (Unsplash, Pexels, Pixabay). See `SAMPLE_ATLAS_DESIGN.md`,
-  `artevolver-core/src/main/resources/samples/README.md`.
+- **Sample Atlas**: Gamedev-designed tree with **iconic art** (Mona Lisa, Starry Night, Great Wave,
+  Girl with a Pearl Earring, Birth of Venus, American Gothic, Persistence of Memory) and **multiple
+  unlock paths** (OR logic). Path A: EP / Path B: Clicks for Apprentice; Ascensions / Masterpieces
+  for Veteran; cross-paths for Master. Legendary tier: 7 public-domain masterpieces. Secret tier:
+  miss_streak (20), 100k clicks/EP, 15 asc/masterpieces, 200/500 GF. `SampleDef` extended with
+  `unlockTypeAlt`, `unlockValueAlt`. `unlockHint` in JSON for UI. `lifetimeLongestMissStreak` for
+  secret_suffer. Generated (25) programmatic fallbacks always available. See `SAMPLE_ATLAS_DESIGN.md`,
+  `samples/README.md`.
 
 ### Fixed — Click Target & Code Review Bug Fixes (v3.2.0)
 

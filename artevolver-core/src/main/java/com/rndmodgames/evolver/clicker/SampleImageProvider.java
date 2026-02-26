@@ -25,9 +25,15 @@ public final class SampleImageProvider {
     public static final int WIDTH = 720;
     public static final int HEIGHT = 468;
 
+    /** Optional alt unlock: if non-empty, sample unlocks when primary OR alt is met. */
     public record SampleDef(String id, String name, String description,
-                           String unlockType, double unlockValue, String category,
-                           boolean secret, int sortOrder) {}
+                           String unlockType, double unlockValue,
+                           String unlockTypeAlt, double unlockValueAlt,
+                           String category, boolean secret, int sortOrder) {
+        public SampleDef(String id, String name, String desc, String type, double val, String cat, boolean secret, int order) {
+            this(id, name, desc, type, val, "", -1, cat, secret, order);
+        }
+    }
 
     private static final Set<String> PROGRAMMATIC_IDS = Set.of(
             "gradient_sunset", "circles", "checker", "stripes", "diamond",
@@ -40,113 +46,119 @@ public final class SampleImageProvider {
     private static final List<SampleDef> DEFS = new ArrayList<>();
 
     static {
-        // ─── REAL TREE: file-based (samples/*.jpg or .png). Curate for 75–80%+ fitness. ───
-        DEFS.add(new SampleDef("landscape_01", "Landscape", "Open-source landscape photo.",
+        // ─── GAMEDEV TREE: Miyamoto (discovery), Wright (paths), Kojima (secrets), Sid Meier (meaningful gates) ───
+        // STARTER — always available
+        DEFS.add(new SampleDef("landscape", "Landscape", "Open vista.",
                 "always", 0, "Starter", false, 1));
-        DEFS.add(new SampleDef("ocean_01", "Ocean", "Free ocean / seascape.",
+        DEFS.add(new SampleDef("ocean", "Ocean", "Seascape.",
                 "always", 0, "Starter", false, 2));
-        DEFS.add(new SampleDef("forest_01", "Forest", "Nature forest scene.",
+        DEFS.add(new SampleDef("forest", "Forest", "Nature.",
                 "always", 0, "Starter", false, 3));
-        DEFS.add(new SampleDef("sunset_01", "Sunset", "Golden hour sky.",
+        DEFS.add(new SampleDef("sunset", "Sunset", "Golden hour.",
                 "always", 0, "Starter", false, 4));
-        DEFS.add(new SampleDef("flowers_01", "Flowers", "Floral photography.",
+        DEFS.add(new SampleDef("flowers", "Flowers", "Floral.",
                 "always", 0, "Starter", false, 5));
 
-        DEFS.add(new SampleDef("mountain_01", "Mountain", "Mountain vista.",
-                "ep", 500, "Apprentice", false, 10));
-        DEFS.add(new SampleDef("canyon_01", "Canyon", "Desert canyon.",
-                "ep", 2000, "Apprentice", false, 11));
-        DEFS.add(new SampleDef("lake_01", "Lake", "Calm lake reflection.",
-                "ep", 5000, "Apprentice", false, 12));
-        DEFS.add(new SampleDef("meadow_01", "Meadow", "Green meadow.",
-                "ep", 10000, "Apprentice", false, 13));
-        DEFS.add(new SampleDef("beach_01", "Beach", "Beach shoreline.",
-                "ep", 20000, "Apprentice", false, 14));
+        // APPRENTICE — Path A: EP | Path B: Clicks (either unlocks)
+        DEFS.add(new SampleDef("mountain", "Mountain", "Peak vista.", "ep", 500, "clicks", 1000, "Apprentice", false, 10));
+        DEFS.add(new SampleDef("canyon", "Canyon", "Desert canyon.", "ep", 2000, "clicks", 5000, "Apprentice", false, 11));
+        DEFS.add(new SampleDef("lake", "Lake", "Reflection.", "ep", 5000, "clicks", 10000, "Apprentice", false, 12));
+        DEFS.add(new SampleDef("meadow", "Meadow", "Green field.", "ep", 10000, "clicks", 20000, "Apprentice", false, 13));
+        DEFS.add(new SampleDef("beach", "Beach", "Shoreline.", "ep", 20000, "clicks", 50000, "Apprentice", false, 14));
 
-        DEFS.add(new SampleDef("cityscape_01", "Cityscape", "Urban skyline.",
-                "ascensions", 1, "Veteran", false, 20));
-        DEFS.add(new SampleDef("portrait_01", "Portrait", "People / portrait.",
-                "ascensions", 2, "Veteran", false, 21));
-        DEFS.add(new SampleDef("architecture_01", "Architecture", "Building / structure.",
-                "ascensions", 3, "Veteran", false, 22));
-        DEFS.add(new SampleDef("wildlife_01", "Wildlife", "Animal photography.",
-                "ascensions", 5, "Veteran", false, 23));
-        DEFS.add(new SampleDef("night_01", "Night", "Night scene.",
-                "ascensions", 7, "Veteran", false, 24));
+        // VETERAN — Path A: Ascensions | Path B: Masterpieces
+        DEFS.add(new SampleDef("cityscape", "Cityscape", "Urban skyline.", "ascensions", 1, "masterpieces", 1, "Veteran", false, 20));
+        DEFS.add(new SampleDef("architecture", "Architecture", "Structure.", "ascensions", 2, "masterpieces", 2, "Veteran", false, 21));
+        DEFS.add(new SampleDef("portrait", "Portrait", "Face study.", "ascensions", 3, "masterpieces", 2, "Veteran", false, 22));
+        DEFS.add(new SampleDef("wildlife", "Wildlife", "Animal.", "ascensions", 5, "masterpieces", 3, "Veteran", false, 23));
+        DEFS.add(new SampleDef("night", "Night", "Nocturne.", "ascensions", 7, "masterpieces", 5, "Veteran", false, 24));
 
-        DEFS.add(new SampleDef("abstract_01", "Abstract", "Abstract art.",
-                "masterpieces", 1, "Master", false, 30));
-        DEFS.add(new SampleDef("macro_01", "Macro", "Close-up detail.",
-                "masterpieces", 2, "Master", false, 31));
-        DEFS.add(new SampleDef("aerial_01", "Aerial", "Aerial / drone view.",
-                "masterpieces", 3, "Master", false, 32));
-        DEFS.add(new SampleDef("street_01", "Street", "Street photography.",
-                "masterpieces", 5, "Master", false, 33));
-        DEFS.add(new SampleDef("still_life_01", "Still Life", "Still life composition.",
-                "masterpieces", 7, "Master", false, 34));
+        // MASTER — Multiple paths; build toward Legendary
+        DEFS.add(new SampleDef("abstract", "Abstract", "Non-representational.", "ascensions", 5, "masterpieces", 3, "Master", false, 30));
+        DEFS.add(new SampleDef("macro", "Macro", "Close-up.", "ascensions", 7, "ep", 30000, "Master", false, 31));
+        DEFS.add(new SampleDef("aerial", "Aerial", "Drone view.", "clicks", 30000, "masterpieces", 5, "Master", false, 32));
+        DEFS.add(new SampleDef("street", "Street", "Candid.", "clicks", 50000, "ascensions", 5, "Master", false, 33));
+        DEFS.add(new SampleDef("still_life", "Still Life", "Composition.", "ep", 40000, "masterpieces", 7, "Master", false, 34));
 
-        DEFS.add(new SampleDef("secret_01", "???", "You found something.",
-                "clicks", 5000, "Secret", true, 40));
-        DEFS.add(new SampleDef("secret_02", "???", "Something stirs.",
-                "ep", 30000, "Secret", true, 41));
-        DEFS.add(new SampleDef("secret_03", "???", "A legend awakens.",
-                "ascensions", 10, "Secret", true, 42));
-        DEFS.add(new SampleDef("secret_04", "???", "Beyond the veil.",
-                "masterpieces", 10, "Secret", true, 43));
-        DEFS.add(new SampleDef("secret_05", "???", "The final canvas.",
-                "gf", 100, "Secret", true, 44));
+        // LEGENDARY — Iconic art. Public domain. Crown jewels.
+        DEFS.add(new SampleDef("mona_lisa", "Mona Lisa", "Leonardo da Vinci, c.1503. Public domain.",
+                "masterpieces", 5, "ascensions", 10, "Legendary", false, 40));
+        DEFS.add(new SampleDef("starry_night", "Starry Night", "Van Gogh, 1889. Public domain.",
+                "masterpieces", 3, "ep", 50000, "Legendary", false, 41));
+        DEFS.add(new SampleDef("great_wave", "The Great Wave", "Hokusai, c.1831. Public domain.",
+                "ascensions", 5, "clicks", 75000, "Legendary", false, 42));
+        DEFS.add(new SampleDef("girl_pearl_earring", "Girl with a Pearl Earring", "Vermeer, c.1665. Public domain.",
+                "masterpieces", 7, "ascensions", 7, "Legendary", false, 43));
+        DEFS.add(new SampleDef("birth_of_venus", "Birth of Venus", "Botticelli, c.1485. Public domain.",
+                "gf", 50, "masterpieces", 10, "Legendary", false, 44));
+        DEFS.add(new SampleDef("american_gothic", "American Gothic", "Grant Wood, 1930. Public domain.",
+                "ascensions", 10, "ep", 75000, "Legendary", false, 45));
+        DEFS.add(new SampleDef("persistence_of_memory", "Persistence of Memory", "Dalí, 1931. Surrealist icon.",
+                "gf", 100, "masterpieces", 10, "Legendary", false, 46));
+
+        // SECRET — Kojima: subversion, suffering, discovery
+        DEFS.add(new SampleDef("secret_suffer", "???", "You endured.",
+                "miss_streak", 20, "clicks", 100000, "Secret", true, 50));
+        DEFS.add(new SampleDef("secret_grind", "???", "Dedication.",
+                "clicks", 100000, "ep", 100000, "Secret", true, 51));
+        DEFS.add(new SampleDef("secret_ascended", "???", "Returned.",
+                "ascensions", 15, "masterpieces", 15, "Secret", true, 52));
+        DEFS.add(new SampleDef("secret_gilded", "???", "Golden.",
+                "gf", 200, "", -1, "Secret", true, 53));
+        DEFS.add(new SampleDef("secret_omega", "???", "The final canvas.",
+                "gf", 500, "masterpieces", 20, "Secret", true, 54));
 
         // ─── GENERATED: programmatic samples, always available for testing. ───
         DEFS.add(new SampleDef("gradient_sunset", "Sunset Gradient", "A warm gradient from orange to purple.",
-                "always", 0, "Generated", false, 50));
-        DEFS.add(new SampleDef("circles", "Concentric Circles", "Nested circles for clean evolution.",
-                "always", 0, "Generated", false, 51));
-        DEFS.add(new SampleDef("checker", "Checkerboard", "Classic black and white pattern.",
-                "always", 0, "Generated", false, 52));
-        DEFS.add(new SampleDef("stripes", "Rainbow Stripes", "Horizontal color bands.",
-                "always", 0, "Generated", false, 53));
-        DEFS.add(new SampleDef("diamond", "Diamond Shape", "A central diamond on gradient.",
-                "always", 0, "Generated", false, 54));
-        DEFS.add(new SampleDef("spiral", "Spiral", "Archimedean spiral pattern.",
-                "always", 0, "Generated", false, 55));
-        DEFS.add(new SampleDef("rings", "Ripple Rings", "Expanding rings from center.",
-                "always", 0, "Generated", false, 56));
-        DEFS.add(new SampleDef("grid_grad", "Grid Gradient", "Mesh with smooth gradients.",
-                "always", 0, "Generated", false, 57));
-        DEFS.add(new SampleDef("waves", "Sine Waves", "Overlapping wave patterns.",
-                "always", 0, "Generated", false, 58));
-        DEFS.add(new SampleDef("maze", "Mini Maze", "A simple labyrinth pattern.",
-                "always", 0, "Generated", false, 59));
-        DEFS.add(new SampleDef("starfield", "Starfield", "Scattered points like stars.",
                 "always", 0, "Generated", false, 60));
-        DEFS.add(new SampleDef("hexagons", "Honeycomb", "Hexagonal tessellation.",
+        DEFS.add(new SampleDef("circles", "Concentric Circles", "Nested circles for clean evolution.",
                 "always", 0, "Generated", false, 61));
-        DEFS.add(new SampleDef("voronoi", "Voronoi", "Cell-like subdivision.",
+        DEFS.add(new SampleDef("checker", "Checkerboard", "Classic black and white pattern.",
                 "always", 0, "Generated", false, 62));
-        DEFS.add(new SampleDef("noise_cloud", "Cloud Noise", "Soft perlin-like texture.",
+        DEFS.add(new SampleDef("stripes", "Rainbow Stripes", "Horizontal color bands.",
                 "always", 0, "Generated", false, 63));
-        DEFS.add(new SampleDef("mandala", "Mandala", "Radial symmetry pattern.",
+        DEFS.add(new SampleDef("diamond", "Diamond Shape", "A central diamond on gradient.",
                 "always", 0, "Generated", false, 64));
-        DEFS.add(new SampleDef("rose", "Rose Curve", "Mathematical rose pattern.",
+        DEFS.add(new SampleDef("spiral", "Spiral", "Archimedean spiral pattern.",
                 "always", 0, "Generated", false, 65));
-        DEFS.add(new SampleDef("fractal_tree", "Fractal Tree", "Recursive branch structure.",
+        DEFS.add(new SampleDef("rings", "Ripple Rings", "Expanding rings from center.",
                 "always", 0, "Generated", false, 66));
-        DEFS.add(new SampleDef("kaleidoscope", "Kaleidoscope", "Multi-fold symmetry.",
+        DEFS.add(new SampleDef("grid_grad", "Grid Gradient", "Mesh with smooth gradients.",
                 "always", 0, "Generated", false, 67));
-        DEFS.add(new SampleDef("aurora", "Aurora", "Northern lights simulation.",
+        DEFS.add(new SampleDef("waves", "Sine Waves", "Overlapping wave patterns.",
                 "always", 0, "Generated", false, 68));
-        DEFS.add(new SampleDef("portal", "Portal", "Swirling vortex effect.",
+        DEFS.add(new SampleDef("maze", "Mini Maze", "A simple labyrinth pattern.",
                 "always", 0, "Generated", false, 69));
+        DEFS.add(new SampleDef("starfield", "Starfield", "Scattered points like stars.",
+                "always", 0, "Generated", false, 70));
+        DEFS.add(new SampleDef("hexagons", "Honeycomb", "Hexagonal tessellation.",
+                "always", 0, "Generated", false, 71));
+        DEFS.add(new SampleDef("voronoi", "Voronoi", "Cell-like subdivision.",
+                "always", 0, "Generated", false, 72));
+        DEFS.add(new SampleDef("noise_cloud", "Cloud Noise", "Soft perlin-like texture.",
+                "always", 0, "Generated", false, 73));
+        DEFS.add(new SampleDef("mandala", "Mandala", "Radial symmetry pattern.",
+                "always", 0, "Generated", false, 74));
+        DEFS.add(new SampleDef("rose", "Rose Curve", "Mathematical rose pattern.",
+                "always", 0, "Generated", false, 75));
+        DEFS.add(new SampleDef("fractal_tree", "Fractal Tree", "Recursive branch structure.",
+                "always", 0, "Generated", false, 76));
+        DEFS.add(new SampleDef("kaleidoscope", "Kaleidoscope", "Multi-fold symmetry.",
+                "always", 0, "Generated", false, 77));
+        DEFS.add(new SampleDef("aurora", "Aurora", "Northern lights simulation.",
+                "always", 0, "Generated", false, 78));
+        DEFS.add(new SampleDef("portal", "Portal", "Swirling vortex effect.",
+                "always", 0, "Generated", false, 79));
         DEFS.add(new SampleDef("easter_egg", "???", "You found something.",
-                "always", 0, "Generated", true, 70));
+                "always", 0, "Generated", true, 80));
         DEFS.add(new SampleDef("hidden_gem", "???", "Something stirs.",
-                "always", 0, "Generated", true, 71));
+                "always", 0, "Generated", true, 81));
         DEFS.add(new SampleDef("legendary", "???", "A legend awakens.",
-                "always", 0, "Generated", true, 72));
+                "always", 0, "Generated", true, 82));
         DEFS.add(new SampleDef("mythic", "???", "Beyond the veil.",
-                "always", 0, "Generated", true, 73));
+                "always", 0, "Generated", true, 83));
         DEFS.add(new SampleDef("omega", "???", "The final canvas.",
-                "always", 0, "Generated", true, 74));
+                "always", 0, "Generated", true, 84));
     }
 
     public static List<SampleDef> getAllDefs() {

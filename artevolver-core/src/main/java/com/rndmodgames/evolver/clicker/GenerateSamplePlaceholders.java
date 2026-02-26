@@ -22,11 +22,13 @@ public final class GenerateSamplePlaceholders {
     private static final int H = SampleImageProvider.HEIGHT;
 
     private static final List<String> REAL_IDS = List.of(
-            "landscape_01", "ocean_01", "forest_01", "sunset_01", "flowers_01",
-            "mountain_01", "canyon_01", "lake_01", "meadow_01", "beach_01",
-            "cityscape_01", "portrait_01", "architecture_01", "wildlife_01", "night_01",
-            "abstract_01", "macro_01", "aerial_01", "street_01", "still_life_01",
-            "secret_01", "secret_02", "secret_03", "secret_04", "secret_05"
+            "landscape", "ocean", "forest", "sunset", "flowers",
+            "mountain", "canyon", "lake", "meadow", "beach",
+            "cityscape", "architecture", "portrait", "wildlife", "night",
+            "abstract", "macro", "aerial", "street", "still_life",
+            "mona_lisa", "starry_night", "great_wave", "girl_pearl_earring",
+            "birth_of_venus", "american_gothic", "persistence_of_memory",
+            "secret_suffer", "secret_grind", "secret_ascended", "secret_gilded", "secret_omega"
     );
 
     public static void main(String[] args) throws IOException {
@@ -68,7 +70,15 @@ public final class GenerateSamplePlaceholders {
         else if (id.startsWith("aerial")) aerialGradient(g);
         else if (id.startsWith("street")) streetGradient(g);
         else if (id.startsWith("still_life")) stillLifeGradient(g);
-        else skyGroundGradient(g, 40, 30, 50, 60, 80, 70); // secret
+        else if (id.equals("mona_lisa")) monaLisaGradient(g);
+        else if (id.equals("starry_night")) starryNightGradient(g);
+        else if (id.equals("great_wave")) greatWaveGradient(g);
+        else if (id.equals("girl_pearl_earring")) girlPearlEarringGradient(g);
+        else if (id.equals("birth_of_venus")) birthOfVenusGradient(g);
+        else if (id.equals("american_gothic")) americanGothicGradient(g);
+        else if (id.equals("persistence_of_memory")) persistenceOfMemoryGradient(g);
+        else if (id.startsWith("secret_")) skyGroundGradient(g, 40, 30, 50, 60, 80, 70);
+        else skyGroundGradient(g, 100, 120, 140, 80, 90, 100);
 
         g.dispose();
         return img;
@@ -190,5 +200,40 @@ public final class GenerateSamplePlaceholders {
 
     private static void stillLifeGradient(Graphics2D g) {
         skyGroundGradient(g, 220, 200, 180, 180, 170, 150);
+    }
+
+    /** Mona Lisa — warm sfumato portrait tones */
+    private static void monaLisaGradient(Graphics2D g) {
+        skyGroundGradient(g, 90, 70, 55, 140, 110, 90);
+    }
+
+    /** Starry Night — blue night sky, yellow swirls */
+    private static void starryNightGradient(Graphics2D g) {
+        skyGroundGradient(g, 20, 40, 90, 80, 120, 180);
+    }
+
+    /** Great Wave — Hokusai blue/white */
+    private static void greatWaveGradient(Graphics2D g) {
+        skyGroundGradient(g, 60, 100, 160, 180, 200, 230);
+    }
+
+    /** Girl with a Pearl Earring — Vermeer chiaroscuro */
+    private static void girlPearlEarringGradient(Graphics2D g) {
+        skyGroundGradient(g, 30, 35, 45, 180, 160, 140);
+    }
+
+    /** Birth of Venus — Botticelli warm flesh/sky */
+    private static void birthOfVenusGradient(Graphics2D g) {
+        skyGroundGradient(g, 220, 200, 240, 240, 180, 160);
+    }
+
+    /** American Gothic — Wood earth tones */
+    private static void americanGothicGradient(Graphics2D g) {
+        skyGroundGradient(g, 120, 130, 150, 100, 85, 60);
+    }
+
+    /** Persistence of Memory — Dalí surreal warm */
+    private static void persistenceOfMemoryGradient(Graphics2D g) {
+        skyGroundGradient(g, 220, 200, 160, 180, 150, 120);
     }
 }

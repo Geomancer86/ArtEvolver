@@ -1,42 +1,42 @@
-# Sample Atlas — Real Photos
+# Sample Atlas — Gamedev-Designed Tree
 
-The default Sample Atlas tree uses **real-life, open-source, and free images** for great fitness scores on the platform.
+*Miyamoto: discovery. Wright: multiple paths. Kojima: secrets. Sid Meier: meaningful gates.*
 
-## Target Fitness: 75–80%+
+## Iconic Art (Legendary Tier)
 
-Good samples achieve **75% to 80%+ fitness** with the default setup:
-- **Palette:** Sherwin-Williams (4×)
-- **Grid:** 80×53 triangles
-- **Resolution:** 720×468 px
+Replace placeholders with public-domain images from Wikimedia Commons:
 
-We can measure this because we have access to the palette, triangle count, and target size. Fitness is computed by `DeltaFitnessEngine` when you load an image.
+| ID | Title | Artist | Source |
+|----|-------|--------|--------|
+| mona_lisa | Mona Lisa | Leonardo da Vinci, c.1503 | [Wikimedia](https://commons.wikimedia.org/wiki/File:Mona_Lisa,_by_Leonardo_da_Vinci,_from_C2RMF_retouched.jpg) |
+| starry_night | The Starry Night | Van Gogh, 1889 | [Wikimedia](https://commons.wikimedia.org/wiki/File:Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg) |
+| great_wave | The Great Wave off Kanagawa | Hokusai, c.1831 | [Wikimedia](https://commons.wikimedia.org/wiki/File:Great_Wave_off_Kanagawa2.jpg) |
+| girl_pearl_earring | Girl with a Pearl Earring | Vermeer, c.1665 | [Wikimedia](https://commons.wikimedia.org/wiki/File:Jan_Vermeer_van_Delft_002.jpg) |
+| birth_of_venus | The Birth of Venus | Botticelli, c.1485 | [Wikimedia](https://commons.wikimedia.org/wiki/File:Sandro_Botticelli_-_La_nascita_di_Venere_-_Google_Art_Project_-_edited.jpg) |
+| american_gothic | American Gothic | Grant Wood, 1930 | [Wikimedia](https://commons.wikimedia.org/wiki/File:American_Gothic.jpg) |
+| persistence_of_memory | The Persistence of Memory | Dalí, 1931 | Check copyright; many PD reproductions exist |
 
-## How to Curate
+Resize to 720×468. Target **75–80%+ fitness** with Sherwin-Williams 4× palette.
 
-1. **Add or replace images** — Use filenames matching the sample ids (e.g. `landscape_01.jpg`, `ocean_01.jpg`).
-2. **Test in the app** — Start the clicker with that sample, check the initial fitness (after Smart or LAP init).
-3. **Keep images that reach 75–80%+** — These will feel rewarding to evolve.
+## Unlock Paths (OR logic)
 
-## Free / Open-Source Sources
+Samples unlock when **any** condition is met:
 
-- [Unsplash](https://unsplash.com) — Free to use, no attribution required
-- [Pexels](https://www.pexels.com) — Free stock photos and videos
-- [Pixabay](https://pixabay.com) — Free images and videos
-
-Look for **CC0** (Public Domain) or **free for commercial use** licenses. Resize to 720×468 or similar aspect ratio for best results.
+- **Apprentice:** 500 EP **or** 1000 clicks → mountain, etc.
+- **Veteran:** 1 ascension **or** 1 masterpiece → cityscape, etc.
+- **Master:** Multiple paths (ascensions, masterpieces, EP, clicks)
+- **Legendary:** 5 masterpieces **or** 10 ascensions → Mona Lisa; 50 GF **or** 10 masterpieces → Birth of Venus; etc.
+- **Secret:** 20 miss streak **or** 100k clicks; 100k EP **or** 100k clicks; 15 ascensions **or** 15 masterpieces; 200 GF; 500 GF **or** 20 masterpieces
 
 ## Sample IDs (file-based)
 
-| ID | Category |
-|----|----------|
-| landscape_01, ocean_01, forest_01, sunset_01, flowers_01 | Starter |
-| mountain_01, canyon_01, lake_01, meadow_01, beach_01 | Apprentice |
-| cityscape_01, portrait_01, architecture_01, wildlife_01, night_01 | Veteran |
-| abstract_01, macro_01, aerial_01, street_01, still_life_01 | Master |
-| secret_01 … secret_05 | Secret |
-
-Supported formats: `.jpg`, `.jpeg`, `.png`
+Starter: landscape, ocean, forest, sunset, flowers  
+Apprentice: mountain, canyon, lake, meadow, beach  
+Veteran: cityscape, architecture, portrait, wildlife, night  
+Master: abstract, macro, aerial, street, still_life  
+Legendary: mona_lisa, starry_night, great_wave, girl_pearl_earring, birth_of_venus, american_gothic, persistence_of_memory  
+Secret: secret_suffer, secret_grind, secret_ascended, secret_gilded, secret_omega
 
 ## Generated Samples
 
-The **Generated** category (gradient_sunset, circles, checker, etc.) uses programmatic fallbacks and does **not** load from files. Those remain always available for testing — samples are always re-pickable even after completion.
+The **Generated** category (gradient_sunset, circles, checker, etc.) uses programmatic fallbacks. Always available for testing.

@@ -1154,7 +1154,7 @@ function renderSampleGrid() {
   samplesData.samples.forEach(s => {
     const card = document.createElement('div');
     card.className = 'sample-card' + (s.locked ? ' locked' : '') + (selectedSample === s.id ? ' selected' : '');
-    card.title = s.discovered ? s.desc : 'Unlock: ' + s.unlockType + ' >= ' + s.unlockValue;
+    card.title = s.discovered ? s.desc : (s.unlockHint || ('Unlock: ' + s.unlockType + ' \u2265 ' + s.unlockValue));
     const img = document.createElement('img');
     img.src = s.unlocked ? baseUrl + '/api/clicker/sample/' + s.id + '?thumb=1' : 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%232a2a40" width="100" height="100"/><text x="50" y="55" fill="%238888aa" font-size="24" text-anchor="middle">?</text></svg>';
     img.alt = s.name;
@@ -1203,7 +1203,7 @@ async function openAtlas() {
       const info = document.createElement('div');
       info.className = 'ac-info';
       info.innerHTML = '<div class="ac-name">' + esc(s.name) + '</div><div class="ac-desc">' + esc(s.desc) + '</div>' +
-        (s.locked ? '<div class="ac-unlock">Unlock: ' + esc(s.unlockType) + ' \u2265 ' + s.unlockValue + '</div>' : '') +
+        (s.locked ? '<div class="ac-unlock">' + esc(s.unlockHint || (s.unlockType + ' \u2265 ' + s.unlockValue)) + '</div>' : '') +
         (!s.locked && (s.bestGain > 0 || s.completed) ? '<div class="ac-stats">' + (s.completed ? '\u2713 ' : '') + 'Best: +' + (s.bestGain * 100).toFixed(1) + '% | ' + s.playCount + ' play(s)</div>' : '');
       card.appendChild(img);
       card.appendChild(info);

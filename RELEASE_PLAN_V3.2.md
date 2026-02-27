@@ -2,7 +2,7 @@
 
 **Planned Release**: March 2026
 **Branch**: `develop` → `release/v3.2.0` (when feature-complete)
-**Current Base**: v3.2.0-SNAPSHOT (develop)
+**Current Base**: v3.2.0 (released)
 **Priority**: User-facing polish, persistence, and performance
 
 ---

@@ -173,11 +173,11 @@ philosophies of Miyamoto, Meier, Wright, Kojima, Miyazaki, et al.
 - [x] Sample Atlas (25 samples, unlock tree, progress tracking, init picker, SAMPLE_ATLAS_DESIGN.md)
 - [x] **Manual testing — testers approved**
 - [x] All documentation updated (README, CHANGELOG, RELEASE_TODO)
-- [ ] Version bumped to 3.2.0 in POMs (currently 3.2.0-SNAPSHOT)
-- [ ] `release/v3.2.0` branch created from develop
-- [ ] Release tag `v3.2.0` created
-- [ ] Merged back to develop and master
-- [ ] POSTMORTEM_V3.2.md written
+- [x] Version bumped to 3.2.0 in POMs
+- [x] `release/v3.2.0` branch created from develop
+- [x] Release tag `v3.2.0` created
+- [x] Merged to master
+- [x] POSTMORTEM_V3.2.md written
 
 ---
 

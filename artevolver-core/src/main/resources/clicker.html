@@ -724,6 +724,7 @@ async function refresh() {
       if (!completeShown) {
         document.getElementById('initOverlay').style.display = 'flex';
         document.getElementById('imageWrap').style.display = 'none';
+        resetReference();
       }
       stopPolling();
       return;
@@ -739,8 +740,14 @@ function refreshImage() {
 }
 
 function loadReference() {
-  document.getElementById('refImg').src = '/api/clicker/reference';
+  document.getElementById('refImg').src = '/api/clicker/reference?v=' + Date.now();
   document.getElementById('refArea').style.display = 'flex';
+}
+
+function resetReference() {
+  const refImg = document.getElementById('refImg');
+  refImg.src = '';
+  document.getElementById('refArea').style.display = 'none';
 }
 
 function updateUI() {
@@ -1081,6 +1088,7 @@ async function doPrestige() {
         document.getElementById('initSpinner').style.display = 'none';
         document.getElementById('initError').textContent = '';
         selectedSample = null;
+        resetReference();
         loadSamples();
         addLog('\u2B50 Ascension complete! +' + Math.floor(data.gf) + ' GF | Gallery: ' + (data.galleryCount || 0) + ' images');
       }
@@ -1138,6 +1146,7 @@ function newCanvas() {
   document.getElementById('initError').textContent = '';
   selectedSample = null;
   pendingFile = null;
+  resetReference();
   loadSamples();
 }
 

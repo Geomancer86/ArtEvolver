@@ -86,6 +86,7 @@ philosophies of Miyamoto, Meier, Wright, Kojima, Miyazaki, et al.
 - **Flow**: Completion overlay stays on top (z-index 120); poll does not show init overlay while completion is visible. New Canvas → init overlay → drop/pick image → Begin. Standalone: `uploadedImage` cleared so user must explicitly pick a new image.
 - **Polling**: When `state.initialized` becomes false, image polling stops to avoid 404 spam on `/api/clicker/image`.
 - **Ascension**: Prestige consumes POST body, clears standalone upload, stops polling immediately, and resets init UI before returning to the picker.
+- **Reference image**: Source preview cache-busts and clears on ascension/masterpiece to avoid showing the previous image.
 
 ### Upgrades (21 total)
 

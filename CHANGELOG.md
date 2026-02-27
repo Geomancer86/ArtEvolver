@@ -221,6 +221,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Ascension flow**: Prestige now consumes POST body, clears standalone uploads, stops
   polling immediately, and resets init overlay UI so Ascend reliably returns to the
   image picker without getting stuck.
+- **Reference image refresh**: Source preview now cache-busts and resets on ascension/
+  masterpiece so it always reflects the newly initialized image.
 
 ### Fixed — Click Target & Code Review Bug Fixes (v3.2.0)
 

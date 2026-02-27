@@ -1,9 +1,18 @@
 @echo off
-setlocal
+setlocal enabledelayedexpansion
+
+:: Extract version from POM (same as start.bat/clicker.bat)
+for /f "delims=" %%v in ('mvn help:evaluate -Dexpression^=project.version -q -DforceStdout 2^>nul ^| findstr /r "^[0-9]"') do set "PROJECT_VERSION=%%v"
+if not defined PROJECT_VERSION (
+    for /f "tokens=2 delims=<>" %%v in ('findstr /r "<version>[0-9]" pom.xml 2^>nul') do (
+        if not defined PROJECT_VERSION set "PROJECT_VERSION=%%v"
+    )
+)
+if not defined PROJECT_VERSION set "PROJECT_VERSION=unknown"
 
 echo.
 echo  ============================================
-echo   ArtEvolver v3.2 - Benchmark Runner
+echo   ArtEvolver %PROJECT_VERSION% - Benchmark Runner
 echo  ============================================
 echo.
 

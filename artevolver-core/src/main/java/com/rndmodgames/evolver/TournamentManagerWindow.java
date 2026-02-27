@@ -41,6 +41,8 @@ public class TournamentManagerWindow extends JFrame {
     // System Monitor + Autopilot + Dashboard
     private final SystemMonitor sysMonitor = new SystemMonitor();
     private DashboardServer dashboardServer;
+    private boolean dashboardAutoOpened = false;
+    private boolean autoOpenDashboard = true;
     private JLabel lblSysStatus;
     private boolean autopilotActive = false;
     private double maxCpuPercent = 80;
@@ -93,10 +95,11 @@ public class TournamentManagerWindow extends JFrame {
         table.getColumnModel().getColumn(3).setPreferredWidth(100);
         table.getColumnModel().getColumn(4).setPreferredWidth(100);
         table.getColumnModel().getColumn(5).setPreferredWidth(60);
-        table.getColumnModel().getColumn(6).setMaxWidth(40);
-        table.getColumnModel().getColumn(7).setPreferredWidth(150);
-        table.getColumnModel().getColumn(8).setPreferredWidth(90);
-        table.getColumnModel().getColumn(9).setPreferredWidth(200);
+        table.getColumnModel().getColumn(6).setPreferredWidth(80);  // Gear
+        table.getColumnModel().getColumn(7).setMaxWidth(40);        // Gen
+        table.getColumnModel().getColumn(8).setPreferredWidth(150); // Parentage
+        table.getColumnModel().getColumn(9).setPreferredWidth(90);  // Breed
+        table.getColumnModel().getColumn(10).setPreferredWidth(200); // Parameters
 
         table.getColumnModel().getColumn(1).setCellRenderer(new ColorCellRenderer());
 
@@ -543,6 +546,7 @@ public class TournamentManagerWindow extends JFrame {
                     evoTournament.setAdaptiveCutoff(true);
                     lastHistoryRecordCount = 0;
                     evoTournament.start();
+                    autoOpenDashboardIfNeeded();
                     System.out.println("[Autopilot] Started evolutionary tournament"
                             + " (fast start at " + evoTournament.getCutoffSeconds()
                             + "s, " + aliveCount + " contestants)");
@@ -558,8 +562,18 @@ public class TournamentManagerWindow extends JFrame {
         ensureDashboardServer();
         if (dashboardServer != null) {
             dashboardServer.openInBrowser();
+            dashboardAutoOpened = true;
         }
     }
+
+    private void autoOpenDashboardIfNeeded() {
+        if (autoOpenDashboard && !dashboardAutoOpened) {
+            openDashboard();
+        }
+    }
+
+    public boolean isAutoOpenDashboard() { return autoOpenDashboard; }
+    public void setAutoOpenDashboard(boolean value) { this.autoOpenDashboard = value; }
 
     public DashboardServer getDashboardServer() { return dashboardServer; }
 
@@ -863,6 +877,12 @@ public class TournamentManagerWindow extends JFrame {
         "Blitz",
         "Deep Grid",
         "Hybrid Adaptive",
+        // Multi-stage (geared) presets
+        "MS: 3-Gear Classic",
+        "MS: Stale Shifter",
+        "MS: Fitness Ladder",
+        "MS: Sprint to Precision",
+        "MS: Adaptive Cascade",
     };
 
     public int getStrategyCount() { return STRATEGY_NAMES.length; }
@@ -992,8 +1012,153 @@ public class TournamentManagerWindow extends JFrame {
                 cfg.population = Math.max(3, cfg.population * 2);
                 cfg.crossoverMax = Math.max(3, cfg.crossoverMax * 2);
                 break;
+
+            // ═══════ Multi-Stage (Geared) Presets ═══════
+
+            case 16: // MS: 3-Gear Classic — Chaos -> Balanced -> Sniper (TIME triggers)
+                cfg.name = STRATEGY_NAMES[16];
+                cfg.setStages(java.util.Arrays.asList(
+                    buildStage("Start", cfg, c -> {
+                        c.gridMutationChances *= 4; c.randomMutationChances *= 6;
+                        c.randomMutationPercent = Math.min(1f, c.randomMutationPercent * 6);
+                        c.closeMutationChances *= 4; c.targetedSwapAttempts *= 4;
+                    }, EvolutionStage.TriggerType.TIME, 15),
+                    buildStage("Mid", cfg, c -> { /* balanced defaults */ },
+                        EvolutionStage.TriggerType.TIME, 35),
+                    buildStage("Endgame", cfg, c -> {
+                        c.targetedSwapAttempts *= 8; c.gridMutationChances = 0;
+                        c.randomMutationChances = Math.max(5, c.randomMutationChances / 10);
+                        c.closeMutationChances = Math.max(2, c.closeMutationChances / 2);
+                    }, EvolutionStage.TriggerType.TIME, 999999)
+                ));
+                applyStage0(cfg);
+                break;
+
+            case 17: // MS: Stale Shifter — shifts gear when stale detected
+                cfg.name = STRATEGY_NAMES[17];
+                cfg.setStages(java.util.Arrays.asList(
+                    buildStage("Start", cfg, c -> {
+                        c.gridMutationChances *= 4; c.randomMutationChances *= 4;
+                        c.randomMutationPercent = Math.min(1f, c.randomMutationPercent * 4);
+                        c.targetedSwapAttempts = Math.max(2, c.targetedSwapAttempts / 2);
+                    }, EvolutionStage.TriggerType.STALE, 0.0001),
+                    buildStage("Mid", cfg, c -> {
+                        c.gridMutationChances *= 4; c.gridMutationDecay *= 0.5f;
+                        c.randomMutationChances = Math.max(10, c.randomMutationChances / 4);
+                        c.targetedSwapAttempts *= 2;
+                    }, EvolutionStage.TriggerType.STALE, 0.00001),
+                    buildStage("Endgame", cfg, c -> {
+                        c.closeMutationChances *= 10;
+                        c.closeMutationPercent = Math.min(0.01f, c.closeMutationPercent * 8);
+                        c.gridMutationChances = Math.max(2, c.gridMutationChances / 4);
+                        c.randomMutationChances = Math.max(5, c.randomMutationChances / 8);
+                        c.targetedSwapAttempts *= 3;
+                    }, EvolutionStage.TriggerType.TIME, 999999)
+                ));
+                applyStage0(cfg);
+                break;
+
+            case 18: // MS: Fitness Ladder — advances by reaching fitness thresholds
+                cfg.name = STRATEGY_NAMES[18];
+                cfg.setStages(java.util.Arrays.asList(
+                    buildStage("Start", cfg, c -> {
+                        c.population = Math.max(cfg.population, 4);
+                        c.gridMutationChances *= 2; c.randomMutationChances *= 2;
+                    }, EvolutionStage.TriggerType.FITNESS, 0.30),
+                    buildStage("Mid", cfg, c -> {
+                        c.targetedSwapAttempts *= 6; c.gridMutationChances *= 3;
+                        c.gridMutationDecay *= 0.3f;
+                        c.randomMutationChances = Math.max(5, c.randomMutationChances / 6);
+                        c.closeMutationChances *= 3;
+                    }, EvolutionStage.TriggerType.FITNESS, 0.60),
+                    buildStage("Endgame", cfg, c -> {
+                        c.closeMutationChances *= 6; c.closeMutationPercent = Math.min(1f, c.closeMutationPercent * 4);
+                        c.gridMutationChances = Math.max(4, c.gridMutationChances / 2);
+                        c.randomMutationChances = Math.max(10, c.randomMutationChances / 4);
+                        c.targetedSwapAttempts *= 2;
+                    }, EvolutionStage.TriggerType.TIME, 999999)
+                ));
+                applyStage0(cfg);
+                break;
+
+            case 19: // MS: Sprint to Precision — fast start, then precision tuning
+                cfg.name = STRATEGY_NAMES[19];
+                cfg.setStages(java.util.Arrays.asList(
+                    buildStage("Start", cfg, c -> {
+                        c.randomMutationChances *= 3; c.randomMutationPercent = Math.max(0.0001f, c.randomMutationPercent / 4);
+                        c.gridMutationChances *= 2; c.gridMutationPercent = Math.max(0.01f, c.gridMutationPercent / 2);
+                        c.closeMutationChances *= 2;
+                    }, EvolutionStage.TriggerType.TIME, 10),
+                    buildStage("Mid", cfg, c -> {
+                        c.targetedSwapAttempts *= 4; c.gridMutationChances = Math.max(4, c.gridMutationChances / 2);
+                        c.randomMutationChances = Math.max(10, c.randomMutationChances / 2);
+                        c.closeMutationChances *= 2;
+                    }, EvolutionStage.TriggerType.TIME, 25),
+                    buildStage("Endgame", cfg, c -> {
+                        c.closeMutationChances *= 10;
+                        c.closeMutationPercent = Math.min(0.01f, c.closeMutationPercent * 8);
+                        c.gridMutationChances = Math.max(2, c.gridMutationChances / 4);
+                        c.randomMutationChances = Math.max(5, c.randomMutationChances / 8);
+                        c.targetedSwapAttempts *= 3;
+                    }, EvolutionStage.TriggerType.TIME, 999999)
+                ));
+                applyStage0(cfg);
+                break;
+
+            case 20: // MS: Adaptive Cascade — chaos start, stale-trigger shifts
+                cfg.name = STRATEGY_NAMES[20];
+                cfg.setStages(java.util.Arrays.asList(
+                    buildStage("Start", cfg, c -> {
+                        c.gridMutationChances *= 4; c.randomMutationChances *= 6;
+                        c.randomMutationPercent = Math.min(1f, c.randomMutationPercent * 6);
+                        c.closeMutationChances *= 4; c.targetedSwapAttempts *= 4;
+                    }, EvolutionStage.TriggerType.STALE, 0.001),
+                    buildStage("Mid", cfg, c -> {
+                        c.gridMutationChances *= 3; c.randomMutationChances *= 3;
+                        c.closeMutationChances *= 3; c.targetedSwapAttempts *= 3;
+                        c.population = Math.max(3, c.population * 2);
+                    }, EvolutionStage.TriggerType.STALE, 0.0001),
+                    buildStage("Endgame", cfg, c -> {
+                        c.targetedSwapAttempts *= 8; c.gridMutationChances = 0;
+                        c.randomMutationChances = Math.max(5, c.randomMutationChances / 10);
+                        c.closeMutationChances = Math.max(2, c.closeMutationChances / 2);
+                    }, EvolutionStage.TriggerType.TIME, 999999)
+                ));
+                applyStage0(cfg);
+                break;
         }
         return cfg;
+    }
+
+    /**
+     * Builds an EvolutionStage by cloning the base config and applying a mutator.
+     */
+    private EvolutionStage buildStage(String name, EvolutionConfig base,
+            java.util.function.Consumer<EvolutionConfig> mutator,
+            EvolutionStage.TriggerType triggerType, double triggerValue) {
+        EvolutionConfig stageConfig = base.clone();
+        stageConfig.setStages(null);
+        mutator.accept(stageConfig);
+        return new EvolutionStage(name, stageConfig, triggerType, triggerValue);
+    }
+
+    /**
+     * Applies stage 0's mutation parameters to the root config (the live config evolvers read).
+     */
+    private void applyStage0(EvolutionConfig cfg) {
+        if (cfg.getStages() != null && !cfg.getStages().isEmpty()) {
+            EvolutionConfig s0 = cfg.getStages().get(0).getConfig();
+            cfg.gridMutationChances = s0.gridMutationChances;
+            cfg.gridMutationPercent = s0.gridMutationPercent;
+            cfg.gridMutationDecay = s0.gridMutationDecay;
+            cfg.randomMutationChances = s0.randomMutationChances;
+            cfg.randomMutationPercent = s0.randomMutationPercent;
+            cfg.closeMutationChances = s0.closeMutationChances;
+            cfg.closeMutationPercent = s0.closeMutationPercent;
+            cfg.randomGridMutationChances = s0.randomGridMutationChances;
+            cfg.randomGridMutationPercent = s0.randomGridMutationPercent;
+            cfg.targetedSwapAttempts = s0.targetedSwapAttempts;
+        }
     }
 
     private void showQuickSetup() {
@@ -1137,6 +1302,7 @@ public class TournamentManagerWindow extends JFrame {
             btnEvolve.setText("\u25A0 Stop Evolving");
             btnEvolve.setBackground(new Color(178, 34, 34));
             setEvoLockButtons(true);
+            autoOpenDashboardIfNeeded();
         }
     }
 
@@ -1152,6 +1318,7 @@ public class TournamentManagerWindow extends JFrame {
             btnEvolve.setText("\u25A0 Stop Evolving");
             btnEvolve.setBackground(new Color(178, 34, 34));
             setEvoLockButtons(true);
+            autoOpenDashboardIfNeeded();
             System.out.println("[Tournament] Auto-evolve started");
         }
     }
@@ -1176,171 +1343,141 @@ public class TournamentManagerWindow extends JFrame {
             evoTournament = new EvolutionaryTournament(artEvolver, contestants);
         }
 
-        JPanel form = new JPanel(new GridLayout(0, 2, 8, 4));
-        form.setBorder(new EmptyBorder(10, 10, 10, 10));
+        JDialog dlg = new JDialog(this, "Evolutionary Tournament Settings", true);
+        dlg.setMinimumSize(new Dimension(480, 400));
+        dlg.setLayout(new BorderLayout());
+
+        JPanel form = new JPanel();
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+        form.setBorder(new EmptyBorder(6, 12, 6, 12));
 
         // --- Timing & Population ---
-        addSectionLabel(form, "TIMING & POPULATION");
-
-        form.add(new JLabel("Cutoff Interval (seconds):"));
-        JSpinner spnCutoff = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getCutoffSeconds(), 5, 600, 5));
-        spnCutoff.setToolTipText("Time between tournament cycles. Start low (5-10s) for fast churn.");
-        form.add(spnCutoff);
-
-        form.add(new JLabel("Grace Period (ticks):"));
-        JSpinner spnGrace = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getGracePeriodTicks(), 0, 10, 1));
-        form.add(spnGrace);
-
-        form.add(new JLabel("Min Contestants (floor):"));
-        JSpinner spnMinPop = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getMinContestants(), 2, 20, 1));
-        form.add(spnMinPop);
-
-        form.add(new JLabel("Spawns per Tick:"));
-        JSpinner spnSpawns = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getSpawnsPerTick(), 1, 10, 1));
-        form.add(spnSpawns);
+        JPanel secTiming = createSection("Timing & Population");
+        JSpinner spnCutoff = addSpinnerRow(secTiming, "Cutoff Interval (seconds):",
+                evoTournament.getCutoffSeconds(), 5, 600, 5,
+                "Time between tournament cycles. Start low (5-10s) for fast churn.");
+        JSpinner spnGrace = addSpinnerRow(secTiming, "Grace Period (ticks):",
+                evoTournament.getGracePeriodTicks(), 0, 10, 1,
+                "Number of cycles where newcomers are immune from culling.");
+        JSpinner spnMinPop = addSpinnerRow(secTiming, "Min Contestants (floor):",
+                evoTournament.getMinContestants(), 2, 20, 1,
+                "Minimum population. Default 3.");
+        JSpinner spnSpawns = addSpinnerRow(secTiming, "Spawns per Tick:",
+                evoTournament.getSpawnsPerTick(), 1, 10, 1,
+                "Contestants culled and replaced each cycle.");
+        form.add(secTiming);
 
         // --- Adaptive Cutoff ---
-        addSectionLabel(form, "ADAPTIVE CUTOFF");
+        JPanel secAdapt = createSection("Adaptive Cutoff");
+        JCheckBox chkAdaptive = addCheckRow(secAdapt, "Auto-adjust interval", evoTournament.isAdaptiveCutoff(),
+                "Automatically shorten/lengthen cycle based on improvement.");
+        JSpinner spnAdaptMin = addSpinnerRow(secAdapt, "Adaptive Min (seconds):",
+                evoTournament.getAdaptiveCutoffMin(), 5, 120, 5,
+                "Shortest possible cycle. Default 5s.");
+        JSpinner spnAdaptMax = addSpinnerRow(secAdapt, "Adaptive Max (seconds):",
+                evoTournament.getAdaptiveCutoffMax(), 5, 600, 5,
+                "Longest possible cycle. Default 300s.");
+        form.add(secAdapt);
 
-        form.add(new JLabel("Adaptive Cutoff:"));
-        JCheckBox chkAdaptive = new JCheckBox("Auto-adjust interval", evoTournament.isAdaptiveCutoff());
-        form.add(chkAdaptive);
+        // --- Contestant Lifespan ---
+        JPanel secLife = createSection("Contestant Lifespan");
+        JSpinner spnLifespan = addSpinnerRow(secLife, "Max Lifespan (seconds, 0=off):",
+                evoTournament.getMaxLifespanSeconds(), 0, 3600, 5,
+                "Promote and replace after N seconds. Default 30s.");
+        JSpinner spnStale = addSpinnerRow(secLife, "Stale Threshold (seconds, 0=off):",
+                evoTournament.getStaleThresholdSeconds(), 0, 120, 5,
+                "Kill flat-liners after N seconds of zero improvement.");
+        JSpinner spnMaxPromoted = addSpinnerRow(secLife, "Max Promoted (hall of fame):",
+                evoTournament.getMaxPromoted(), 1, 50, 1,
+                "Max promoted kept for breeding. Default 10.");
+        JSpinner spnPresetInject = addSpinnerRow(secLife, "Preset Injection Interval:",
+                evoTournament.getPresetInjectionInterval(), 0, 20, 1,
+                "Every Nth spawn uses a preset strategy (0=off). Default 5.");
+        form.add(secLife);
 
-        form.add(new JLabel("Adaptive Min (seconds):"));
-        JSpinner spnAdaptMin = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getAdaptiveCutoffMin(), 5, 120, 5));
-        form.add(spnAdaptMin);
-
-        form.add(new JLabel("Adaptive Max (seconds):"));
-        JSpinner spnAdaptMax = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getAdaptiveCutoffMax(), 30, 600, 10));
-        form.add(spnAdaptMax);
-
-        // --- Lifespan Cap ---
-        addSectionLabel(form, "CONTESTANT LIFESPAN");
-
-        form.add(new JLabel("Max Lifespan (seconds, 0=off):"));
-        JSpinner spnLifespan = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getMaxLifespanSeconds(), 0, 3600, 5));
-        spnLifespan.setToolTipText("Promote and replace after N seconds. Default 60s for fast iteration.");
-        form.add(spnLifespan);
-
-        form.add(new JLabel("Stale Detection (seconds, 0=off):"));
-        JSpinner spnStale = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getStaleThresholdSeconds(), 0, 120, 5));
-        spnStale.setToolTipText("Eliminate flat-line contestants after N seconds of zero improvement.");
-        form.add(spnStale);
-
-        form.add(new JLabel("Max Promoted (hall of fame):"));
-        JSpinner spnMaxPromoted = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getMaxPromoted(), 1, 50, 1));
-        spnMaxPromoted.setToolTipText("Max promoted contestants kept for breeding. Oldest/worst rotate out.");
-        form.add(spnMaxPromoted);
-
-        form.add(new JLabel("Preset Injection Interval:"));
-        JSpinner spnPresetInject = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getPresetInjectionInterval(), 0, 20, 1));
-        spnPresetInject.setToolTipText("Every Nth spawn, inject an untried preset strategy (0=off).");
-        form.add(spnPresetInject);
+        // --- Adaptive Lifetime ---
+        JPanel secAdaptLife = createSection("Adaptive Lifetime");
+        JCheckBox chkAdaptiveLife = addCheckRow(secAdaptLife, "Adaptive Lifetime (grows over time)",
+                evoTournament.isAdaptiveLifetimeEnabled(),
+                "Max lifespan grows as competitors use their allotted time.");
+        JComboBox<EvolutionaryTournament.AdaptiveLifetimeMode> cmbAdaptMode = new JComboBox<>(
+                EvolutionaryTournament.AdaptiveLifetimeMode.values());
+        cmbAdaptMode.setSelectedItem(evoTournament.getAdaptiveLifetimeMode());
+        cmbAdaptMode.setMaximumSize(new Dimension(200, 24));
+        cmbAdaptMode.setToolTipText("LONGEST: grow when longest uses ≥85%. AVERAGE: grow when avg ≥70%.");
+        addLabeledRow(secAdaptLife, "Adaptive Mode:", cmbAdaptMode);
+        JSpinner spnGrowthCap = addSpinnerRow(secAdaptLife, "Growth Cap (%):",
+                evoTournament.getAdaptiveLifetimeGrowthCap() * 100, 1.0, 100.0, 1.0,
+                "Max % increase per generation tick. Default 10%.");
+        JSpinner spnAnomalyThresh = addSpinnerRow(secAdaptLife, "Anomaly Threshold (%):",
+                evoTournament.getAdaptiveLifetimeAnomalyThreshold() * 100, 110.0, 500.0, 10.0,
+                "Competitors above this % of max lifespan are considered stuck.");
+        JSpinner spnAbsMax = addSpinnerRow(secAdaptLife, "Absolute Max Lifespan (s):",
+                evoTournament.getAbsoluteMaxLifespanSeconds(), 30, 3600, 30,
+                "Hard ceiling for adaptive growth. Default 600s (10 min).");
+        form.add(secAdaptLife);
 
         // --- Ranking Strategy ---
-        addSectionLabel(form, "RANKING STRATEGY");
-
-        form.add(new JLabel("Strategy:"));
+        JPanel secRank = createSection("Ranking Strategy");
         JComboBox<EvolutionaryTournament.RankingStrategy> cmbStrategy = new JComboBox<>(
                 EvolutionaryTournament.RankingStrategy.values());
         cmbStrategy.setSelectedItem(evoTournament.getRankingStrategy());
-        cmbStrategy.setToolTipText(
-                "BALANCED: use base weights. VELOCITY_FIRST: favor fast learners. "
-                + "FITNESS_FIRST: favor peak score. AUTO: start velocity-heavy, shift to fitness.");
-        form.add(cmbStrategy);
+        cmbStrategy.setMaximumSize(new Dimension(200, 24));
+        cmbStrategy.setToolTipText("BALANCED: use base weights. AUTO: shift velocity→fitness over generations.");
+        addLabeledRow(secRank, "Strategy:", cmbStrategy);
+        JSpinner spnAutoTransGen = addSpinnerRow(secRank, "AUTO Transition Generations:",
+                evoTournament.getAutoTransitionGen(), 1, 100, 1,
+                "Generations to transition from velocity-first to fitness-first.");
+        form.add(secRank);
 
-        form.add(new JLabel("AUTO Transition Gen:"));
-        JSpinner spnAutoTransGen = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getAutoTransitionGen(), 1, 100, 1));
-        spnAutoTransGen.setToolTipText("In AUTO mode, how many generations to fully transition from velocity to fitness.");
-        form.add(spnAutoTransGen);
+        // --- Base Weights ---
+        JPanel secWeights = createSection("Base Weights (BALANCED mode)");
+        JSpinner spnWFit = addSpinnerRow(secWeights, "Fitness:", (double) evoTournament.getFitnessWeight(), 0.0, 1.0, 0.05, "");
+        JSpinner spnWVel = addSpinnerRow(secWeights, "Velocity:", (double) evoTournament.getVelocityWeight(), 0.0, 1.0, 0.05, "");
+        JSpinner spnWAcc = addSpinnerRow(secWeights, "Acceleration:", (double) evoTournament.getAccelerationWeight(), 0.0, 1.0, 0.05, "");
+        JSpinner spnWLin = addSpinnerRow(secWeights, "Lineage:", (double) evoTournament.getLineageWeight(), 0.0, 1.0, 0.05, "");
+        form.add(secWeights);
 
-        // --- Breeding ---
-        addSectionLabel(form, "BREEDING & MUTATION");
+        // --- Breeding & Mutation ---
+        JPanel secBreed = createSection("Breeding & Mutation");
+        JSpinner spnMutRate = addSpinnerRow(secBreed, "Mutation Rate:", (double) evoTournament.getMutationRate(), 0.0, 1.0, 0.05,
+                "Fraction of genes mutated per child. Default 0.4.");
+        JSpinner spnMutStr = addSpinnerRow(secBreed, "Mutation Strength:", (double) evoTournament.getMutationStrength(), 0.0, 1.0, 0.05,
+                "Delta applied to each mutation. Default 0.25.");
+        JCheckBox chkAncestral = addCheckRow(secBreed, "Ancestral Crossover (blend grandparent genes)",
+                evoTournament.isUseAncestralCrossover(), "Blend genes from multiple ancestors during breeding.");
+        JSpinner spnAncDepth = addSpinnerRow(secBreed, "Ancestry Depth:", evoTournament.getAncestryDepth(), 1, 10, 1,
+                "How many generations back to look for ancestral genes.");
+        form.add(secBreed);
 
-        form.add(new JLabel("Mutation Rate (0.0-1.0):"));
-        JSpinner spnMutRate = new JSpinner(new SpinnerNumberModel(
-                (double) evoTournament.getMutationRate(), 0.0, 1.0, 0.05));
-        form.add(spnMutRate);
+        // --- Lineage & Velocity ---
+        JPanel secLineage = createSection("Lineage & Velocity");
+        JSpinner spnLinDecay = addSpinnerRow(secLineage, "Lineage Decay:", evoTournament.getLineageDecay(), 0.0, 1.0, 0.05,
+                "Weight decay per ancestor generation. Default 0.7.");
+        JSpinner spnVelWin = addSpinnerRow(secLineage, "Velocity Window (seconds):",
+                evoTournament.getVelocityWindowSeconds(), 5, 300, 5,
+                "Sliding window for velocity computation. Default 12s.");
+        form.add(secLineage);
 
-        form.add(new JLabel("Mutation Strength (0.0-1.0):"));
-        JSpinner spnMutStr = new JSpinner(new SpinnerNumberModel(
-                (double) evoTournament.getMutationStrength(), 0.0, 1.0, 0.05));
-        form.add(spnMutStr);
-
-        form.add(new JLabel("Ancestral Crossover:"));
-        JCheckBox chkAncestral = new JCheckBox("Blend grandparent genes", evoTournament.isUseAncestralCrossover());
-        form.add(chkAncestral);
-
-        form.add(new JLabel("Ancestry Depth:"));
-        JSpinner spnAncDepth = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getAncestryDepth(), 1, 10, 1));
-        form.add(spnAncDepth);
-
-        // --- Composite Ranking Weights ---
-        addSectionLabel(form, "BASE WEIGHTS (used by BALANCED, overridden by other strategies)");
-
-        form.add(new JLabel("Fitness Weight:"));
-        JSpinner spnWFit = new JSpinner(new SpinnerNumberModel(
-                (double) evoTournament.getFitnessWeight(), 0.0, 1.0, 0.05));
-        form.add(spnWFit);
-
-        form.add(new JLabel("Velocity Weight:"));
-        JSpinner spnWVel = new JSpinner(new SpinnerNumberModel(
-                (double) evoTournament.getVelocityWeight(), 0.0, 1.0, 0.05));
-        form.add(spnWVel);
-
-        form.add(new JLabel("Acceleration Weight:"));
-        JSpinner spnWAcc = new JSpinner(new SpinnerNumberModel(
-                (double) evoTournament.getAccelerationWeight(), 0.0, 1.0, 0.05));
-        form.add(spnWAcc);
-
-        form.add(new JLabel("Lineage Weight:"));
-        JSpinner spnWLin = new JSpinner(new SpinnerNumberModel(
-                (double) evoTournament.getLineageWeight(), 0.0, 1.0, 0.05));
-        form.add(spnWLin);
-
-        // --- Lineage ---
-        addSectionLabel(form, "LINEAGE & VELOCITY");
-
-        form.add(new JLabel("Lineage Decay (per gen):"));
-        JSpinner spnLinDecay = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getLineageDecay(), 0.0, 1.0, 0.05));
-        form.add(spnLinDecay);
-
-        form.add(new JLabel("Velocity Window (seconds):"));
-        JSpinner spnVelWin = new JSpinner(new SpinnerNumberModel(
-                evoTournament.getVelocityWindowSeconds(), 5, 300, 5));
-        form.add(spnVelWin);
-
-        JLabel hint = new JLabel("<html><i>Settings can be changed while evolving is running.<br>"
-                + "Grace period protects newcomers from immediate culling.<br>"
-                + "Lifespan cap promotes contestants to Hall of Fame (breeding pool).<br>"
-                + "Preset injection introduces untried strategies into the gene pool.<br>"
-                + "AUTO ranking starts velocity-heavy and shifts to fitness.</i></html>");
-        hint.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
-        hint.setForeground(Color.GRAY);
-        form.add(hint);
-        form.add(new JLabel(""));
+        // --- Dashboard ---
+        JPanel secDashboard = createSection("Dashboard");
+        JCheckBox chkAutoOpen = addCheckRow(secDashboard, "Auto-open browser dashboard on start", autoOpenDashboard,
+                "Automatically opens the dashboard in your default browser once per session.");
+        form.add(secDashboard);
 
         JScrollPane scroll = new JScrollPane(form);
-        scroll.setPreferredSize(new Dimension(500, 660));
-        scroll.getVerticalScrollBar().setUnitIncrement(12);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        scroll.setBorder(null);
+        dlg.add(scroll, BorderLayout.CENTER);
 
-        int result = JOptionPane.showConfirmDialog(this, scroll,
-                "Evolutionary Tournament Settings", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
-        if (result == JOptionPane.OK_OPTION) {
+        // Button panel: OK / Cancel
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 6));
+        JButton btnOk = new JButton("OK");
+        JButton btnCancel = new JButton("Cancel");
+        btnOk.setPreferredSize(new Dimension(80, 28));
+        btnCancel.setPreferredSize(new Dimension(80, 28));
+        btnCancel.addActionListener(e -> dlg.dispose());
+        btnOk.addActionListener(e -> {
             evoTournament.setCutoffSeconds((int) spnCutoff.getValue());
             evoTournament.setGracePeriodTicks((int) spnGrace.getValue());
             evoTournament.setMinContestants((int) spnMinPop.getValue());
@@ -1349,6 +1486,12 @@ public class TournamentManagerWindow extends JFrame {
             evoTournament.setAdaptiveCutoffMin((int) spnAdaptMin.getValue());
             evoTournament.setAdaptiveCutoffMax((int) spnAdaptMax.getValue());
             evoTournament.setMaxLifespanSeconds((int) spnLifespan.getValue());
+            evoTournament.setAdaptiveLifetimeEnabled(chkAdaptiveLife.isSelected());
+            evoTournament.setAdaptiveLifetimeMode(
+                    (EvolutionaryTournament.AdaptiveLifetimeMode) cmbAdaptMode.getSelectedItem());
+            evoTournament.setAdaptiveLifetimeGrowthCap(((Number) spnGrowthCap.getValue()).doubleValue() / 100.0);
+            evoTournament.setAdaptiveLifetimeAnomalyThreshold(((Number) spnAnomalyThresh.getValue()).doubleValue() / 100.0);
+            evoTournament.setAbsoluteMaxLifespanSeconds((int) spnAbsMax.getValue());
             evoTournament.setStaleThresholdSeconds((int) spnStale.getValue());
             evoTournament.setMaxPromoted((int) spnMaxPromoted.getValue());
             evoTournament.setPresetInjectionInterval((int) spnPresetInject.getValue());
@@ -1365,16 +1508,76 @@ public class TournamentManagerWindow extends JFrame {
             evoTournament.setLineageWeight(((Number) spnWLin.getValue()).floatValue());
             evoTournament.setLineageDecay(((Number) spnLinDecay.getValue()).doubleValue());
             evoTournament.setVelocityWindowSeconds((int) spnVelWin.getValue());
-        }
+            autoOpenDashboard = chkAutoOpen.isSelected();
+            saveEvoSettings();
+            dlg.dispose();
+        });
+        btnPanel.add(btnOk);
+        btnPanel.add(btnCancel);
+        dlg.add(btnPanel, BorderLayout.SOUTH);
+
+        dlg.getRootPane().setDefaultButton(btnOk);
+        dlg.setSize(520, 720);
+        dlg.setLocationRelativeTo(this);
+        dlg.setVisible(true);
     }
 
-    private void addSectionLabel(JPanel form, String text) {
-        JLabel lbl = new JLabel(text);
-        lbl.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 11));
-        lbl.setForeground(new Color(100, 100, 120));
-        lbl.setBorder(new EmptyBorder(8, 0, 2, 0));
-        form.add(lbl);
-        form.add(new JLabel(""));
+    private JPanel createSection(String title) {
+        JPanel section = new JPanel();
+        section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
+        section.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder(
+                        BorderFactory.createLineBorder(new Color(180, 180, 200), 1, true),
+                        title, javax.swing.border.TitledBorder.LEFT,
+                        javax.swing.border.TitledBorder.TOP,
+                        new Font(Font.SANS_SERIF, Font.BOLD, 11),
+                        new Color(80, 80, 110)),
+                new EmptyBorder(4, 8, 6, 8)));
+        section.setAlignmentX(Component.LEFT_ALIGNMENT);
+        section.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+        return section;
+    }
+
+    private JSpinner addSpinnerRow(JPanel section, String label, Number value,
+                                   Comparable<?> min, Comparable<?> max, Number step, String tooltip) {
+        JPanel row = new JPanel(new BorderLayout(8, 0));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel lbl = new JLabel(label);
+        lbl.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 11));
+        if (tooltip != null && !tooltip.isEmpty()) lbl.setToolTipText(tooltip);
+        row.add(lbl, BorderLayout.CENTER);
+        JSpinner spn = new JSpinner(new SpinnerNumberModel(value, min, max, step));
+        spn.setPreferredSize(new Dimension(90, 22));
+        spn.setMaximumSize(new Dimension(90, 22));
+        if (tooltip != null && !tooltip.isEmpty()) spn.setToolTipText(tooltip);
+        row.add(spn, BorderLayout.EAST);
+        section.add(row);
+        section.add(Box.createVerticalStrut(2));
+        return spn;
+    }
+
+    private JCheckBox addCheckRow(JPanel section, String label, boolean selected, String tooltip) {
+        JCheckBox chk = new JCheckBox(label, selected);
+        chk.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 11));
+        chk.setAlignmentX(Component.LEFT_ALIGNMENT);
+        if (tooltip != null && !tooltip.isEmpty()) chk.setToolTipText(tooltip);
+        section.add(chk);
+        section.add(Box.createVerticalStrut(2));
+        return chk;
+    }
+
+    private void addLabeledRow(JPanel section, String label, JComponent comp) {
+        JPanel row = new JPanel(new BorderLayout(8, 0));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel lbl = new JLabel(label);
+        lbl.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 11));
+        row.add(lbl, BorderLayout.CENTER);
+        comp.setPreferredSize(new Dimension(160, 22));
+        row.add(comp, BorderLayout.EAST);
+        section.add(row);
+        section.add(Box.createVerticalStrut(2));
     }
 
     /** Called periodically to update generation, countdown, best-ever, history. */
@@ -1519,11 +1722,18 @@ public class TournamentManagerWindow extends JFrame {
             }
 
             // Promise tag
-            if (vel > 0.001) sb.append("  \u2B50 FAST");
+            if (vel < -0.0001) sb.append("  \u274C DECLINING");
+            else if (vel > 0.001) sb.append("  \u2B50 FAST");
             else if (vel > 0 && acc > 0) sb.append("  \u2197 rising");
             else if (vel <= 0 && acc < 0) sb.append("  \u2198 fading");
             else if (uptimeSec > 30 && score < leader.getBestScore() * 0.95 && vel <= 0)
                 sb.append("  \u26A0 at risk");
+
+            // Multi-stage gear indicator
+            if (c.isMultiStage()) {
+                sb.append("  \u2699").append(c.getCurrentStageIndex() + 1)
+                  .append("/").append(c.getTotalStages());
+            }
 
             // Grace period
             if (c.isProtected()) sb.append("  \u2B50");
@@ -1602,6 +1812,94 @@ public class TournamentManagerWindow extends JFrame {
     public void createEvoTournament() {
         if (evoTournament == null) {
             evoTournament = new EvolutionaryTournament(artEvolver, contestants);
+            loadEvoSettings();
+        }
+    }
+
+    public void saveEvoSettings() {
+        if (evoTournament == null) return;
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_CUTOFF, evoTournament.getCutoffSeconds());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_GRACE, evoTournament.getGracePeriodTicks());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_MIN_CONTESTANTS, evoTournament.getMinContestants());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_SPAWNS, evoTournament.getSpawnsPerTick());
+        SettingsManager.saveBoolean(SettingsManager.KEY_EVO_ADAPTIVE_CUTOFF, evoTournament.isAdaptiveCutoff());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_ADAPTIVE_MIN, evoTournament.getAdaptiveCutoffMin());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_ADAPTIVE_MAX, evoTournament.getAdaptiveCutoffMax());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_MAX_LIFESPAN, evoTournament.getMaxLifespanSeconds());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_STALE_THRESHOLD, evoTournament.getStaleThresholdSeconds());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_MAX_PROMOTED, evoTournament.getMaxPromoted());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_PRESET_INTERVAL, evoTournament.getPresetInjectionInterval());
+        SettingsManager.saveString(SettingsManager.KEY_EVO_RANKING_STRATEGY, evoTournament.getRankingStrategy().name());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_AUTO_TRANSITION, evoTournament.getAutoTransitionGen());
+        SettingsManager.saveFloat(SettingsManager.KEY_EVO_MUTATION_RATE, evoTournament.getMutationRate());
+        SettingsManager.saveFloat(SettingsManager.KEY_EVO_MUTATION_STRENGTH, evoTournament.getMutationStrength());
+        SettingsManager.saveBoolean(SettingsManager.KEY_EVO_ANCESTRAL_CROSSOVER, evoTournament.isUseAncestralCrossover());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_ANCESTRY_DEPTH, evoTournament.getAncestryDepth());
+        SettingsManager.saveFloat(SettingsManager.KEY_EVO_W_FITNESS, evoTournament.getFitnessWeight());
+        SettingsManager.saveFloat(SettingsManager.KEY_EVO_W_VELOCITY, evoTournament.getVelocityWeight());
+        SettingsManager.saveFloat(SettingsManager.KEY_EVO_W_ACCELERATION, evoTournament.getAccelerationWeight());
+        SettingsManager.saveFloat(SettingsManager.KEY_EVO_W_LINEAGE, evoTournament.getLineageWeight());
+        SettingsManager.saveDouble(SettingsManager.KEY_EVO_LINEAGE_DECAY, evoTournament.getLineageDecay());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_VELOCITY_WINDOW, evoTournament.getVelocityWindowSeconds());
+        SettingsManager.saveBoolean(SettingsManager.KEY_EVO_ADAPTIVE_LIFETIME, evoTournament.isAdaptiveLifetimeEnabled());
+        SettingsManager.saveString(SettingsManager.KEY_EVO_ADAPTIVE_LIFETIME_MODE, evoTournament.getAdaptiveLifetimeMode().name());
+        SettingsManager.saveDouble(SettingsManager.KEY_EVO_GROWTH_CAP, evoTournament.getAdaptiveLifetimeGrowthCap());
+        SettingsManager.saveDouble(SettingsManager.KEY_EVO_ANOMALY_THRESHOLD, evoTournament.getAdaptiveLifetimeAnomalyThreshold());
+        SettingsManager.saveInt(SettingsManager.KEY_EVO_ABSOLUTE_MAX_LIFESPAN, evoTournament.getAbsoluteMaxLifespanSeconds());
+        SettingsManager.saveBoolean(SettingsManager.KEY_AUTO_OPEN_DASHBOARD, autoOpenDashboard);
+        SettingsManager.saveDouble(SettingsManager.KEY_AUTOPILOT_CPU, maxCpuPercent);
+        SettingsManager.saveDouble(SettingsManager.KEY_AUTOPILOT_RAM, maxRamPercent);
+        SettingsManager.saveDouble(SettingsManager.KEY_AUTOPILOT_HEAP, maxHeapPercent);
+        SettingsManager.flush();
+    }
+
+    private void loadEvoSettings() {
+        if (evoTournament == null) return;
+        if (!SettingsManager.hasKey(SettingsManager.KEY_EVO_CUTOFF)) return;
+        try {
+            evoTournament.setCutoffSeconds(SettingsManager.loadInt(SettingsManager.KEY_EVO_CUTOFF, evoTournament.getCutoffSeconds()));
+            evoTournament.setGracePeriodTicks(SettingsManager.loadInt(SettingsManager.KEY_EVO_GRACE, evoTournament.getGracePeriodTicks()));
+            evoTournament.setMinContestants(SettingsManager.loadInt(SettingsManager.KEY_EVO_MIN_CONTESTANTS, evoTournament.getMinContestants()));
+            evoTournament.setSpawnsPerTick(SettingsManager.loadInt(SettingsManager.KEY_EVO_SPAWNS, evoTournament.getSpawnsPerTick()));
+            evoTournament.setAdaptiveCutoff(SettingsManager.loadBoolean(SettingsManager.KEY_EVO_ADAPTIVE_CUTOFF, evoTournament.isAdaptiveCutoff()));
+            evoTournament.setAdaptiveCutoffMin(SettingsManager.loadInt(SettingsManager.KEY_EVO_ADAPTIVE_MIN, evoTournament.getAdaptiveCutoffMin()));
+            evoTournament.setAdaptiveCutoffMax(SettingsManager.loadInt(SettingsManager.KEY_EVO_ADAPTIVE_MAX, evoTournament.getAdaptiveCutoffMax()));
+            evoTournament.setMaxLifespanSeconds(SettingsManager.loadInt(SettingsManager.KEY_EVO_MAX_LIFESPAN, evoTournament.getMaxLifespanSeconds()));
+            evoTournament.setStaleThresholdSeconds(SettingsManager.loadInt(SettingsManager.KEY_EVO_STALE_THRESHOLD, evoTournament.getStaleThresholdSeconds()));
+            evoTournament.setMaxPromoted(SettingsManager.loadInt(SettingsManager.KEY_EVO_MAX_PROMOTED, evoTournament.getMaxPromoted()));
+            evoTournament.setPresetInjectionInterval(SettingsManager.loadInt(SettingsManager.KEY_EVO_PRESET_INTERVAL, evoTournament.getPresetInjectionInterval()));
+            String stratName = SettingsManager.loadString(SettingsManager.KEY_EVO_RANKING_STRATEGY, null);
+            if (stratName != null) {
+                try { evoTournament.setRankingStrategy(EvolutionaryTournament.RankingStrategy.valueOf(stratName)); }
+                catch (IllegalArgumentException ignored) {}
+            }
+            evoTournament.setAutoTransitionGen(SettingsManager.loadInt(SettingsManager.KEY_EVO_AUTO_TRANSITION, evoTournament.getAutoTransitionGen()));
+            evoTournament.setMutationRate(SettingsManager.loadFloat(SettingsManager.KEY_EVO_MUTATION_RATE, evoTournament.getMutationRate()));
+            evoTournament.setMutationStrength(SettingsManager.loadFloat(SettingsManager.KEY_EVO_MUTATION_STRENGTH, evoTournament.getMutationStrength()));
+            evoTournament.setUseAncestralCrossover(SettingsManager.loadBoolean(SettingsManager.KEY_EVO_ANCESTRAL_CROSSOVER, evoTournament.isUseAncestralCrossover()));
+            evoTournament.setAncestryDepth(SettingsManager.loadInt(SettingsManager.KEY_EVO_ANCESTRY_DEPTH, evoTournament.getAncestryDepth()));
+            evoTournament.setFitnessWeight(SettingsManager.loadFloat(SettingsManager.KEY_EVO_W_FITNESS, evoTournament.getFitnessWeight()));
+            evoTournament.setVelocityWeight(SettingsManager.loadFloat(SettingsManager.KEY_EVO_W_VELOCITY, evoTournament.getVelocityWeight()));
+            evoTournament.setAccelerationWeight(SettingsManager.loadFloat(SettingsManager.KEY_EVO_W_ACCELERATION, evoTournament.getAccelerationWeight()));
+            evoTournament.setLineageWeight(SettingsManager.loadFloat(SettingsManager.KEY_EVO_W_LINEAGE, evoTournament.getLineageWeight()));
+            evoTournament.setLineageDecay(SettingsManager.loadDouble(SettingsManager.KEY_EVO_LINEAGE_DECAY, evoTournament.getLineageDecay()));
+            evoTournament.setVelocityWindowSeconds(SettingsManager.loadInt(SettingsManager.KEY_EVO_VELOCITY_WINDOW, evoTournament.getVelocityWindowSeconds()));
+            evoTournament.setAdaptiveLifetimeEnabled(SettingsManager.loadBoolean(SettingsManager.KEY_EVO_ADAPTIVE_LIFETIME, evoTournament.isAdaptiveLifetimeEnabled()));
+            String modeName = SettingsManager.loadString(SettingsManager.KEY_EVO_ADAPTIVE_LIFETIME_MODE, null);
+            if (modeName != null) {
+                try { evoTournament.setAdaptiveLifetimeMode(EvolutionaryTournament.AdaptiveLifetimeMode.valueOf(modeName)); }
+                catch (IllegalArgumentException ignored) {}
+            }
+            evoTournament.setAdaptiveLifetimeGrowthCap(SettingsManager.loadDouble(SettingsManager.KEY_EVO_GROWTH_CAP, evoTournament.getAdaptiveLifetimeGrowthCap()));
+            evoTournament.setAdaptiveLifetimeAnomalyThreshold(SettingsManager.loadDouble(SettingsManager.KEY_EVO_ANOMALY_THRESHOLD, evoTournament.getAdaptiveLifetimeAnomalyThreshold()));
+            evoTournament.setAbsoluteMaxLifespanSeconds(SettingsManager.loadInt(SettingsManager.KEY_EVO_ABSOLUTE_MAX_LIFESPAN, evoTournament.getAbsoluteMaxLifespanSeconds()));
+            autoOpenDashboard = SettingsManager.loadBoolean(SettingsManager.KEY_AUTO_OPEN_DASHBOARD, autoOpenDashboard);
+            maxCpuPercent = SettingsManager.loadDouble(SettingsManager.KEY_AUTOPILOT_CPU, maxCpuPercent);
+            maxRamPercent = SettingsManager.loadDouble(SettingsManager.KEY_AUTOPILOT_RAM, maxRamPercent);
+            maxHeapPercent = SettingsManager.loadDouble(SettingsManager.KEY_AUTOPILOT_HEAP, maxHeapPercent);
+            System.out.println("[Settings] Loaded evo tournament preferences");
+        } catch (Exception e) {
+            System.err.println("[Settings] Failed to load evo settings: " + e.getMessage());
         }
     }
 
@@ -1890,7 +2188,7 @@ public class TournamentManagerWindow extends JFrame {
     }
 
     private class ContestantTableModel extends AbstractTableModel {
-        private final String[] COLS = {"#", "", "Name", "Score", "Velocity", "Status", "Gen", "Parentage", "Breed", "Parameters"};
+        private final String[] COLS = {"#", "", "Name", "Score", "Velocity", "Status", "Gear", "Gen", "Parentage", "Breed", "Parameters"};
 
         @Override public int getRowCount() { return contestants.size(); }
         @Override public int getColumnCount() { return COLS.length; }
@@ -1920,7 +2218,8 @@ public class TournamentManagerWindow extends JFrame {
                 case 4: {
                     if (c.isFinished()) return "--";
                     double vel = c.getFitnessTracker().getVelocity();
-                    if (vel <= 0) return "--";
+                    if (vel < -0.0000001) return "\u25BC" + new DecimalFormat("0.000000").format(Math.abs(vel) * 100) + "/s";
+                    if (vel <= 0.0000001) return "\u25AC 0";
                     return new DecimalFormat("0.000000").format(vel * 100) + "/s";
                 }
                 case 5: {
@@ -1928,10 +2227,15 @@ public class TournamentManagerWindow extends JFrame {
                     if (c.isEliminated()) return "Eliminated (Gen " + c.getEliminatedAtGeneration() + ")";
                     return c.isRunning() ? "Running" : "Stopped";
                 }
-                case 6: return c.getGeneration();
-                case 7: return c.getParentage();
-                case 8: return c.getBreedType();
-                case 9: return c.getConfig().toSummary();
+                case 6: {
+                    if (!c.isMultiStage()) return "1/1";
+                    return (c.getCurrentStageIndex() + 1) + "/" + c.getTotalStages()
+                            + " " + c.getCurrentStageName();
+                }
+                case 7: return c.getGeneration();
+                case 8: return c.getParentage();
+                case 9: return c.getBreedType();
+                case 10: return c.getConfig().toSummary();
                 default: return "";
             }
         }

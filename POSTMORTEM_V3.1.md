@@ -220,22 +220,53 @@ weights over time.
 
 ## Recommendations for v3.2
 
-1. **Replace boolean state flags with enum**: `ContestantStatus { ACTIVE, PROMOTED, ELIMINATED }`
-   would prevent the entire class of ghost-flag bugs.
+### Completed in v3.2.0-SNAPSHOT (already on develop)
 
-2. **Multi-stage competitors**: Contestants with configurable evolution "gears" — start
-   aggressively, shift to precision mid-game, refine in endgame. Each stage has its own
-   parameter profile. The meta-GA evolves both the profiles AND the transition points.
+1. ~~**Multi-stage competitors**~~: **DONE** — Contestants now have configurable "gear" stages
+   (Start / Mid / Endgame) with different mutation parameters per stage. Stale detection
+   auto-shifts gears. 5 multi-stage preset strategies added (21 total presets).
 
-3. **Separate autopilot from tournament**: The autopilot should be a thin resource manager
+2. ~~**Replace boolean state flags with enum**~~: Deferred — the ghost-flag bug class was
+   mitigated by clearing `promoted=false` in `eliminate()` and adding `!isEliminated()`
+   guards. A full enum refactor is low priority given the fixes in place.
+
+### Completed in v3.2.0 (see RELEASE_PLAN_V3.2.md)
+
+3. **Persistent settings** (Feature 3): DONE — `SettingsManager` using `java.util.prefs.Preferences`
+   to save/load all parameters across sessions. Auto-save on exit, auto-load on start.
+
+4. **UI coherence pass** (Feature 1): DONE — Evo Settings rewritten as a proper resizable
+   `JDialog` with `TitledBorder` sections and normalized 90px spinner widths.
+
+5. **Help system** (Feature 2): DONE — Help menu (Quick Start, Parameter Ref, About,
+   Report Issue) added to main ArtEvolver menu bar.
+
+6. **Thumbnail cache** (Feature 4): DONE — Two-tier cache: persistent disk cache
+   (`ImageDiskCache`) for resized source images across restarts (critical for 45MP+ cameras),
+   plus in-memory dashboard thumbnail cache with HTTP ETag/304 support.
+
+7. **Fitness chart culling** (Feature 5): DONE — Default top-25 series limit with "Top"
+   checkbox + spinner. Active contestants always shown.
+
+8. **Auto-open dashboard** (Feature 6): DONE — Browser dashboard opens automatically when
+   the tournament starts. Configurable in Evo Settings.
+
+9. **Code review bug fixes**: 6 bugs found and fixed — `autoOpenDashboard` persistence,
+   3 missing sidebar preference loads, combo box defaults ignoring saved prefs, window
+   position restoration, disk cache image type mismatch, unnecessary `setSourceImage()`
+   call on file dialog cancel.
+
+### Deferred to v3.3+
+
+9. **Separate autopilot from tournament**: The autopilot should be a thin resource manager
    that never directly manipulates contestants. All spawning/culling should flow through
    the evolutionary tournament.
 
-4. **Persistent state**: Save/load tournament state (promoted pool, best-ever config,
-   lineage tree) to resume long-running experiments.
+10. **Statistical benchmarking**: Automated A/B testing of parameter configurations with
+    confidence intervals, not just single-run comparisons.
 
-5. **Statistical benchmarking**: Automated A/B testing of parameter configurations with
-   confidence intervals, not just single-run comparisons.
+11. **Full tournament state persistence**: Save/load promoted pool, best-ever config,
+    lineage tree, and generation history to resume long-running experiments.
 
 ---
 

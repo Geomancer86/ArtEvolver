@@ -258,22 +258,34 @@ table (new "Parentage" and "Breed" columns) and in the dashboard JSON/HTML.
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `gracePeriodTicks` | 2 | Ticks of immunity for new contestants |
-| `velocityWindowSeconds` | 30 | Window for velocity/acceleration calculation |
-| `fitnessWeight` | 0.35 | Base weight of absolute fitness in composite score |
-| `velocityWeight` | 0.40 | Base weight of improvement speed |
-| `accelerationWeight` | 0.05 | Base weight of improvement acceleration |
-| `lineageWeight` | 0.20 | Weight of ancestry performance |
+| `cutoffSeconds` | 8 | Initial generation tick interval (seconds) |
+| `gracePeriodTicks` | 1 | Ticks of immunity for new contestants |
+| `spawnsPerTick` | 2 | Bottom N culled and replaced per generation tick |
+| `velocityWindowSeconds` | 12 | Window for velocity/acceleration calculation |
+| `fitnessWeight` | 0.40 | Base weight of absolute fitness in composite score |
+| `velocityWeight` | 0.35 | Base weight of improvement speed |
+| `accelerationWeight` | 0.10 | Base weight of improvement acceleration |
+| `lineageWeight` | 0.15 | Weight of ancestry performance |
 | `lineageDecay` | 0.7 | How much each generation back reduces weight |
 | `ancestryDepth` | 3 | Max generations back for breeding/lineage |
-| `maxLifespanSeconds` | 60 | Hard cap age — applies even during grace (0 = disabled) |
-| `staleThresholdSeconds` | 15 | Kill flat-line contestants after N seconds of zero improvement (0 = off) |
-| *(hopeless kill)* | 10s min | Projected-fitness early kill if can't beat worst alive |
+| `mutationRate` | 0.4 | Probability each gene is mutated in a child |
+| `mutationStrength` | 0.25 | Size of mutation delta (fraction of gene range) |
+| `maxLifespanSeconds` | 30 | Hard cap age — applies even during grace (0 = disabled) |
+| `staleThresholdSeconds` | 8 | Kill flat-line contestants after N seconds of zero improvement (0 = off) |
+| *(declining kill)* | 5s min | Immediate termination if velocity is negative (worse than stale) |
+| *(hopeless kill)* | 6s min | Projected-fitness early kill if can't beat worst alive |
 | `maxPromoted` | 10 | Max contestants in the hall of fame |
-| `presetInjectionInterval` | 3 | Every Nth spawn inject untried preset (0 = off) |
+| `presetInjectionInterval` | 5 | Every Nth spawn inject untried preset (0 = off) |
+| `adaptiveCutoffMax` | 30 | Adaptive cutoff ceiling (capped to lifespan) |
 | `rankingStrategy` | AUTO | BALANCED, VELOCITY_FIRST, FITNESS_FIRST, AUTO |
-| `autoTransitionGen` | 10 | Generations for AUTO to fully shift to fitness-first |
+| `autoTransitionGen` | 5 | Generations for AUTO to fully shift to fitness-first |
 | `useAncestralCrossover` | true | Blend in grandparent genes during breeding |
+| *(elitism)* | on | Best alive contestant immune from soft kills (stale/hopeless/declining) |
+| `adaptiveLifetimeEnabled` | true | Dynamically grow lifespan as competitors use their time |
+| `adaptiveLifetimeMode` | LONGEST | LONGEST (grow when longest ≥85%) or AVERAGE (grow when avg ≥70%) |
+| `adaptiveLifetimeGrowthCap` | 0.10 | Max growth per tick (10%) |
+| `adaptiveLifetimeAnomalyThreshold` | 1.50 | Exclude lifetimes >150% of current max (stuck/loop) |
+| `absoluteMaxLifespanSeconds` | 600 | Hard ceiling for adaptive growth |
 
 ## Implementation Plan
 
@@ -473,11 +485,20 @@ Java App (Swing)
 - `contestants[]` — id, name, rank, score, velocity, acceleration, peak,
   iterations, status flags, generation, parentage, config, color, uptime
 - `history[]` — narrative log strings (pre-formatted)
+- `generationHistory[]` — per-generation stats: `gen`, `best`, `avg`, `worst`,
+  `bestEver`, `alive`, `promoted`, `stalled`, `cutoff` (skipped generations excluded)
 
 ### Dashboard Features
 
 - Dark theme with GitHub-inspired design
 - System metrics bar with animated gauge fills (color: green/yellow/red)
+- **Generation Evolution Chart**: Canvas-based line chart in the sidebar showing best
+  (green), average (blue), worst (red), and best-ever (gold dashed) fitness per
+  generation. Shaded area between best/worst shows population spread. Auto-hides when
+  fewer than 2 generations have been recorded.
+- **Generation Summary Table**: Below the chart, compact table with current best/avg/
+  best-ever scores, alive/promoted counts, per-generation trend arrows (▲/▼/▬), and
+  total fitness change since generation 1. Stalled generations show warning indicator.
 - Leaderboard cards: rank, image thumbnail, fitness stats, config summary
 - Eliminated contestants: faded, skull rank icon, export download button
 - Evolution history: syntax-highlighted log with newest entries first
@@ -582,3 +603,56 @@ With 52 upgrades × avg 100 levels × prestige multipliers × 120 achievements �
 5. **Prestige 5+**: Compound growth, faster cycles, deeper upgrades
 6. **Prestige 25+**: All achievement tiers, event optimization
 7. **Prestige 100+**: Effectively infinite scaling — numbers in the trillions
+
+## Multi-Stage (Geared) Competitors
+
+### Overview
+
+Multi-stage competitors add a new dimension to the evolutionary tournament: each
+competitor can have multiple "gears" (evolution stages) with different mutation
+parameters, transitioning between them based on configurable triggers.
+
+### Design
+
+- **Fixed 3-stage model**: All multi-stage competitors use 3 stages (Start / Mid / Endgame).
+  Gene arrays are 30 floats (3 × 10: 9 config genes + 1 trigger value per stage).
+- **Zero-cost gear shifts**: Evolvers read mutation parameters by reference from the live
+  `EvolutionConfig`. `applyStage()` hot-swaps the mutation fields — the next evolution
+  batch immediately uses the new parameters with no thread restart.
+- **Trigger types**: TIME (advance after N seconds), STALE (advance when velocity drops
+  below threshold), FITNESS (advance when fitness exceeds threshold).
+- **Backward compatible**: Single-stage competitors (`stages == null`) are unchanged.
+  `isOnLastStage()` returns `true` for single-stage. Breeding between single-stage and
+  multi-stage promotes the single-stage config into 3 identical stages.
+
+### Lifecycle Integration
+
+- **STALE detection**: If stale and has more gears → auto-shift instead of kill. Resets
+  the fitness tracker window. Only kills if stale on the last gear.
+- **HOPELESS detection**: Only applies on the last stage. Earlier stages get a pass.
+- **Lifespan cap**: Unchanged — hard cap fires regardless of stage.
+
+### Presets
+
+5 multi-stage presets added (indices 16-20):
+1. **MS: 3-Gear Classic** — Chaos→Balanced→Sniper (TIME 15s/35s)
+2. **MS: Stale Shifter** — shifts gear when stale velocity detected
+3. **MS: Fitness Ladder** — advances at fitness thresholds (30%/60%)
+4. **MS: Sprint to Precision** — fast start then precision tuning (TIME 10s/25s)
+5. **MS: Adaptive Cascade** — chaos start with stale-triggered cascade
+
+### Breeding
+
+- If either parent is multi-stage, both parents are promoted to 3-stage gene arrays.
+- `crossover()` handles variable-length arrays via `Math.min(a.length, b.length)`.
+- `mutateMultiStage()` uses dynamic min/max bounds per stage.
+- Trigger types are inherited from the multi-stage parent (or default to TIME).
+- Ancestral crossover pads short gene arrays to match the target length.
+
+### UI
+
+- **Gear column** in tournament table: "2/3 Mid" or "1/1"
+- **MS tag** in child names: `G5·Alpha×Beta·BLX·M3·MS3`
+- **Dashboard JSON**: `multiStage`, `currentStage`, `totalStages`, `stageName`
+- **Live status**: ⚙2/3 indicator in per-contestant mini-leaderboard
+- **Console logging**: `[Stage] ContestantName shifted to gear 2/3: Mid`

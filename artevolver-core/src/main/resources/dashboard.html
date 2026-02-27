@@ -364,6 +364,67 @@ body {
   text-transform: uppercase;
 }
 
+/* ─── GENERATION CHART ─── */
+.gen-chart-wrap {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  background: var(--bg);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.gen-chart-wrap canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.gen-chart-legend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.gen-chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.gen-chart-legend-item .swatch {
+  width: 12px;
+  height: 3px;
+  border-radius: 1px;
+}
+.gen-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 11px;
+  font-family: 'SF Mono', 'Cascadia Mono', Consolas, monospace;
+}
+.gen-summary-table th {
+  text-align: left;
+  color: var(--text-dim);
+  font-weight: 600;
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+.gen-summary-table td {
+  padding: 3px 6px;
+  border-bottom: 1px solid rgba(48,54,61,0.3);
+}
+.gen-summary-table td.val {
+  text-align: right;
+  font-weight: 600;
+}
+.gen-summary-table .improving { color: var(--green); }
+.gen-summary-table .declining { color: var(--red); }
+.gen-summary-table .flat { color: var(--text-dim); }
+
 /* ─── FOOTER ─── */
 .footer {
   padding: 8px 24px;
@@ -448,6 +509,10 @@ body {
     <span class="label">Spawns/Tick:</span>
     <span class="value" id="tSpawns">--</span>
   </div>
+  <div class="tournament-stat">
+    <span class="label">Lifespan:</span>
+    <span class="value" id="tLifespan">--</span>
+  </div>
   <div id="tCountdown" class="countdown">--:--</div>
 </div>
 
@@ -469,6 +534,36 @@ body {
         <div class="summary-card"><div class="num" id="sTotal">0</div><div class="lbl">Total</div></div>
         <div class="summary-card"><div class="num" id="sAvgScore">--</div><div class="lbl">Avg Fitness</div></div>
       </div>
+      <div id="adaptiveLifetimePanel" style="margin-top:8px;display:none">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin-bottom:4px">Adaptive Lifetime</div>
+        <div class="summary-grid">
+          <div class="summary-card"><div class="num" id="alCurrent" style="font-size:16px">--</div><div class="lbl">Current Max</div></div>
+          <div class="summary-card"><div class="num" id="alInitial" style="font-size:16px">--</div><div class="lbl">Initial</div></div>
+          <div class="summary-card"><div class="num" id="alLongest" style="font-size:16px">--</div><div class="lbl">Longest</div></div>
+          <div class="summary-card"><div class="num" id="alAvg" style="font-size:16px">--</div><div class="lbl">Avg Life</div></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px;font-size:11px;color:var(--text-dim)">
+          <span id="alMode"></span>
+          <span id="alGrowths"></span>
+          <span id="alAnomalies"></span>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-section" id="genChartSection" style="display:none">
+      <h3>Generation Evolution</h3>
+      <div class="gen-chart-wrap">
+        <canvas id="genChart"></canvas>
+      </div>
+      <div class="gen-chart-legend">
+        <div class="gen-chart-legend-item"><div class="swatch" style="background:#3fb950"></div>Best</div>
+        <div class="gen-chart-legend-item"><div class="swatch" style="background:#58a6ff"></div>Average</div>
+        <div class="gen-chart-legend-item"><div class="swatch" style="background:#f85149"></div>Worst</div>
+        <div class="gen-chart-legend-item"><div class="swatch" style="background:#f0c040;opacity:.5"></div>Best Ever</div>
+      </div>
+      <table class="gen-summary-table" id="genSummaryTable">
+        <thead><tr><th></th><th>Score</th><th>Trend</th></tr></thead>
+        <tbody id="genSummaryBody"></tbody>
+      </table>
     </div>
     <div class="sidebar-section">
       <h3>Evolution History</h3>
@@ -481,7 +576,7 @@ body {
 
 <!-- FOOTER -->
 <div class="footer">
-  <span>ArtEvolver v3.1 — Genetic Art Tournament</span>
+  <span>ArtEvolver v3.2 — Genetic Art Tournament</span>
   <span id="refreshRate">Refresh: 2s</span>
 </div>
 
@@ -560,6 +655,17 @@ function updateTournament(t) {
       t.cutoffSeconds + 's' + (t.adaptiveCutoff ? ' (adaptive)' : '');
     document.getElementById('tSpawns').textContent = t.spawnsPerTick;
 
+    // Lifespan indicator
+    const lifeEl = document.getElementById('tLifespan');
+    if (t.adaptiveLifetime) {
+      lifeEl.textContent = t.maxLifespan + 's (' + t.initialLifespan + 's→' + t.absoluteMaxLifespan + 's)';
+      lifeEl.title = 'Adaptive: ' + t.adaptiveLifetimeMode + ' mode, +'
+        + t.adaptiveGrowths + ' growths, longest=' + t.longestLifetime + 's';
+    } else {
+      lifeEl.textContent = t.maxLifespan + 's';
+      lifeEl.title = 'Fixed lifespan';
+    }
+
     const sec = t.secondsUntilNext;
     if (sec >= 0) {
       const m = Math.floor(sec / 60);
@@ -568,12 +674,31 @@ function updateTournament(t) {
       cd.textContent = m > 0 ? m + ':' + String(s).padStart(2,'0') : s + 's';
       cd.className = 'countdown' + (sec <= 10 ? ' urgent' : '');
     }
+    // Adaptive lifetime sidebar panel
+    const alPanel = document.getElementById('adaptiveLifetimePanel');
+    if (t.adaptiveLifetime) {
+      alPanel.style.display = '';
+      document.getElementById('alCurrent').textContent = t.maxLifespan + 's';
+      document.getElementById('alInitial').textContent = t.initialLifespan + 's';
+      document.getElementById('alLongest').textContent = parseFloat(t.longestLifetime).toFixed(1) + 's';
+      document.getElementById('alAvg').textContent = parseFloat(t.avgLifetime).toFixed(1) + 's';
+      document.getElementById('alMode').textContent = '📈 ' + t.adaptiveLifetimeMode;
+      document.getElementById('alGrowths').textContent = '⬆ ' + t.adaptiveGrowths + ' growths';
+      document.getElementById('alAnomalies').textContent = t.anomalies > 0 ? '⚠ ' + t.anomalies + ' anomalies' : '';
+      const growthPct = t.initialLifespan > 0 ? ((t.maxLifespan / t.initialLifespan - 1) * 100).toFixed(0) : 0;
+      document.getElementById('alCurrent').style.color = growthPct > 0 ? 'var(--green)' : 'var(--text)';
+    } else {
+      alPanel.style.display = 'none';
+    }
+
   } else {
     document.getElementById('tGen').textContent = '--';
     document.getElementById('tBestEver').textContent = '--';
     document.getElementById('tCutoff').textContent = '--';
     document.getElementById('tSpawns').textContent = '--';
+    document.getElementById('tLifespan').textContent = '--';
     document.getElementById('tCountdown').textContent = 'Idle';
+    document.getElementById('adaptiveLifetimePanel').style.display = 'none';
   }
 }
 
@@ -647,6 +772,7 @@ function buildContestantCard(c, idx) {
       </div>
       <div class="contestant-tags">${tags}</div>
       ${c.parentage ? '<div class="contestant-parentage">\u{1F9EC} ' + escapeHtml(c.parentage) + (c.breedType ? ' \u00b7 <em>' + escapeHtml(c.breedType) + '</em>' : '') + '</div>' : ''}
+      ${c.multiStage ? '<div class="contestant-parentage">\u2699 Gear ' + c.currentStage + '/' + c.totalStages + ': ' + escapeHtml(c.stageName || '') + '</div>' : ''}
       <div class="contestant-config">${configLine}</div>
       <div class="contestant-config">${formatNumber(c.totalIterations)} iters | ${formatUptime(c.uptimeSeconds)}</div>
     </div>
@@ -725,6 +851,162 @@ function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ─── GENERATION EVOLUTION CHART ───
+function updateGenChart(genHistory) {
+  const section = document.getElementById('genChartSection');
+  if (!genHistory || genHistory.length < 2) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+
+  const canvas = document.getElementById('genChart');
+  const wrap = canvas.parentElement;
+  const dpr = window.devicePixelRatio || 1;
+  const w = wrap.clientWidth;
+  const h = wrap.clientHeight;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const pad = { top: 10, right: 12, bottom: 22, left: 44 };
+  const cw = w - pad.left - pad.right;
+  const ch = h - pad.top - pad.bottom;
+
+  // Data
+  const gens = genHistory.map(g => g.gen);
+  const bests = genHistory.map(g => parseFloat(g.best));
+  const avgs = genHistory.map(g => parseFloat(g.avg));
+  const worsts = genHistory.map(g => parseFloat(g.worst));
+  const bestEvers = genHistory.map(g => parseFloat(g.bestEver));
+
+  const allVals = [...bests, ...avgs, ...worsts, ...bestEvers].filter(v => !isNaN(v));
+  let yMin = Math.min(...allVals);
+  let yMax = Math.max(...allVals);
+  if (yMax - yMin < 0.01) { yMin -= 0.5; yMax += 0.5; }
+  const yRange = yMax - yMin;
+  yMin -= yRange * 0.05;
+  yMax += yRange * 0.05;
+
+  const xMin = gens[0];
+  const xMax = gens[gens.length - 1];
+  const xRange = Math.max(1, xMax - xMin);
+
+  function toX(gen) { return pad.left + ((gen - xMin) / xRange) * cw; }
+  function toY(val) { return pad.top + ch - ((val - yMin) / (yMax - yMin)) * ch; }
+
+  // Background
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0, 0, w, h);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(48,54,61,0.6)';
+  ctx.lineWidth = 0.5;
+  const yTicks = 5;
+  for (let i = 0; i <= yTicks; i++) {
+    const val = yMin + (yMax - yMin) * (i / yTicks);
+    const y = toY(val);
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(w - pad.right, y); ctx.stroke();
+    ctx.fillStyle = '#8b949e';
+    ctx.font = '9px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(val.toFixed(1) + '%', pad.left - 4, y + 3);
+  }
+
+  // X-axis labels
+  ctx.fillStyle = '#8b949e';
+  ctx.font = '9px monospace';
+  ctx.textAlign = 'center';
+  const xStep = Math.max(1, Math.ceil(genHistory.length / 8));
+  for (let i = 0; i < genHistory.length; i += xStep) {
+    const x = toX(gens[i]);
+    ctx.fillText('G' + gens[i], x, h - 4);
+  }
+
+  function drawLine(data, color, lineWidth, dashed) {
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.setLineDash(dashed || []);
+    for (let i = 0; i < data.length; i++) {
+      const x = toX(gens[i]);
+      const y = toY(data[i]);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Fill area between best and worst
+  ctx.beginPath();
+  ctx.fillStyle = 'rgba(88,166,255,0.06)';
+  for (let i = 0; i < bests.length; i++) {
+    const x = toX(gens[i]);
+    if (i === 0) ctx.moveTo(x, toY(bests[i])); else ctx.lineTo(x, toY(bests[i]));
+  }
+  for (let i = worsts.length - 1; i >= 0; i--) {
+    ctx.lineTo(toX(gens[i]), toY(worsts[i]));
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  // Lines
+  drawLine(bestEvers, 'rgba(240,192,64,0.4)', 1.5, [4, 3]);
+  drawLine(worsts, '#f85149', 1.2);
+  drawLine(avgs, '#58a6ff', 1.5);
+  drawLine(bests, '#3fb950', 2);
+
+  // Dots on latest point
+  const last = genHistory.length - 1;
+  [[bests[last], '#3fb950'], [avgs[last], '#58a6ff'], [worsts[last], '#f85149']].forEach(([val, col]) => {
+    ctx.beginPath();
+    ctx.arc(toX(gens[last]), toY(val), 3, 0, Math.PI * 2);
+    ctx.fillStyle = col;
+    ctx.fill();
+  });
+
+  // Summary table
+  updateGenSummary(genHistory);
+}
+
+function updateGenSummary(genHistory) {
+  const body = document.getElementById('genSummaryBody');
+  if (genHistory.length < 2) { body.innerHTML = ''; return; }
+
+  const latest = genHistory[genHistory.length - 1];
+  const prev = genHistory[genHistory.length - 2];
+  const first = genHistory[0];
+
+  const bestNow = parseFloat(latest.best);
+  const avgNow = parseFloat(latest.avg);
+  const bestPrev = parseFloat(prev.best);
+  const avgPrev = parseFloat(prev.avg);
+  const bestFirst = parseFloat(first.best);
+  const avgFirst = parseFloat(first.avg);
+  const bestEver = parseFloat(latest.bestEver);
+
+  function trend(now, prev) {
+    const d = now - prev;
+    if (Math.abs(d) < 0.001) return '<span class="flat">▬ 0</span>';
+    if (d > 0) return '<span class="improving">▲ +' + d.toFixed(2) + '</span>';
+    return '<span class="declining">▼ ' + d.toFixed(2) + '</span>';
+  }
+
+  function totalChange(now, first) {
+    const d = now - first;
+    if (d <= 0) return '';
+    return ' <span style="color:var(--text-dim);font-size:9px">(+' + d.toFixed(1) + ' total)</span>';
+  }
+
+  body.innerHTML = `
+    <tr><td>Best (Gen ${latest.gen})</td><td class="val">${bestNow.toFixed(2)}%</td><td class="val">${trend(bestNow, bestPrev)}${totalChange(bestNow, bestFirst)}</td></tr>
+    <tr><td>Average</td><td class="val">${avgNow.toFixed(2)}%</td><td class="val">${trend(avgNow, avgPrev)}${totalChange(avgNow, avgFirst)}</td></tr>
+    <tr><td>Best Ever</td><td class="val" style="color:var(--gold)">${bestEver.toFixed(2)}%</td><td class="val"></td></tr>
+    <tr><td>Alive / Promoted</td><td class="val">${latest.alive} / ${latest.promoted}</td><td class="val">${latest.stalled > 0 ? '<span class="declining">⚠ Stalled ' + latest.stalled + '</span>' : '<span class="improving">✓ Active</span>'}</td></tr>
+  `;
+}
+
 // ─── MAIN LOOP ───
 async function refresh() {
   const state = await fetchState();
@@ -741,6 +1023,7 @@ async function refresh() {
   updateBadges(state);
   updateContestants(state.contestants);
   updateHistory(state.history);
+  updateGenChart(state.generationHistory);
 }
 
 // Initial load + interval

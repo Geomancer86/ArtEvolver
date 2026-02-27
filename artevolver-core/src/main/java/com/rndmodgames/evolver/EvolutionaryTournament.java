@@ -29,51 +29,69 @@ public class EvolutionaryTournament {
     private int nextId = 100;
 
     // --- Core timing ---
-    private int cutoffSeconds = 10;
+    private int cutoffSeconds = 8;
     private long lastTickMs = 0;
 
     // --- Breeding ---
-    private float mutationRate = 0.3f;
-    private float mutationStrength = 0.2f;
+    private float mutationRate = 0.4f;
+    private float mutationStrength = 0.25f;
     private int minContestants = 3;
 
     // --- Grace period ---
-    private int gracePeriodTicks = 2;
+    private int gracePeriodTicks = 1;
 
     // --- Dynamic tournament ---
-    private int spawnsPerTick = 1;
+    private int spawnsPerTick = 2;
     private boolean adaptiveCutoff = true;
     private int adaptiveCutoffMin = 5;
-    private int adaptiveCutoffMax = 300;
+    private int adaptiveCutoffMax = 30;
 
     // --- Contestant lifespan cap (0 = disabled) ---
-    private int maxLifespanSeconds = 60;
+    private int maxLifespanSeconds = 30;
+
+    // --- Adaptive lifetime: dynamically grows the lifespan cap ---
+    public enum AdaptiveLifetimeMode { LONGEST, AVERAGE }
+    private boolean adaptiveLifetimeEnabled = true;
+    private AdaptiveLifetimeMode adaptiveLifetimeMode = AdaptiveLifetimeMode.LONGEST;
+    private int initialLifespanSeconds = 30;
+    private double adaptiveLifetimeGrowthCap = 0.10;
+    private double adaptiveLifetimeAnomalyThreshold = 1.50;
+    private int absoluteMaxLifespanSeconds = 600;
+
+    // --- Adaptive lifetime tracking ---
+    private final List<Double> recentLifetimes = new ArrayList<>();
+    private double longestRecordedLifetime = 0;
+    private double lifetimeSumAll = 0;
+    private int lifetimeCountAll = 0;
+    private int anomalyCount = 0;
+    private int adaptiveGrowthCount = 0;
+    private int previousAdaptiveLifespan = 0;
 
     // --- Stale detection: kill flat-line contestants early ---
-    private int staleThresholdSeconds = 15;
+    private int staleThresholdSeconds = 8;
     private static final double STALE_VELOCITY_THRESHOLD = 0.000001;
 
     // --- Promoted pool (hall of fame) ---
     private int maxPromoted = 10;
-    private int presetInjectionInterval = 3;
+    private int presetInjectionInterval = 5;
     private int spawnsSinceLastPreset = 0;
 
     // --- Ranking strategy ---
     public enum RankingStrategy { BALANCED, VELOCITY_FIRST, FITNESS_FIRST, AUTO }
     private RankingStrategy rankingStrategy = RankingStrategy.AUTO;
-    private int autoTransitionGen = 10;
+    private int autoTransitionGen = 5;
 
     // --- Composite ranking base weights (used by BALANCED, modified by other strategies) ---
-    private float fitnessWeight = 0.35f;
-    private float velocityWeight = 0.40f;
-    private float accelerationWeight = 0.05f;
-    private float lineageWeight = 0.20f;
+    private float fitnessWeight = 0.40f;
+    private float velocityWeight = 0.35f;
+    private float accelerationWeight = 0.10f;
+    private float lineageWeight = 0.15f;
 
     // --- Lineage / ancestry ---
     private double lineageDecay = 0.7;
     private int ancestryDepth = 3;
     private boolean useAncestralCrossover = true;
-    private int velocityWindowSeconds = 30;
+    private int velocityWindowSeconds = 12;
 
     // --- Best-ever tracking ---
     private double bestEverScore = 0;
@@ -162,7 +180,7 @@ public class EvolutionaryTournament {
      */
     private void startLifespanEnforcer() {
         if (lifespanTimer != null) { lifespanTimer.stop(); }
-        lifespanTimer = new Timer(5_000, e -> enforceLifespanCap());
+        lifespanTimer = new Timer(3_000, e -> enforceLifespanCap());
         lifespanTimer.setRepeats(true);
         lifespanTimer.start();
     }
@@ -172,11 +190,16 @@ public class EvolutionaryTournament {
         long now = System.currentTimeMillis();
         List<TournamentContestant> killed = new ArrayList<>();
 
-        // Compute the worst alive score for projected-fitness early kill
+        // Compute worst alive score for projected-fitness early kill and
+        // identify best alive contestant for elitism (soft-kill immunity).
         double worstAliveScore = Double.MAX_VALUE;
+        TournamentContestant bestAlive = null;
         for (TournamentContestant c : contestants) {
             if (!c.isFinished() && c.getBestScore() > 0) {
                 worstAliveScore = Math.min(worstAliveScore, c.getBestScore());
+                if (bestAlive == null || c.getBestScore() > bestAlive.getBestScore()) {
+                    bestAlive = c;
+                }
             }
         }
         if (worstAliveScore == Double.MAX_VALUE) worstAliveScore = 0;
@@ -200,35 +223,77 @@ public class EvolutionaryTournament {
             // Skip remaining soft checks for grace-protected contestants
             if (c.isProtected()) continue;
 
+            // Elitism: best alive contestant is immune from soft kills (stale/hopeless/declining).
+            // It will still be retired by the hard lifespan cap above, ensuring turnover.
+            if (c == bestAlive) continue;
+
+            // Declining detection: negative velocity = actively regressing, worse than stale.
+            // Must fire BEFORE the stale check. Minimum 5s of data to avoid false positives.
+            {
+                FitnessTracker ft = c.getFitnessTracker();
+                double vel = ft.getVelocity();
+                double elapsed = ft.getElapsedSeconds();
+                if (elapsed >= 5 && vel < -STALE_VELOCITY_THRESHOLD) {
+                    if (c.hasMoreStages()) {
+                        System.out.println("[EvoTournament] DECLINING-SHIFT: " + c.getName()
+                                + " regressing (vel=" + DF2.format(vel * 100)
+                                + "%/s) — shifting to gear "
+                                + (c.getCurrentStageIndex() + 2) + "/" + c.getTotalStages());
+                        c.advanceStage();
+                        ft.resetWindow();
+                    } else {
+                        System.out.println("[EvoTournament] DECLINING: " + c.getName()
+                                + " regressing (vel=" + DF2.format(vel * 100)
+                                + "%/s) on last gear — terminating immediately");
+                        recordLifetime(c);
+                        c.eliminate(generation);
+                        killed.add(c);
+                    }
+                    continue;
+                }
+            }
+
             // Stale detection: flat fitness for staleThresholdSeconds = early termination
+            // Multi-stage: auto-shift gear instead of killing if more stages available
             if (staleThresholdSeconds > 0 && ageSec >= staleThresholdSeconds) {
                 FitnessTracker ft = c.getFitnessTracker();
                 double vel = ft.getVelocity();
                 double elapsed = ft.getElapsedSeconds();
                 if (elapsed >= staleThresholdSeconds && Math.abs(vel) < STALE_VELOCITY_THRESHOLD) {
-                    System.out.println("[EvoTournament] STALE: " + c.getName()
-                            + " flat for " + (int) elapsed + "s (vel=" + DF2.format(vel * 100)
-                            + "%/s) — terminating early");
-                    c.eliminate(generation);
-                    killed.add(c);
+                    if (c.hasMoreStages()) {
+                        System.out.println("[EvoTournament] STALE-SHIFT: " + c.getName()
+                                + " flat for " + (int) elapsed + "s — shifting to gear "
+                                + (c.getCurrentStageIndex() + 2) + "/" + c.getTotalStages());
+                        c.advanceStage();
+                        c.getFitnessTracker().resetWindow();
+                    } else {
+                        System.out.println("[EvoTournament] STALE: " + c.getName()
+                                + " flat for " + (int) elapsed + "s (vel=" + DF2.format(vel * 100)
+                                + "%/s) on last gear — terminating early");
+                        recordLifetime(c);
+                        c.eliminate(generation);
+                        killed.add(c);
+                    }
                     continue;
                 }
             }
 
-            // Projected-fitness early kill: if even at current velocity for the full
-            // remaining lifespan, this contestant can't catch the worst alive, cut it loose
-            if (ageSec >= 10 && maxLifespanSeconds > 0 && worstAliveScore > 0) {
+            // Projected-fitness early kill — only on last stage for multi-stage competitors.
+            // Earlier stages get the benefit of the doubt (next gear may accelerate them).
+            if (ageSec >= 6 && maxLifespanSeconds > 0 && worstAliveScore > 0
+                    && c.isOnLastStage()) {
                 FitnessTracker ft = c.getFitnessTracker();
                 double elapsed = ft.getElapsedSeconds();
-                if (elapsed >= 10 && c.getBestScore() > 0) {
+                if (elapsed >= 6 && c.getBestScore() > 0) {
                     long remainSec = maxLifespanSeconds - ageSec;
                     if (remainSec > 0) {
                         double projected = ft.getProjectedFitness(remainSec);
-                        if (projected > 0 && projected < worstAliveScore) {
+                        if (projected < worstAliveScore) {
                             System.out.println("[EvoTournament] HOPELESS: " + c.getName()
                                     + " projected=" + DF2.format(projected * 100)
                                     + "% < worst alive=" + DF2.format(worstAliveScore * 100)
                                     + "% with " + remainSec + "s remaining — terminating");
+                            recordLifetime(c);
                             c.eliminate(generation);
                             killed.add(c);
                         }
@@ -275,9 +340,12 @@ public class EvolutionaryTournament {
                         String pb = abbreviate(parentB.getName(), 5);
                         String crossType = ancestral ? "ANC" : "BLX";
                         String mutTag = mutations > 0 ? "\u00b7M" + mutations : "";
+                        String msTag = childConfig.isMultiStage()
+                                ? "\u00b7MS" + childConfig.getStageCount() : "";
                         String childName = "R" + generation + "\u00b7" + pa + "\u00d7" + pb
-                                + "\u00b7" + crossType + mutTag;
-                        breedTag = crossType + (mutations > 0 ? "+" + mutations + "mut" : "");
+                                + "\u00b7" + crossType + mutTag + msTag;
+                        breedTag = crossType + (mutations > 0 ? "+" + mutations + "mut" : "")
+                                + (childConfig.isMultiStage() ? "+MS" + childConfig.getStageCount() : "");
                         spawnChild(childName, childConfig, parentA, parentB, breedTag);
                     }
                 }
@@ -482,11 +550,14 @@ public class EvolutionaryTournament {
                 String pb = abbreviate(parentB.getName(), 5);
                 String crossType = ancestral ? "ANC" : "BLX";
                 String mutTag = mutations > 0 ? "\u00b7M" + mutations : "";
+                String msTag = childConfig.isMultiStage()
+                        ? "\u00b7MS" + childConfig.getStageCount() : "";
                 childName = "G" + generation
                         + (maxCulls > 1 ? String.valueOf((char)('a' + spawn)) : "")
                         + "\u00b7" + pa + "\u00d7" + pb
-                        + "\u00b7" + crossType + mutTag;
-                breedTag = crossType + (mutations > 0 ? "+" + mutations + "mut" : "");
+                        + "\u00b7" + crossType + mutTag + msTag;
+                breedTag = crossType + (mutations > 0 ? "+" + mutations + "mut" : "")
+                        + (childConfig.isMultiStage() ? "+MS" + childConfig.getStageCount() : "");
                 lastParentA = parentA.getName();
                 lastParentB = parentB.getName();
             }
@@ -575,6 +646,8 @@ public class EvolutionaryTournament {
             System.out.println("[EvoTournament] CONVERGENCE DETECTED — "
                     + stalledGenerations + " generations without significant improvement");
         }
+
+        updateAdaptiveLifetime();
     }
 
     /** Checks if a contestant has exceeded its maximum lifespan. */
@@ -708,17 +781,19 @@ public class EvolutionaryTournament {
     private void adaptCutoffInterval() {
         int newCutoff = cutoffSeconds;
 
+        // Never let adaptive cutoff exceed the lifespan — the generation tick must
+        // fire at least once per contestant life so competitive culling stays relevant.
+        int effectiveMax = maxLifespanSeconds > 0
+                ? Math.min(adaptiveCutoffMax, maxLifespanSeconds)
+                : adaptiveCutoffMax;
+
         if (stalledGenerations >= 5) {
-            // Heavily stalled: drop fast to flush out the pool
             newCutoff = Math.max(adaptiveCutoffMin, cutoffSeconds * 2 / 3);
         } else if (stalledGenerations >= 2) {
-            // Mildly stalled: gentle decrease
-            newCutoff = Math.max(adaptiveCutoffMin, cutoffSeconds - 5);
+            newCutoff = Math.max(adaptiveCutoffMin, cutoffSeconds - 2);
         } else if (stalledGenerations == 0 && generation > 1) {
-            // Improving: give contestants more time to differentiate
-            // Ramp up faster in early generations, slower once established
-            int increment = (cutoffSeconds < 30) ? 10 : 5;
-            newCutoff = Math.min(adaptiveCutoffMax, cutoffSeconds + increment);
+            int increment = (cutoffSeconds < 15) ? 3 : 2;
+            newCutoff = Math.min(effectiveMax, cutoffSeconds + increment);
         }
 
         if (newCutoff != cutoffSeconds) {
@@ -740,6 +815,7 @@ public class EvolutionaryTournament {
      * the newcomer qualifies, the worst promoted is demoted to make room.
      */
     private void finishContestant(TournamentContestant c) {
+        recordLifetime(c);
         double score = c.getBestScore();
         List<TournamentContestant> promoted = getPromoted();
 
@@ -780,6 +856,82 @@ public class EvolutionaryTournament {
                     + " (" + DF2.format(score * 100) + "%) — below avg promoted "
                     + DF2.format(avgPromotedScore * 100) + "%");
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  ADAPTIVE LIFETIME
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Records the actual elapsed lifetime of a finishing competitor for the
+     * adaptive lifetime feature. Filters anomalies (stuck/looped competitors).
+     */
+    private void recordLifetime(TournamentContestant c) {
+        if (!adaptiveLifetimeEnabled) return;
+        long startMs = c.getStartTimeMs();
+        if (startMs <= 0) return;
+        double elapsed = (System.currentTimeMillis() - startMs) / 1000.0;
+        if (elapsed <= 0) return;
+
+        double threshold = maxLifespanSeconds * adaptiveLifetimeAnomalyThreshold;
+        if (elapsed > threshold) {
+            anomalyCount++;
+            System.out.println("[AdaptiveLife] ANOMALY: " + c.getName()
+                    + " ran " + DF2.format(elapsed) + "s (>" + DF2.format(threshold)
+                    + "s) — excluded from adaptive tracking");
+            return;
+        }
+
+        recentLifetimes.add(elapsed);
+        lifetimeSumAll += elapsed;
+        lifetimeCountAll++;
+        if (elapsed > longestRecordedLifetime) {
+            longestRecordedLifetime = elapsed;
+        }
+    }
+
+    /**
+     * Called at each generation tick. Checks recent lifetimes and grows the
+     * max lifespan if competitors are utilizing most of their allotted time.
+     *
+     * LONGEST mode: grows when the longest recorded lifetime >= 85% of current max.
+     * AVERAGE mode: grows when the average recorded lifetime >= 70% of current max.
+     *
+     * Growth is capped at adaptiveLifetimeGrowthCap (default 10%) per update and
+     * never exceeds absoluteMaxLifespanSeconds.
+     */
+    private void updateAdaptiveLifetime() {
+        if (!adaptiveLifetimeEnabled || recentLifetimes.isEmpty()) return;
+
+        double reference;
+        double growTriggerRatio;
+        if (adaptiveLifetimeMode == AdaptiveLifetimeMode.LONGEST) {
+            reference = recentLifetimes.stream().mapToDouble(d -> d).max().orElse(0);
+            growTriggerRatio = 0.85;
+        } else {
+            reference = recentLifetimes.stream().mapToDouble(d -> d).average().orElse(0);
+            growTriggerRatio = 0.70;
+        }
+
+        double usageRatio = maxLifespanSeconds > 0 ? reference / maxLifespanSeconds : 0;
+
+        if (usageRatio >= growTriggerRatio) {
+            previousAdaptiveLifespan = maxLifespanSeconds;
+            int newMax = (int) Math.ceil(maxLifespanSeconds * (1 + adaptiveLifetimeGrowthCap));
+            newMax = Math.min(newMax, absoluteMaxLifespanSeconds);
+            newMax = Math.max(newMax, initialLifespanSeconds);
+
+            if (newMax != maxLifespanSeconds) {
+                System.out.println("[AdaptiveLife] Lifespan " + maxLifespanSeconds + "s -> " + newMax + "s"
+                        + " (usage=" + DF2.format(usageRatio * 100) + "%"
+                        + ", ref=" + DF2.format(reference) + "s"
+                        + ", mode=" + adaptiveLifetimeMode + ")");
+                maxLifespanSeconds = newMax;
+                adaptiveGrowthCount++;
+            }
+        }
+
+        recentLifetimes.clear();
     }
 
     /**
@@ -900,10 +1052,10 @@ public class EvolutionaryTournament {
 
     private TournamentContestant selectParent(List<ScoredContestant> ranked,
                                               TournamentContestant exclude) {
-        int topHalf = Math.max(2, ranked.size() / 2);
+        int topSlice = Math.max(2, ranked.size() / 3);
         for (int i = 0; i < 20; i++) {
-            ScoredContestant a = ranked.get(RNG.nextInt(topHalf));
-            ScoredContestant b = ranked.get(RNG.nextInt(topHalf));
+            ScoredContestant a = ranked.get(RNG.nextInt(topSlice));
+            ScoredContestant b = ranked.get(RNG.nextInt(topSlice));
             ScoredContestant pick = (a.compositeScore >= b.compositeScore) ? a : b;
             if (pick.contestant != exclude) return pick.contestant;
         }
@@ -917,12 +1069,51 @@ public class EvolutionaryTournament {
     //  BREEDING — standard and multi-generational
     // ═══════════════════════════════════════════════════════════
 
+    private static final int MULTI_STAGE_COUNT = 3;
+
     EvolutionConfig breedConfigs(EvolutionConfig cfgA, EvolutionConfig cfgB) {
+        boolean eitherMulti = cfgA.isMultiStage() || cfgB.isMultiStage();
+        EvolutionConfig template = RNG.nextBoolean() ? cfgA : cfgB;
+        if (eitherMulti) {
+            float[] genesA = cfgA.toBreedableGeneArray(MULTI_STAGE_COUNT);
+            float[] genesB = cfgB.toBreedableGeneArray(MULTI_STAGE_COUNT);
+            float[] childGenes = crossover(genesA, genesB);
+            childGenes = mutateMultiStage(childGenes, MULTI_STAGE_COUNT);
+            EvolutionStage.TriggerType[] triggers = inferTriggerTypes(cfgA, cfgB, MULTI_STAGE_COUNT);
+            return EvolutionConfig.fromMultiStageGeneArray(childGenes, MULTI_STAGE_COUNT, triggers, template);
+        }
         float[] genesA = cfgA.toGeneArray();
         float[] genesB = cfgB.toGeneArray();
         float[] childGenes = crossover(genesA, genesB);
         childGenes = mutate(childGenes);
-        return EvolutionConfig.fromGeneArray(childGenes, cfgA);
+        return EvolutionConfig.fromGeneArray(childGenes, template);
+    }
+
+    /**
+     * Infers trigger types for breeding. When both parents have stages, each stage's
+     * trigger type is randomly inherited from one parent (genetic mixing). When only
+     * one parent has stages, uses that parent's triggers. Defaults to TIME otherwise.
+     */
+    private EvolutionStage.TriggerType[] inferTriggerTypes(EvolutionConfig cfgA,
+            EvolutionConfig cfgB, int stageCount) {
+        EvolutionStage.TriggerType[] result = new EvolutionStage.TriggerType[stageCount];
+        boolean aHas = cfgA.isMultiStage() && cfgA.getStages() != null;
+        boolean bHas = cfgB.isMultiStage() && cfgB.getStages() != null;
+        for (int i = 0; i < stageCount; i++) {
+            if (aHas && bHas) {
+                EvolutionConfig pick = RNG.nextBoolean() ? cfgA : cfgB;
+                result[i] = (i < pick.getStages().size())
+                        ? pick.getStages().get(i).getTriggerType()
+                        : EvolutionStage.TriggerType.TIME;
+            } else if (aHas && i < cfgA.getStages().size()) {
+                result[i] = cfgA.getStages().get(i).getTriggerType();
+            } else if (bHas && i < cfgB.getStages().size()) {
+                result[i] = cfgB.getStages().get(i).getTriggerType();
+            } else {
+                result[i] = EvolutionStage.TriggerType.TIME;
+            }
+        }
+        return result;
     }
 
     /**
@@ -931,14 +1122,46 @@ public class EvolutionaryTournament {
      */
     private EvolutionConfig breedWithAncestry(TournamentContestant parentA,
                                                TournamentContestant parentB) {
+        boolean eitherMulti = parentA.getConfig().isMultiStage() || parentB.getConfig().isMultiStage();
+        EvolutionConfig template = RNG.nextBoolean() ? parentA.getConfig() : parentB.getConfig();
+
         List<LineageNode.WeightedGenes> genesA =
                 parentA.getLineageNode().getAncestralGenes(lineageDecay, ancestryDepth);
         List<LineageNode.WeightedGenes> genesB =
                 parentB.getLineageNode().getAncestralGenes(lineageDecay, ancestryDepth);
 
-        float[] blended = blendAncestralGenes(genesA, genesB);
+        if (eitherMulti) {
+            int targetLen = MULTI_STAGE_COUNT * EvolutionStage.GENES_PER_STAGE;
+            padAncestralGenes(genesA, targetLen, parentA.getConfig());
+            padAncestralGenes(genesB, targetLen, parentB.getConfig());
+            float[] blended = blendAncestralGenes(genesA, genesB, targetLen);
+            blended = mutateMultiStage(blended, MULTI_STAGE_COUNT);
+            EvolutionStage.TriggerType[] triggers = inferTriggerTypes(
+                    parentA.getConfig(), parentB.getConfig(), MULTI_STAGE_COUNT);
+            return EvolutionConfig.fromMultiStageGeneArray(blended, MULTI_STAGE_COUNT,
+                    triggers, template);
+        }
+
+        float[] blended = blendAncestralGenes(genesA, genesB, EvolutionConfig.GENE_COUNT);
         blended = mutate(blended);
-        return EvolutionConfig.fromGeneArray(blended, parentA.getConfig());
+        return EvolutionConfig.fromGeneArray(blended, template);
+    }
+
+    /**
+     * Pads ancestral gene arrays to the target length for multi-stage breeding.
+     * Short (single-stage 9-gene) arrays are expanded by replicating into all stages.
+     */
+    private void padAncestralGenes(List<LineageNode.WeightedGenes> geneList,
+                                    int targetLen, EvolutionConfig cfg) {
+        for (int i = 0; i < geneList.size(); i++) {
+            LineageNode.WeightedGenes wg = geneList.get(i);
+            if (wg.genes.length < targetLen) {
+                float[] padded = cfg.toBreedableGeneArray(MULTI_STAGE_COUNT);
+                System.arraycopy(wg.genes, 0, padded, 0,
+                        Math.min(wg.genes.length, padded.length));
+                geneList.set(i, new LineageNode.WeightedGenes(padded, wg.weight));
+            }
+        }
     }
 
     /**
@@ -947,10 +1170,11 @@ public class EvolutionaryTournament {
      * grandparents/great-grandparents still contribute.
      */
     private float[] blendAncestralGenes(List<LineageNode.WeightedGenes> lineA,
-                                        List<LineageNode.WeightedGenes> lineB) {
-        float[] result = new float[EvolutionConfig.GENE_COUNT];
+                                        List<LineageNode.WeightedGenes> lineB,
+                                        int geneCount) {
+        float[] result = new float[geneCount];
 
-        for (int g = 0; g < EvolutionConfig.GENE_COUNT; g++) {
+        for (int g = 0; g < geneCount; g++) {
             double totalWeight = 0;
             double weightedSum = 0;
 
@@ -969,9 +1193,8 @@ public class EvolutionaryTournament {
 
             float base = (totalWeight > 0) ? (float) (weightedSum / totalWeight) : 0;
 
-            // Add BLX-alpha exploration around the ancestral centroid
-            float[] parentA = lineA.isEmpty() ? new float[EvolutionConfig.GENE_COUNT] : lineA.get(0).genes;
-            float[] parentB = lineB.isEmpty() ? new float[EvolutionConfig.GENE_COUNT] : lineB.get(0).genes;
+            float[] parentA = lineA.isEmpty() ? new float[geneCount] : lineA.get(0).genes;
+            float[] parentB = lineB.isEmpty() ? new float[geneCount] : lineB.get(0).genes;
             float lo = Math.min(parentA.length > g ? parentA[g] : base, parentB.length > g ? parentB[g] : base);
             float hi = Math.max(parentA.length > g ? parentA[g] : base, parentB.length > g ? parentB[g] : base);
             float d = hi - lo;
@@ -984,8 +1207,9 @@ public class EvolutionaryTournament {
     }
 
     private float[] crossover(float[] a, float[] b) {
-        float[] child = new float[EvolutionConfig.GENE_COUNT];
-        for (int i = 0; i < child.length; i++) {
+        int len = Math.min(a.length, b.length);
+        float[] child = new float[len];
+        for (int i = 0; i < len; i++) {
             float lo = Math.min(a[i], b[i]);
             float hi = Math.max(a[i], b[i]);
             float d = hi - lo;
@@ -1003,6 +1227,22 @@ public class EvolutionaryTournament {
         float[] max = EvolutionConfig.getGeneMax();
         int count = 0;
         for (int i = 0; i < genes.length; i++) {
+            if (RNG.nextFloat() < mutationRate) {
+                float range = max[i] - min[i];
+                float delta = (float) (RNG.nextGaussian() * mutationStrength * range);
+                genes[i] = Math.max(min[i], Math.min(max[i], genes[i] + delta));
+                count++;
+            }
+        }
+        lastMutationCount = count;
+        return genes;
+    }
+
+    private float[] mutateMultiStage(float[] genes, int stageCount) {
+        float[] min = EvolutionConfig.getMultiStageGeneMin(stageCount);
+        float[] max = EvolutionConfig.getMultiStageGeneMax(stageCount);
+        int count = 0;
+        for (int i = 0; i < genes.length && i < min.length; i++) {
             if (RNG.nextFloat() < mutationRate) {
                 float range = max[i] - min[i];
                 float delta = (float) (RNG.nextGaussian() * mutationStrength * range);
@@ -1100,8 +1340,25 @@ public class EvolutionaryTournament {
     public int getMaxLifespanSeconds() { return maxLifespanSeconds; }
     public void setMaxLifespanSeconds(int s) {
         this.maxLifespanSeconds = Math.max(0, s);
+        this.initialLifespanSeconds = this.maxLifespanSeconds;
         ensureLifespanTimer();
     }
+    public boolean isAdaptiveLifetimeEnabled() { return adaptiveLifetimeEnabled; }
+    public void setAdaptiveLifetimeEnabled(boolean b) { this.adaptiveLifetimeEnabled = b; }
+    public AdaptiveLifetimeMode getAdaptiveLifetimeMode() { return adaptiveLifetimeMode; }
+    public void setAdaptiveLifetimeMode(AdaptiveLifetimeMode m) { this.adaptiveLifetimeMode = m; }
+    public double getAdaptiveLifetimeGrowthCap() { return adaptiveLifetimeGrowthCap; }
+    public void setAdaptiveLifetimeGrowthCap(double d) { this.adaptiveLifetimeGrowthCap = Math.max(0.01, Math.min(1.0, d)); }
+    public double getAdaptiveLifetimeAnomalyThreshold() { return adaptiveLifetimeAnomalyThreshold; }
+    public void setAdaptiveLifetimeAnomalyThreshold(double d) { this.adaptiveLifetimeAnomalyThreshold = Math.max(1.1, d); }
+    public int getAbsoluteMaxLifespanSeconds() { return absoluteMaxLifespanSeconds; }
+    public void setAbsoluteMaxLifespanSeconds(int s) { this.absoluteMaxLifespanSeconds = Math.max(30, s); }
+    public int getInitialLifespanSeconds() { return initialLifespanSeconds; }
+    public double getLongestRecordedLifetime() { return longestRecordedLifetime; }
+    public double getAverageRecordedLifetime() { return lifetimeCountAll > 0 ? lifetimeSumAll / lifetimeCountAll : 0; }
+    public int getLifetimeRecordCount() { return lifetimeCountAll; }
+    public int getAnomalyCount() { return anomalyCount; }
+    public int getAdaptiveGrowthCount() { return adaptiveGrowthCount; }
     public int getStaleThresholdSeconds() { return staleThresholdSeconds; }
     public void setStaleThresholdSeconds(int s) {
         this.staleThresholdSeconds = Math.max(0, s);

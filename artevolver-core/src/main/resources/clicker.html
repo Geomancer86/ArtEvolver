@@ -3,359 +3,1041 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Evolution Clicker - ArtEvolver</title>
+<title>ArtEvolver v3.2 | Evolution Clicker</title>
 <style>
-:root {
-  --bg: #0a0e17;
-  --surface: #111827;
-  --surface2: #1a2236;
-  --surface3: #222d44;
-  --border: #2a3550;
-  --text: #e2e8f0;
-  --text-dim: #64748b;
-  --ep-color: #22d3ee;
-  --mc-color: #f472b6;
-  --gf-color: #fbbf24;
-  --green: #34d399;
-  --red: #f87171;
-  --blue: #60a5fa;
-  --purple: #a78bfa;
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+::selection{background:transparent;color:inherit}
+.app,.sidebar-left,.sidebar-right,.upgrade-card,.store-tabs,.store-tab{-webkit-user-select:none;user-select:none}
+:root{
+  --bg:#0a0a12;--surface:#12121f;--surface2:#1a1a2e;--border:#2a2a40;
+  --text:#e0e0f0;--text2:#8888aa;--cyan:#00e5ff;--purple:#b388ff;
+  --gold:#ffd740;--green:#69f0ae;--red:#ff5252;--mc-blue:#40c4ff;
 }
-* { margin:0; padding:0; box-sizing:border-box; }
-body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; font-size:13px; overflow:hidden; height:100vh; }
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;overflow-x:hidden}
+.app{display:grid;grid-template-columns:320px 1fr 300px;grid-template-rows:56px 1fr 40px;height:100vh;gap:0}
+.header{grid-column:1/-1;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:24px;z-index:10}
+.currency{display:flex;align-items:center;gap:6px;font-size:15px;font-weight:600}
+.currency .label{color:var(--text2);font-weight:400;font-size:12px}
+.currency .value{font-variant-numeric:tabular-nums}
+.ep-val{color:var(--cyan)}.mc-val{color:var(--mc-blue)}.gf-val{color:var(--gold)}
+.ep-rate{color:var(--text2);font-size:12px;margin-left:2px}
+.sidebar-left{background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:8px}
+.sidebar-right{background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;padding:8px}
+.center{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 16px;overflow-y:auto;gap:8px}
+.footer{grid-column:1/-1;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:20px;font-size:12px;color:var(--text2)}
+.footer a{color:var(--cyan);text-decoration:none}
 
-/* LAYOUT */
-.app { display:grid; grid-template-columns:320px 1fr 360px; grid-template-rows:auto 1fr auto; height:100vh; }
-.header { grid-column:1/-1; background:linear-gradient(135deg,#0f172a,#1e1b4b); border-bottom:1px solid var(--border); padding:8px 16px; display:flex; align-items:center; gap:12px; }
-.header h1 { font-size:16px; color:#fff; white-space:nowrap; }
-.header h1 em { font-style:normal; color:var(--ep-color); }
-.currency-bar { display:flex; gap:16px; margin-left:auto; }
-.curr { display:flex; align-items:center; gap:4px; padding:4px 12px; border-radius:8px; background:rgba(255,255,255,0.05); }
-.curr-icon { font-size:16px; }
-.curr-val { font-size:16px; font-weight:800; font-family:'Cascadia Mono',monospace; }
-.curr-ep .curr-val { color:var(--ep-color); }
-.curr-mc .curr-val { color:var(--mc-color); }
-.curr-gf .curr-val { color:var(--gf-color); }
-.curr-rate { font-size:10px; color:var(--text-dim); }
+/* Init overlay */
+.init-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:100;flex-direction:column;gap:16px}
+.init-overlay h2{color:var(--cyan);font-size:24px}
+.init-overlay p{color:var(--text2);max-width:420px;text-align:center;line-height:1.6}
+.init-overlay .btn{padding:12px 32px;background:linear-gradient(135deg,var(--cyan),var(--purple));border:none;border-radius:8px;color:#000;font-weight:700;font-size:16px;cursor:pointer}
+.init-overlay .btn:hover{filter:brightness(1.2)}
+.init-overlay .error{color:var(--red);margin-top:8px}
+.init-overlay .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-/* LEFT: UPGRADE STORE */
-.store { grid-column:1; background:var(--surface); border-right:1px solid var(--border); overflow-y:auto; }
-.store-tabs { display:flex; flex-wrap:wrap; gap:2px; padding:6px; background:var(--surface2); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:5; }
-.store-tab { padding:3px 8px; font-size:10px; border-radius:4px; cursor:pointer; background:transparent; border:1px solid var(--border); color:var(--text-dim); transition:all 0.2s; }
-.store-tab:hover { background:var(--surface3); color:var(--text); }
-.store-tab.active { background:var(--ep-color); color:#000; border-color:var(--ep-color); font-weight:700; }
-.store-list { padding:6px; }
-.upgrade-card { padding:8px 10px; margin-bottom:4px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); cursor:pointer; transition:all 0.15s; }
-.upgrade-card:hover { border-color:var(--ep-color); background:var(--surface3); transform:translateX(2px); }
-.upgrade-card.cant-afford { opacity:0.4; }
-.upgrade-card.maxed { opacity:0.5; border-color:var(--green); }
-.upgrade-card.hidden { display:none; }
-.upg-header { display:flex; justify-content:space-between; align-items:center; }
-.upg-name { font-size:12px; font-weight:700; }
-.upg-level { font-size:10px; color:var(--text-dim); font-family:monospace; }
-.upg-desc { font-size:10px; color:var(--text-dim); margin-top:2px; line-height:1.3; }
-.upg-cost { display:flex; align-items:center; gap:4px; margin-top:4px; font-size:11px; font-weight:700; }
-.upg-cost.ep { color:var(--ep-color); }
-.upg-cost.mc { color:var(--mc-color); }
-.upg-cost.gf { color:var(--gf-color); }
+/* Drop zone for image upload (standalone mode) */
+.drop-zone{width:340px;min-height:160px;border:2px dashed var(--border);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:all .2s;padding:20px;text-align:center}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--cyan);background:rgba(0,229,255,.05)}
+.drop-zone .drop-icon{font-size:40px;opacity:.6}
+.drop-zone .drop-text{color:var(--text2);font-size:13px;line-height:1.5}
+.drop-zone .drop-text strong{color:var(--text);display:block;font-size:15px;margin-bottom:4px}
+.drop-zone input[type="file"]{display:none}
+.drop-zone .drop-preview{max-width:200px;max-height:120px;border-radius:6px;border:1px solid var(--border);margin-top:6px;display:none}
+.drop-zone .drop-name{font-size:11px;color:var(--cyan);margin-top:2px;display:none}
 
-/* CENTER: CLICK AREA */
-.center { grid-column:2; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; overflow:hidden; }
-.click-zone { position:relative; width:280px; height:280px; border-radius:50%; background:radial-gradient(circle,#1e3a5f,#0a0e17); border:3px solid var(--border); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-direction:column; transition:transform 0.1s,box-shadow 0.2s; user-select:none; }
-.click-zone:hover { box-shadow:0 0 40px rgba(34,211,238,0.15); }
-.click-zone:active { transform:scale(0.96); }
-.click-zone .big-fitness { font-size:42px; font-weight:900; background:linear-gradient(135deg,var(--ep-color),var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-align:center; }
-.click-zone .label { font-size:11px; color:var(--text-dim); margin-top:4px; }
-.click-zone .click-label { font-size:10px; color:var(--ep-color); margin-top:8px; opacity:0.7; }
-.ep-popup { position:absolute; pointer-events:none; font-weight:900; font-size:18px; color:var(--ep-color); text-shadow:0 0 8px rgba(34,211,238,0.5); animation:epFloat 1s ease-out forwards; z-index:10; }
-@keyframes epFloat { 0%{opacity:1;transform:translateY(0) scale(1)} 100%{opacity:0;transform:translateY(-60px) scale(1.3)} }
-.crit-popup { color:var(--gf-color)!important; font-size:28px!important; text-shadow:0 0 16px rgba(251,191,36,0.8)!important; }
-
-/* Stats below click zone */
-.stats-row { display:flex; gap:12px; margin-top:16px; flex-wrap:wrap; justify-content:center; }
-.stat-box { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:6px 12px; text-align:center; min-width:80px; }
-.stat-box .val { font-size:14px; font-weight:800; font-family:monospace; color:var(--ep-color); }
-.stat-box .lbl { font-size:9px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px; }
+/* Image area — the star of the show, fills all available space */
+.image-wrap{position:relative;border-radius:8px;overflow:hidden;box-shadow:0 0 20px rgba(0,229,255,.15);transition:box-shadow .2s,outline-color .15s;outline:3px solid transparent;user-select:none;-webkit-user-select:none;flex:1 1 0;min-height:0;width:100%}
+.image-wrap:hover{box-shadow:0 0 30px rgba(0,229,255,.3)}
+.image-wrap:active{transform:scale(.98)}
+.image-wrap.hit{outline-color:var(--green);box-shadow:0 0 30px rgba(105,240,174,.3)}
+.image-wrap.miss{outline-color:var(--red);box-shadow:0 0 20px rgba(255,82,82,.15)}
+.image-wrap img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:pixelated;cursor:pointer}
+.click-hint{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);padding:4px 16px;border-radius:12px;font-size:12px;color:var(--text2);pointer-events:none}
+.fitness-area{text-align:center;width:100%;max-width:500px;flex-shrink:0}
+.fitness-pct{font-size:36px;font-weight:700;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-variant-numeric:tabular-nums;line-height:1.1}
+.fitness-bar{width:100%;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-top:4px}
+.fitness-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));transition:width .3s ease;border-radius:4px}
+.fitness-gain{font-size:12px;color:var(--text2);margin-top:2px;min-height:16px;font-variant-numeric:tabular-nums}
+.streak-display{font-size:13px;min-height:16px;text-align:center;font-weight:600;flex-shrink:0}
+.streak-display.miss-streak{color:var(--red)}
+.streak-display.hit-streak{color:var(--green)}
+.stats-row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:11px;color:var(--text2);flex-shrink:0}
+.stats-row .stat-val{color:var(--text);font-weight:600}
+.ref-area{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.ref-area img{width:56px;height:auto;border-radius:4px;border:1px solid var(--border);image-rendering:pixelated}
+.ref-area .ref-label{font-size:10px;color:var(--text2)}
 
 /* Events bar */
-.events-bar { position:absolute; top:8px; left:8px; right:8px; display:flex; gap:4px; flex-wrap:wrap; }
-.event-pill { padding:3px 10px; border-radius:12px; font-size:10px; font-weight:700; background:rgba(251,191,36,0.15); border:1px solid rgba(251,191,36,0.3); color:var(--gf-color); animation:eventGlow 2s infinite; }
-@keyframes eventGlow { 0%,100%{box-shadow:0 0 4px rgba(251,191,36,0.2)} 50%{box-shadow:0 0 12px rgba(251,191,36,0.4)} }
+.events-bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;flex-shrink:0}
+.event-pill{display:flex;align-items:center;gap:4px;background:var(--surface2);padding:4px 10px;border-radius:16px;font-size:12px;border:1px solid var(--gold);color:var(--gold)}
+.event-pill .ev-time{color:var(--text2);margin-left:4px}
 
-/* Prestige bar */
-.prestige-bar { position:absolute; bottom:8px; left:16px; right:16px; }
-.prestige-btn { width:100%; padding:8px; border:1px solid rgba(251,191,36,0.3); border-radius:8px; background:rgba(251,191,36,0.05); color:var(--gf-color); font-size:11px; font-weight:700; cursor:pointer; text-align:center; transition:all 0.2s; }
-.prestige-btn:hover { background:rgba(251,191,36,0.15); box-shadow:0 0 20px rgba(251,191,36,0.2); }
-.prestige-btn.disabled { opacity:0.3; cursor:not-allowed; }
+/* Prestige button */
+.prestige-btn{padding:6px 20px;background:linear-gradient(135deg,var(--gold),#ff9100);border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer;font-size:12px;opacity:.5;transition:opacity .2s;flex-shrink:0}
+.prestige-btn.available{opacity:1}
+.prestige-btn:hover{filter:brightness(1.1)}
 
-/* RIGHT: ACHIEVEMENTS */
-.sidebar { grid-column:3; background:var(--surface); border-left:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
-.sidebar-header { padding:8px 12px; background:var(--surface2); border-bottom:1px solid var(--border); font-size:12px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; }
-.achievements-grid { flex:1; overflow-y:auto; padding:8px; display:grid; grid-template-columns:repeat(auto-fill,minmax(48px,1fr)); gap:4px; align-content:start; }
-.ach { width:48px; height:48px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:22px; background:var(--surface2); border:1px solid var(--border); cursor:default; position:relative; transition:all 0.2s; }
-.ach.locked { filter:grayscale(1) brightness(0.3); }
-.ach.unlocked { border-color:var(--gf-color); box-shadow:0 0 8px rgba(251,191,36,0.2); }
-.ach:hover .ach-tooltip { display:block; }
-.ach-tooltip { display:none; position:absolute; bottom:54px; left:50%; transform:translateX(-50%); background:var(--surface3); border:1px solid var(--border); border-radius:6px; padding:6px 8px; white-space:nowrap; z-index:50; font-size:10px; min-width:120px; text-align:center; }
-.ach-tooltip .ach-t-name { font-weight:700; }
-.ach-tooltip .ach-t-desc { color:var(--text-dim); }
+/* EP popup */
+.ep-popup{position:fixed;pointer-events:none;font-weight:700;font-size:16px;color:var(--cyan);text-shadow:0 0 8px rgba(0,229,255,.5);z-index:50;animation:epFloat 1.2s ease-out forwards}
+.ep-popup.crit{font-size:24px;color:var(--gold);text-shadow:0 0 12px rgba(255,215,64,.6)}
+.ep-popup.miss{font-size:13px;color:var(--red);text-shadow:0 0 6px rgba(255,82,82,.3)}
+.ep-popup.streak{font-size:20px;color:var(--green);text-shadow:0 0 10px rgba(105,240,174,.4)}
+@keyframes epFloat{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-60px) scale(1.2)}}
 
-/* Notification log */
-.notif-log { height:160px; border-top:1px solid var(--border); overflow-y:auto; padding:8px; font-size:10px; font-family:monospace; color:var(--text-dim); }
-.notif-entry { padding:2px 0; border-bottom:1px solid rgba(42,53,80,0.5); }
-.notif-entry.achievement { color:var(--gf-color); }
-.notif-entry.event { color:var(--green); }
-.notif-entry.event-end { color:var(--red); opacity:0.7; }
+/* Triangle particles — Miyamoto juice */
+.tri-particle{position:fixed;pointer-events:none;z-index:49;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:10px solid var(--green);animation:triExplode .7s ease-out forwards}
+@keyframes triExplode{0%{opacity:1;transform:translate(0,0) rotate(0deg) scale(1)}100%{opacity:0;transform:translate(var(--tx),var(--ty)) rotate(var(--rot)) scale(0.3)}}
 
-/* FOOTER */
-.footer { grid-column:1/-1; padding:4px 16px; background:var(--surface2); border-top:1px solid var(--border); font-size:10px; color:var(--text-dim); display:flex; justify-content:space-between; align-items:center; }
-.footer a { color:var(--ep-color); text-decoration:none; }
+/* Store */
+.store-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.store-tab{padding:4px 10px;border-radius:12px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--text2);transition:all .15s}
+.store-tab.active{border-color:var(--cyan);color:var(--cyan);background:var(--surface2)}
+.upgrade-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;cursor:pointer;transition:all .15s}
+.upgrade-card:hover{border-color:var(--cyan);background:rgba(0,229,255,.05)}
+.upgrade-card.cant-afford{opacity:.45;cursor:default}
+.upgrade-card.maxed{border-color:var(--green);opacity:.7}
+.upg-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}
+.upg-name{font-size:13px;font-weight:600}
+.upg-level{font-size:11px;color:var(--text2)}
+.upg-desc{font-size:11px;color:var(--text2);margin-bottom:4px;line-height:1.4}
+.upg-cost{font-size:12px;font-weight:600}
+.upg-cost.ep{color:var(--cyan)}.upg-cost.mc{color:var(--mc-blue)}.upg-cost.gf{color:var(--gold)}
 
-/* Achievement popup animation */
-.ach-popup { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--surface3); border:2px solid var(--gf-color); border-radius:16px; padding:24px 40px; text-align:center; z-index:1000; box-shadow:0 0 60px rgba(251,191,36,0.3); animation:achPop 0.4s ease-out; }
-.ach-popup .ach-popup-icon { font-size:48px; }
-.ach-popup .ach-popup-title { font-size:18px; font-weight:900; color:var(--gf-color); margin-top:8px; }
-.ach-popup .ach-popup-desc { font-size:12px; color:var(--text-dim); margin-top:4px; }
-@keyframes achPop { 0%{transform:translate(-50%,-50%) scale(0.5); opacity:0} 100%{transform:translate(-50%,-50%) scale(1); opacity:1} }
+/* Achievements */
+.ach-section-title{font-size:13px;font-weight:600;color:var(--text2);margin:8px 0 6px;text-transform:uppercase;letter-spacing:1px}
+.ach-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.ach-icon{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:18px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);opacity:.3;cursor:default;position:relative}
+.ach-icon.unlocked{opacity:1;border-color:var(--gold);box-shadow:0 0 6px rgba(255,215,64,.2)}
+.ach-icon.hidden{opacity:.15}
+.ach-icon:hover .ach-tooltip{display:block}
+.ach-tooltip{display:none;position:absolute;bottom:110%;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:11px;white-space:nowrap;z-index:20;color:var(--text)}
 
-/* Scrollbar */
-::-webkit-scrollbar { width:5px; }
-::-webkit-scrollbar-track { background:transparent; }
-::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+/* Activity log */
+.log-section{margin-top:12px}
+.log-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
+.log-entries{max-height:200px;overflow-y:auto;font-size:11px;color:var(--text2)}
+.log-entry{padding:2px 0;border-bottom:1px solid var(--border)}
 
-@media(max-width:1100px) {
-  .app { grid-template-columns:280px 1fr; }
-  .sidebar { display:none; }
-}
+/* Achievement toast */
+.ach-toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:2px solid var(--gold);border-radius:10px;padding:12px 20px;display:flex;align-items:center;gap:10px;z-index:60;animation:toastIn .4s ease-out,toastOut .4s ease-in 4s forwards;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.ach-toast .toast-icon{font-size:28px}
+.ach-toast .toast-text{display:flex;flex-direction:column}
+.ach-toast .toast-name{font-size:14px;font-weight:700;color:var(--gold)}
+.ach-toast .toast-desc{font-size:11px;color:var(--text2)}
+@keyframes toastIn{from{opacity:0;transform:translateX(80px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateY(20px)}}
+
+/* Milestone flash */
+.milestone-flash{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px;font-weight:700;color:var(--gold);text-shadow:0 0 20px rgba(255,215,64,.6);z-index:55;animation:milestoneIn .5s ease-out,milestoneOut .5s ease-in 2s forwards;pointer-events:none;white-space:nowrap}
+@keyframes milestoneIn{from{opacity:0;transform:translate(-50%,-50%) scale(.7)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes milestoneOut{from{opacity:1}to{opacity:0;transform:translate(-50%,-40%) scale(1.1)}}
+
+/* Golden frame at high fitness (Sakaguchi: your masterpiece) */
+.image-wrap.golden-frame{box-shadow:0 0 30px rgba(255,215,64,.25),0 0 60px rgba(255,215,64,.1);outline:3px solid var(--gold)}
+.image-wrap.golden-frame:hover{box-shadow:0 0 40px rgba(255,215,64,.35),0 0 70px rgba(255,215,64,.15)}
+
+/* Masterpiece completion overlay */
+.complete-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:120;flex-direction:column;gap:16px;animation:fadeIn .5s}
+.complete-overlay.show{display:flex}
+.complete-card{background:linear-gradient(135deg,#1a1a2e,#2a1a3e);border:2px solid var(--gold);border-radius:16px;padding:32px 48px;text-align:center;max-width:500px}
+.complete-card h2{color:var(--gold);font-size:28px;margin-bottom:8px}
+.complete-card .complete-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin:16px 0;font-size:14px;text-align:left}
+.complete-card .cs-label{color:var(--text2)}
+.complete-card .cs-value{color:var(--text);font-weight:600;text-align:right}
+.complete-card .gf-reward{font-size:24px;color:var(--gold);font-weight:700;margin:12px 0}
+.complete-card .btn-row{display:flex;gap:12px;justify-content:center;margin-top:16px}
+.complete-card .btn-new{padding:10px 28px;background:linear-gradient(135deg,var(--cyan),var(--purple));border:none;border-radius:8px;color:#000;font-weight:700;font-size:15px;cursor:pointer}
+.complete-card .btn-new:hover{filter:brightness(1.2)}
+
+/* Gallery overlay */
+.gallery-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:90;animation:fadeIn .5s}
+.gallery-overlay.show{display:flex}
+.gallery-panel{background:var(--surface);border:2px solid var(--gold);border-radius:16px;padding:24px 32px;max-width:820px;width:90%;max-height:80vh;overflow-y:auto}
+.gallery-panel h2{color:var(--gold);font-size:22px;margin-bottom:12px;text-align:center}
+.gallery-panel .gallery-empty{color:var(--text2);text-align:center;padding:32px;font-size:14px}
+.gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.gallery-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .15s}
+.gallery-card:hover{border-color:var(--gold)}
+.gallery-card img{width:100%;aspect-ratio:1;object-fit:contain;background:#000;image-rendering:pixelated}
+.gallery-card .gc-stats{padding:8px;font-size:11px;color:var(--text2);display:grid;grid-template-columns:1fr 1fr;gap:2px 8px}
+.gallery-card .gc-label{color:var(--text2)}
+.gallery-card .gc-val{color:var(--text);font-weight:600;text-align:right}
+.gallery-card .gc-gain{color:var(--green);font-weight:700;font-size:13px;grid-column:1/-1;text-align:center;padding:2px 0}
+.gallery-card .gc-number{position:absolute;top:6px;left:6px;background:rgba(0,0,0,.7);color:var(--gold);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px}
+.gallery-card .gc-img-wrap{position:relative}
+.gallery-play-btn{margin-top:6px;padding:4px 12px;background:var(--cyan);border:none;border-radius:6px;color:#000;font-size:11px;font-weight:600;cursor:pointer;width:100%}
+.gallery-play-btn:hover{filter:brightness(1.2)}
+.gallery-close{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text2);font-size:24px;cursor:pointer}
+.gallery-close:hover{color:var(--text)}
+.gallery-btn{cursor:pointer;color:var(--gold);text-decoration:underline;background:none;border:none;font-size:12px;font-family:inherit}
+.gallery-btn:hover{color:var(--cyan)}
+
+/* Sample picker (init overlay) */
+.sample-section{margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+.sample-section-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+.sample-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;max-height:200px;overflow-y:auto}
+.sample-card{background:var(--surface2);border:2px solid var(--border);border-radius:8px;padding:4px;cursor:pointer;transition:all .15s;text-align:center}
+.sample-card:hover{border-color:var(--cyan)}
+.sample-card.selected{border-color:var(--gold);box-shadow:0 0 8px rgba(255,215,64,.3)}
+.sample-card.locked{opacity:.5;cursor:not-allowed;filter:grayscale(1)}
+.sample-card.locked:hover{border-color:var(--border)}
+.sample-card img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:4px;image-rendering:pixelated}
+.sample-card .sc-name{font-size:10px;color:var(--text2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sample-card .sc-progress{font-size:9px;color:var(--green);margin-top:1px}
+
+/* Sample Atlas overlay */
+.atlas-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:90;animation:fadeIn .5s}
+.atlas-overlay.show{display:flex}
+.atlas-panel{background:var(--surface);border:2px solid var(--purple);border-radius:16px;padding:24px 32px;max-width:900px;width:92%;max-height:85vh;overflow-y:auto}
+.atlas-panel h2{color:var(--purple);font-size:22px;margin-bottom:8px;text-align:center}
+.atlas-panel .atlas-sub{color:var(--text2);font-size:12px;text-align:center;margin-bottom:16px}
+.atlas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+.atlas-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:all .15s}
+.atlas-card.unlocked{border-color:var(--cyan)}
+.atlas-card.completed{border-color:var(--gold)}
+.atlas-card.locked{opacity:.6;filter:grayscale(.8)}
+.atlas-card .ac-img{width:100%;aspect-ratio:1;object-fit:cover;background:#000;image-rendering:pixelated}
+.atlas-card .ac-info{padding:8px;font-size:11px}
+.atlas-card .ac-name{font-weight:600;color:var(--text);margin-bottom:2px}
+.atlas-card .ac-desc{color:var(--text2);font-size:10px;margin-bottom:4px}
+.atlas-card .ac-unlock{color:var(--red);font-size:10px;margin-bottom:2px}
+.atlas-card .ac-stats{color:var(--green);font-size:10px}
+
+/* Auto-clicker visual (Cookie Clicker style) */
+.auto-display{display:none;align-items:center;gap:8px;padding:4px 0;flex-shrink:0;justify-content:center}
+.auto-display.active{display:flex}
+.auto-hands{display:flex;gap:2px;font-size:16px;line-height:1}
+.auto-hand{animation:autoClick 1s ease-in-out infinite;opacity:.7}
+.auto-hand:nth-child(2){animation-delay:.15s}
+.auto-hand:nth-child(3){animation-delay:.3s}
+.auto-hand:nth-child(4){animation-delay:.45s}
+.auto-hand:nth-child(5){animation-delay:.6s}
+.auto-hand:nth-child(6){animation-delay:.75s}
+@keyframes autoClick{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.2);opacity:1}}
+.auto-rate{font-size:11px;color:var(--cyan);font-weight:600;font-variant-numeric:tabular-nums}
+
+/* Masterpiece button */
+.masterpiece-btn{padding:6px 20px;background:linear-gradient(135deg,var(--gold),#ff6f00);border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer;font-size:12px;transition:opacity .2s,filter .2s;flex-shrink:0;animation:masterGlow 2s ease-in-out infinite}
+@keyframes masterGlow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.3)}}
+
+/* Sound toggle */
+.sfx-toggle{background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;cursor:pointer;font-size:16px;color:var(--text2);transition:all .15s;line-height:1.2}
+.sfx-toggle:hover{border-color:var(--cyan);color:var(--text)}
+.sfx-toggle.muted{opacity:.4}
+
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 </style>
 </head>
 <body>
 <div class="app">
-
-<!-- HEADER -->
 <div class="header">
-  <h1><em>Evolution</em> Clicker</h1>
-  <div class="currency-bar">
-    <div class="curr curr-ep">
-      <span class="curr-icon">&#x26A1;</span>
-      <span class="curr-val" id="epVal">0</span>
-      <span class="curr-rate" id="epRate">0/s</span>
+    <div class="currency"><span class="label">EP</span><span class="value ep-val" id="epVal">0</span><span class="ep-rate" id="epRate">(+0/s)</span></div>
+    <div class="currency" id="mcWrap" style="display:none"><span class="label">MC</span><span class="value mc-val" id="mcVal">0</span></div>
+    <div class="currency" id="gfWrap" style="display:none"><span class="label">GF</span><span class="value gf-val" id="gfVal">0</span></div>
+    <div style="flex:1"></div>
+    <div style="font-size:12px;color:var(--text2)"><span id="swapCount">0</span>/<span id="swapTotal">0</span> swaps | Reach: <span id="reachVal">5%</span></div>
+    <button class="sfx-toggle" id="sfxToggle" onclick="SFX.toggle()" title="Toggle Sound">&#x1F50A;</button>
+  </div>
+  <div class="sidebar-left">
+    <div class="store-tabs" id="storeTabs"></div>
+    <div id="storeList"></div>
+  </div>
+  <div class="center">
+    <div class="events-bar" id="eventsBar"></div>
+    <div class="image-wrap" id="imageWrap" style="display:none">
+      <img id="evolveImg" alt="Evolving Image" draggable="false">
+      <div class="click-hint">Click to Swap Triangles</div>
     </div>
-    <div class="curr curr-mc">
-      <span class="curr-icon">&#x1F48E;</span>
-      <span class="curr-val" id="mcVal">0</span>
+    <div class="streak-display" id="streakDisplay"></div>
+    <div class="auto-display" id="autoDisplay">
+      <div class="auto-hands" id="autoHands"></div>
+      <div class="auto-rate" id="autoRate"></div>
     </div>
-    <div class="curr curr-gf" id="gfCurr" style="display:none">
-      <span class="curr-icon">&#x1F31F;</span>
-      <span class="curr-val" id="gfVal">0</span>
+    <div class="fitness-area">
+      <div class="fitness-pct" id="fitnessPct">0.0000%</div>
+      <div class="fitness-bar"><div class="fitness-fill" id="fitnessFill" style="width:0%"></div></div>
+      <div class="fitness-gain" id="fitnessGain"></div>
+    </div>
+    <div class="stats-row">
+      <span>Clicks: <span class="stat-val" id="clickCount">0</span></span>
+      <span>Upgrades: <span class="stat-val" id="statUpgrades">0</span></span>
+      <span>Achievements: <span class="stat-val" id="statAch">0/0</span></span>
+      <span>Time: <span class="stat-val" id="statTime">0:00</span></span>
+  </div>
+    <div class="ref-area" id="refArea" style="display:none">
+      <img id="refImg" alt="Reference">
+      <div class="ref-label">Source Image</div>
+</div>
+    <button class="prestige-btn" id="prestigeBtn" onclick="doPrestige()">Ascend (0 GF)</button>
+    <button class="masterpiece-btn" id="masterpieceBtn" onclick="doMasterpiece()" style="display:none">Complete Masterpiece</button>
+  </div>
+  <div class="sidebar-right">
+    <div class="ach-section-title">Achievements</div>
+    <div class="ach-grid" id="achGrid"></div>
+    <div class="log-section">
+      <div class="log-title">Activity Log</div>
+      <div class="log-entries" id="logEntries"></div>
     </div>
   </div>
-</div>
-
-<!-- LEFT STORE -->
-<div class="store">
-  <div class="store-tabs" id="storeTabs"></div>
-  <div class="store-list" id="storeList"></div>
-</div>
-
-<!-- CENTER CLICK ZONE -->
-<div class="center" id="centerArea">
-  <div class="events-bar" id="eventsBar"></div>
-  <div class="click-zone" id="clickZone">
-    <div class="big-fitness" id="bigFitness">0.00%</div>
-    <div class="label">Best Fitness</div>
-    <div class="click-label">Click to Evolve!</div>
-  </div>
-  <div class="stats-row">
-    <div class="stat-box"><div class="val" id="sClicks">0</div><div class="lbl">Clicks</div></div>
-    <div class="stat-box"><div class="val" id="sEpClick">1</div><div class="lbl">EP/Click</div></div>
-    <div class="stat-box"><div class="val" id="sUpgrades">0</div><div class="lbl">Upgrades</div></div>
-    <div class="stat-box"><div class="val" id="sAch">0/0</div><div class="lbl">Achievements</div></div>
-    <div class="stat-box"><div class="val" id="sTime">0:00</div><div class="lbl">Play Time</div></div>
-  </div>
-  <div class="prestige-bar" id="prestigeBar">
-    <button class="prestige-btn disabled" id="btnPrestige" onclick="doPrestige()">
-      &#x1F31F; ASCEND (earn 0 Genome Fragments)
-    </button>
+  <div class="footer">
+    <a href="/">Dashboard</a>
+    <button class="gallery-btn" id="atlasBtn" onclick="openAtlas()" title="Sample Atlas">Atlas</button>
+    <button class="gallery-btn" id="galleryBtn" onclick="openGallery()" style="display:none">Gallery (<span id="galleryCount">0</span>)</button>
+    <span>ArtEvolver v3.2 &mdash; Evolution Clicker | <span id="footerCompleted">0</span> masterpieces</span>
+    <a href="/clicker">Clicker</a>
   </div>
 </div>
 
-<!-- RIGHT SIDEBAR -->
-<div class="sidebar">
-  <div class="sidebar-header">Achievements (<span id="achCount">0</span>/<span id="achTotal">0</span>)</div>
-  <div class="achievements-grid" id="achGrid"></div>
-  <div class="sidebar-header">Activity Log</div>
-  <div class="notif-log" id="notifLog"></div>
+<div class="complete-overlay" id="completeOverlay">
+  <div class="complete-card">
+    <h2>Masterpiece Complete!</h2>
+    <div id="completeStats" class="complete-stats"></div>
+    <div class="gf-reward" id="completeReward">+0 GF</div>
+    <p style="color:var(--text2);font-size:13px" id="completeHint">Click New Canvas to pick your next image and start again.</p>
+    <div class="btn-row"><button class="btn-new" onclick="newCanvas()">New Canvas</button></div>
+  </div>
 </div>
 
-<!-- FOOTER -->
-<div class="footer">
-  <span>ArtEvolver v3.1 | <a href="/">Dashboard</a> | <a href="/clicker">Clicker</a></span>
-  <span id="footerInfo">Refresh: 1s</span>
-</div>
+<div class="gallery-overlay" id="galleryOverlay">
+  <div class="gallery-panel" style="position:relative">
+    <button class="gallery-close" onclick="closeGallery()">&times;</button>
+    <h2>Gallery</h2>
+    <div class="gallery-grid" id="galleryGrid"></div>
+  </div>
 </div>
 
-<!-- Achievement popup overlay -->
-<div id="achPopupOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:999" onclick="dismissAchPopup()"></div>
-<div id="achPopup" class="ach-popup" style="display:none"></div>
+<div class="atlas-overlay" id="atlasOverlay">
+  <div class="atlas-panel" style="position:relative">
+    <button class="gallery-close" onclick="closeAtlas()">&times;</button>
+    <h2>Sample Atlas</h2>
+    <div class="atlas-sub">Unlock samples by playing. Best results and progress shown.</div>
+    <div class="atlas-grid" id="atlasGrid"></div>
+  </div>
+</div>
+
+<div class="init-overlay" id="initOverlay">
+  <h2>Evolution Clicker</h2>
+  <p>Evolve an image one triangle swap at a time.
+     Each click attempts a random color swap between two nearby triangles.
+     It might improve fitness &mdash; or miss entirely.
+     The grind is the game. Not for the hesitant.</p>
+  <div class="drop-zone" id="dropZone">
+    <div class="drop-icon">&#x1F5BC;</div>
+    <div class="drop-text"><strong>Drop an image here</strong> or click to pick a file (JPG, PNG)</div>
+    <input type="file" id="fileInput" accept="image/*">
+    <img class="drop-preview" id="dropPreview" alt="Preview">
+    <div class="drop-name" id="dropName"></div>
+  </div>
+  <div class="sample-section" id="myImagesSection" style="display:none">
+    <div class="sample-section-title">My Images (easy to find again)</div>
+    <div class="sample-grid" id="myImagesGrid"></div>
+  </div>
+  <div class="sample-section" id="sampleSection">
+    <div class="sample-section-title">Or pick a sample</div>
+    <div class="sample-grid" id="sampleGrid"></div>
+  </div>
+  <button class="btn" id="initBtn" onclick="initClicker()">Begin</button>
+  <div class="spinner" id="initSpinner" style="display:none"></div>
+  <div class="error" id="initError"></div>
+</div>
 
 <script>
 const TICK_MS = 1000;
+const IMAGE_POLL_MS = 1200;
+const ACH_POPUP_GAP_MS = 4000;
+
 let state = null;
-let selectedTab = 'All';
+let activeTab = 'All';
+let logLines = [];
+let lastAchPopupMs = 0;
 let achPopupQueue = [];
-let showingPopup = false;
+let clickBusy = false;
+let lastGainPct = 0;
+let gainMilestones = [0.1,0.5,1,2,3,5,7,10,15,20,25,30,40,50,60];
+let hitMilestones = new Set();
+let lastEventCount = 0;
+let selectedSample = null;
+let samplesData = null;
+let refreshTimer = null;
+let imageTimer = null;
+let achTimer = null;
 
-// ─── FORMAT HELPERS ───
-function fmt(n) {
-  if (n >= 1e15) return (n/1e15).toFixed(2)+'Q';
-  if (n >= 1e12) return (n/1e12).toFixed(2)+'T';
-  if (n >= 1e9) return (n/1e9).toFixed(2)+'B';
-  if (n >= 1e6) return (n/1e6).toFixed(2)+'M';
-  if (n >= 1e3) return (n/1e3).toFixed(1)+'K';
-  if (n >= 100) return Math.floor(n).toString();
-  if (n >= 1) return n.toFixed(1);
-  return n.toFixed(2);
-}
-function fmtTime(ms) {
-  const s = Math.floor(ms/1000);
-  const h = Math.floor(s/3600);
-  const m = Math.floor((s%3600)/60);
-  const sec = s%60;
-  if (h > 0) return h+'h '+m+'m';
-  return m+':'+String(sec).padStart(2,'0');
-}
+// ═══════════════════════════════════════════════════════════════════════
+//  SFX ENGINE — procedural audio via Web Audio API
+//
+//  Yokoi:     Lateral thinking with withered technology — oscillators only,
+//             zero external files, zero network, zero latency.
+//  Miyamoto:  The click must SOUND satisfying. Sub-60ms, micro-varied pitch
+//             so repetition never grates.
+//  Kojima:    Audio reinforces emotion. Miss = weight. Hit = earned. Streak
+//             = escalation. Milestone = triumph.
+//  Carmack:   Minimal CPU. Each sound is a few oscillator nodes that self-
+//             destruct. No audio buffers, no decoding, no GC pressure.
+//  Sakaguchi: Achievement fanfares evoke RPG level-up. Masterpiece completion
+//             is a victory theme in miniature.
+// ═══════════════════════════════════════════════════════════════════════
+// SFX Engine V2 — Noise-layered, compressed, punchy procedural audio
+// Techniques: white-noise transients, bandpass-filtered bursts,
+// DynamicsCompressor for loudness, sharp ADSR, pitch randomization.
+// ═══════════════════════════════════════════════════════════════════════
+const SFX = {
+  ctx: null,
+  enabled: true,
+  vol: 0.85,
+  noiseBuf: null,
+  comp: null,
 
-// ─── CLICK HANDLER ───
-document.getElementById('clickZone').addEventListener('click', async (e) => {
-  const res = await fetch('/api/clicker/click');
-  const data = await res.json();
-  spawnEpPopup(e.clientX, e.clientY, data.earned);
-});
+  init() {
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const sr = this.ctx.sampleRate;
+      const buf = this.ctx.createBuffer(1, sr * 2, sr);
+      const ch = buf.getChannelData(0);
+      for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+      this.noiseBuf = buf;
+      this.comp = this.ctx.createDynamicsCompressor();
+      this.comp.threshold.value = -20;
+      this.comp.knee.value = 6;
+      this.comp.ratio.value = 10;
+      this.comp.attack.value = 0.001;
+      this.comp.release.value = 0.06;
+      this.comp.connect(this.ctx.destination);
+    } catch (e) {}
+    const saved = localStorage.getItem('artevolver_sfx');
+    if (saved === 'off') { this.enabled = false; this._updateBtn(); }
+  },
 
-function spawnEpPopup(x, y, amount) {
-  const el = document.createElement('div');
-  el.className = 'ep-popup' + (amount > 50 ? ' crit-popup' : '');
-  el.textContent = '+' + fmt(amount);
-  el.style.left = (x + (Math.random()-0.5)*40) + 'px';
-  el.style.top = (y - 10) + 'px';
-  document.getElementById('centerArea').appendChild(el);
-  setTimeout(() => el.remove(), 1000);
-}
+  toggle() {
+    this.enabled = !this.enabled;
+    localStorage.setItem('artevolver_sfx', this.enabled ? 'on' : 'off');
+    this._updateBtn();
+    if (this.enabled) this.play('click');
+  },
 
-// ─── STORE ───
-function buildTabs(upgrades) {
-  const cats = ['All', ...new Set(upgrades.map(u => u.cat))];
-  const container = document.getElementById('storeTabs');
-  container.innerHTML = '';
-  cats.forEach(cat => {
-    const btn = document.createElement('div');
-    btn.className = 'store-tab' + (cat === selectedTab ? ' active' : '');
-    btn.textContent = cat;
-    btn.onclick = () => { selectedTab = cat; renderStore(); };
-    container.appendChild(btn);
+  _updateBtn() {
+    const btn = document.getElementById('sfxToggle');
+    if (!btn) return;
+    btn.textContent = this.enabled ? '\uD83D\uDD0A' : '\uD83D\uDD07';
+    btn.classList.toggle('muted', !this.enabled);
+  },
+
+  _wake() {
+    if (!this.ctx) this.init();
+    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+  },
+
+  _out() {
+    const g = this.ctx.createGain();
+    g.gain.value = this.vol;
+    g.connect(this.comp || this.ctx.destination);
+    return g;
+  },
+
+  _tone(freq, type, gain, dur, start, dest) {
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(gain, start);
+    g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+    o.connect(g); g.connect(dest);
+    o.start(start); o.stop(start + dur + 0.05);
+  },
+
+  _noise(gain, dur, freq, Q, start, dest) {
+    if (!this.noiseBuf) return;
+    const s = this.ctx.createBufferSource();
+    s.buffer = this.noiseBuf;
+    const bp = this.ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = Q;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(gain, start);
+    g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+    s.connect(bp); bp.connect(g); g.connect(dest);
+    s.start(start); s.stop(start + dur + 0.05);
+  },
+
+  _sweep(fStart, fEnd, type, gain, dur, start, dest) {
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(fStart, start);
+    o.frequency.exponentialRampToValueAtTime(fEnd, start + dur);
+    g.gain.setValueAtTime(gain, start);
+    g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+    o.connect(g); g.connect(dest);
+    o.start(start); o.stop(start + dur + 0.05);
+  },
+
+  play(name) {
+    if (!this.enabled) return;
+    this._wake();
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const m = this._out();
+    try { this['_' + name](t, m); } catch (e) {}
+  },
+
+  // ── Click hit: snappy pop + noise transient + sub thump ──
+  _click(t, m) {
+    const f = 800 + Math.random() * 400;
+    this._noise(0.6, 0.025, f * 3, 3, t, m);
+    this._tone(f, 'square', 0.5, 0.035, t, m);
+    this._tone(f * 0.5, 'sine', 0.35, 0.05, t, m);
+  },
+
+  // ── Click miss: low dull thud with rumble ──
+  _miss(t, m) {
+    this._noise(0.4, 0.06, 250, 1.2, t, m);
+    this._tone(100 + Math.random() * 30, 'sine', 0.4, 0.1, t, m);
+    this._tone(60, 'triangle', 0.2, 0.08, t, m);
+  },
+
+  // ── Critical hit: metallic ching + high sparkle noise ──
+  _crit(t, m) {
+    this._noise(0.55, 0.05, 6000, 5, t, m);
+    this._noise(0.4, 0.04, 10000, 3, t + 0.01, m);
+    this._tone(1200, 'square', 0.45, 0.04, t, m);
+    this._tone(1600, 'sine', 0.35, 0.06, t + 0.025, m);
+    this._tone(2100, 'sine', 0.2, 0.05, t + 0.05, m);
+  },
+
+  // ── Hit streak: cascading sparkle notes with shimmer noise ──
+  _streak(t, m) {
+    const notes = [660, 880, 1100, 1320];
+    notes.forEach((f, i) => {
+      const s = t + i * 0.035;
+      this._tone(f, 'sine', 0.35, 0.08, s, m);
+      this._noise(0.2, 0.03, f * 4, 6, s, m);
+    });
+  },
+
+  // ── Achievement: triumphant ascending major chord + shimmer wash ──
+  _achievement(t, m) {
+    this._noise(0.35, 0.06, 4000, 2, t, m);
+    [523, 659, 784, 1047].forEach((f, i) => {
+      const s = t + i * 0.075;
+      this._tone(f, 'sine', 0.4, 0.2, s, m);
+      this._tone(f * 2, 'sine', 0.12, 0.15, s, m);
+      this._tone(f * 0.5, 'triangle', 0.15, 0.22, s, m);
+    });
+    this._noise(0.2, 0.15, 8000, 2, t + 0.2, m);
+  },
+
+  // ── Upgrade success: bright coin cha-ching with metallic noise ──
+  _upgrade(t, m) {
+    this._noise(0.5, 0.03, 5000, 5, t, m);
+    this._tone(1047, 'square', 0.4, 0.04, t, m);
+    this._tone(1319, 'sine', 0.35, 0.06, t + 0.03, m);
+    this._noise(0.3, 0.04, 8000, 4, t + 0.03, m);
+    this._tone(1568, 'sine', 0.2, 0.05, t + 0.06, m);
+  },
+
+  // ── Can't afford: short descending minor buzz ──
+  _cantafford(t, m) {
+    this._tone(350, 'sawtooth', 0.3, 0.06, t, m);
+    this._tone(280, 'sawtooth', 0.25, 0.08, t + 0.04, m);
+    this._noise(0.15, 0.05, 400, 1, t, m);
+  },
+
+  // ── Already maxed: gentle completion bloop ──
+  _maxed(t, m) {
+    this._tone(600, 'sine', 0.25, 0.08, t, m);
+    this._tone(500, 'sine', 0.15, 0.06, t + 0.04, m);
+    this._noise(0.1, 0.03, 1000, 2, t, m);
+  },
+
+  // ── Fitness milestone: brass-like ascending fanfare + noise wash ──
+  _milestone(t, m) {
+    this._noise(0.4, 0.08, 2000, 1.5, t, m);
+    [440, 554, 659, 880, 1047].forEach((f, i) => {
+      const s = t + i * 0.085;
+      this._tone(f, 'sawtooth', 0.3, 0.2, s, m);
+      this._tone(f, 'sine', 0.25, 0.22, s, m);
+      this._tone(f * 2, 'sine', 0.1, 0.16, s, m);
+    });
+    this._noise(0.25, 0.25, 6000, 2, t + 0.15, m);
+  },
+
+  // ── Prestige: dramatic rising sweep -> resolution chord ──
+  _prestige(t, m) {
+    this._sweep(100, 2400, 'sawtooth', 0.35, 0.45, t, m);
+    this._noise(0.3, 0.5, 3000, 1, t, m);
+    this._sweep(80, 1200, 'square', 0.15, 0.4, t + 0.02, m);
+    [880, 1047, 1319, 1568].forEach((f, i) => {
+      const s = t + 0.5 + i * 0.065;
+      this._tone(f, 'sine', 0.35, 0.25, s, m);
+      this._tone(f * 0.5, 'triangle', 0.15, 0.28, s, m);
+    });
+    this._noise(0.2, 0.2, 8000, 3, t + 0.5, m);
+  },
+
+  // ── Masterpiece: grand multi-layer victory fanfare ──
+  _masterpiece(t, m) {
+    this._sweep(80, 3000, 'sawtooth', 0.25, 0.3, t, m);
+    this._noise(0.35, 0.4, 2500, 1, t, m);
+    const melody = [523, 659, 784, 1047, 784, 1047, 1319, 1568];
+    melody.forEach((f, i) => {
+      const s = t + 0.3 + i * 0.1;
+      this._tone(f, 'sine', 0.35, 0.28, s, m);
+      this._tone(f, 'sawtooth', 0.1, 0.25, s, m);
+      this._tone(f * 0.5, 'triangle', 0.18, 0.3, s, m);
+      this._tone(f * 2, 'sine', 0.06, 0.2, s, m);
+      if (i % 2 === 0) this._noise(0.15, 0.06, f * 6, 5, s, m);
+    });
+    this._noise(0.2, 0.6, 10000, 2, t + 0.8, m);
+  },
+
+  // ── Random event: attention-getting two-tone boop ──
+  _event(t, m) {
+    this._noise(0.3, 0.03, 3000, 4, t, m);
+    this._tone(880, 'sine', 0.4, 0.08, t, m);
+    this._tone(1175, 'sine', 0.4, 0.08, t + 0.065, m);
+    this._noise(0.2, 0.03, 5000, 4, t + 0.065, m);
+  },
+
+  // ── Gallery: gentle museum chime ──
+  _gallery(t, m) {
+    this._tone(660, 'sine', 0.3, 0.18, t, m);
+    this._tone(880, 'sine', 0.25, 0.18, t + 0.09, m);
+    this._noise(0.12, 0.1, 4000, 3, t, m);
+    this._tone(1100, 'sine', 0.1, 0.12, t + 0.16, m);
+  }
+};
+
+let pendingFile = null;
+let isStandalone = false;
+
+// ── Drop zone logic ──
+(function setupDropZone() {
+  const zone = document.getElementById('dropZone');
+  const input = document.getElementById('fileInput');
+  const preview = document.getElementById('dropPreview');
+  const nameEl = document.getElementById('dropName');
+
+  zone.addEventListener('click', () => input.click());
+  zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
   });
-}
-
-function renderStore() {
-  if (!state) return;
-  const container = document.getElementById('storeList');
-  const tabs = document.getElementById('storeTabs');
-
-  // Update tab active state
-  tabs.querySelectorAll('.store-tab').forEach(t => {
-    t.className = 'store-tab' + (t.textContent === selectedTab ? ' active' : '');
+  input.addEventListener('change', () => {
+    if (input.files.length > 0) handleFile(input.files[0]);
   });
 
-  container.innerHTML = '';
-  state.upgrades.forEach(u => {
-    if (!u.visible) return;
-    if (selectedTab !== 'All' && u.cat !== selectedTab) return;
-
-    const maxed = u.max > 0 && u.level >= u.max;
-    const card = document.createElement('div');
-    card.className = 'upgrade-card' + (!u.affordable && !maxed ? ' cant-afford' : '') + (maxed ? ' maxed' : '');
-
-    const costStr = maxed ? 'MAXED' : fmt(u.cost);
-    const currClass = u.currency;
-    const currSymbol = u.currency === 'ep' ? '\u26A1' : u.currency === 'mc' ? '\uD83D\uDC8E' : '\uD83C\uDF1F';
-
-    card.innerHTML = `
-      <div class="upg-header">
-        <span class="upg-name">${u.name}</span>
-        <span class="upg-level">${u.level}${u.max > 0 ? '/' + u.max : ''}</span>
-      </div>
-      <div class="upg-desc">${u.desc}</div>
-      <div class="upg-cost ${currClass}">${currSymbol} ${costStr}</div>
-    `;
-
-    if (!maxed) {
-      card.onclick = async () => {
-        await fetch('/api/clicker/buy?id=' + u.id);
-        refresh();
-      };
-      card.oncontextmenu = async (e) => {
-        e.preventDefault();
-        await fetch('/api/clicker/buy?id=' + u.id + '&max');
-        refresh();
-      };
+  function handleFile(file) {
+    if (!file.type.startsWith('image/')) {
+      document.getElementById('initError').textContent = 'Please select an image file (JPG, PNG, etc).';
+      return;
     }
-    container.appendChild(card);
-  });
-}
+    pendingFile = file;
+    selectedSample = null;
+    document.querySelectorAll('.sample-card.selected').forEach(c => c.classList.remove('selected'));
+    const url = URL.createObjectURL(file);
+    preview.src = url;
+    preview.style.display = 'block';
+    nameEl.textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+    nameEl.style.display = 'block';
+    document.getElementById('initError').textContent = '';
+    document.getElementById('initBtn').textContent = 'Begin with ' + file.name;
+  }
+})();
 
-// ─── ACHIEVEMENTS ───
-function renderAchievements() {
-  if (!state) return;
-  const grid = document.getElementById('achGrid');
-  grid.innerHTML = '';
-  state.achievements.forEach(a => {
-    if (!a.visible && !a.unlocked) return;
-    const el = document.createElement('div');
-    el.className = 'ach ' + (a.unlocked ? 'unlocked' : 'locked');
-    el.innerHTML = `<span>${a.unlocked ? a.icon : '?'}</span>
-      <div class="ach-tooltip">
-        <div class="ach-t-name">${a.unlocked ? a.name : '???'}</div>
-        <div class="ach-t-desc">${a.unlocked ? a.desc : 'Hidden achievement'}</div>
-      </div>`;
-    grid.appendChild(el);
-  });
-}
+async function initClicker() {
+  const btn = document.getElementById('initBtn');
+  const spinner = document.getElementById('initSpinner');
+  const err = document.getElementById('initError');
+  btn.style.display = 'none';
+  spinner.style.display = 'block';
+  err.textContent = '';
 
-// ─── ACHIEVEMENT POPUPS ───
-function showAchPopup(popup) {
-  showingPopup = true;
-  const el = document.getElementById('achPopup');
-  const overlay = document.getElementById('achPopupOverlay');
-  el.innerHTML = `<div class="ach-popup-icon">${popup.icon}</div>
-    <div class="ach-popup-title">${popup.name}</div>
-    <div class="ach-popup-desc">${popup.desc}</div>`;
-  el.style.display = 'block';
-  overlay.style.display = 'block';
-  setTimeout(dismissAchPopup, 3000);
-}
+  try {
+    let initUrl = '/api/clicker/init';
+    if (selectedSample) {
+      initUrl += '?sample=' + encodeURIComponent(selectedSample);
+      selectedSample = null;
+    } else if (pendingFile) {
+      const form = new FormData();
+      form.append('image', pendingFile);
+      const upRes = await fetch('/api/clicker/upload', {method:'POST', body: form});
+      const upData = await upRes.json();
+      if (!upData.success) {
+        err.textContent = upData.error || 'Upload failed';
+        btn.style.display = 'block';
+        spinner.style.display = 'none';
+        return;
+      }
+      pendingFile = null;
+    }
 
-function dismissAchPopup() {
-  document.getElementById('achPopup').style.display = 'none';
-  document.getElementById('achPopupOverlay').style.display = 'none';
-  showingPopup = false;
-  if (achPopupQueue.length > 0) {
-    setTimeout(() => showAchPopup(achPopupQueue.shift()), 300);
+    const res = await fetch(initUrl, {method:'POST'});
+    const data = await res.json();
+    if (data.initialized) {
+      document.getElementById('initOverlay').style.display = 'none';
+      document.getElementById('imageWrap').style.display = 'block';
+      lastGainPct = 0;
+      refreshImage();
+      loadReference();
+      startPolling();
+    } else {
+      err.textContent = data.error || 'Failed to initialize';
+      btn.style.display = 'block';
+      spinner.style.display = 'none';
+    }
+  } catch (e) {
+    err.textContent = 'Connection error: ' + e.message;
+    btn.style.display = 'block';
+    spinner.style.display = 'none';
   }
 }
 
-// ─── NOTIFICATIONS ───
-function addNotification(text, type) {
-  const log = document.getElementById('notifLog');
-  const entry = document.createElement('div');
-  entry.className = 'notif-entry ' + type;
-  const time = new Date().toLocaleTimeString();
-  entry.textContent = '[' + time + '] ' + text;
-  log.insertBefore(entry, log.firstChild);
-  while (log.children.length > 100) log.removeChild(log.lastChild);
+function startPolling() {
+  stopPolling();
+  refresh();
+  refreshTimer = setInterval(refresh, TICK_MS);
+  imageTimer = setInterval(refreshImage, IMAGE_POLL_MS);
+  achTimer = setInterval(processAchQueue, 500);
 }
 
-// ─── EVENTS BAR ───
+function stopPolling() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  if (imageTimer) clearInterval(imageTimer);
+  if (achTimer) clearInterval(achTimer);
+  refreshTimer = null;
+  imageTimer = null;
+  achTimer = null;
+}
+
+async function refresh() {
+  try {
+    const res = await fetch('/api/clicker/state');
+    state = await res.json();
+    isStandalone = !!state.standaloneMode;
+    if (!state.initialized) {
+      const completeShown = document.getElementById('completeOverlay').classList.contains('show');
+      if (!completeShown) {
+        document.getElementById('initOverlay').style.display = 'flex';
+        document.getElementById('imageWrap').style.display = 'none';
+        resetReference();
+      }
+      stopPolling();
+      return;
+    }
+    updateUI();
+  } catch (e) {}
+}
+
+function refreshImage() {
+  if (!state || !state.initialized) return;
+  const img = document.getElementById('evolveImg');
+  img.src = '/api/clicker/image?v=' + Date.now();
+}
+
+function loadReference() {
+  document.getElementById('refImg').src = '/api/clicker/reference?v=' + Date.now();
+  document.getElementById('refArea').style.display = 'flex';
+}
+
+function resetReference() {
+  const refImg = document.getElementById('refImg');
+  refImg.src = '';
+  document.getElementById('refArea').style.display = 'none';
+}
+
+function updateUI() {
+  if (!state) return;
+  document.getElementById('epVal').textContent = fmtNum(state.ep);
+  document.getElementById('epRate').textContent = '(+' + fmtNum(state.epPerSecond) + '/s)';
+  document.getElementById('clickCount').textContent = fmtNum(state.totalClicks);
+  document.getElementById('swapCount').textContent = fmtNum(state.successSwaps);
+  document.getElementById('swapTotal').textContent = fmtNum(state.totalSwaps);
+  document.getElementById('reachVal').textContent = state.swapReach || '5%';
+
+  // Auto-clicker visual (Cookie Clicker hands)
+  const autoRate = state.autoClickRate || 0;
+  const autoLevel = state.autoClickerLevel || 0;
+  const autoEl = document.getElementById('autoDisplay');
+  if (autoRate > 0) {
+    autoEl.classList.add('active');
+    const handsEl = document.getElementById('autoHands');
+    const handCount = Math.min(autoLevel, 10);
+    if (handsEl.childElementCount !== handCount) {
+      handsEl.innerHTML = '';
+      for (let i = 0; i < handCount; i++) {
+        const h = document.createElement('span');
+        h.className = 'auto-hand';
+        h.textContent = '\uD83D\uDC46';
+        h.style.animationDelay = (i * 0.12) + 's';
+        handsEl.appendChild(h);
+      }
+    }
+    document.getElementById('autoRate').textContent =
+      autoRate.toFixed(1) + ' clicks/s';
+  } else {
+    autoEl.classList.remove('active');
+  }
+
+  if (state.mc > 0 || state.totalEpEarned > 2000) {
+    document.getElementById('mcWrap').style.display = 'flex';
+    document.getElementById('mcVal').textContent = fmtNum(state.mc);
+  }
+  if (state.gf > 0 || state.ascensionCount > 0) {
+    document.getElementById('gfWrap').style.display = 'flex';
+    document.getElementById('gfVal').textContent = fmtNum(state.gf);
+  }
+
+  const fitPct = state.fitness * 100;
+  document.getElementById('fitnessPct').textContent = fitPct.toFixed(4) + '%';
+  document.getElementById('fitnessFill').style.width = fitPct + '%';
+
+  // Fitness gain since start
+  const startPct = state.startingFitness * 100;
+  const gained = fitPct - startPct;
+  if (gained > 0.001) {
+    document.getElementById('fitnessGain').textContent =
+      'Started: ' + startPct.toFixed(2) + '% | Gained: +' + gained.toFixed(4) + '%';
+  }
+
+  // Streak display
+  const sd = document.getElementById('streakDisplay');
+  if (state.hitStreak >= 3) {
+    sd.className = 'streak-display hit-streak';
+    sd.textContent = state.hitStreak + 'x Hit Streak!';
+  } else if (state.missStreak >= 3) {
+    sd.className = 'streak-display miss-streak';
+    sd.textContent = state.missStreak + ' misses...';
+  } else {
+    sd.textContent = '';
+    sd.className = 'streak-display';
+  }
+
+  // Check gain milestones for flash (Miyamoto: earned, not given)
+  const gainPct = (state.fitnessGain || 0) * 100;
+  for (const m of gainMilestones) {
+    if (gainPct >= m && lastGainPct < m && !hitMilestones.has(m)) {
+      hitMilestones.add(m);
+      showMilestone(m);
+    }
+  }
+  lastGainPct = gainPct;
+
+  document.getElementById('statUpgrades').textContent = state.totalUpgrades;
+  document.getElementById('statAch').textContent = state.achievementsUnlocked + '/' + state.achievementsTotal;
+  document.getElementById('statTime').textContent = fmtTime(state.playTimeMs);
+
+  const pr = state.prestigeReward;
+  const btn = document.getElementById('prestigeBtn');
+  btn.textContent = 'Ascend (' + Math.floor(pr) + ' GF)';
+  btn.classList.toggle('available', pr >= 1);
+
+  // Golden frame at high fitness (Sakaguchi: beauty emerging)
+  const wrap = document.getElementById('imageWrap');
+  wrap.classList.toggle('golden-frame', fitPct >= 80);
+
+  // Masterpiece button (Todd Howard: clear goal)
+  const mBtn = document.getElementById('masterpieceBtn');
+  const mReward = state.masterpieceReward || 0;
+  if (mReward >= 1 && fitPct >= (state.masterpieceMinFitness || 0.85) * 100) {
+    mBtn.style.display = '';
+    mBtn.textContent = 'Complete Masterpiece (+' + Math.floor(mReward) + ' GF)';
+  } else {
+    mBtn.style.display = 'none';
+  }
+
+  // Completed images counter
+  const fc = document.getElementById('footerCompleted');
+  if (fc) fc.textContent = state.completedImages || 0;
+
+  // Gallery button visibility
+  const gc = state.galleryCount || 0;
+  const gBtn = document.getElementById('galleryBtn');
+  if (gc > 0) {
+    gBtn.style.display = '';
+    document.getElementById('galleryCount').textContent = gc;
+  }
+
+  // New event detection — play notification sound (Kojima: something is happening)
+  const evCount = (state.events || []).length;
+  if (evCount > lastEventCount && lastEventCount >= 0) SFX.play('event');
+  lastEventCount = evCount;
+
+  renderStore();
+  renderAchievements();
+  renderEvents();
+
+  if (state.achievementPopups) {
+    state.achievementPopups.forEach(p => achPopupQueue.push(p));
+  }
+}
+
+// ── Click handling — Miyamoto: the click must feel SATISFYING ──
+// ONLY the <img> element registers clicks — not the wrapper, stats, or other UI.
+document.getElementById('evolveImg').addEventListener('click', async (e) => {
+  if (clickBusy) return;
+  clickBusy = true;
+  const wrap = document.getElementById('imageWrap');
+  try {
+    const res = await fetch('/api/clicker/click', {method:'POST'});
+  const data = await res.json();
+
+    if (data.successCount > 0) {
+      wrap.classList.add('hit');
+      spawnPopup(e.clientX, e.clientY, data.earned, data.critical, false,
+          data.hitStreak >= 5);
+      spawnTriangles(e.clientX, e.clientY, Math.min(data.successCount * 3, 12));
+      refreshImage();
+      if (data.critical) SFX.play('crit');
+      else if (data.hitStreak >= 5) SFX.play('streak');
+      else SFX.play('click');
+    } else {
+      wrap.classList.add('miss');
+      spawnPopup(e.clientX, e.clientY, data.earned, false, true, false);
+      SFX.play('miss');
+    }
+    setTimeout(() => wrap.classList.remove('hit', 'miss'), 150);
+
+    const fitPct = data.fitness * 100;
+    document.getElementById('fitnessPct').textContent = fitPct.toFixed(4) + '%';
+    document.getElementById('fitnessFill').style.width = fitPct + '%';
+  } catch (ex) {}
+  clickBusy = false;
+});
+
+function spawnPopup(x, y, amount, crit, miss, streak) {
+  const el = document.createElement('div');
+  let cls = 'ep-popup';
+  if (crit) cls += ' crit';
+  else if (miss) cls += ' miss';
+  else if (streak) cls += ' streak';
+  el.className = cls;
+  el.textContent = miss ? 'Miss' : '+' + fmtNum(amount);
+  el.style.left = (x + (Math.random() - .5) * 30) + 'px';
+  el.style.top = (y - 10) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1200);
+}
+
+// Triangle particle burst on successful swap
+function spawnTriangles(cx, cy, count) {
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    el.className = 'tri-particle';
+    const angle = (Math.PI * 2 * i / count) + (Math.random() - .5) * 0.5;
+    const dist = 40 + Math.random() * 60;
+    const tx = Math.cos(angle) * dist;
+    const ty = Math.sin(angle) * dist;
+    const rot = Math.random() * 360;
+    const hue = Math.floor(Math.random() * 360);
+    el.style.cssText = 'left:' + cx + 'px;top:' + cy + 'px;'
+      + '--tx:' + tx + 'px;--ty:' + ty + 'px;--rot:' + rot + 'deg;'
+      + 'border-bottom-color:hsl(' + hue + ',80%,65%)';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 700);
+  }
+}
+
+// ── Fitness milestone celebration ──
+function showMilestone(gainPct) {
+  const names = {
+    0.1:'First Glimpse!',0.5:'Visible Change!',1:'One Percent!',
+    2:'Noticeable!',3:'Real Progress!',5:'Five Percent Climb!',
+    7:'Meaningful Gain!',10:'TEN PERCENT BETTER!',15:'Major Improvement!',
+    20:'TRANSFORMATION!',25:'Remarkable!',30:'METAMORPHOSIS!',
+    40:'REINVENTED!',50:'REBORN!',60:'TRANSCENDENT!'
+  };
+  const el = document.createElement('div');
+  el.className = 'milestone-flash';
+  el.textContent = (names[gainPct] || '+' + gainPct + '%!') + ' (+' + gainPct + '% gained)';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+  addLog('\u2B50 Milestone: +' + gainPct + '% fitness gained!');
+  SFX.play('milestone');
+}
+
+// ── Store ──
+function renderStore() {
+  if (!state) return;
+  const cats = ['All', ...new Set(state.upgrades.filter(u => u.visible).map(u => u.cat))];
+  const tabsEl = document.getElementById('storeTabs');
+  if (tabsEl.childElementCount !== cats.length) {
+    tabsEl.innerHTML = '';
+    cats.forEach(cat => {
+      const t = document.createElement('div');
+      t.className = 'store-tab' + (cat === activeTab ? ' active' : '');
+      t.textContent = cat;
+      t.onclick = () => { activeTab = cat; renderStore(); };
+      tabsEl.appendChild(t);
+    });
+  } else {
+    tabsEl.querySelectorAll('.store-tab').forEach(t => {
+      t.classList.toggle('active', t.textContent === activeTab);
+    });
+  }
+  const list = document.getElementById('storeList');
+  list.innerHTML = '';
+  state.upgrades.filter(u => u.visible && (activeTab === 'All' || u.cat === activeTab)).forEach(u => {
+    const card = document.createElement('div');
+    const maxed = u.max > 0 && u.level >= u.max;
+    card.className = 'upgrade-card' + (maxed ? ' maxed' : (!u.affordable ? ' cant-afford' : ''));
+    card.innerHTML = '<div class="upg-header"><span class="upg-name">' + esc(u.name) + '</span><span class="upg-level">' + u.level + '/' + u.max + '</span></div><div class="upg-desc">' + esc(u.desc) + '</div><div class="upg-cost ' + u.currency + '">' + (maxed ? 'MAXED' : fmtNum(u.cost) + ' ' + u.currency.toUpperCase()) + '</div>';
+    card.onclick = () => buyUpgrade(u.id);
+    card.oncontextmenu = (e) => { e.preventDefault(); buyMax(u.id); };
+    list.appendChild(card);
+  });
+}
+
+async function buyUpgrade(id) {
+  try {
+    const res = await fetch('/api/clicker/buy?id=' + id);
+    const data = await res.json();
+    if (data.success) SFX.play('upgrade');
+    else if (data.reason === 'maxed') SFX.play('maxed');
+    else SFX.play('cantafford');
+    refresh();
+  } catch (e) {}
+}
+async function buyMax(id) {
+  try {
+    const res = await fetch('/api/clicker/buy?id=' + id + '&max');
+    const data = await res.json();
+    if (data.bought > 0) SFX.play('upgrade');
+    else SFX.play('cantafford');
+    refresh();
+  } catch (e) {}
+}
+
+// ── Achievements ──
+function renderAchievements() {
+  if (!state) return;
+  const grid = document.getElementById('achGrid');
+  if (grid.childElementCount !== state.achievements.length) {
+  grid.innerHTML = '';
+  state.achievements.forEach(a => {
+    const el = document.createElement('div');
+      el.className = 'ach-icon' + (a.unlocked ? ' unlocked' : '') + (!a.visible ? ' hidden' : '');
+      el.textContent = a.visible ? a.icon : '?';
+      el.innerHTML += '<div class="ach-tooltip">' + esc(a.visible ? a.name + ': ' + a.desc : '???') + '</div>';
+      el.id = 'ach-' + a.id;
+    grid.appendChild(el);
+  });
+  } else {
+    state.achievements.forEach(a => {
+      const el = document.getElementById('ach-' + a.id);
+      if (el) {
+        el.className = 'ach-icon' + (a.unlocked ? ' unlocked' : '') + (!a.visible ? ' hidden' : '');
+        el.firstChild.textContent = a.visible ? a.icon : '?';
+      }
+    });
+  }
+}
+
+// ── Events ──
 function renderEvents() {
   if (!state) return;
   const bar = document.getElementById('eventsBar');
@@ -363,79 +1045,356 @@ function renderEvents() {
   state.events.forEach(ev => {
     const pill = document.createElement('div');
     pill.className = 'event-pill';
-    pill.textContent = ev.icon + ' ' + ev.name + ' (' + ev.remainSec + 's)';
+    pill.innerHTML = esc(ev.icon) + ' ' + esc(ev.name) + ' <span class="ev-time">' + ev.remainSec + 's</span>';
     bar.appendChild(pill);
   });
 }
 
-// ─── PRESTIGE ───
+// ── Achievement toast queue with pacing ──
+function processAchQueue() {
+  if (achPopupQueue.length === 0) return;
+  if (Date.now() - lastAchPopupMs < ACH_POPUP_GAP_MS) return;
+  lastAchPopupMs = Date.now();
+  showAchToast(achPopupQueue.shift());
+}
+
+function showAchToast(p) {
+  const toast = document.createElement('div');
+  toast.className = 'ach-toast';
+  toast.innerHTML = '<div class="toast-icon">' + esc(p.icon) + '</div><div class="toast-text"><div class="toast-name">' + esc(p.name) + '</div><div class="toast-desc">' + esc(p.desc) + '</div></div>';
+  toast.onclick = () => toast.remove();
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 5000);
+  addLog(p.icon + ' ' + p.name);
+  SFX.play('achievement');
+}
+
+// ── Prestige ──
 async function doPrestige() {
   if (!state || state.prestigeReward < 1) return;
-  if (!confirm('ASCEND?\n\nYou will reset all progress except achievements and prestige upgrades.\nYou will earn ' + fmt(state.prestigeReward) + ' Genome Fragments.\n\nAre you sure?')) return;
-  await fetch('/api/clicker/prestige');
-  refresh();
-  addNotification('ASCENDED! Earned Genome Fragments.', 'achievement');
+  if (!confirm('Ascend for ' + Math.floor(state.prestigeReward) + ' GF?\n\nYour current image will be saved to the Gallery.\nLoad a NEW image in ArtEvolver for your next canvas.')) return;
+  try {
+    const res = await fetch('/api/clicker/prestige', {method:'POST'});
+    const data = await res.json();
+    if (data.success) {
+      SFX.play('prestige');
+      hitMilestones.clear();
+      lastGainPct = 0;
+      if (data.needsNewImage) {
+        stopPolling();
+        document.getElementById('initOverlay').style.display = 'flex';
+        document.getElementById('imageWrap').style.display = 'none';
+        document.getElementById('initBtn').style.display = 'block';
+        document.getElementById('initSpinner').style.display = 'none';
+        document.getElementById('initError').textContent = '';
+        selectedSample = null;
+        resetReference();
+        loadSamples();
+        addLog('\u2B50 Ascension complete! +' + Math.floor(data.gf) + ' GF | Gallery: ' + (data.galleryCount || 0) + ' images');
+      }
+    } else {
+      alert('Ascension failed. Please try again.');
+    }
+    refresh();
+  } catch (e) {
+    alert('Connection error: ' + (e.message || 'Unknown error'));
+  }
 }
 
-// ─── MAIN UPDATE ───
-async function refresh() {
+// ── Masterpiece completion (Will Wright: emergent long-term goal) ──
+async function doMasterpiece() {
+  if (!state) return;
+  const reward = state.masterpieceReward || 0;
+  if (reward < 1) return;
+  if (!confirm('Complete this masterpiece for ' + Math.floor(reward) + ' GF?\n\nEverything resets. Load a new image for your next canvas.')) return;
+  try {
+    const res = await fetch('/api/clicker/complete', {method:'POST'});
+    const data = await res.json();
+    if (data.success) {
+      SFX.play('masterpiece');
+      showCompletionOverlay(data);
+    } else {
+      alert('Masterpiece completion failed. Fitness may have changed.');
+    }
+  } catch (e) {
+    alert('Connection error: ' + (e.message || 'Unknown error'));
+  }
+}
+
+function showCompletionOverlay(data) {
+  const stats = document.getElementById('completeStats');
+  stats.innerHTML =
+    '<div class="cs-label">Final Fitness</div><div class="cs-value">' + (data.finalFitness * 100).toFixed(2) + '%</div>' +
+    '<div class="cs-label">GF Earned</div><div class="cs-value" style="color:var(--gold)">+' + Math.floor(data.gfReward) + '</div>' +
+    '<div class="cs-label">Total GF</div><div class="cs-value">' + fmtNum(data.totalGf) + '</div>' +
+    '<div class="cs-label">Images Completed</div><div class="cs-value">' + data.completedImages + '</div>';
+  document.getElementById('completeReward').textContent = '+' + Math.floor(data.gfReward) + ' GF';
+  const hint = document.getElementById('completeHint');
+  hint.textContent = (data.standaloneMode || isStandalone)
+    ? 'Click New Canvas to drop or pick a new image, then click Begin.'
+    : 'Load a new image in ArtEvolver, then click New Canvas.';
+  document.getElementById('completeOverlay').classList.add('show');
+  hitMilestones.clear();
+}
+
+function newCanvas() {
+  document.getElementById('completeOverlay').classList.remove('show');
+  document.getElementById('initOverlay').style.display = 'flex';
+  document.getElementById('imageWrap').style.display = 'none';
+  document.getElementById('initBtn').style.display = 'block';
+  document.getElementById('initSpinner').style.display = 'none';
+  document.getElementById('initError').textContent = '';
+  selectedSample = null;
+  pendingFile = null;
+  resetReference();
+  loadSamples();
+}
+
+// ── Gallery ──
+async function openGallery() {
+  SFX.play('gallery');
+  const grid = document.getElementById('galleryGrid');
+  grid.innerHTML = '<div class="gallery-empty">Loading...</div>';
+  document.getElementById('galleryOverlay').classList.add('show');
+  try {
+    const res = await fetch('/api/clicker/gallery');
+    const entries = await res.json();
+    if (entries.length === 0) {
+      grid.innerHTML = '<div class="gallery-empty">No evolved images yet. Complete an ascension or masterpiece to populate your gallery.</div>';
+      return;
+    }
+    grid.innerHTML = '';
+    entries.forEach((e, i) => {
+      const card = document.createElement('div');
+      card.className = 'gallery-card';
+      const gainPct = (e.fitnessGain * 100).toFixed(2);
+      const finalPct = (e.finalFitness * 100).toFixed(2);
+      const startPct = (e.startFitness * 100).toFixed(2);
+      const playAgainBtn = (e.fingerprint != null && state && state.standaloneMode) ?
+        '<button class="gallery-play-btn" onclick="playAgainFromGallery(\'' + e.fingerprint + '\')">Play again</button>' : '';
+      card.innerHTML =
+        '<div class="gc-img-wrap"><img src="' + esc(e.thumbnail) + '" alt="Image ' + (i + 1) + '"><div class="gc-number">#' + (i + 1) + '</div></div>' +
+        '<div class="gc-stats">' +
+          '<div class="gc-gain">+' + gainPct + '% gained</div>' +
+          '<div class="gc-label">Final</div><div class="gc-val">' + finalPct + '%</div>' +
+          '<div class="gc-label">Start</div><div class="gc-val">' + startPct + '%</div>' +
+          '<div class="gc-label">Clicks</div><div class="gc-val">' + fmtNum(e.clicks) + '</div>' +
+          '<div class="gc-label">Swaps</div><div class="gc-val">' + fmtNum(e.swaps) + '</div>' +
+          '<div class="gc-label">Time</div><div class="gc-val">' + fmtTime(e.playTimeMs) + '</div>' +
+          '<div class="gc-label">Ascensions</div><div class="gc-val">' + e.ascensions + '</div>' +
+          playAgainBtn +
+        '</div>';
+      grid.appendChild(card);
+    });
+  } catch (e) {
+    grid.innerHTML = '<div class="gallery-empty">Failed to load gallery.</div>';
+  }
+}
+
+function closeGallery() {
+  document.getElementById('galleryOverlay').classList.remove('show');
+}
+
+async function playAgainFromGallery(fingerprint) {
+  closeGallery();
+  selectedSample = 'custom:' + fingerprint;
+  document.getElementById('initOverlay').style.display = 'flex';
+  document.getElementById('imageWrap').style.display = 'none';
+  loadSamples();
+  document.getElementById('initBtn').textContent = 'Begin with My Image';
+  document.getElementById('initError').textContent = '';
+}
+
+let myImagesData = [];
+
+async function loadSamples() {
+  try {
+    const [samplesRes, myRes] = await Promise.all([
+      fetch('/api/clicker/samples'),
+      fetch('/api/clicker/my-images')
+    ]);
+    samplesData = await samplesRes.json();
+    const myJson = await myRes.json();
+    myImagesData = myJson.images || [];
+    renderSampleGrid();
+    renderMyImagesGrid();
+    const sec = document.getElementById('myImagesSection');
+    if (sec) sec.style.display = myImagesData.length > 0 ? 'block' : 'none';
+  } catch (e) {}
+}
+
+function renderMyImagesGrid() {
+  const grid = document.getElementById('myImagesGrid');
+  if (!grid || myImagesData.length === 0) return;
+  grid.innerHTML = '';
+  const baseUrl = window.location.origin || '';
+  myImagesData.forEach(img => {
+    const fp = img.fingerprint;
+    const id = 'custom:' + fp;
+    const card = document.createElement('div');
+    card.className = 'sample-card' + (selectedSample === id ? ' selected' : '');
+    card.title = 'Your uploaded image';
+    const imgEl = document.createElement('img');
+    imgEl.src = baseUrl + '/api/clicker/my-image/' + fp + '?thumb=1';
+    imgEl.alt = 'My image';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'sc-name';
+    nameEl.textContent = 'My Image';
+    card.appendChild(imgEl);
+    card.appendChild(nameEl);
+    card.onclick = () => {
+      selectedSample = id;
+      pendingFile = null;
+      document.getElementById('dropPreview').style.display = 'none';
+      document.getElementById('dropName').style.display = 'none';
+      document.querySelectorAll('.sample-card').forEach(c => c.classList.remove('selected'));
+      document.querySelectorAll('#myImagesGrid .sample-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      document.getElementById('initBtn').textContent = 'Begin with My Image';
+      document.getElementById('initError').textContent = '';
+    };
+    grid.appendChild(card);
+  });
+}
+
+function renderSampleGrid() {
+  const grid = document.getElementById('sampleGrid');
+  if (!grid || !samplesData || !samplesData.samples) return;
+  grid.innerHTML = '';
+  const baseUrl = window.location.origin || 'http://localhost:' + (window.location.port || '80');
+  samplesData.samples.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'sample-card' + (s.locked ? ' locked' : '') + (selectedSample === s.id ? ' selected' : '');
+    card.title = s.discovered ? s.desc : (s.unlockHint || ('Unlock: ' + s.unlockType + ' \u2265 ' + s.unlockValue));
+    const img = document.createElement('img');
+    img.src = s.unlocked ? baseUrl + '/api/clicker/sample/' + s.id + '?thumb=1' : 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%232a2a40" width="100" height="100"/><text x="50" y="55" fill="%238888aa" font-size="24" text-anchor="middle">?</text></svg>';
+    img.alt = s.name;
+    const nameEl = document.createElement('div');
+    nameEl.className = 'sc-name';
+    nameEl.textContent = s.name;
+    const progEl = document.createElement('div');
+    progEl.className = 'sc-progress';
+    const parts = [];
+    if (s.completed) parts.push('\u2713 Done');
+    if (s.bestGain > 0) parts.push('+' + (s.bestGain * 100).toFixed(1) + '%');
+    if (s.playCount > 0) parts.push(s.playCount + ' play' + (s.playCount !== 1 ? 's' : ''));
+    if (s.ascensionsCount > 0) parts.push(s.ascensionsCount + ' asc');
+    if (s.bestFitness > 0) parts.push('max ' + (s.bestFitness * 100).toFixed(1) + '%');
+    progEl.textContent = parts.join(' | ') || '';
+    card.appendChild(img);
+    card.appendChild(nameEl);
+    card.appendChild(progEl);
+    if (!s.locked) {
+      card.onclick = () => {
+        selectedSample = s.id;
+        pendingFile = null;
+        document.getElementById('dropPreview').style.display = 'none';
+        document.getElementById('dropName').style.display = 'none';
+        document.querySelectorAll('.sample-card').forEach(c => c.classList.remove('selected'));
+        const mi = document.getElementById('myImagesGrid');
+        if (mi) mi.querySelectorAll('.sample-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        document.getElementById('initBtn').textContent = 'Begin with ' + s.name;
+        document.getElementById('initError').textContent = '';
+      };
+    }
+    grid.appendChild(card);
+  });
+}
+
+async function openAtlas() {
+  SFX.play('gallery');
+  const grid = document.getElementById('atlasGrid');
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text2)">Loading...</div>';
+  document.getElementById('atlasOverlay').classList.add('show');
+  try {
+    const res = await fetch('/api/clicker/samples');
+    const data = await res.json();
+    grid.innerHTML = '';
+    const baseUrl = window.location.origin || '';
+    (data.samples || []).forEach(s => {
+      const card = document.createElement('div');
+      card.className = 'atlas-card' + (s.locked ? ' locked' : ' unlocked') + (s.completed ? ' completed' : '');
+      const img = document.createElement('img');
+      img.className = 'ac-img';
+      img.src = s.discovered ? (baseUrl + '/api/clicker/sample/' + s.id + '?thumb=1') : 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140"><rect fill="%231a1a2e" width="140" height="140"/><text x="70" y="80" fill="%238888aa" font-size="32" text-anchor="middle">???</text></svg>';
+      const info = document.createElement('div');
+      info.className = 'ac-info';
+      info.innerHTML = '<div class="ac-name">' + esc(s.name) + '</div><div class="ac-desc">' + esc(s.desc) + '</div>' +
+        (s.locked ? '<div class="ac-unlock">' + esc(s.unlockHint || (s.unlockType + ' \u2265 ' + s.unlockValue)) + '</div>' : '') +
+        (!s.locked && (s.bestGain > 0 || s.completed || s.playCount > 0) ? '<div class="ac-stats">' + (s.completed ? '\u2713 ' : '') + 'Best: +' + (s.bestGain * 100).toFixed(1) + '% | ' + s.playCount + ' play(s)' + (s.ascensionsCount > 0 ? ' | ' + s.ascensionsCount + ' asc' : '') + (s.bestFitness > 0 ? ' | max ' + (s.bestFitness * 100).toFixed(1) + '%' : '') + '</div>' : '');
+      card.appendChild(img);
+      card.appendChild(info);
+      if (s.unlocked) {
+        card.style.cursor = 'pointer';
+        card.onclick = () => { closeAtlas(); selectedSample = s.id; document.getElementById('initOverlay').style.display = 'flex'; document.getElementById('imageWrap').style.display = 'none'; loadSamples(); };
+      }
+      grid.appendChild(card);
+    });
+  } catch (e) {
+    grid.innerHTML = '<div style="grid-column:1/-1;color:var(--red)">Failed to load.</div>';
+  }
+}
+
+function closeAtlas() {
+  document.getElementById('atlasOverlay').classList.remove('show');
+}
+
+// ── Log ──
+function addLog(msg) {
+  logLines.unshift(msg);
+  if (logLines.length > 50) logLines.pop();
+  document.getElementById('logEntries').innerHTML =
+    logLines.map(l => '<div class="log-entry">' + esc(l) + '</div>').join('');
+}
+
+// ── Helpers ──
+function fmtNum(n) {
+  if (n == null || isNaN(n)) return '0';
+  if (n >= 1e12) return (n/1e12).toFixed(1) + 'T';
+  if (n >= 1e9) return (n/1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  if (n >= 100) return Math.floor(n).toString();
+  if (n >= 1) return n.toFixed(1);
+  return n.toFixed(2);
+}
+function fmtTime(ms) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return h + ':' + String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
+  return m + ':' + String(sec).padStart(2,'0');
+}
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Auto-init check ──
+SFX.init();
+(async function() {
   try {
     const res = await fetch('/api/clicker/state');
-    state = await res.json();
-  } catch(e) { return; }
-
-  // Currencies
-  document.getElementById('epVal').textContent = fmt(state.ep);
-  document.getElementById('epRate').textContent = fmt(state.epPerSecond) + '/s';
-  document.getElementById('mcVal').textContent = fmt(state.mc);
-  if (state.ascensionCount > 0 || state.gf > 0) {
-    document.getElementById('gfCurr').style.display = '';
-    document.getElementById('gfVal').textContent = fmt(state.gf);
-  }
-
-  // Big fitness
-  document.getElementById('bigFitness').textContent = state.highestFitness > 0
-    ? (state.highestFitness * 100).toFixed(2) + '%' : '0.00%';
-
-  // Stats
-  document.getElementById('sClicks').textContent = fmt(state.totalClicks);
-  document.getElementById('sEpClick').textContent = fmt(state.epPerClick);
-  document.getElementById('sUpgrades').textContent = state.totalUpgrades;
-  document.getElementById('sAch').textContent = state.achievementsUnlocked + '/' + state.achievementsTotal;
-  document.getElementById('sTime').textContent = fmtTime(state.playTimeMs);
-  document.getElementById('achCount').textContent = state.achievementsUnlocked;
-  document.getElementById('achTotal').textContent = state.achievementsTotal;
-
-  // Prestige
-  const btn = document.getElementById('btnPrestige');
-  if (state.prestigeReward >= 1) {
-    btn.className = 'prestige-btn';
-    btn.innerHTML = '\uD83C\uDF1F ASCEND (earn ' + fmt(state.prestigeReward) + ' Genome Fragments)';
-  } else {
-    btn.className = 'prestige-btn disabled';
-    btn.innerHTML = '\uD83C\uDF1F ASCEND (need more EP to earn fragments)';
-  }
-
-  // Store
-  if (!document.getElementById('storeTabs').children.length) buildTabs(state.upgrades);
-  renderStore();
-  renderAchievements();
-  renderEvents();
-
-  // Achievement popups
-  if (state.achievementPopups && state.achievementPopups.length > 0) {
-    state.achievementPopups.forEach(p => {
-      addNotification(p.icon + ' ' + p.name + ' - ' + p.desc, 'achievement');
-      achPopupQueue.push(p);
-    });
-    if (!showingPopup && achPopupQueue.length > 0) {
-      showAchPopup(achPopupQueue.shift());
+    const d = await res.json();
+    isStandalone = !!d.standaloneMode;
+    if (d.initialized) {
+      document.getElementById('initOverlay').style.display = 'none';
+      document.getElementById('imageWrap').style.display = 'block';
+      lastGainPct = (d.fitnessGain || 0) * 100;
+      lastEventCount = (d.events || []).length;
+      refreshImage();
+      loadReference();
+      startPolling();
+    } else {
+      loadSamples();
+      if (!isStandalone) {
+        document.getElementById('dropZone').style.display = 'none';
+      }
     }
-  }
-}
-
-refresh();
-setInterval(refresh, TICK_MS);
+  } catch (e) {}
+})();
 </script>
 </body>
 </html>

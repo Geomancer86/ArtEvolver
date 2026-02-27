@@ -1,6 +1,6 @@
 # ArtEvolver
 
-[![Java](https://img.shields.io/badge/Java-17%2B-orange)](https://openjdk.org/)
+[![Java](https://img.shields.io/badge/Java-21%2B-orange)](https://openjdk.org/)
 [![Maven](https://img.shields.io/badge/Maven-3.6%2B-blue)](https://maven.apache.org/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-green.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Twitter](https://img.shields.io/twitter/follow/ArtEvolver?style=social)](https://twitter.com/ArtEvolver)
@@ -9,7 +9,8 @@
 
 The result is a low-poly triangle art representation where every color corresponds to a real, purchasable paint. The evolution process runs in real-time, viewable in the built-in GUI or live-streamed to an audience.
 
-![ArtEvolver Pipeline](https://img.shields.io/badge/Status-Active%20Development-brightgreen)
+![Version](https://img.shields.io/badge/Version-3.2.0-blue)
+![ArtEvolver Pipeline](https://img.shields.io/badge/Status-Stable-green)
 
 ---
 
@@ -81,16 +82,90 @@ Greedy nearest-color assignment analyzes the source image at each triangle's reg
 ### Adaptive Mutation Decay
 Tournament-based selection combined with adaptive mutation decay gradually shifts the search from broad exploration to fine-tuning as fitness improves.
 
+### Evolutionary Tournament System (v3.1)
+Meta-genetic algorithm that evolves GA parameters themselves. Velocity-aware composite ranking,
+multi-generational breeding with ancestry tracking, adaptive cutoff, multi-stage (geared) competitors,
+prehistoric mode with 8 progressive eras, promoted hall of fame, 21 preset strategies, autopilot mode,
+and real-time browser dashboard with REST API.
+
+### Persistent Settings (v3.2)
+All user preferences (sidebar parameters, tournament settings, window positions, last loaded image)
+are saved automatically on exit and restored on next launch via `java.util.prefs.Preferences`.
+
+### Help System (v3.2)
+Help menu with Quick Start Guide and Parameter Reference. Context-sensitive tooltips on every
+control with suggested starting values. Dashboard help overlay for metric explanations.
+
+### Thumbnail Cache & Disk Cache (v3.2)
+Persistent disk cache stores resized source images in `~/.artevolver/cache/` so high-resolution
+camera images (Canon EOS R5 45MP, R1 50MP, etc.) load near-instantly on subsequent opens.
+In-memory cache for dashboard thumbnails with HTTP ETag support reduces CPU during auto-refresh.
+
+### Evolution Clicker (v3.2)
+Browser-based idle/clicker game — evolve a triangle mosaic one swap at a time. Drop or pick an
+image, click to attempt random color swaps. Each click may improve fitness or miss; upgrades
+make clicks smarter. Earn EP, buy 21 upgrades (click power, automation, intelligence, prestige),
+unlock the Sample Atlas with real landscapes and iconic art, ascend for Golden Frame (GF), and
+complete masterpieces at 85%+ fitness. Procedural sound engine, 75+ achievements, gallery of
+completed images. Run `clicker.bat` / `clicker.sh` for one-click launch — no Java UI needed.
+
 ---
 
 ## Getting Started
 
 ### Prerequisites
 
-| Dependency | Version  |
-|------------|----------|
-| Java JDK   | 17+      |
-| Apache Maven | 3.6+   |
+| Dependency | Version | Download |
+|------------|---------|----------|
+| Java JDK   | 21+     | [Adoptium Temurin JDK 21](https://adoptium.net/temurin/releases/?version=21) |
+| Apache Maven | 3.6+  | [Maven Downloads](https://maven.apache.org/download.cgi) |
+
+#### Installing Java 21
+
+**Windows** (via winget):
+```bash
+winget install EclipseAdoptium.Temurin.21.JDK
+```
+
+**macOS** (via Homebrew):
+```bash
+brew install --cask temurin@21
+```
+
+**Linux (Debian/Ubuntu)**:
+```bash
+sudo apt install temurin-21-jdk
+```
+
+Or download the installer for your platform directly from
+[Adoptium](https://adoptium.net/temurin/releases/?version=21) — pick the `.msi` (Windows),
+`.pkg` (macOS), or `.tar.gz` (Linux) for JDK 21 LTS.
+
+#### Installing Maven
+
+**Windows** (via winget):
+```bash
+winget install Apache.Maven
+```
+
+**macOS** (via Homebrew):
+```bash
+brew install maven
+```
+
+**Linux (Debian/Ubuntu)**:
+```bash
+sudo apt install maven
+```
+
+Or download from [maven.apache.org](https://maven.apache.org/download.cgi) and add `bin/` to your PATH.
+
+#### Verify Installation
+
+```bash
+java -version    # Should show 21.x.x or higher
+mvn -version     # Should show 3.6.x or higher
+```
 
 ### Clone
 
@@ -99,16 +174,34 @@ git clone https://github.com/Geomancer86/ArtEvolver.git
 cd ArtEvolver
 ```
 
-### Quick Start (Recommended)
+### Quick Start — Evolution Clicker (Browser)
 
-On Windows, double-click or run from a terminal:
+The fastest way to play. No Java UI knowledge needed — pick an image in your browser and start evolving.
 
+**Windows:**
+```bash
+clicker.bat
+```
+
+**Linux/Mac:**
+```bash
+chmod +x clicker.sh
+./clicker.sh
+```
+
+This builds the project, starts the server, and opens the clicker game in your browser.
+Drop or pick an image, click to evolve.
+
+### Quick Start — Full Application (Swing GUI)
+
+For the complete ArtEvolver experience with tournaments, benchmarks, and all advanced features.
+
+**Windows:**
 ```bash
 start.bat
 ```
 
-On Linux/Mac:
-
+**Linux/Mac:**
 ```bash
 chmod +x start.sh
 ./start.sh
@@ -183,33 +276,47 @@ mvn test -pl artevolver-core -Dtest=BenchmarkTest#lapSolverUnitTest
 ArtEvolver is organized as a Maven multi-module project:
 
 ```
-artevolver/
-├── pom.xml                          # Parent POM (v3.0.0-SNAPSHOT)
-├── artevolver-core/                 # Core evolution engine
+artevolver/                              # v3.2.0
+├── pom.xml                              # Parent POM
+├── artevolver-core/                     # Core evolution engine + GUI
 │   └── src/main/java/com/rndmodgames/evolver/
-│       ├── ArtEvolver.java          # Swing GUI + threading orchestration
-│       ├── ArtEvolverTools.java     # Offline/test evolver factory
-│       ├── AbstractEvolver.java     # Fitness comparison (pixel-level RGB diff)
-│       ├── ImageEvolver.java        # Main evolution loop, rendering, mutations
-│       ├── CrossOver.java           # Crossover + mutation operators
-│       ├── Triangle.java            # Triangle polygon with assigned color
-│       ├── TriangleList.java        # Scored population member (drawing)
-│       ├── Palette.java             # Palette loader (parses text files)
-│       ├── PalleteColor.java        # Named color with RGB values
-│       ├── DeltaFitnessEngine.java  # O(pixels_per_tri) swap evaluation (v3.1)
-│       ├── LAPSolver.java           # Jonker-Volgenant optimal color assignment (v3.1)
+│       ├── ArtEvolver.java              # Swing GUI + threading orchestration
+│       ├── ArtEvolverTools.java         # Offline/test evolver factory
+│       ├── AbstractEvolver.java         # Fitness comparison (pixel-level RGB diff)
+│       ├── ImageEvolver.java            # Main evolution loop, rendering, mutations
+│       ├── CrossOver.java               # Crossover + mutation operators
+│       ├── Triangle.java                # Triangle polygon with assigned color
+│       ├── TriangleList.java            # Scored population member (drawing)
+│       ├── Palette.java                 # Palette loader (parses text files)
+│       ├── PalleteColor.java            # Named color with RGB values
+│       ├── DeltaFitnessEngine.java      # O(pixels_per_tri) swap evaluation
+│       ├── LAPSolver.java               # Jonker-Volgenant optimal assignment
+│       ├── EvolutionConfig.java         # Parameter bundle with gene array
+│       ├── EvolutionaryTournament.java  # Meta-GA: ranking, breeding, lifecycle
+│       ├── TournamentContestant.java    # Single evolution run encapsulation
+│       ├── TournamentManagerWindow.java # Tournament UI, autopilot, settings
+│       ├── FitnessChartWindow.java      # Real-time multi-series fitness chart
+│       ├── FitnessTracker.java          # Velocity/acceleration tracking
+│       ├── DashboardServer.java         # HTTP server + REST API + dashboard
+│       ├── PrehistoricMode.java         # Genesis mode (8 progressive eras)
+│       ├── LineageNode.java             # Ancestry tree for breeding
+│       ├── SystemMonitor.java           # JMX-based CPU/RAM/Disk monitoring
+│       ├── SettingsManager.java         # Persistent user preferences (java.util.prefs)
+│       ├── ImageDiskCache.java          # Persistent disk cache for resized source images
+│       ├── ClickerState.java            # Evolution Clicker game logic
 │       ├── benchmark/
-│       │   ├── BenchmarkLogger.java # Thread-safe CSV benchmark writer
-│       │   └── BenchmarkRunner.java # Headless benchmark harness
+│       │   ├── BenchmarkLogger.java     # Thread-safe CSV benchmark writer
+│       │   └── BenchmarkRunner.java     # Headless benchmark harness
 │       └── render/
-│           └── Renderer.java        # PNG export with scaling
+│           └── Renderer.java            # PNG export with scaling
 │   └── src/main/resources/
-│       ├── palette4.txt             # Sherwin-Williams (1,535 colors)
-│       ├── sherwin.txt              # Sherwin-Williams (original format)
-│       ├── palette2.txt             # Game Boy Color green (4 shades)
-│       ├── palette3.txt             # Black & White (2 colors)
-│       └── trilux.txt               # Trilux pens (12 colors)
-├── artevolver-desktop/              # Desktop launcher module
+│       ├── dashboard.html               # Browser dashboard (dark theme)
+│       ├── palette4.txt                 # Sherwin-Williams (1,535 colors)
+│       ├── sherwin.txt                  # Sherwin-Williams (original format)
+│       ├── palette2.txt                 # Game Boy Color green (4 shades)
+│       ├── palette3.txt                 # Black & White (2 colors)
+│       └── trilux.txt                   # Trilux pens (12 colors)
+├── artevolver-desktop/                  # Desktop launcher module
 └── README.md
 ```
 
@@ -228,6 +335,14 @@ artevolver/
 **`Palette` / `PalleteColor`** — Loads palette definitions from text resource files into in-memory color lists used during initialization and mutation.
 
 **`Renderer`** — Exports the current best mosaic as a scaled PNG file for frame capture and video generation.
+
+**`EvolutionaryTournament`** — Meta-genetic algorithm that evolves GA parameters. Ranks contestants by a weighted blend of fitness, velocity, acceleration, and lineage. Culls the worst, breeds replacements via BLX-alpha crossover with Gaussian mutation, tracks best-ever configuration, and detects convergence.
+
+**`TournamentManagerWindow`** — Full-featured Swing UI for managing the tournament: contestant table, detail panel, history log, autopilot controls, prehistoric mode, and evo settings dialog.
+
+**`DashboardServer`** — Embedded HTTP server using `com.sun.net.httpserver.HttpServer`. Serves a browser-based real-time leaderboard with REST API endpoints for tournament state, image thumbnails, and full-resolution exports. Zero external dependencies.
+
+**`FitnessChartWindow`** — Separate resizable JFrame with real-time multi-series fitness chart. Dark theme, gradient area fill, auto-scaling axes, peak indicator, color-coded legend, and per-series stats.
 
 ---
 

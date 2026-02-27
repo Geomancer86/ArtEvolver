@@ -56,6 +56,7 @@ public class Renderer {
 		try {
             ImageIO.write(export, "png", new File(folder + sourceName + "_" + order + ".png"));
 	    } catch (IOException e) {
+	        System.err.println("[Renderer] Frame export failed: " + e.getMessage());
 	    }
 		
 		g2d.dispose();

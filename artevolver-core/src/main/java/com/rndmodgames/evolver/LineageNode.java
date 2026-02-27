@@ -129,7 +129,10 @@ public class LineageNode {
     private void collectGenes(LineageNode node, int depth, double decay,
                               int maxDepth, List<WeightedGenes> out) {
         if (node == null || depth > maxDepth || node.configSnapshot == null) return;
-        out.add(new WeightedGenes(node.configSnapshot.toGeneArray(), Math.pow(decay, depth)));
+        float[] genes = node.configSnapshot.isMultiStage()
+                ? node.configSnapshot.toMultiStageGeneArray()
+                : node.configSnapshot.toGeneArray();
+        out.add(new WeightedGenes(genes, Math.pow(decay, depth)));
         collectGenes(node.parentA, depth + 1, decay, maxDepth, out);
         collectGenes(node.parentB, depth + 1, decay, maxDepth, out);
     }

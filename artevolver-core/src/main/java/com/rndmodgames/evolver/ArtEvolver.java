@@ -319,6 +319,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private JComboBox<String> cmbDrawMode;
 	private boolean tournamentMode = false;
 	private int tournamentDrawMode = 0; // 0=Selected, 1=Best, 2=All
+	private boolean hideEliminatedInGrid = true;
+	private static final int MAX_ELIMINATED_IN_GRID = 5;
 
 	// Timer
 	public Timer processTimer;
@@ -375,6 +377,9 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	private BufferedImage originalImage;
 	private BufferedImage resizedOriginal;
 	private BufferedImage bestImage;
+	private final ImageDiskCache imageDiskCache = new ImageDiskCache();
+	private File lastLoadedFile;
+	private int savedEvolveMethodIdx = 1;
 	
 	long start;
 	long steps;
@@ -442,7 +447,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 */
     public ArtEvolver() throws IOException, URISyntaxException {
         
-        super("ArtEvolver v3.1");
+        super("ArtEvolver v3.2");
 
         //
         df.setMaximumFractionDigits(2);
@@ -750,6 +755,15 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         mainFrame = this;
         mainFrame.setResizable(true);
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        loadSettings();
+
+        mainFrame.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                saveSettings();
+            }
+        });
         
         // init timer
 //        processTimer = new Timer(0, new ActionListener() { 
@@ -802,6 +816,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				        if (c.getBestScore() > 0) {
 				            c.getFitnessTracker().addSnapshot(c.getBestScore(), c.getTotalIterations());
 				        }
+				        c.checkStageTransition();
 				        tTotalIter += c.getTotalIterations();
 				        tGoodIter += c.getGoodIterations();
 				        if (bestContestant == null || c.getBestScore() > bestContestant.getBestScore()) {
@@ -926,6 +941,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
                     if (fitnessChartWindow != null && fitnessChartWindow.isVisible()) {
                         if (tournamentMode && !contestants.isEmpty()) {
                             for (TournamentContestant c : contestants) {
+                                fitnessChartWindow.setSeriesActive(c.getId(), !c.isFinished() && c.isRunning());
                                 if (c.isFinished()) continue;
                                 if (c.getBestScore() > 0) {
                                     fitnessChartWindow.addDataPoint(c.getId(), c.getName(),
@@ -1106,6 +1122,8 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
       	container.add(scrollPane, BorderLayout.LINE_END);
       	container.add(imagePanel, BorderLayout.CENTER);
 
+      	setJMenuBar(buildMenuBar());
+
       	int imageW = (int) (width * widthTriangles) + 32;
       	int imageH = (int) (height * heightTriangles - height) + 32;
       	int sidebarW = 320;
@@ -1122,20 +1140,155 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
       	setSize(winW, winH);
       	scrollPane.setPreferredSize(new Dimension(sidebarW, winH));
 
-		File defaultDir = new File("C:\\Media\\Art Evolver Stream");
-		if (!defaultDir.exists()) {
-			defaultDir = new File(System.getProperty("user.dir"));
+		String savedDir = SettingsManager.loadString(SettingsManager.KEY_LAST_IMAGE_DIR, null);
+		File defaultDir;
+		if (savedDir != null && new File(savedDir).exists()) {
+			defaultDir = new File(savedDir);
+		} else {
+			defaultDir = new File("C:\\Media\\Art Evolver Stream");
+			if (!defaultDir.exists()) {
+				defaultDir = new File(System.getProperty("user.dir"));
+			}
 		}
 		chooser = new JFileChooser(defaultDir);
 		chooser.setAcceptAllFileFilterUsed(false);
 		chooser.setAccessory(new ImagePreviewPanel(chooser));
 		
-		//
-        mainFrame.setLocationRelativeTo(null);
+		int savedX = SettingsManager.loadInt(SettingsManager.KEY_MAIN_X, Integer.MIN_VALUE);
+		int savedW = SettingsManager.loadInt(SettingsManager.KEY_MAIN_W, -1);
+		int savedH = SettingsManager.loadInt(SettingsManager.KEY_MAIN_H, -1);
+		if (savedX != Integer.MIN_VALUE && savedW > 100 && savedH > 100) {
+		    int savedY = SettingsManager.loadInt(SettingsManager.KEY_MAIN_Y, 0);
+		    setBounds(savedX, savedY, savedW, savedH);
+		} else {
+		    mainFrame.setLocationRelativeTo(null);
+		}
         mainFrame.setVisible(true);
     }
 
+    private javax.swing.JMenuBar buildMenuBar() {
+        javax.swing.JMenuBar menuBar = new javax.swing.JMenuBar();
+
+        javax.swing.JMenu helpMenu = new javax.swing.JMenu("Help");
+        helpMenu.setMnemonic(java.awt.event.KeyEvent.VK_H);
+
+        javax.swing.JMenuItem miQuickStart = new javax.swing.JMenuItem("Quick Start Guide");
+        miQuickStart.setToolTipText("Open the quick start guide in your browser.");
+        miQuickStart.addActionListener(e -> openUrl("https://github.com/Geomancer86/ArtEvolver#usage-guide"));
+        helpMenu.add(miQuickStart);
+
+        javax.swing.JMenuItem miParamRef = new javax.swing.JMenuItem("Parameter Reference");
+        miParamRef.setToolTipText("Open the parameter reference documentation.");
+        miParamRef.addActionListener(e -> openUrl("https://github.com/Geomancer86/ArtEvolver#configuration-and-modes"));
+        helpMenu.add(miParamRef);
+
+        helpMenu.addSeparator();
+
+        javax.swing.JMenuItem miKeyboard = new javax.swing.JMenuItem("Keyboard Shortcuts");
+        miKeyboard.addActionListener(e -> JOptionPane.showMessageDialog(this,
+                "ArtEvolver Keyboard Shortcuts\n\n"
+                + "  No keyboard shortcuts are currently defined.\n"
+                + "  All controls are accessible from the sidebar\n"
+                + "  and the Tournament Manager window.",
+                "Keyboard Shortcuts", JOptionPane.INFORMATION_MESSAGE));
+        helpMenu.add(miKeyboard);
+
+        helpMenu.addSeparator();
+
+        javax.swing.JMenuItem miReportIssue = new javax.swing.JMenuItem("Report Issue...");
+        miReportIssue.addActionListener(e -> openUrl("https://github.com/Geomancer86/ArtEvolver/issues"));
+        helpMenu.add(miReportIssue);
+
+        helpMenu.addSeparator();
+
+        javax.swing.JMenuItem miAbout = new javax.swing.JMenuItem("About ArtEvolver");
+        miAbout.addActionListener(e -> JOptionPane.showMessageDialog(this,
+                "ArtEvolver v3.2.0\n\n"
+                + "Color Palette Puzzles from any image using\n"
+                + "a multithreaded genetic algorithm.\n\n"
+                + "Palette: Sherwin-Williams (1,535 named colors)\n"
+                + "Engine: Delta Fitness (50x faster), Meta-GA Tournament\n\n"
+                + "License: GNU GPL v3\n"
+                + "GitHub: github.com/Geomancer86/ArtEvolver\n"
+                + "Twitter: @ArtEvolver",
+                "About ArtEvolver", JOptionPane.INFORMATION_MESSAGE));
+        helpMenu.add(miAbout);
+
+        menuBar.add(helpMenu);
+        return menuBar;
+    }
+
+    private void openUrl(String url) {
+        try {
+            java.awt.Desktop.getDesktop().browse(java.net.URI.create(url));
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Could not open browser:\n" + url,
+                    "Browser Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void loadSettings() {
+        widthTriangles = SettingsManager.loadInt(SettingsManager.KEY_GRID_WIDTH, widthTriangles);
+        heightTriangles = SettingsManager.loadInt(SettingsManager.KEY_GRID_HEIGHT, heightTriangles);
+        TOTAL_PALLETES = SettingsManager.loadInt(SettingsManager.KEY_PALETTES, TOTAL_PALLETES);
+        THREADS = SettingsManager.loadInt(SettingsManager.KEY_THREADS, THREADS);
+        POPULATION = SettingsManager.loadInt(SettingsManager.KEY_POPULATION, POPULATION);
+        CROSSOVER_MAX = SettingsManager.loadInt(SettingsManager.KEY_CROSSOVER_MAX, CROSSOVER_MAX);
+        ImageEvolver.INITIALIZATION_METHOD = SettingsManager.loadInt(SettingsManager.KEY_INIT_METHOD, ImageEvolver.INITIALIZATION_METHOD);
+        CrossOver.GRID_MUTATION_CHANCES = SettingsManager.loadInt(SettingsManager.KEY_GRID_MUTATIONS, (int) CrossOver.GRID_MUTATION_CHANCES);
+        CrossOver.TARGETED_SWAP_ATTEMPTS = SettingsManager.loadInt(SettingsManager.KEY_TARGETED_SWAPS, CrossOver.TARGETED_SWAP_ATTEMPTS);
+        CrossOver.RANDOM_MUTATION_CHANCES = SettingsManager.loadInt(SettingsManager.KEY_RANDOM_MUTATIONS, (int) CrossOver.RANDOM_MUTATION_CHANCES);
+        CrossOver.RANDOM_CLOSE_MUTATION_CHANCES = SettingsManager.loadInt(SettingsManager.KEY_CLOSE_MUTATIONS, (int) CrossOver.RANDOM_CLOSE_MUTATION_CHANCES);
+        BENCHMARK_LOGGING = SettingsManager.loadBoolean(SettingsManager.KEY_BENCHMARK_LOGGING, BENCHMARK_LOGGING);
+        EXPORT_VIDEO = SettingsManager.loadBoolean(SettingsManager.KEY_EXPORT_VIDEO, EXPORT_VIDEO);
+        savedEvolveMethodIdx = SettingsManager.loadInt(SettingsManager.KEY_EVOLVE_METHOD, 1);
+        CrossOver.CROSSOVER_BLOCK_ENABLED = SettingsManager.loadBoolean(SettingsManager.KEY_BLOCK_CROSSOVER, CrossOver.CROSSOVER_BLOCK_ENABLED);
+        tournamentDrawMode = SettingsManager.loadInt(SettingsManager.KEY_DRAW_MODE, tournamentDrawMode);
+        System.out.println("[Settings] Loaded user preferences");
+    }
+
+    private void saveSettings() {
+        try {
+            if (spnGridWidth != null) SettingsManager.saveInt(SettingsManager.KEY_GRID_WIDTH, (int) spnGridWidth.getValue());
+            if (spnGridHeight != null) SettingsManager.saveInt(SettingsManager.KEY_GRID_HEIGHT, (int) spnGridHeight.getValue());
+            if (spnPalettes != null) SettingsManager.saveInt(SettingsManager.KEY_PALETTES, (int) spnPalettes.getValue());
+            if (spnThreads != null) SettingsManager.saveInt(SettingsManager.KEY_THREADS, (int) spnThreads.getValue());
+            if (spnPopulation != null) SettingsManager.saveInt(SettingsManager.KEY_POPULATION, (int) spnPopulation.getValue());
+            if (spnCrossoverMax != null) SettingsManager.saveInt(SettingsManager.KEY_CROSSOVER_MAX, (int) spnCrossoverMax.getValue());
+            if (cmbInitMethod != null) SettingsManager.saveInt(SettingsManager.KEY_INIT_METHOD, cmbInitMethod.getSelectedIndex());
+            if (cmbEvolveMethod != null) SettingsManager.saveInt(SettingsManager.KEY_EVOLVE_METHOD, cmbEvolveMethod.getSelectedIndex());
+            if (spnGridMutations != null) SettingsManager.saveInt(SettingsManager.KEY_GRID_MUTATIONS, (int) spnGridMutations.getValue());
+            if (spnTargetedSwaps != null) SettingsManager.saveInt(SettingsManager.KEY_TARGETED_SWAPS, (int) spnTargetedSwaps.getValue());
+            if (spnRandomMutations != null) SettingsManager.saveInt(SettingsManager.KEY_RANDOM_MUTATIONS, (int) spnRandomMutations.getValue());
+            if (spnCloseMutations != null) SettingsManager.saveInt(SettingsManager.KEY_CLOSE_MUTATIONS, (int) spnCloseMutations.getValue());
+            if (chkBenchmarkLogging != null) SettingsManager.saveBoolean(SettingsManager.KEY_BENCHMARK_LOGGING, chkBenchmarkLogging.isSelected());
+            if (chkExportVideo != null) SettingsManager.saveBoolean(SettingsManager.KEY_EXPORT_VIDEO, chkExportVideo.isSelected());
+            if (chkBlockCrossover != null) SettingsManager.saveBoolean(SettingsManager.KEY_BLOCK_CROSSOVER, chkBlockCrossover.isSelected());
+            if (cmbDrawMode != null) SettingsManager.saveInt(SettingsManager.KEY_DRAW_MODE, cmbDrawMode.getSelectedIndex());
+
+            if (chooser != null && chooser.getCurrentDirectory() != null) {
+                SettingsManager.saveString(SettingsManager.KEY_LAST_IMAGE_DIR, chooser.getCurrentDirectory().getAbsolutePath());
+            }
+
+            SettingsManager.saveInt(SettingsManager.KEY_MAIN_X, getX());
+            SettingsManager.saveInt(SettingsManager.KEY_MAIN_Y, getY());
+            SettingsManager.saveInt(SettingsManager.KEY_MAIN_W, getWidth());
+            SettingsManager.saveInt(SettingsManager.KEY_MAIN_H, getHeight());
+
+            SettingsManager.flush();
+            System.out.println("[Settings] Saved user preferences");
+        } catch (Exception e) {
+            System.err.println("[Settings] Failed to save: " + e.getMessage());
+        }
+    }
+
     public static void main(String[] args) {
+
+        if (args.length > 0 && "--clicker".equals(args[0])) {
+            launchClickerMode();
+            return;
+        }
 
         SwingUtilities.invokeLater(new Runnable() {
             @Override
@@ -1145,11 +1298,35 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 				} catch (IOException e) {
 					e.printStackTrace();
 				} catch (URISyntaxException e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             }
         });
+    }
+
+    private static void launchClickerMode() {
+        System.out.println("╔════════════════════════════════════════════╗");
+        System.out.println("║   ArtEvolver — Evolution Clicker          ║");
+        System.out.println("║   Browser-based clicker game              ║");
+        System.out.println("╚════════════════════════════════════════════╝");
+        try {
+            DashboardServer server = new DashboardServer(null, null, null);
+            server.start();
+            String url = server.getUrl() + "/clicker";
+            System.out.println("[Clicker] Game ready at " + url);
+            System.out.println("[Clicker] Opening browser...");
+            try {
+                java.awt.Desktop.getDesktop().browse(java.net.URI.create(url));
+            } catch (Exception e) {
+                System.out.println("[Clicker] Could not auto-open browser. Please navigate to: " + url);
+            }
+            System.out.println("[Clicker] Press Ctrl+C to stop the server.");
+            Thread.currentThread().join();
+        } catch (Exception e) {
+            System.err.println("[Clicker] Failed to start: " + e.getMessage());
+            e.printStackTrace();
+            System.exit(1);
+        }
     }
 
     public void setOfflineSourceImage(String imageName) throws IOException {
@@ -1157,6 +1334,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
         try {
             
             File imageFile = new File(imageName);
+            lastLoadedFile = imageFile;
             
             originalImage = ImageIO.read(imageFile);
             setPath((imageName));
@@ -1171,7 +1349,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
         } catch (Exception localException) {
             
-            JOptionPane.showMessageDialog(null, "Unable to Load Image", "Fail", 2);
+            JOptionPane.showMessageDialog(mainFrame, "Unable to Load Image", "Error", JOptionPane.ERROR_MESSAGE);
         }
         
         //
@@ -1193,53 +1371,74 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 			try {
 				File selected = chooser.getSelectedFile();
+				lastLoadedFile = selected;
 				originalImage = ImageIO.read(selected);
 				setPath(selected.getAbsolutePath());
 				imageSourceName = selected.getName();
 
 			} catch (Exception localException) {
-				JOptionPane.showMessageDialog(null, "Unable to Load Image: " + localException.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+				JOptionPane.showMessageDialog(mainFrame, "Unable to Load Image: " + localException.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 			}
-		}
 
-		//
-		setSourceImage();
+			setSourceImage();
+		}
     }
     
     public void setSourceImage() {
-     // Ignore on Select File Window Close (without picking a file)
         if (originalImage == null) {
-            
             return;
         }
 
-        /**
-         * Resizing code seems to be OK
-         */
         int newWidth = (int) (width * widthTriangles);
-        int newHeight = (int) (((height * heightTriangles))  - height); // substract last serrated row
+        int newHeight = (int) (((height * heightTriangles))  - height);
 
-        // initialize currentImage and resizedOriginal
         if (getResizedOriginal() == null){
-            
-            BufferedImage resizedOriginal = new BufferedImage(newWidth, newHeight, IMAGE_TYPE);
-            
-            Graphics2D g = resizedOriginal.createGraphics();
-            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                               RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            
-            g.drawImage(originalImage,
-                        0, 0,
-                        newWidth, newHeight,
-                        0, 0,
-                        originalImage.getWidth(), 
-                        originalImage.getHeight(),
-                        null);
-            
-            g.dispose();
+            long loadStart = System.currentTimeMillis();
 
+            BufferedImage resizedOriginal = null;
+
+            // Try disk cache first (fast path for repeated loads of the same image)
+            if (lastLoadedFile != null && lastLoadedFile.exists()) {
+                String cacheKey = imageDiskCache.buildKey(lastLoadedFile, newWidth, newHeight);
+                resizedOriginal = imageDiskCache.get(cacheKey);
+                if (resizedOriginal != null && resizedOriginal.getType() != IMAGE_TYPE) {
+                    BufferedImage converted = new BufferedImage(
+                            resizedOriginal.getWidth(), resizedOriginal.getHeight(), IMAGE_TYPE);
+                    Graphics2D gc = converted.createGraphics();
+                    gc.drawImage(resizedOriginal, 0, 0, null);
+                    gc.dispose();
+                    resizedOriginal = converted;
+                }
+            }
+
+            if (resizedOriginal == null) {
+                // Cache miss — perform the resize
+                resizedOriginal = new BufferedImage(newWidth, newHeight, IMAGE_TYPE);
+
+                Graphics2D g = resizedOriginal.createGraphics();
+                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                                   RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+
+                g.drawImage(originalImage,
+                            0, 0,
+                            newWidth, newHeight,
+                            0, 0,
+                            originalImage.getWidth(),
+                            originalImage.getHeight(),
+                            null);
+
+                g.dispose();
+
+                // Store in disk cache for next time
+                if (lastLoadedFile != null && lastLoadedFile.exists()) {
+                    String cacheKey = imageDiskCache.buildKey(lastLoadedFile, newWidth, newHeight);
+                    imageDiskCache.put(cacheKey, resizedOriginal);
+                }
+            }
+
+            long loadTime = System.currentTimeMillis() - loadStart;
             System.out.println("[ArtEvolver] Image loaded: " + originalImage.getWidth() + "x" + originalImage.getHeight()
-                    + " -> resized to " + newWidth + "x" + newHeight);
+                    + " -> resized to " + newWidth + "x" + newHeight + " (" + loadTime + "ms)");
             System.out.println("[ArtEvolver] Initializing " + evolvers.size() + " evolvers with "
                     + (widthTriangles * heightTriangles) + " triangles each...");
 
@@ -1268,9 +1467,12 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
     }
 
     /**
-     * TODO: this breaks processing if start is pressed twice (or after stopping)
+     * Starts the evolution. Guard against double-start when already running.
      */
     public void start(){
+    	if (isRunning) {
+    	    return;
+    	}
 
     	applyUISettings();
 
@@ -1625,6 +1827,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 
 	    addFieldLabel(sb, "Display Mode:");
 	    cmbDrawMode = new JComboBox<>(new String[]{"Draw Selected", "Draw Best", "Draw All"});
+	    cmbDrawMode.setSelectedIndex(Math.min(tournamentDrawMode, 2));
 	    cmbDrawMode.setToolTipText("<html>How to render contestants on the main panel:<br>" +
 	        "<b>Draw Selected</b> — shows the contestant picked above<br>" +
 	        "<b>Draw Best</b> — always shows the highest-scoring contestant<br>" +
@@ -1635,6 +1838,19 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	        isDirty = true;
 	    });
 	    sb.add(cmbDrawMode);
+	    sb.add(Box.createVerticalStrut(2));
+
+	    javax.swing.JCheckBox chkHideElim = new javax.swing.JCheckBox("Hide eliminated in grid", hideEliminatedInGrid);
+	    chkHideElim.setToolTipText("<html>When checked, eliminated contestants are hidden in Draw All grid.<br>"
+	        + "At most " + MAX_ELIMINATED_IN_GRID + " recent eliminated are shown when unchecked.</html>");
+	    chkHideElim.setOpaque(false);
+	    chkHideElim.setForeground(java.awt.Color.LIGHT_GRAY);
+	    chkHideElim.setFont(chkHideElim.getFont().deriveFont(11f));
+	    chkHideElim.addActionListener(e -> {
+	        hideEliminatedInGrid = chkHideElim.isSelected();
+	        isDirty = true;
+	    });
+	    sb.add(chkHideElim);
 
 	    addSeparator(sb);
 
@@ -1671,7 +1887,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	        "Smart Greedy (fast heuristic)",
 	        "LAP Optimal (Jonker-Volgenant)"
 	    });
-	    cmbInitMethod.setSelectedIndex(1);
+	    cmbInitMethod.setSelectedIndex(Math.min(ImageEvolver.INITIALIZATION_METHOD, cmbInitMethod.getItemCount() - 1));
 	    cmbInitMethod.setToolTipText(
 	        "<html>Random: shuffled palette<br>" +
 	        "Smart Greedy: O(N\u00B2) heuristic, good starting point<br>" +
@@ -1691,7 +1907,7 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	        "Legacy (render + compare)",
 	        "Delta Fitness (50x faster)"
 	    });
-	    cmbEvolveMethod.setSelectedIndex(1);
+	    cmbEvolveMethod.setSelectedIndex(Math.min(savedEvolveMethodIdx, cmbEvolveMethod.getItemCount() - 1));
 	    cmbEvolveMethod.setToolTipText(
 	        "<html>Legacy: renders full image each iteration (slow but simple)<br>" +
 	        "Delta: computes only affected pixels per swap (50x throughput)</html>");
@@ -2138,16 +2354,14 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	 * Each cell shows the contestant's image scaled to fit, with name and score overlay.
 	 */
 	private void paintAllContestants(Graphics2D g, int panelW, int panelH) {
-	    int n = contestants.size();
-	    if (n == 0) return;
+	    if (contestants.isEmpty()) return;
 
 	    g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
 	        java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 
-	    // Sort: alive by best score descending, then eliminated at bottom
+	    // Sort: alive by best score descending, then promoted, then eliminated at bottom
 	    List<TournamentContestant> sorted = new java.util.ArrayList<>(contestants);
 	    sorted.sort((a, b) -> {
-	        // Active first, then promoted, then eliminated
 	        int statusA = a.isEliminated() ? 2 : a.isPromoted() ? 1 : 0;
 	        int statusB = b.isEliminated() ? 2 : b.isPromoted() ? 1 : 0;
 	        if (statusA != statusB) return statusA - statusB;
@@ -2155,6 +2369,24 @@ public class ArtEvolver extends JFrame implements ActionListener, ChangeListener
 	        double sb = b.isFinished() ? b.getFinalScore() : b.getBestScore();
 	        return Double.compare(sb, sa);
 	    });
+
+	    // Filter: hide or cap eliminated contestants to prevent grid explosion
+	    if (hideEliminatedInGrid) {
+	        sorted.removeIf(TournamentContestant::isEliminated);
+	    } else {
+	        int elimCount = 0;
+	        java.util.Iterator<TournamentContestant> it = sorted.iterator();
+	        while (it.hasNext()) {
+	            TournamentContestant c = it.next();
+	            if (c.isEliminated()) {
+	                elimCount++;
+	                if (elimCount > MAX_ELIMINATED_IN_GRID) it.remove();
+	            }
+	        }
+	    }
+
+	    int n = sorted.size();
+	    if (n == 0) return;
 
 	    int cols = (int) Math.ceil(Math.sqrt(n));
 	    int rows = (int) Math.ceil((double) n / cols);

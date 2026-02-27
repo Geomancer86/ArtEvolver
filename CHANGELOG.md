@@ -5,6 +5,404 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] — 2026-02-23
+
+### Added — Standalone Clicker Mode (v3.2.0)
+
+- **`clicker.bat` / `clicker.sh` launcher scripts**: One-click launch that builds the project,
+  starts the server in clicker-only mode, and opens the browser directly. No Java UI knowledge
+  needed — users just pick an image in the browser and play.
+- **`--clicker` command-line flag**: Starts ArtEvolver in headless clicker mode — skips the
+  Swing GUI entirely, boots the HTTP server, and auto-opens the browser to `/clicker`.
+- **Browser-based image upload**: Drag-and-drop or file picker in the clicker init overlay.
+  Images are uploaded to `POST /api/clicker/upload`, resized to match the triangle grid, and
+  a Sherwin-Williams palette is created automatically. No Java UI interaction required.
+- **Standalone mode**: `DashboardServer` now supports running without `ArtEvolver` or
+  `TournamentManagerWindow`. In standalone mode, the clicker game is fully self-contained.
+- **Java 21 + Maven install guide**: README Getting Started section now includes one-liner
+  install commands for Windows (winget), macOS (Homebrew), and Linux (apt), with links to
+  Adoptium Temurin JDK 21 and Maven downloads.
+
+### Added — UI Coherence Pass (v3.2.0)
+
+- **Evo Settings dialog rewrite**: Replaced `JOptionPane.showConfirmDialog()` with a proper
+  resizable `JDialog`. OK / Cancel buttons, titled borders per section (Timing & Population,
+  Adaptive Cutoff, Contestant Lifespan, Adaptive Lifetime, Ranking Strategy, Base Weights,
+  Breeding & Mutation, Lineage & Velocity, Dashboard).
+- **Normalized control sizes**: Spinners capped at 90px width, ComboBoxes at 200px. Fields
+  no longer stretch across the entire dialog width.
+- **Consistent visual hierarchy**: `BoxLayout`-based sections with `TitledBorder`, 26px row
+  height, `BorderLayout` label-spinner rows for clean alignment.
+
+### Added — Help System (v3.2.0)
+
+- **Help menu** in the main ArtEvolver menu bar: Quick Start Guide, Parameter Reference,
+  Keyboard Shortcuts, Report Issue (opens GitHub), About ArtEvolver.
+- **Context-sensitive tooltips** on every sidebar control and Evo Settings field with
+  parameter explanations and suggested starting values.
+
+### Added — Persistent Settings (v3.2.0)
+
+- **`SettingsManager` using `java.util.prefs.Preferences`**: Auto-save on exit, auto-load
+  on start. All sidebar parameters (grid size, palettes, GA params, threads, FPS), Evo
+  Settings (30+ fields), last loaded image directory, display mode, autopilot limits,
+  and main window position persist across sessions.
+- **Zero-config**: First launch behaves identically to current defaults; persistence is
+  transparent to existing users.
+
+### Added — Thumbnail Cache (v3.2.0)
+
+- **Persistent disk cache for source images** (`ImageDiskCache`): Resized source images
+  are cached as PNGs in `~/.artevolver/cache/` keyed by SHA-256 of (path + size + modified +
+  target dimensions). Loading a previously-opened image is near-instant even for 45MP+
+  camera files (Canon EOS R5, R1, etc.). Max 200 entries / 500MB with LRU eviction.
+- **In-memory dashboard thumbnail cache**: `ConcurrentHashMap<String, CachedThumbnail>`
+  keyed by contestant ID. Thumbnails only regenerated when `bestScore` changes.
+- **HTTP ETag headers**: `ETag` on `/api/image/{id}` responses. `304 Not Modified` for
+  unchanged thumbnails. Browser-side caching eliminates redundant transfers.
+
+### Added — Fitness Chart Culling (v3.2.0)
+
+- **Default top-25 culling**: Chart renders only the top 25 contestants by peak fitness
+  score, plus any currently active (running) contestant. Configurable via "Top" checkbox
+  + spinner (range 5–100). "N/M" indicator in the toolbar.
+- **Series priority**: Active contestants always shown regardless of rank. Remaining slots
+  filled by peak score.
+
+### Added — Auto-Open Dashboard (v3.2.0)
+
+- **Auto-open on tournament start**: Browser dashboard opens automatically when the
+  evolutionary tournament begins (manual start, auto-evolve, or autopilot). Only opens
+  once per session.
+- **Settings toggle**: "Auto-open browser dashboard on start" checkbox in Evo Settings
+  (default: enabled).
+
+### Rewritten — Evolution Clicker Game (v3.2.0)
+
+- **Random swap core mechanic**: Each click attempts a random two-triangle color swap.
+  The swap may or may not improve fitness — there is no guaranteed success. This matches
+  the core design: clicks are atomic, outcomes are uncertain, and upgrades make clicks
+  smarter over time. No iterating until success; 1 click = 1 random swap attempt.
+- **Always start from chaos**: Game ALWAYS initializes with RANDOM (shuffled) palette —
+  unordered triangles, natural starting fitness. Prestige upgrades (Smart Genesis, LAP
+  Genesis) unlock better initialization methods as earned rewards. All progress (EP,
+  achievements, milestones) is measured as **fitness GAIN from the starting point** — never
+  absolute fitness. An image that naturally starts at 65% fitness earns 0 EP and 0
+  achievements until the player improves it through their clicks. This prevents the
+  ~50K EP windfall that absolute-fitness achievements would grant on first tick.
+- **Cookie Clicker–style pacing**: Slow start with exponential cost growth. Achievement
+  popups are rate-limited (max 1 every 4 seconds, queued as toasts instead of modal
+  overlays). MC currency hidden until 2000+ EP earned. Prestige upgrades hidden until
+  first ascension. Event spawn rate reduced (10-second intervals, low base probability).
+- **Upgrade tree (21 upgrades, 5 categories)** — see detailed breakdown below.
+- **Limited starting distance**: Base clicks swap only nearby triangles (~5% of grid).
+  Swap Reach upgrade extends range progressively to full grid. Nearby swaps have
+  naturally higher success rates — range is a meaningful strategic choice.
+- **Streak system (Miyazaki design)**: Engine tracks consecutive hits and misses.
+  Miss streaks build visible tension ("5 misses..."). Hit streaks show green excitement
+  ("8x Hit Streak!"). Hot Hand upgrade rewards long streaks with EP bonus. Drought
+  Breaker hidden achievement for success after 20+ misses.
+- **Click juice (Miyamoto feel)**: Triangle particle burst on successful swap (colored
+  CSS triangles explode from click point). Green/red border flash. Milestone celebrations
+  at each fitness threshold (centered screen flash with milestone name).
+- **`ClickerEngine` redesigned**: `performClick(swapsPerClick, retryCycles, swapDistance,
+  smartPct)` — supports retry cycles (best-of-N), swap distance limiting, and smart
+  targeting. Tracks total/successful swaps, miss/hit streaks, starting fitness.
+- **Image-centric UI**: Evolving image front-and-center, source reference thumbnail,
+  fitness progress bar with "started at / gained" display, streak indicator, paced
+  achievement toasts (4s minimum gap).
+- **Independent from tournament**: Single image, no population or tournament needed.
+  Initializes from the currently loaded source image in ArtEvolver.
+- **API endpoints**: `POST /api/clicker/init`, `GET /api/clicker/image` (JPEG + ETag),
+  `GET /api/clicker/reference`. Click response includes `successCount`, `attemptCount`,
+  `missStreak`, `hitStreak`.
+- **Masterpiece completion system (the big loop)**: When fitness reaches 85%+, the player
+  can "Complete Masterpiece" — earning GF based on final fitness (`fitness * 50 + bonus`),
+  incrementing the completed images counter, and performing a full reset. The player then
+  loads a new image in ArtEvolver for a fresh canvas. This creates a three-tier progression:
+  click → upgrade → ascend (medium loop) → complete image (big loop). Each completed
+  masterpiece makes the next one faster via Canvas Mastery prestige upgrade.
+- **Upgrade tree (21 upgrades, 5 categories)**:
+  - **Click Power**: Retry Cycles, Multi-Swap, Swap Reach, Click Reward.
+  - **Automation**: Auto-Clicker, Auto Precision, Auto Volume.
+  - **Intelligence**: Smart Pick, Hot Hand (streak EP bonus), **Patience** (bonus EP after
+    5+ consecutive misses — even failure builds potential energy).
+  - **Special (MC)**: Critical Swap, Crystal Finder, EP Overflow multiplier, Lucky Star,
+    Turbo Auto.
+  - **Prestige (GF)**: Eternal Cycles, Eternal Speed, Smart Genesis, LAP Genesis,
+    **Canvas Mastery** (+10% EP per completed masterpiece — permanent cross-image power),
+    **Eternal Reach** (permanent swap reach that persists through ascensions).
+- **Events (8)**: Swap Storm, Golden Hour, Crystal Rain, Auto Frenzy, Precision Wave,
+  Lucky Streak, **Focus Mode** (halved distance, 2x retries), **Inspiration** (5x EP).
+- **Gain-based fitness achievements**: All fitness milestones measure **fitness gain from
+  start**, not absolute fitness. An image starting at 65% begins with 0 achievements
+  and 0 EP — every reward is earned through your swaps. Thresholds: +0.1% through +60%.
+- **75+ achievements**: Gain-based fitness milestones (First Glimpse +0.1% → Transcendent
+  +60%), click milestones, successful swap milestones, EP earned, play time, upgrade
+  count, hit/miss streak milestones, prestige count, **masterpiece completion milestones**
+  (First Canvas → Grand Master), **GF accumulation milestones** (Golden Start → Gilded
+  Legend), 8 hidden discoveries (Drought Breaker, Completionist, Perfectionist).
+- **Golden frame effect**: At 80%+ fitness, the evolving image gains a golden glow/border
+  effect — visual feedback that you're approaching masterpiece territory.
+- **Completion celebration overlay**: Stats summary (final fitness, GF earned, total
+  completed), "New Canvas" button to seamlessly start the next image.
+- **Prestige resets image**: Ascending re-creates the triangle arrangement with potentially
+  better initialization (Smart/LAP if unlocked) for a fresh optimization run.
+- **Auto-clicker visual**: When auto-clickers are active, animated hand icons and a
+  clicks/second rate display appear below the image (Cookie Clicker style). Hand count
+  scales with auto-clicker level (up to 10 hands).
+- **Gallery system**: Every ascension and masterpiece completion saves a thumbnail snapshot
+  of the evolved image with full stats (start/final fitness, gain, clicks, swaps, time,
+  ascensions). Gallery accessible via a button in the footer. Gallery overlay displays all
+  previous images in a responsive grid with per-image statistics.
+- **Prestige requires new image**: Ascending now saves the current canvas to the Gallery
+  and requires loading a new, never-before-used image in ArtEvolver. Prevents re-using
+  the same image — each prestige cycle is a fresh artistic challenge.
+- **Duplicate image prevention**: Image fingerprinting (dimensions + sampled pixel hash)
+  prevents initializing the clicker with an already-evolved image. Error shown in init overlay.
+- **Procedural sound engine (V2)**: Complete rewrite using Web Audio API with noise-layered
+  synthesis, DynamicsCompressor for loudness/punch, bandpass-filtered white-noise transients,
+  and pitch randomization. 13 distinct sounds: click hit (noise pop + pitched pluck), miss
+  (filtered thud + sub rumble), critical hit (metallic ching + sparkle noise), hit streak
+  (cascading shimmer), achievement unlock (RPG jingle + noise wash), upgrade purchase
+  (coin cha-ching), can't-afford error (descending minor buzz), already-maxed (gentle bloop),
+  fitness milestone (brass fanfare + noise wash), prestige (dramatic sweep + resolution chord),
+  masterpiece (multi-layer victory fanfare), random event (two-tone boop), gallery open
+  (  museum chime). Mute toggle in header persists to localStorage. Backend now returns
+  buy failure reason (`maxed` vs `poor`) for distinct audio feedback.
+- **Tree-based upgrade progression**: Upgrades now unlock progressively instead of all-at-once.
+  Click Power branches (click_ep, retry_cycles → swap_reach → multi_swap → deep_focus; smart_pick
+  → streak_bonus → patience). Automation unlocks at 400 EP (auto_clicker → auto_cycles → auto_multi
+  → idle_mastery). MC tiered (critical_swap/mc_finder → ep_multiplier/lucky_events → auto_boost).
+  Prestige tab hidden until first ascension; GF upgrades tree (eternal_* → smart_init → lap_init;
+  canvas_mastery → golden_touch). Three new upgrades: Deep Focus, Idle Mastery, Golden Touch.
+  See `UPGRADE_TREE_DESIGN.md`.
+- **Text selection disabled**: `user-select: none` and transparent `::selection` across the entire
+  UI to prevent accidental text highlight when clicking upgrade cards or other controls.
+- **Four new upgrades**: Chain Lightning (MC, crit chain), Resonance (MC+EP synergy), Eternal Fortune
+  (GF, +3% EP per ascension), Genesis Boost (GF, +5% fitness EP). See `UPGRADE_TREE_DESIGN.md`.
+- **Sample Atlas**: Gamedev-designed tree with **iconic art** (Mona Lisa, Starry Night, Great Wave,
+  Girl with a Pearl Earring, Birth of Venus, American Gothic, Persistence of Memory) and **multiple
+  unlock paths** (OR logic). Path A: EP / Path B: Clicks for Apprentice; Ascensions / Masterpieces
+  for Veteran; cross-paths for Master. Legendary tier: 7 public-domain masterpieces. Secret tier:
+  miss_streak (20), 100k clicks/EP, 15 asc/masterpieces, 200/500 GF. `SampleDef` extended with
+  `unlockTypeAlt`, `unlockValueAlt`. `unlockHint` in JSON for UI. `lifetimeLongestMissStreak` for
+  secret_suffer. Generated (25) programmatic fallbacks always available. See `SAMPLE_ATLAS_DESIGN.md`,
+  `samples/README.md`.
+- **Real sample images**: `DownloadSampleImages` fetches CC0 photos from Picsum (landscapes, nature)
+  and Wikimedia Commons (iconic art). Replaces gradient placeholders with real imagery.
+- **Per-sample stats**: Sample progress tracks `ascensionsCount`, `totalPlayTimeMs`, `totalClicks`.
+  Init picker and Sample Atlas show stats like "5 plays | 2 asc | max 78.3%".
+- **My Images**: Custom uploads saved to `~/.artevolver/clicker-uploads/` on first use. Init overlay
+  shows "My Images" section with thumbnails for easy re-picking. `GET /api/clicker/my-images`,
+  `GET /api/clicker/my-image/{fingerprint}`.
+- **Gallery Play again**: Custom-image gallery cards (standalone mode) have "Play again" button to
+  load stored image and start a fresh run without browsing folders.
+
+### Fixed — Masterpiece Completion Flow (v3.2.0)
+
+- **Completion overlay hidden by init overlay**: After completing a masterpiece, the polling
+  `refresh()` would show the init overlay (because `state.initialized` becomes false) and
+  cover the completion overlay (z-index 80 vs 100). Users never saw the masterpiece stats.
+  Fix: `refresh()` no longer shows init overlay when the completion overlay is visible.
+  Completion overlay z-index raised to 120 so it stays on top.
+- **Stuck on loading spinner**: Race between completion and poll could leave the UI in an
+  inconsistent state. `newCanvas()` now explicitly resets init button, spinner, and error
+  state when opening the init overlay.
+- **Standalone mode after masterpiece**: `uploadedImage`/`uploadedPalette` now cleared on
+  masterpiece completion so users must drop or pick a new image. Completion hint text
+  updated: standalone shows "Click New Canvas to drop or pick a new image"; non-standalone
+  shows "Load a new image in ArtEvolver".
+- **POST body consumption**: `handleClickerComplete` now consumes the request body to
+  prevent potential connection hangs with HTTP keep-alive.
+- **Image polling after completion**: When the engine is cleared, `/api/clicker/image`
+  returns 404s. Polling now stops when `state.initialized` is false, preventing console
+  spam and unnecessary requests.
+- **Ascension flow**: Prestige now consumes POST body, clears standalone uploads, stops
+  polling immediately, and resets init overlay UI so Ascend reliably returns to the
+  image picker without getting stuck.
+- **Reference image refresh**: Source preview now cache-busts and resets on ascension/
+  masterpiece so it always reflects the newly initialized image.
+
+### Fixed — Click Target & Code Review Bug Fixes (v3.2.0)
+
+- **Click target restricted to image only**: Game clicks now register only on the `<img>`
+  element, not the surrounding wrapper div. Prevents accidental clicks when interacting
+  with fitness stats, streak display, buttons, or other center-column UI elements.
+
+- **`autoOpenDashboard` now persisted**: The "Auto-open browser dashboard" setting was
+  not saved/loaded between sessions despite having a `SettingsManager` key. Fixed in
+  both `saveEvoSettings()` and `loadEvoSettings()`.
+- **Three sidebar preferences not restored on launch**: Evolve Method, Block Crossover,
+  and Display Mode were saved on exit but never loaded on startup. All three now restore
+  correctly.
+- **Combo boxes ignored loaded preferences**: `cmbInitMethod`, `cmbEvolveMethod`, and
+  `cmbDrawMode` used hardcoded defaults (index 1, 1, 0) instead of the saved user
+  preference. Now initialized from `SettingsManager` values.
+- **Window position/size now restored**: Main window position and size were saved on close
+  but ignored on startup (always re-centered). Now restores to last position if valid.
+- **Disk cache image type mismatch**: `ImageIO.read()` returns `TYPE_3BYTE_BGR` from PNG
+  but the delta fitness engine expects `TYPE_INT_ARGB`. Added post-load conversion to
+  ensure pixel access performance is not degraded by cache hits.
+- **`loadImage()` no longer calls `setSourceImage()` on cancel**: When the user cancelled
+  the file dialog, `setSourceImage()` was still invoked unnecessarily.
+
+---
+
+### Added — Adaptive Lifetime
+
+- **Adaptive lifetime feature**: Max lifespan now grows dynamically over time as
+  competitors use their allotted time. Tracks actual elapsed lifetime of every
+  competitor (stale-killed, hopeless-killed, declined, promoted, or hard-capped).
+- **Two modes**: `LONGEST` (default) — grows when the longest competitor uses ≥85%
+  of the current max lifespan. `AVERAGE` — grows when the average lifetime reaches
+  ≥70% of the max (much slower, more conservative growth).
+- **Growth cap**: Default 10% per generation tick. Prevents sudden jumps — the
+  lifespan grows steadily from 30s toward the absolute ceiling.
+- **Anomaly detection**: Competitors running longer than 150% of the current max
+  (e.g., stuck in a loop) are excluded from lifetime tracking and flagged.
+- **Absolute ceiling**: Hard safety limit of 600s (10 min) that adaptive growth
+  never exceeds.
+- **Full UI**: New controls in Evo Settings dialog — enable/disable checkbox,
+  mode selector, growth cap %, anomaly threshold %, absolute max.
+- **Dashboard indicators**: Tournament bar shows current lifespan with adaptive range.
+  Sidebar panel shows current max vs initial, longest/average recorded lifetimes,
+  growth count, anomaly count, and adaptive mode. Panel auto-hides when disabled.
+- **API enriched**: Tournament JSON now includes `maxLifespan`, `adaptiveLifetime`,
+  `adaptiveLifetimeMode`, `initialLifespan`, `longestLifetime`, `avgLifetime`,
+  `lifetimeRecords`, `anomalies`, `adaptiveGrowths`, `absoluteMaxLifespan`.
+
+### Added — Dashboard Generation Evolution Chart
+
+- **Generation evolution chart**: New canvas-based line chart in the dashboard sidebar
+  showing best score (green), average score (blue), worst score (red), and best-ever
+  (gold dashed) per generation. Includes a shaded area between best/worst for spread
+  visibility. The chart auto-hides when fewer than 2 generations have been recorded.
+- **Generation summary table**: Below the chart, a compact table shows current best score,
+  average score, best-ever score, alive/promoted counts, and per-generation trend arrows
+  (improving/declining/flat) with total change since generation 1.
+- **API endpoint enriched**: `/api/state` now includes a `generationHistory` array with
+  per-generation stats: `gen`, `best`, `avg`, `worst`, `bestEver`, `alive`, `promoted`,
+  `stalled`, `cutoff`. Skipped generations are excluded.
+
+### Fixed — Draw All Grid Performance
+
+- **Eliminated contestants hidden in Draw All**: New checkbox "Hide eliminated in grid"
+  (default: checked) prevents rendering 500+ eliminated drawings. When unchecked, at most
+  5 recent eliminated are shown. Grid dimensions computed from visible contestants only.
+
+### Changed — Tournament Convergence Tuning (Faster Evolution Cycle)
+
+- **Default lifespan 60s → 30s**: Halved contestant lifespan for faster population turnover.
+  Contestants cycle twice as fast, doubling the rate of genetic exploration per minute.
+- **Stale threshold 15s → 8s**: Flat-line contestants are killed much earlier, freeing
+  resources for promising new competitors. With a 30s lifespan, 15s was half the life wasted.
+- **Velocity window 30s → 12s**: FitnessTracker now reacts to recent trends much faster,
+  improving detection accuracy for stale, declining, and hopeless checks.
+- **Parent selection: top half → top third**: Only the top-ranked third of the breeding pool
+  can be selected as parents. This dramatically increases selection pressure — mediocre
+  contestants no longer reproduce, accelerating convergence toward better configurations.
+- **Adaptive cutoff capped to lifespan**: The adaptive cutoff timer can never exceed
+  `maxLifespanSeconds`. Previously it could grow to 300s, making the generation tick
+  irrelevant and starving the system of competitive culling. Ramp-up increments reduced
+  from 5-10s to 2-3s per generation for gentler growth.
+- **Initial cutoff 10s → 8s**: Faster first-generation cycles for quicker early evaluation.
+- **Grace period 2 ticks → 1 tick**: With short lifespans, 2 ticks of grace meant children
+  could never be competitively culled before their lifespan expired. Single tick gives
+  children one generation of protection while still allowing culling if needed.
+- **Spawns per tick 1 → 2**: The bottom 2 contestants are now culled and replaced per
+  generation tick, doubling population turnover speed.
+- **Mutation rate 0.3 → 0.4**: More genes are mutated per child, increasing exploration
+  of the configuration space and reducing convergence to local optima.
+- **Mutation strength 0.2 → 0.25**: Mutations apply larger deltas, enabling children to
+  explore further from parent configurations.
+- **Preset injection interval 3 → 5**: Presets are injected every 5th spawn instead of 3rd,
+  reducing dilution of genetic progress (from 33% presets to 20%).
+- **AUTO ranking transition 10 → 5 generations**: Faster shift from velocity-weighted to
+  fitness-weighted ranking. The system focuses on absolute performance sooner.
+- **Composite weights rebalanced**: Fitness weight 0.35→0.40, velocity 0.40→0.35,
+  acceleration 0.05→0.10, lineage 0.20→0.15. Stronger emphasis on actual performance
+  and acceleration (second derivative), reduced ancestry bias.
+- **Elitism in soft kills**: The best-scoring alive contestant is now immune from
+  stale/declining/hopeless soft kills. It will still be retired by the hard lifespan cap,
+  but won't be prematurely terminated during a brief stall.
+- **HOPELESS check 10s → 6s data requirement**: Projected-fitness early kill now fires
+  after 6s of data instead of 10s, catching hopeless competitors earlier in their lifespan.
+- **Lifespan enforcer polling 5s → 3s**: More frequent checks for faster reaction to
+  expired, stale, declining, or hopeless contestants.
+
+### Fixed — Declining Fitness Detection & Breeding Fairness
+
+- **DECLINING detection**: New check in `enforceLifespanCap()` that fires BEFORE the
+  stale check. If velocity is significantly negative (< -STALE_VELOCITY_THRESHOLD),
+  the contestant is treated worse than stale. Multi-stage contestants with declining
+  fitness auto-shift gear (same as stale); single-stage or last-gear contestants are
+  eliminated immediately. Previously, declining contestants escaped both the STALE check
+  (which used `Math.abs(vel)`, making negative velocity look like a large positive value
+  exceeding the threshold) and the HOPELESS check (which required `projected > 0`,
+  skipping contestants with negative projections entirely).
+- **HOPELESS check catches negative projections**: Removed the `projected > 0` guard
+  from the HOPELESS detection. Contestants whose projected end-of-life fitness is
+  negative or zero are now correctly identified as hopeless and eliminated.
+- **Symmetric breeding template**: `breedConfigs()` and `breedWithAncestry()` now
+  randomly pick the template parent (for non-gene fields like threads, evolveIterations)
+  instead of always using parent A. This prevents systematic bias toward one parent's
+  non-genetic traits.
+- **Trigger type mixing in multi-stage breeding**: `inferTriggerTypes()` now randomly
+  selects each stage's trigger type from either parent when both are multi-stage,
+  enabling genetic exploration of trigger strategies (TIME/STALE/FITNESS) across
+  generations. Previously always used parent A's triggers.
+- **Velocity display improvements**: Tournament table now shows declining velocity with
+  a down-arrow indicator instead of hiding it as "--". Live status mini-leaderboard
+  shows "DECLINING" tag for contestants with negative velocity.
+
+### Added — Multi-Stage (Geared) Competitors
+
+- **Multi-stage evolution engine**: Competitors can now have configurable "gear" stages
+  (e.g., Start / Mid / Endgame) with different mutation parameters per stage. Each stage
+  has a trigger condition (TIME, STALE, or FITNESS) that determines when to advance.
+  Gear shifts are zero-cost — evolvers read config fields by reference, so changing the
+  mutation parameters takes effect on the very next batch with no thread restart.
+- **Stage transition engine** in `TournamentContestant`: `checkStageTransition()` is
+  called from the ArtEvolver process timer (~50ms). `applyStage()` hot-swaps mutation
+  parameters into the live config. `advanceStage()` increments the stage index, resets
+  the stale detection window, and logs the shift. Trigger types: TIME (contestant age),
+  STALE (velocity below threshold), FITNESS (score above threshold).
+- **Multi-stage breeding**: `EvolutionaryTournament.breedConfigs()` detects if either
+  parent is multi-stage and promotes single-stage configs to 3 identical stages for
+  crossover. Gene arrays are variable-length (9 genes for single-stage, 30 for 3-stage).
+  `crossover()` now uses `a.length` instead of hardcoded `GENE_COUNT`. New
+  `mutateMultiStage()` uses dynamic min/max bounds per stage. Ancestral crossover pads
+  short gene arrays to match the target length.
+- **Stale detection auto-shifts gear**: If a multi-stage contestant goes stale and has
+  more gears available, `enforceLifespanCap()` calls `advanceStage()` instead of killing.
+  The fitness tracker window is reset so stale detection restarts fresh after the shift.
+  Only kills if stale on the **last** gear.
+- **HOPELESS detection restricted to last stage**: Projected-fitness early kill only
+  applies when the contestant is on its final gear. Earlier stages get the benefit of
+  the doubt — the next gear's parameters may accelerate improvement.
+- **5 multi-stage preset strategies** (21 total presets):
+  - "MS: 3-Gear Classic" — Chaos -> Balanced -> Sniper (TIME 15s/35s)
+  - "MS: Stale Shifter" — aggressive shifts triggered by stale velocity
+  - "MS: Fitness Ladder" — advances by reaching fitness thresholds (30%/60%)
+  - "MS: Sprint to Precision" — fast start then precision tuning (TIME 10s/25s)
+  - "MS: Adaptive Cascade" — chaos start with stale-triggered cascade
+- **Gear column in tournament table**: Shows "2/3 Mid" for multi-stage contestants
+  or "1/1" for single-stage. Dashboard JSON includes `multiStage`, `currentStage`,
+  `totalStages`, and `stageName` fields.
+- **MS tag in child names**: Multi-stage children show `·MS3` suffix (3 stages) in
+  their names. Breed tag includes `+MS3` for clear identification.
+- **Gear indicator in live status**: Per-contestant mini-leaderboard shows ⚙2/3 for
+  multi-stage contestants. Dashboard cards show gear info.
+- **`EvolutionConfig` multi-stage helpers**: `toBreedableGeneArray(targetStageCount)`,
+  `getMultiStageGeneMin(stageCount)`, `getMultiStageGeneMax(stageCount)` for breeding.
+- **`FitnessTracker.resetWindow()`**: Clears old snapshots on gear shift so stale
+  detection restarts from the current state.
+- **Full backward compatibility**: Single-stage competitors (`stages == null`) work
+  identically to before. `isOnLastStage()` returns `true` for single-stage (HOPELESS
+  still applies). `checkStageTransition()` returns `false` immediately for single-stage.
+  All existing breeding, culling, and promotion logic unchanged for single-stage configs.
+
 ## [3.1.0] - 2026-02-18
 
 ### Fixed — Lifespan Enforcement, Promoted Ghost Bug & Hopeless Early Kill

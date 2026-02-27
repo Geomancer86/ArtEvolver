@@ -187,6 +187,20 @@ public class FitnessTracker {
         }
     }
 
+    /**
+     * Resets the velocity window by keeping only the most recent snapshot.
+     * Used after a gear shift so stale detection restarts from this point.
+     */
+    public void resetWindow() {
+        synchronized (snapshots) {
+            if (snapshots.size() > 1) {
+                Snapshot last = snapshots.get(snapshots.size() - 1);
+                snapshots.clear();
+                snapshots.add(last);
+            }
+        }
+    }
+
     /** Elapsed seconds since the first snapshot. */
     public double getElapsedSeconds() {
         synchronized (snapshots) {

@@ -1069,19 +1069,28 @@ async function doPrestige() {
   try {
     const res = await fetch('/api/clicker/prestige', {method:'POST'});
     const data = await res.json();
-    SFX.play('prestige');
-    hitMilestones.clear();
-    lastGainPct = 0;
-    if (data.needsNewImage) {
-      document.getElementById('initOverlay').style.display = 'flex';
-      document.getElementById('imageWrap').style.display = 'none';
-      document.getElementById('initError').textContent = '';
-      selectedSample = null;
-      loadSamples();
-      addLog('\u2B50 Ascension complete! +' + Math.floor(data.gf) + ' GF | Gallery: ' + (data.galleryCount || 0) + ' images');
+    if (data.success) {
+      SFX.play('prestige');
+      hitMilestones.clear();
+      lastGainPct = 0;
+      if (data.needsNewImage) {
+        stopPolling();
+        document.getElementById('initOverlay').style.display = 'flex';
+        document.getElementById('imageWrap').style.display = 'none';
+        document.getElementById('initBtn').style.display = 'block';
+        document.getElementById('initSpinner').style.display = 'none';
+        document.getElementById('initError').textContent = '';
+        selectedSample = null;
+        loadSamples();
+        addLog('\u2B50 Ascension complete! +' + Math.floor(data.gf) + ' GF | Gallery: ' + (data.galleryCount || 0) + ' images');
+      }
+    } else {
+      alert('Ascension failed. Please try again.');
     }
-  refresh();
-  } catch (e) {}
+    refresh();
+  } catch (e) {
+    alert('Connection error: ' + (e.message || 'Unknown error'));
+  }
 }
 
 // ── Masterpiece completion (Will Wright: emergent long-term goal) ──

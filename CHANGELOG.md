@@ -218,6 +218,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Image polling after completion**: When the engine is cleared, `/api/clicker/image`
   returns 404s. Polling now stops when `state.initialized` is false, preventing console
   spam and unnecessary requests.
+- **Ascension flow**: Prestige now consumes POST body, clears standalone uploads, stops
+  polling immediately, and resets init overlay UI so Ascend reliably returns to the
+  image picker without getting stuck.
 
 ### Fixed — Click Target & Code Review Bug Fixes (v3.2.0)
 

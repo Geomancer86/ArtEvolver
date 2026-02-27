@@ -442,11 +442,17 @@ public class DashboardServer {
     }
 
     private void handleClickerPrestige(HttpExchange ex) throws IOException {
+        consumeRequestBody(ex);
         boolean success = clickerState.ascend();
+        if (success && standaloneMode) {
+            uploadedImage = null;
+            uploadedPalette = null;
+        }
         String json = "{\"success\":" + success + ",\"gf\":" + clickerState.getGf()
                 + ",\"ascensions\":" + clickerState.getAscensionCount()
                 + ",\"needsNewImage\":" + success
-                + ",\"galleryCount\":" + clickerState.getGallery().size() + "}";
+                + ",\"galleryCount\":" + clickerState.getGallery().size()
+                + ",\"standaloneMode\":" + standaloneMode + "}";
         byte[] data = json.getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().set("Content-Type", "application/json");
         ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");

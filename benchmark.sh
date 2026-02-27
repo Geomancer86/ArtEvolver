@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Extract version from POM (same as start.sh/clicker.sh)
+PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout 2>/dev/null | grep -E '^[0-9]' || true)
+[ -z "$PROJECT_VERSION" ] && PROJECT_VERSION=$(grep -m1 '<version>' pom.xml 2>/dev/null | sed 's/.*<version>//;s/<\/version>.*//' || echo "unknown")
+[ -z "$PROJECT_VERSION" ] && PROJECT_VERSION="unknown"
+
 echo ""
 echo " ============================================"
-echo "  ArtEvolver v3.2 - Benchmark Runner"
+echo "  ArtEvolver $PROJECT_VERSION - Benchmark Runner"
 echo " ============================================"
 echo ""
 

@@ -9,8 +9,8 @@
 
 The result is a low-poly triangle art representation where every color corresponds to a real, purchasable paint. The evolution process runs in real-time, viewable in the built-in GUI or live-streamed to an audience.
 
-![Version](https://img.shields.io/badge/Version-3.2.0--SNAPSHOT-blue)
-![ArtEvolver Pipeline](https://img.shields.io/badge/Status-Active%20Development-brightgreen)
+![Version](https://img.shields.io/badge/Version-3.2.0-blue)
+![ArtEvolver Pipeline](https://img.shields.io/badge/Status-Stable-green)
 
 ---
 
@@ -100,6 +100,14 @@ control with suggested starting values. Dashboard help overlay for metric explan
 Persistent disk cache stores resized source images in `~/.artevolver/cache/` so high-resolution
 camera images (Canon EOS R5 45MP, R1 50MP, etc.) load near-instantly on subsequent opens.
 In-memory cache for dashboard thumbnails with HTTP ETag support reduces CPU during auto-refresh.
+
+### Evolution Clicker (v3.2)
+Browser-based idle/clicker game — evolve a triangle mosaic one swap at a time. Drop or pick an
+image, click to attempt random color swaps. Each click may improve fitness or miss; upgrades
+make clicks smarter. Earn EP, buy 21 upgrades (click power, automation, intelligence, prestige),
+unlock the Sample Atlas with real landscapes and iconic art, ascend for Golden Frame (GF), and
+complete masterpieces at 85%+ fitness. Procedural sound engine, 75+ achievements, gallery of
+completed images. Run `clicker.bat` / `clicker.sh` for one-click launch — no Java UI needed.
 
 ---
 
@@ -268,7 +276,7 @@ mvn test -pl artevolver-core -Dtest=BenchmarkTest#lapSolverUnitTest
 ArtEvolver is organized as a Maven multi-module project:
 
 ```
-artevolver/                              # v3.2.0-SNAPSHOT
+artevolver/                              # v3.2.0
 ├── pom.xml                              # Parent POM
 ├── artevolver-core/                     # Core evolution engine + GUI
 │   └── src/main/java/com/rndmodgames/evolver/

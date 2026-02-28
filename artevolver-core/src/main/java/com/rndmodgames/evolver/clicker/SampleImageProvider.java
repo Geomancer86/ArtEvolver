@@ -50,11 +50,13 @@ public final class SampleImageProvider {
             "starfield", "hexagons", "voronoi", "noise_cloud", "mandala",
             "rose", "fractal_tree", "kaleidoscope", "aurora", "portal",
             "easter_egg", "hidden_gem", "legendary", "mythic", "omega",
-            "retro_gb_castle", "retro_gb_hills",
-            "retro_gbc_town", "retro_gbc_underwater",
-            "retro_gen_skyline", "retro_gen_ruins",
-            "retro_gba_forest", "retro_gba_beach",
-            "retro_snes_mountains", "retro_snes_village"
+            "plasma", "cityline", "mosaic", "stained_glass", "terrain",
+            "retro_gb_castle", "retro_gb_hills", "retro_gb_temple", "retro_gb_river",
+            "retro_gray_cave", "retro_gray_bridge",
+            "retro_gbc_town", "retro_gbc_underwater", "retro_gbc_market", "retro_gbc_garden", "retro_gbc_lighthouse",
+            "retro_gen_skyline", "retro_gen_ruins", "retro_gen_arena", "retro_gen_waterfall", "retro_gen_volcano",
+            "retro_gba_forest", "retro_gba_beach", "retro_gba_temple", "retro_gba_space", "retro_gba_desert",
+            "retro_snes_mountains", "retro_snes_village", "retro_snes_castle", "retro_snes_harbor", "retro_snes_shrine"
     );
 
     private static final List<SampleDef> DEFS = new ArrayList<>();
@@ -195,6 +197,63 @@ public final class SampleImageProvider {
                 "always", 0, "", -1, "Retro", false, 98, "snes_256"));
         DEFS.add(new SampleDef("retro_snes_village", "SNES Village", "Warm village scene at golden hour.",
                 "always", 0, "", -1, "Retro", false, 99, "snes"));
+
+        // ─── NEW RETRO: expanded console library ───
+        // GB DMG additional
+        DEFS.add(new SampleDef("retro_gb_temple", "GB Temple", "Ancient temple entrance in four green shades.",
+                "always", 0, "", -1, "Retro", false, 100, "gb_dmg"));
+        DEFS.add(new SampleDef("retro_gb_river", "GB River", "Winding river through a valley.",
+                "always", 0, "", -1, "Retro", false, 101, "gb_dmg"));
+
+        // GB Gray additional
+        DEFS.add(new SampleDef("retro_gray_cave", "GB Cave", "Underground cave with stalactites.",
+                "always", 0, "", -1, "Retro", false, 102, "gb_gray"));
+        DEFS.add(new SampleDef("retro_gray_bridge", "GB Bridge", "A stone bridge over a gorge.",
+                "always", 0, "", -1, "Retro", false, 103, "gb_gray"));
+
+        // GBC additional
+        DEFS.add(new SampleDef("retro_gbc_market", "GBC Market", "Bustling pixel market with stalls and lanterns.",
+                "always", 0, "", -1, "Retro", false, 104, "gbc"));
+        DEFS.add(new SampleDef("retro_gbc_garden", "GBC Garden", "A Japanese garden with cherry blossoms.",
+                "always", 0, "", -1, "Retro", false, 105, "gbc"));
+        DEFS.add(new SampleDef("retro_gbc_lighthouse", "GBC Lighthouse", "Lighthouse on a rocky coast at dusk.",
+                "always", 0, "", -1, "Retro", false, 106, "gbc"));
+
+        // Genesis additional
+        DEFS.add(new SampleDef("retro_gen_arena", "Genesis Arena", "Colosseum-style battle arena.",
+                "always", 0, "", -1, "Retro", false, 107, "genesis_64"));
+        DEFS.add(new SampleDef("retro_gen_waterfall", "Genesis Waterfall", "Jungle waterfall with mist.",
+                "always", 0, "", -1, "Retro", false, 108, "genesis"));
+        DEFS.add(new SampleDef("retro_gen_volcano", "Genesis Volcano", "Erupting volcano with lava flows.",
+                "always", 0, "", -1, "Retro", false, 109, "genesis_64"));
+
+        // GBA additional
+        DEFS.add(new SampleDef("retro_gba_temple", "GBA Temple", "Ancient overgrown temple ruins.",
+                "always", 0, "", -1, "Retro", false, 110, "gba"));
+        DEFS.add(new SampleDef("retro_gba_space", "GBA Space", "Orbiting a planet with stars.",
+                "always", 0, "", -1, "Retro", false, 111, "gba"));
+        DEFS.add(new SampleDef("retro_gba_desert", "GBA Desert", "Desert oasis with palm trees at sunset.",
+                "always", 0, "", -1, "Retro", false, 112, "gba"));
+
+        // SNES additional
+        DEFS.add(new SampleDef("retro_snes_castle", "SNES Castle", "Fantasy castle on a cliff at twilight.",
+                "always", 0, "", -1, "Retro", false, 113, "snes_256"));
+        DEFS.add(new SampleDef("retro_snes_harbor", "SNES Harbor", "Port town with ships and lanterns.",
+                "always", 0, "", -1, "Retro", false, 114, "snes"));
+        DEFS.add(new SampleDef("retro_snes_shrine", "SNES Shrine", "Forest shrine with torii gate.",
+                "always", 0, "", -1, "Retro", false, 115, "snes_256"));
+
+        // ─── NEW GENERATED: classic patterns for triangle mode ───
+        DEFS.add(new SampleDef("plasma", "Plasma", "Swirling plasma color field.",
+                "always", 0, "Generated", false, 85));
+        DEFS.add(new SampleDef("cityline", "City Skyline", "Abstract cityscape silhouette at dusk.",
+                "always", 0, "Generated", false, 86));
+        DEFS.add(new SampleDef("mosaic", "Mosaic", "Colorful tile mosaic pattern.",
+                "always", 0, "Generated", false, 87));
+        DEFS.add(new SampleDef("stained_glass", "Stained Glass", "Cathedral window with radial panes.",
+                "always", 0, "Generated", false, 88));
+        DEFS.add(new SampleDef("terrain", "Terrain Map", "Topographic-style elevation map.",
+                "always", 0, "Generated", false, 89));
     }
 
     public static List<SampleDef> getAllDefs() {
@@ -278,6 +337,27 @@ public final class SampleImageProvider {
                 case "retro_gba_beach" -> retroGbaBeach();
                 case "retro_snes_mountains" -> retroSnesMountains();
                 case "retro_snes_village" -> retroSnesVillage();
+                case "retro_gb_temple" -> retroGbTemple();
+                case "retro_gb_river" -> retroGbRiver();
+                case "retro_gray_cave" -> retroGrayCave();
+                case "retro_gray_bridge" -> retroGrayBridge();
+                case "retro_gbc_market" -> retroGbcMarket();
+                case "retro_gbc_garden" -> retroGbcGarden();
+                case "retro_gbc_lighthouse" -> retroGbcLighthouse();
+                case "retro_gen_arena" -> retroGenArena();
+                case "retro_gen_waterfall" -> retroGenWaterfall();
+                case "retro_gen_volcano" -> retroGenVolcano();
+                case "retro_gba_temple" -> retroGbaTemple();
+                case "retro_gba_space" -> retroGbaSpace();
+                case "retro_gba_desert" -> retroGbaDesert();
+                case "retro_snes_castle" -> retroSnesCastle();
+                case "retro_snes_harbor" -> retroSnesHarbor();
+                case "retro_snes_shrine" -> retroSnesShrine();
+                case "plasma" -> plasma();
+                case "cityline" -> cityline();
+                case "mosaic" -> mosaic();
+                case "stained_glass" -> stainedGlass();
+                case "terrain" -> terrain();
                 default -> gradientSunset();
             };
         }
@@ -1126,4 +1206,768 @@ public final class SampleImageProvider {
         g.dispose();
         return img;
     }
+
+    // ════════════════════════════════════════════════════════════════
+    //  NEW RETRO GENERATORS — expanded library
+    // ════════════════════════════════════════════════════════════════
+
+    private static BufferedImage retroGbTemple() {
+        int w = 160, h = 144;
+        Color[] pal = {new Color(15, 56, 15), new Color(48, 98, 48), new Color(139, 172, 15), new Color(155, 188, 15)};
+        BufferedImage img = create(w, h);
+        Graphics2D g = img.createGraphics();
+        g.setColor(pal[3]);
+        g.fillRect(0, 0, w, h);
+        g.setColor(pal[2]);
+        g.fillRect(0, 90, w, 54);
+        g.setColor(pal[1]);
+        g.fillRect(50, 40, 60, 50);
+        g.fillRect(45, 35, 70, 8);
+        int[] tx = {40, 80, 120};
+        int[] ty = {35, 15, 35};
+        g.setColor(pal[0]);
+        g.fillPolygon(tx, ty, 3);
+        g.fillRect(70, 55, 20, 35);
+        g.setColor(pal[2]);
+        g.fillRect(73, 58, 14, 30);
+        g.setColor(pal[0]);
+        for (int x = 55; x <= 100; x += 15) {
+            g.fillRect(x, 45, 4, 6);
+        }
+        int[] stX = {5, 25, 130, 148};
+        for (int sx : stX) {
+            g.setColor(pal[1]);
+            g.fillRect(sx, 60, 12, 30);
+            g.setColor(pal[0]);
+            g.fillOval(sx - 2, 52, 16, 12);
+        }
+        g.setColor(pal[1]);
+        for (int x = 0; x < w; x += 8) {
+            int gh = 3 + (x * 7) % 6;
+            g.fillRect(x, 90 - gh, 4, gh);
+        }
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage retroGbRiver() {
+        int w = 160, h = 144;
+        Color[] pal = {new Color(15, 56, 15), new Color(48, 98, 48), new Color(139, 172, 15), new Color(155, 188, 15)};
+        BufferedImage img = create(w, h);
+        Graphics2D g = img.createGraphics();
+        g.setColor(pal[3]);
+        g.fillRect(0, 0, w, 50);
+        g.setColor(pal[2]);
+        g.fillRect(0, 50, w, 94);
+        for (int x = 0; x < w; x++) {
+            int riverY = 70 + (int)(15 * Math.sin(x * 0.04));
+            int riverW = 25 + (int)(8 * Math.sin(x * 0.06 + 1));
+            g.setColor(pal[0]);
+            g.fillRect(x, riverY - riverW / 2, 1, riverW);
+            g.setColor(pal[1]);
+            g.fillRect(x, riverY - riverW / 2 - 2, 1, 3);
+            g.fillRect(x, riverY + riverW / 2 - 1, 1, 3);
+        }
+        g.setColor(pal[1]);
+        int[] mtnPeaks = {20, 55, 90, 130};
+        for (int px : mtnPeaks) {
+            int[] mx = {px - 20, px, px + 20};
+            int[] my = {50, 15 + (px % 15), 50};
+            g.fillPolygon(mx, my, 3);
+        }
+        g.setColor(pal[0]);
+        g.fillOval(10, 80, 18, 14);
+        g.fillOval(135, 95, 20, 16);
+        g.fillOval(60, 100, 15, 12);
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage retroGrayCave() {
+        int w = 160, h = 144;
+        Color[] pal = {new Color(0, 0, 0), new Color(85, 85, 85), new Color(170, 170, 170), new Color(255, 255, 255)};
+        BufferedImage img = create(w, h);
+        Graphics2D g = img.createGraphics();
+        g.setColor(pal[0]);
+        g.fillRect(0, 0, w, h);
+        g.setColor(pal[1]);
+        g.fillRect(10, 40, 140, 94);
+        g.setColor(pal[2]);
+        g.fillRect(20, 50, 120, 70);
+        for (int x = 20; x < 140; x += 12) {
+            int sh = 10 + (x * 3) % 20;
+            g.setColor(pal[1]);
+            int[] sx = {x, x + 6, x + 12};
+            int[] sy = {40, 40 - sh, 40};
+            g.fillPolygon(sx, sy, 3);
+            int[] bx = {x, x + 6, x + 12};
+            int[] by = {134, 134 + sh / 2, 134};
+            g.fillPolygon(bx, by, 3);
+        }
+        g.setColor(pal[3]);
+        g.fillOval(65, 70, 30, 25);
+        g.setColor(pal[2]);
+        g.fillOval(60, 55, 40, 20);
+        g.setColor(pal[0]);
+        g.fillRect(75, 95, 10, 40);
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage retroGrayBridge() {
+        int w = 160, h = 144;
+        Color[] pal = {new Color(0, 0, 0), new Color(85, 85, 85), new Color(170, 170, 170), new Color(255, 255, 255)};
+        BufferedImage img = create(w, h);
+        Graphics2D g = img.createGraphics();
+        g.setColor(pal[3]);
+        g.fillRect(0, 0, w, 60);
+        g.setColor(pal[2]);
+        g.fillRect(0, 60, w, 30);
+        g.setColor(pal[1]);
+        g.fillRect(0, 90, w, 54);
+        g.setColor(pal[2]);
+        g.fillRect(0, 70, w, 12);
+        g.setColor(pal[1]);
+        g.fillRect(30, 70, 8, 20);
+        g.fillRect(70, 70, 8, 20);
+        g.fillRect(120, 70, 8, 20);
+        g.setColor(pal[0]);
+        for (int i = 0; i < 3; i++) {
+            int ax = 34 + i * 42;
+            int[] arcX = {ax - 15, ax, ax + 15};
+            int[] arcY = {90, 78, 90};
+            g.fillPolygon(arcX, arcY, 3);
+        }
+        g.setColor(pal[0]);
+        g.fillRect(0, 100, 45, 44);
+        g.fillRect(115, 100, 45, 44);
+        for (int x = 5; x < w; x += 10) {
+            g.setColor(pal[0]);
+            g.drawLine(x, 90, x, 90 + (x % 7) + 3);
+        }
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage retroGbcMarket() {
+        int w = 160, h = 144;
+        BufferedImage img = create(w, h);
+        Graphics2D g = img.createGraphics();
+        g.setColor(new Color(60, 40, 80));
+        g.fillRect(0, 0, w, 50);
+        g.setColor(new Color(180, 140, 100));
+        g.fillRect(0, 50, w, 94);
+        Color[] stalls = {new Color(200, 50, 50), new Color(50, 120, 200), new Color(200, 160, 30), new Color(50, 180, 80)};
+        int[] sx = {5, 42, 82, 122};
+        for (int i = 0; i < 4; i++) {
+            g.setColor(stalls[i]);
+            g.fillRect(sx[i], 40, 34, 8);
+            g.setColor(new Color(160, 120, 80));
+            g.fillRect(sx[i] + 2, 48, 30, 30);
+            g.setColor(stalls[i].darker());
+            g.fillRect(sx[i], 48, 2, 30);
+            g.fillRect(sx[i] + 32, 48, 2, 30);
+            g.setColor(new Color(255, 220, 120));
+            g.fillOval(sx[i] + 5, 52, 4, 4);
+            g.fillOval(sx[i] + 12, 55, 5, 5);
+            g.fillOval(sx[i] + 20, 52, 4, 4);
+            g.fillOval(sx[i] + 26, 56, 3, 3);
+        }
+        g.setColor(new Color(255, 200, 80));
+        int[] lanternX = {20, 60, 100, 140};
+        for (int lx : lanternX) {
+            g.fillOval(lx - 3, 32, 8, 10);
+            g.setColor(new Color(180, 120, 40));
+            g.drawLine(lx + 1, 28, lx + 1, 32);
+            g.setColor(new Color(255, 200, 80));
+        }
+        g.setColor(new Color(140, 100, 70));
+        g.fillRect(0, 85, w, 4);
+        g.setColor(new Color(100, 80, 60));
+        for (int x = 10; x < w; x += 20) {
+            g.fillRect(x, 90, 10, 15);
+        }
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage retroGbcGarden() {
+        int w = 160, h = 144;
+        BufferedImage img = create(w, h);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < 50; y++) {
+            double t = (double) y / 50;
+            g.setColor(new Color((int)(150 + 80 * t), (int)(180 + 40 * t), 250));
+            g.drawLine(0, y, w, y);
+        }
+        g.setColor(new Color(60, 130, 50));
+        g.fillRect(0, 50, w, 94);
+        g.setColor(new Color(160, 140, 100));
+        g.fillRect(40, 55, 80, 6);
+        g.setColor(new Color(140, 120, 80));
+        g.fillRect(60, 61, 40, 50);
+        g.setColor(new Color(255, 180, 200));
+        int[][] blossoms = {{15, 30}, {35, 25}, {55, 35}, {100, 28}, {130, 32}};
+        for (int[] b : blossoms) {
+            g.setColor(new Color(80, 50, 30));
+            g.fillRect(b[0] + 3, 50 - b[1] + 15, 3, b[1] - 10);
+            g.setColor(new Color(255, 180, 200));
+            g.fillOval(b[0] - 5, 50 - b[1], 16, 14);
+            g.setColor(new Color(255, 140, 170));
+            g.fillOval(b[0], 50 - b[1] + 2, 8, 8);
+        }
+        g.setColor(new Color(80, 130, 180));
+        g.fillOval(100, 80, 50, 20);
+        g.setColor(new Color(100, 160, 200));
+        g.fillOval(105, 83, 40, 14);
+        g.setColor(new Color(200, 60, 40));
+        g.fillRect(65, 90, 5, 10);
+        g.fillRect(72, 85, 12, 4);
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage retroGbcLighthouse() {
+        int w = 160, h = 144;
+        BufferedImage img = create(w, h);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < 60; y++) {
+            double t = (double) y / 60;
+            g.setColor(new Color((int)(180 + 60 * t), (int)(100 + 60 * t), (int)(60 + 80 * t)));
+            g.drawLine(0, y, w, y);
+        }
+        g.setColor(new Color(40, 80, 140));
+        g.fillRect(0, 60, w, 40);
+        for (int x = 0; x < w; x += 6) {
+            g.setColor(new Color(60, 100, 160));
+            g.fillRect(x, 60 + (int)(3 * Math.sin(x * 0.15)), 4, 2);
+        }
+        g.setColor(new Color(100, 90, 80));
+        g.fillRect(0, 100, w, 44);
+        g.setColor(new Color(220, 210, 190));
+        g.fillRect(100, 30, 20, 70);
+        g.setColor(new Color(200, 50, 40));
+        g.fillRect(97, 25, 26, 8);
+        g.fillRect(97, 50, 26, 4);
+        g.fillRect(97, 75, 26, 4);
+        g.setColor(new Color(255, 255, 150));
+        g.fillOval(105, 10, 10, 10);
+        g.setColor(new Color(255, 255, 150, 100));
+        int[] bx = {110, 160, 160, 115};
+        int[] by = {15, 40, 50, 20};
+        g.fillPolygon(bx, by, 4);
+        g.setColor(new Color(80, 100, 80));
+        for (int x = 5; x < 95; x += 12) {
+            int rh = 8 + (x % 10);
+            g.fillOval(x, 95 - rh, 10, rh);
+        }
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage retroGenArena() {
+        int w = 320, h = 224;
+        BufferedImage img = create(w, h);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < 80; y++) {
+            double t = (double) y / 80;
+            g.setColor(new Color((int)(100 + 100 * t), (int)(140 + 50 * t), (int)(200 - 60 * t)));
+            g.drawLine(0, y, w, y);
+        }
+        g.setColor(new Color(180, 160, 120));
+        g.fillRect(0, 80, w, 144);
+        g.setColor(new Color(160, 140, 100));
+        int arcCount = 8;
+        for (int i = 0; i < arcCount; i++) {
+            int ax = i * 40 + 5;
+            g.setColor(new Color(200, 180, 140));
+            g.fillRect(ax, 40, 10, 50);
+            g.fillRect(ax + 25, 40, 10, 50);
+            g.setColor(new Color(180, 160, 120));
+            g.fillArc(ax, 35, 35, 20, 0, 180);
+            g.setColor(new Color(60, 40, 30));
+            g.fillArc(ax + 3, 40, 29, 14, 0, 180);
+        }
+        g.setColor(new Color(200, 170, 100));
+        g.fillRect(0, 90, w, 6);
+        g.setColor(new Color(160, 130, 80));
+        g.fillOval(100, 120, 120, 80);
+        g.setColor(new Color(180, 150, 100));
+        g.fillOval(110, 130, 100, 60);
+        g.setColor(new Color(140, 50, 30));
+        g.fillRect(135, 148, 20, 30);
+        g.fillRect(175, 155, 15, 20);
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage retroGenWaterfall() {
+        int w = 320, h = 224;
+        BufferedImage img = create(w, h);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < h; y++) {
+            double t = (double) y / h;
+            g.setColor(new Color((int)(30 + 50 * t), (int)(80 + 60 * t), (int)(40 + 30 * t)));
+            g.drawLine(0, y, w, y);
+        }
+        g.setColor(new Color(80, 60, 40));
+        g.fillRect(0, 0, 120, 100);
+        g.fillRect(200, 0, 120, 100);
+        g.setColor(new Color(60, 120, 180));
+        g.fillRect(120, 0, 80, 180);
+        g.setColor(new Color(100, 160, 220));
+        for (int y = 0; y < 180; y += 4) {
+            int wobble = (int)(3 * Math.sin(y * 0.2));
+            g.fillRect(130 + wobble, y, 4, 3);
+            g.fillRect(155 + wobble, y, 4, 3);
+            g.fillRect(180 - wobble, y, 4, 3);
+        }
+        g.setColor(new Color(200, 220, 240, 150));
+        g.fillOval(100, 170, 120, 30);
+        g.fillOval(90, 175, 140, 25);
+        g.setColor(new Color(40, 100, 30));
+        int[][] leaves = {{10, 20}, {30, 15}, {260, 25}, {290, 18}, {50, 40}, {240, 35}};
+        for (int[] l : leaves) {
+            g.fillOval(l[0], l[1], 25, 15);
+            g.setColor(new Color(30, 80, 20));
+            g.fillOval(l[0] + 3, l[1] + 2, 18, 10);
+            g.setColor(new Color(40, 100, 30));
+        }
+        g.setColor(new Color(40, 80, 120));
+        g.fillRect(0, 200, w, 24);
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage retroGenVolcano() {
+        int w = 320, h = 224;
+        BufferedImage img = create(w, h);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < h; y++) {
+            double t = (double) y / h;
+            int r = (int)(40 + 80 * t);
+            int gg = (int)(20 + 20 * t);
+            int b = (int)(30 + 10 * t);
+            g.setColor(new Color(r, gg, b));
+            g.drawLine(0, y, w, y);
+        }
+        g.setColor(new Color(80, 50, 30));
+        int[] vx = {100, 160, 220};
+        int[] vy = {h, 40, h};
+        g.fillPolygon(vx, vy, 3);
+        g.setColor(new Color(60, 35, 20));
+        int[] vx2 = {120, 160, 200};
+        int[] vy2 = {h, 50, h};
+        g.fillPolygon(vx2, vy2, 3);
+        g.setColor(new Color(255, 120, 20));
+        g.fillOval(148, 30, 24, 20);
+        g.setColor(new Color(255, 80, 10));
+        g.fillOval(152, 25, 16, 12);
+        g.setColor(new Color(255, 200, 50));
+        g.fillOval(155, 20, 10, 8);
+        g.setColor(new Color(255, 100, 20, 180));
+        int[][] lava = {{150, 50, 155, 140}, {162, 48, 170, 130}, {145, 55, 135, 160}, {168, 55, 185, 150}};
+        for (int[] l : lava) {
+            g.drawLine(l[0], l[1], l[2], l[3]);
+            g.drawLine(l[0] + 1, l[1], l[2] + 1, l[3]);
+        }
+        g.setColor(new Color(60, 60, 60, 120));
+        g.fillOval(130, 5, 60, 30);
+        g.fillOval(140, 0, 40, 20);
+        g.setColor(new Color(100, 30, 10));
+        g.fillRect(0, 190, w, 34);
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage retroGbaTemple() {
+        int w = 240, h = 160;
+        BufferedImage img = create(w, h);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < h; y++) {
+            double t = (double) y / h;
+            g.setColor(new Color((int)(50 + 60 * t), (int)(90 + 40 * t), (int)(40 + 30 * t)));
+            g.drawLine(0, y, w, y);
+        }
+        g.setColor(new Color(140, 130, 100));
+        g.fillRect(60, 50, 120, 80);
+        g.setColor(new Color(120, 110, 80));
+        int[] rx = {55, 120, 185};
+        int[] ry = {50, 20, 50};
+        g.fillPolygon(rx, ry, 3);
+        g.setColor(new Color(80, 60, 40));
+        g.fillRect(100, 80, 40, 50);
+        g.setColor(new Color(60, 40, 25));
+        g.fillRect(105, 85, 30, 42);
+        g.setColor(new Color(160, 150, 120));
+        for (int px = 65; px <= 170; px += 20) {
+            g.fillRect(px, 50, 8, 80);
+            g.fillRect(px - 2, 48, 12, 4);
+        }
+        g.setColor(new Color(40, 100, 30));
+        g.fillOval(5, 40, 50, 40);
+        g.fillOval(190, 35, 50, 45);
+        g.setColor(new Color(30, 80, 20));
+        g.fillOval(10, 30, 35, 25);
+        g.fillOval(195, 25, 40, 30);
+        g.setColor(new Color(50, 100, 40));
+        g.fillRect(0, 130, w, 30);
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage retroGbaSpace() {
+        int w = 240, h = 160;
+        BufferedImage img = create(w, h);
+        Graphics2D g = img.createGraphics();
+        g.setColor(new Color(5, 5, 20));
+        g.fillRect(0, 0, w, h);
+        java.util.Random rng = new java.util.Random(42);
+        for (int i = 0; i < 120; i++) {
+            int sx = rng.nextInt(w), sy = rng.nextInt(h);
+            int bright = 150 + rng.nextInt(106);
+            g.setColor(new Color(bright, bright, bright));
+            g.fillRect(sx, sy, 1, 1);
+        }
+        for (int i = 0; i < 8; i++) {
+            int sx = rng.nextInt(w), sy = rng.nextInt(h);
+            g.setColor(new Color(200 + rng.nextInt(56), 200 + rng.nextInt(56), 255));
+            g.fillRect(sx, sy, 2, 2);
+        }
+        g.setColor(new Color(40, 80, 160));
+        g.fillOval(50, 60, 80, 70);
+        g.setColor(new Color(60, 120, 200));
+        g.fillOval(55, 65, 70, 60);
+        g.setColor(new Color(30, 60, 130));
+        g.fillOval(65, 75, 30, 20);
+        g.setColor(new Color(80, 140, 220));
+        g.fillOval(80, 68, 35, 15);
+        g.setColor(new Color(180, 160, 120, 80));
+        g.fillArc(35, 80, 110, 20, 0, 180);
+        g.setColor(new Color(200, 180, 140, 60));
+        g.fillArc(30, 78, 120, 25, 0, 180);
+        g.setColor(new Color(140, 120, 80));
+        g.fillOval(180, 110, 25, 20);
+        g.setColor(new Color(160, 140, 100));
+        g.fillOval(183, 113, 18, 14);
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage retroGbaDesert() {
+        int w = 240, h = 160;
+        BufferedImage img = create(w, h);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < 60; y++) {
+            double t = (double) y / 60;
+            g.setColor(new Color((int)(255 - 40 * t), (int)(160 - 30 * t), (int)(60 + 40 * t)));
+            g.drawLine(0, y, w, y);
+        }
+        g.setColor(new Color(255, 200, 100));
+        g.fillRect(0, 60, w, 100);
+        for (int x = 0; x < w; x++) {
+            double dune = 8 * Math.sin(x * 0.03) + 5 * Math.sin(x * 0.07 + 2);
+            int dy = 60 + (int) dune;
+            g.setColor(new Color(240, 190, 90));
+            g.fillRect(x, Math.min(dy, 60), 1, Math.abs(dy - 60) + 3);
+        }
+        g.setColor(new Color(255, 210, 50));
+        g.fillOval(190, 10, 30, 30);
+        g.setColor(new Color(30, 100, 140));
+        g.fillOval(90, 100, 60, 15);
+        g.setColor(new Color(60, 140, 180));
+        g.fillOval(95, 102, 50, 10);
+        int[] palmX = {80, 140, 110};
+        for (int px : palmX) {
+            g.setColor(new Color(100, 70, 30));
+            g.fillRect(px, 75, 5, 30);
+            g.setColor(new Color(40, 120, 40));
+            g.fillOval(px - 10, 65, 25, 14);
+            g.setColor(new Color(30, 100, 30));
+            g.fillOval(px - 8, 60, 20, 10);
+        }
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage retroSnesCastle() {
+        int w = 256, h = 224;
+        BufferedImage img = create(w, h);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < h; y++) {
+            double t = (double) y / h;
+            int r = (int)(40 + 60 * t);
+            int gg = (int)(20 + 40 * t);
+            int b = (int)(80 + 40 * t);
+            g.setColor(new Color(r, gg, b));
+            g.drawLine(0, y, w, y);
+        }
+        g.setColor(new Color(60, 50, 40));
+        g.fillRect(0, 160, w, 64);
+        g.setColor(new Color(100, 90, 80));
+        g.fillRect(70, 60, 116, 100);
+        g.setColor(new Color(120, 110, 100));
+        g.fillRect(80, 100, 96, 60);
+        int[] towerX = {70, 120, 186};
+        for (int tx : towerX) {
+            g.setColor(new Color(110, 100, 90));
+            g.fillRect(tx, 40, 20, 120);
+            g.setColor(new Color(130, 120, 110));
+            for (int by = 42; by < 160; by += 8) {
+                g.fillRect(tx + 2, by, 16, 3);
+            }
+            g.setColor(new Color(90, 80, 70));
+            int[] bx = {tx - 2, tx + 3, tx + 10, tx + 17, tx + 22};
+            for (int cx : bx) {
+                g.fillRect(cx, 36, 4, 6);
+            }
+        }
+        g.setColor(new Color(80, 60, 40));
+        g.fillRect(118, 120, 20, 40);
+        g.setColor(new Color(60, 40, 25));
+        g.fillArc(118, 112, 20, 16, 0, 180);
+        g.setColor(new Color(255, 200, 100));
+        int[][] windows = {{85, 75}, {100, 75}, {155, 75}, {170, 75}, {85, 110}, {170, 110}};
+        for (int[] wn : windows) {
+            g.fillRect(wn[0], wn[1], 8, 12);
+        }
+        g.setColor(new Color(40, 60, 100, 60));
+        for (int y = 0; y < 30; y++) {
+            g.setColor(new Color(60, 80, 120, 40 - y));
+            g.drawLine(0, 160 + y, w, 160 + y);
+        }
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage retroSnesHarbor() {
+        int w = 256, h = 224;
+        BufferedImage img = create(w, h);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < 80; y++) {
+            double t = (double) y / 80;
+            g.setColor(new Color((int)(180 + 60 * t), (int)(140 + 50 * t), (int)(80 + 60 * t)));
+            g.drawLine(0, y, w, y);
+        }
+        g.setColor(new Color(40, 80, 120));
+        g.fillRect(0, 80, w, 60);
+        for (int x = 0; x < w; x += 8) {
+            g.setColor(new Color(60, 100, 140));
+            g.fillRect(x, 80 + (int)(2 * Math.sin(x * 0.1)), 5, 2);
+        }
+        g.setColor(new Color(160, 130, 90));
+        g.fillRect(0, 140, w, 84);
+        g.setColor(new Color(100, 80, 50));
+        g.fillRect(0, 140, w, 8);
+        g.setColor(new Color(80, 50, 30));
+        int[] bx = {60, 90, 100, 130, 160, 180};
+        for (int x : bx) {
+            g.fillRect(x, 115, 5, 35);
+        }
+        g.setColor(new Color(120, 80, 40));
+        g.fillRect(80, 95, 40, 30);
+        g.setColor(new Color(80, 50, 25));
+        g.fillRect(77, 90, 46, 8);
+        int[] mx = {80, 100, 120};
+        int[] my = {90, 60, 90};
+        g.setColor(new Color(255, 240, 220));
+        g.fillPolygon(mx, my, 3);
+        g.setColor(new Color(200, 50, 40));
+        g.fillRect(140, 100, 30, 25);
+        g.setColor(new Color(160, 40, 30));
+        int[] rx = {137, 155, 173};
+        int[] ry = {100, 82, 100};
+        g.fillPolygon(rx, ry, 3);
+        g.setColor(new Color(255, 200, 80));
+        int[] lanterns = {30, 70, 130, 190, 230};
+        for (int lx : lanterns) {
+            g.fillOval(lx, 150, 6, 8);
+        }
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage retroSnesShrine() {
+        int w = 256, h = 224;
+        BufferedImage img = create(w, h);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < h; y++) {
+            double t = (double) y / h;
+            g.setColor(new Color((int)(60 + 40 * t), (int)(100 + 30 * t), (int)(50 + 20 * t)));
+            g.drawLine(0, y, w, y);
+        }
+        g.setColor(new Color(50, 90, 40));
+        g.fillRect(0, 80, w, 144);
+        g.setColor(new Color(200, 50, 30));
+        g.fillRect(90, 60, 8, 60);
+        g.fillRect(158, 60, 8, 60);
+        g.fillRect(85, 55, 86, 8);
+        g.fillRect(80, 45, 96, 8);
+        g.setColor(new Color(180, 160, 120));
+        g.fillRect(60, 120, 136, 6);
+        g.setColor(new Color(160, 140, 100));
+        g.fillRect(70, 126, 116, 50);
+        g.setColor(new Color(120, 100, 70));
+        g.fillRect(115, 140, 26, 36);
+        g.setColor(new Color(200, 50, 30));
+        int[] roofX = {55, 128, 201};
+        int[] roofY = {120, 98, 120};
+        g.fillPolygon(roofX, roofY, 3);
+        g.setColor(new Color(40, 80, 30));
+        int[][] trees = {{10, 60}, {30, 50}, {210, 55}, {235, 65}};
+        for (int[] t : trees) {
+            g.setColor(new Color(60, 40, 25));
+            g.fillRect(t[0] + 5, 80 - t[1] + 30, 4, t[1] - 20);
+            g.setColor(new Color(40, 80, 30));
+            g.fillOval(t[0], 80 - t[1], 20, t[1] - 15);
+        }
+        g.setColor(new Color(180, 160, 120));
+        g.fillRect(95, 145, 6, 30);
+        g.fillRect(155, 145, 6, 30);
+        g.setColor(new Color(255, 200, 80));
+        g.fillOval(96, 140, 4, 6);
+        g.fillOval(156, 140, 4, 6);
+        g.dispose();
+        return img;
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  NEW CLASSIC GENERATORS — expanded patterns for triangle mode
+    // ════════════════════════════════════════════════════════════════
+
+    private static BufferedImage plasma() {
+        BufferedImage img = create(WIDTH, HEIGHT);
+        for (int y = 0; y < HEIGHT; y++) {
+            for (int x = 0; x < WIDTH; x++) {
+                double v = Math.sin(x * 0.02) + Math.sin(y * 0.03)
+                         + Math.sin((x + y) * 0.02) + Math.sin(Math.sqrt(x * x + y * y) * 0.01);
+                v = (v + 4) / 8.0;
+                int r = (int)(128 + 127 * Math.sin(v * Math.PI * 2));
+                int g = (int)(128 + 127 * Math.sin(v * Math.PI * 2 + 2.094));
+                int b = (int)(128 + 127 * Math.sin(v * Math.PI * 2 + 4.189));
+                img.setRGB(x, y, (255 << 24) | (r << 16) | (g << 8) | b);
+            }
+        }
+        return img;
+    }
+
+    private static BufferedImage cityline() {
+        BufferedImage img = create(WIDTH, HEIGHT);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < HEIGHT; y++) {
+            double t = (double) y / HEIGHT;
+            int r = (int)(40 + 100 * t);
+            int gg = (int)(20 + 60 * t);
+            int b = (int)(80 + 60 * t);
+            g.setColor(new Color(r, gg, b));
+            g.drawLine(0, y, WIDTH, y);
+        }
+        g.setColor(new Color(255, 180, 50));
+        g.fillOval(550, 60, 80, 80);
+        java.util.Random rng = new java.util.Random(777);
+        for (int x = 0; x < WIDTH; x += rng.nextInt(30) + 20) {
+            int bh = 100 + rng.nextInt(250);
+            int bw = 15 + rng.nextInt(30);
+            int by = HEIGHT - bh;
+            g.setColor(new Color(20 + rng.nextInt(40), 15 + rng.nextInt(30), 30 + rng.nextInt(40)));
+            g.fillRect(x, by, bw, bh);
+            g.setColor(new Color(255, 220, 120));
+            for (int wy = by + 8; wy < HEIGHT - 8; wy += 14) {
+                for (int wx = x + 3; wx < x + bw - 3; wx += 7) {
+                    if (rng.nextFloat() < 0.6f) g.fillRect(wx, wy, 3, 5);
+                }
+            }
+        }
+        g.setColor(new Color(10, 8, 20));
+        g.fillRect(0, HEIGHT - 20, WIDTH, 20);
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage mosaic() {
+        BufferedImage img = create(WIDTH, HEIGHT);
+        Graphics2D g = img.createGraphics();
+        g.setColor(new Color(30, 25, 40));
+        g.fillRect(0, 0, WIDTH, HEIGHT);
+        int tileSize = 24;
+        java.util.Random rng = new java.util.Random(123);
+        for (int y = 0; y < HEIGHT; y += tileSize) {
+            for (int x = 0; x < WIDTH; x += tileSize) {
+                float hue = rng.nextFloat();
+                float sat = 0.4f + rng.nextFloat() * 0.4f;
+                float bri = 0.5f + rng.nextFloat() * 0.4f;
+                g.setColor(Color.getHSBColor(hue, sat, bri));
+                g.fillRect(x + 1, y + 1, tileSize - 2, tileSize - 2);
+                g.setColor(new Color(20, 15, 30));
+                g.drawRect(x, y, tileSize, tileSize);
+            }
+        }
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage stainedGlass() {
+        BufferedImage img = create(WIDTH, HEIGHT);
+        Graphics2D g = img.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setColor(new Color(20, 15, 30));
+        g.fillRect(0, 0, WIDTH, HEIGHT);
+        int cx = WIDTH / 2, cy = HEIGHT / 2;
+        int rays = 16;
+        java.util.Random rng = new java.util.Random(42);
+        for (int i = 0; i < rays; i++) {
+            double a1 = 2 * Math.PI * i / rays;
+            double a2 = 2 * Math.PI * (i + 1) / rays;
+            int r = 280;
+            int[] px = {cx, cx + (int)(r * Math.cos(a1)), cx + (int)(r * Math.cos(a2))};
+            int[] py = {cy, cy + (int)(r * Math.sin(a1)), cy + (int)(r * Math.sin(a2))};
+            float hue = (float) i / rays;
+            g.setColor(Color.getHSBColor(hue, 0.7f, 0.8f + rng.nextFloat() * 0.2f));
+            g.fillPolygon(px, py, 3);
+            g.setColor(new Color(30, 20, 40));
+            g.setStroke(new BasicStroke(3));
+            g.drawPolygon(px, py, 3);
+        }
+        for (int ring = 1; ring <= 4; ring++) {
+            int rr = ring * 60;
+            g.setColor(new Color(30, 20, 40));
+            g.setStroke(new BasicStroke(3));
+            g.drawOval(cx - rr, cy - rr, rr * 2, rr * 2);
+        }
+        g.setStroke(new BasicStroke(1));
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage terrain() {
+        BufferedImage img = create(WIDTH, HEIGHT);
+        for (int y = 0; y < HEIGHT; y++) {
+            for (int x = 0; x < WIDTH; x++) {
+                double nx = x * 0.01, ny = y * 0.01;
+                double val = Math.sin(nx * 3 + ny) * 0.3
+                           + Math.sin(nx + ny * 2.7) * 0.3
+                           + Math.sin(nx * 1.7 - ny * 1.3) * 0.2
+                           + Math.sin((nx + ny) * 4) * 0.1
+                           + Math.sin(nx * 5 - ny * 3) * 0.1;
+                val = (val + 1) / 2.0;
+                int r, gg, b;
+                if (val < 0.3) {
+                    r = 30; gg = 60; b = (int)(120 + val * 300);
+                } else if (val < 0.4) {
+                    r = (int)(200 + val * 100); gg = (int)(190 + val * 100); b = 130;
+                } else if (val < 0.65) {
+                    r = 40; gg = (int)(100 + (val - 0.4) * 400); b = 30;
+                } else if (val < 0.8) {
+                    r = (int)(100 + (val - 0.65) * 400); gg = (int)(80 + (val - 0.65) * 300); b = 40;
+                } else {
+                    int snow = (int)(200 + (val - 0.8) * 275);
+                    r = Math.min(255, snow); gg = Math.min(255, snow); b = Math.min(255, snow);
+                }
+                img.setRGB(x, y, (255 << 24) | (clamp(r) << 16) | (clamp(gg) << 8) | clamp(b));
+            }
+        }
+        return img;
+    }
+
+    private static int clamp(int v) { return Math.max(0, Math.min(255, v)); }
 }

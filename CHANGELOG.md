@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Profile name in state**: `profileName` field included in `/api/clicker/state` response for UI display.
 - **3 new unit tests**: Save/load round-trip, data integrity, ProfileManager sanitization.
 
+### Added — Expanded Sample Library
+
+- **18 new retro samples**: GB Temple, GB River, GB Cave, GB Bridge, GBC Market, GBC Garden, GBC Lighthouse, Genesis Arena, Genesis Waterfall, Genesis Volcano, GBA Temple, GBA Space, GBA Desert, SNES Castle, SNES Harbor, SNES Shrine — covering all console families with 4-5 samples each (up from 2).
+- **5 new classic patterns**: Plasma (swirling color field), City Skyline (silhouette at dusk), Mosaic (colorful tiles), Stained Glass (radial cathedral window), Terrain Map (topographic elevation).
+- Total playable samples: **80** (was 57) — 28 retro + 30 generated + 27 unlockable + 5 secret.
+
 ### Added — Retro Gallery Level Select (Phase 3: UI)
 
 - **Level select screen**: Console tab bar (Classic / Game Boy / Genesis / GBA / SNES) replaces flat preset buttons. Each tab shows sub-preset variants, "Retro Specials" grid, and "All Images" grid.

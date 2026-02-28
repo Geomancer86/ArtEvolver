@@ -99,7 +99,7 @@ Create new palette resources:
 | `gb_dmg.txt` | 4 | ID Name R G B | DMG green shades |
 | `gb_gray.txt` | 4 | Same | Grayscale |
 | `gbc.txt` | 32 | Same | GBC default palettes |
-| `genesis.txt` | 512 | Same | Genesis 9-bit (R,G,B ∈ {0,32,64,96,128,160,192,224,255}) |
+| Genesis (generated) | 512 | Same | Genesis 9-bit VDP ramp: {0,52,87,116,144,172,206,255} |
 | `gba.txt` | (optional) | 15-bit sample | Subset for evolution |
 | `snes.txt` | (optional) | 15-bit sample | Subset |
 

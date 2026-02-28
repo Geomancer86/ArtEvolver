@@ -65,10 +65,12 @@ public class PaletteLoader {
 
     /**
      * Genesis 9-bit: 3 bits per channel, 8 values each = 512 total colors.
-     * VDP ramp: 0, 36, 73, 109, 146, 182, 219, 255
+     * VDP-accurate ramp (Sega Retro, Plutiedev): non-linear due to analog DAC.
+     * Many emulators wrongly use linear (0,36,73...) which compresses darks and biases warmth.
+     * Correct: 0, 52, 87, 116, 144, 172, 206, 255 — matches Toy Story / Sonic / Streets of Rage.
      */
     public static Color[] generateGenesis512() {
-        int[] ramp = {0, 36, 73, 109, 146, 182, 219, 255};
+        int[] ramp = {0, 52, 87, 116, 144, 172, 206, 255};
         Color[] palette = new Color[512];
         int idx = 0;
         for (int r : ramp) {
@@ -82,11 +84,27 @@ public class PaletteLoader {
     }
 
     /**
-     * Genesis subset: pick N evenly-spaced colors from the 512 set.
+     * Genesis 64-on-screen: pick 64 colors that span the cube for maximal variety.
+     * Uses 4 levels per channel (0,2,5,7) = 4³ = 64 — ensures primaries, secondaries,
+     * and good saturation spread. Toy Story–style games achieved rich color by
+     * careful palette selection; this mimics that approach.
      */
     public static Color[] generateGenesisSubset(int count) {
         Color[] full = generateGenesis512();
         if (count >= full.length) return full;
+        if (count == 64) {
+            int[] levels = {0, 2, 5, 7}; // ramp indices: dark, mid, bright, max
+            Color[] subset = new Color[64];
+            int idx = 0;
+            for (int ri : levels) {
+                for (int gi : levels) {
+                    for (int bi : levels) {
+                        subset[idx++] = full[ri * 64 + gi * 8 + bi];
+                    }
+                }
+            }
+            return subset;
+        }
         Color[] subset = new Color[count];
         for (int i = 0; i < count; i++) {
             subset[i] = full[(int) ((long) i * full.length / count)];

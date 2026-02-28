@@ -51,6 +51,8 @@ public final class SampleImageProvider {
             "rose", "fractal_tree", "kaleidoscope", "aurora", "portal",
             "easter_egg", "hidden_gem", "legendary", "mythic", "omega",
             "plasma", "cityline", "mosaic", "stained_glass", "terrain",
+            "countryside", "seascape2", "urban_night", "autumn_forest", "winter_snow",
+            "spring_garden", "desert_dunes", "tropical", "river_valley", "coastal_cliff",
             "retro_gb_castle", "retro_gb_hills", "retro_gb_temple", "retro_gb_river",
             "retro_gray_cave", "retro_gray_bridge",
             "retro_gbc_town", "retro_gbc_underwater", "retro_gbc_market", "retro_gbc_garden", "retro_gbc_lighthouse",
@@ -254,6 +256,28 @@ public final class SampleImageProvider {
                 "always", 0, "Generated", false, 88));
         DEFS.add(new SampleDef("terrain", "Terrain Map", "Topographic-style elevation map.",
                 "always", 0, "Generated", false, 89));
+
+        // ─── REAL WORLD: photo-inspired programmatic scenes (team loves these) ───
+        DEFS.add(new SampleDef("countryside", "Countryside", "Rolling hills and fields.",
+                "always", 0, "Real World", false, 116));
+        DEFS.add(new SampleDef("seascape2", "Seascape", "Ocean horizon with clouds.",
+                "always", 0, "Real World", false, 117));
+        DEFS.add(new SampleDef("urban_night", "Urban Night", "City lights at dusk.",
+                "always", 0, "Real World", false, 118));
+        DEFS.add(new SampleDef("autumn_forest", "Autumn Forest", "Fall foliage and golden light.",
+                "always", 0, "Real World", false, 119));
+        DEFS.add(new SampleDef("winter_snow", "Winter Snow", "Snowy landscape with evergreens.",
+                "always", 0, "Real World", false, 120));
+        DEFS.add(new SampleDef("spring_garden", "Spring Garden", "Blossoms and fresh greenery.",
+                "always", 0, "Real World", false, 121));
+        DEFS.add(new SampleDef("desert_dunes", "Desert Dunes", "Sand dunes at golden hour.",
+                "always", 0, "Real World", false, 122));
+        DEFS.add(new SampleDef("tropical", "Tropical", "Palm trees and turquoise water.",
+                "always", 0, "Real World", false, 123));
+        DEFS.add(new SampleDef("river_valley", "River Valley", "Winding river through green valley.",
+                "always", 0, "Real World", false, 124));
+        DEFS.add(new SampleDef("coastal_cliff", "Coastal Cliff", "Dramatic cliffs and sea.",
+                "always", 0, "Real World", false, 125));
     }
 
     public static List<SampleDef> getAllDefs() {
@@ -358,6 +382,16 @@ public final class SampleImageProvider {
                 case "mosaic" -> mosaic();
                 case "stained_glass" -> stainedGlass();
                 case "terrain" -> terrain();
+                case "countryside" -> countryside();
+                case "seascape2" -> seascape2();
+                case "urban_night" -> urbanNight();
+                case "autumn_forest" -> autumnForest();
+                case "winter_snow" -> winterSnow();
+                case "spring_garden" -> springGarden();
+                case "desert_dunes" -> desertDunes();
+                case "tropical" -> tropical();
+                case "river_valley" -> riverValley();
+                case "coastal_cliff" -> coastalCliff();
                 default -> gradientSunset();
             };
         }
@@ -1970,4 +2004,294 @@ public final class SampleImageProvider {
     }
 
     private static int clamp(int v) { return Math.max(0, Math.min(255, v)); }
+
+    // ════════════════════════════════════════════════════════════════
+    //  REAL WORLD: photo-inspired programmatic scenes
+    // ════════════════════════════════════════════════════════════════
+
+    private static BufferedImage countryside() {
+        BufferedImage img = create(WIDTH, HEIGHT);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < HEIGHT; y++) {
+            double t = (double) y / HEIGHT;
+            int r = (int)(180 + 50 * Math.sin(t * Math.PI));
+            int gg = (int)(200 + 40 * Math.sin(t * Math.PI));
+            int b = (int)(140 + 60 * t);
+            g.setColor(new Color(r, gg, b));
+            g.drawLine(0, y, WIDTH, y);
+        }
+        for (int i = 0; i < 5; i++) {
+            int hillY = 200 + i * 80 + (i * 37) % 40;
+            int[] hx = {0, WIDTH / 4, WIDTH / 2, 3 * WIDTH / 4, WIDTH};
+            int[] hy = {HEIGHT, hillY + 50, hillY, hillY + 30, HEIGHT};
+            g.setColor(new Color(80 + i * 15, 140 + i * 12, 60 + i * 8));
+            g.fillPolygon(hx, hy, 5);
+        }
+        g.setColor(new Color(255, 220, 150));
+        g.fillOval(550, 40, 100, 100);
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage seascape2() {
+        BufferedImage img = create(WIDTH, HEIGHT);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < 180; y++) {
+            double t = (double) y / 180;
+            int r = (int)(100 + 80 * t);
+            int gg = (int)(140 + 70 * t);
+            int b = (int)(200 + 55 * t);
+            g.setColor(new Color(r, gg, b));
+            g.drawLine(0, y, WIDTH, y);
+        }
+        for (int y = 180; y < HEIGHT; y++) {
+            double t = (double) (y - 180) / (HEIGHT - 180);
+            int r = (int)(40 - 20 * t);
+            int gg = (int)(100 + 40 * t);
+            int b = (int)(180 + 50 * t);
+            g.setColor(new Color(r, gg, b));
+            g.drawLine(0, y, WIDTH, y);
+        }
+        g.setColor(new Color(255, 255, 255, 120));
+        g.fillOval(200, 60, 150, 60);
+        g.fillOval(450, 80, 100, 40);
+        g.setColor(new Color(255, 240, 200));
+        g.fillOval(600, 100, 80, 80);
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage urbanNight() {
+        BufferedImage img = create(WIDTH, HEIGHT);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < HEIGHT; y++) {
+            double t = (double) y / HEIGHT;
+            int r = (int)(20 + 30 * t);
+            int gg = (int)(10 + 20 * t);
+            int b = (int)(40 + 50 * t);
+            g.setColor(new Color(r, gg, b));
+            g.drawLine(0, y, WIDTH, y);
+        }
+        java.util.Random rng = new java.util.Random(99);
+        for (int x = 0; x < WIDTH; x += rng.nextInt(25) + 15) {
+            int bh = 80 + rng.nextInt(250);
+            int bw = 12 + rng.nextInt(25);
+            int by = HEIGHT - bh;
+            g.setColor(new Color(15, 12, 25));
+            g.fillRect(x, by, bw, bh);
+            g.setColor(new Color(255, 240, 180));
+            for (int wy = by + 6; wy < HEIGHT - 6; wy += 10) {
+                for (int wx = x + 2; wx < x + bw - 2; wx += 5) {
+                    if (rng.nextFloat() < 0.7f) g.fillRect(wx, wy, 2, 4);
+                }
+            }
+        }
+        g.setColor(new Color(255, 200, 100));
+        g.fillOval(650, 80, 40, 40);
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage autumnForest() {
+        BufferedImage img = create(WIDTH, HEIGHT);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < HEIGHT; y++) {
+            double t = (double) y / HEIGHT;
+            int r = (int)(220 - 80 * t);
+            int gg = (int)(180 - 60 * t);
+            int b = (int)(100 - 40 * t);
+            g.setColor(new Color(r, gg, b));
+            g.drawLine(0, y, WIDTH, y);
+        }
+        int[][] trees = {{80, 120}, {180, 100}, {300, 140}, {420, 90}, {520, 130}, {620, 110}};
+        for (int[] t : trees) {
+            g.setColor(new Color(80, 50, 30));
+            g.fillRect(t[0] - 4, HEIGHT - t[1], 12, t[1] - 20);
+            Color[] colors = {new Color(139, 69, 19), new Color(205, 133, 63), new Color(210, 105, 30),
+                    new Color(184, 134, 11), new Color(218, 165, 32), new Color(205, 133, 63)};
+            for (int layer = 0; layer < 4; layer++) {
+                g.setColor(colors[layer % colors.length]);
+                int ly = HEIGHT - t[1] - layer * 25 + 10;
+                int lw = 60 - layer * 10;
+                g.fillOval(t[0] - lw / 2, ly, lw, 35);
+            }
+        }
+        g.setColor(new Color(255, 220, 150));
+        g.fillOval(550, 50, 70, 70);
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage winterSnow() {
+        BufferedImage img = create(WIDTH, HEIGHT);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < 120; y++) {
+            double t = (double) y / 120;
+            int v = (int)(200 + 55 * t);
+            g.setColor(new Color(v, v, 255));
+            g.drawLine(0, y, WIDTH, y);
+        }
+        for (int y = 120; y < HEIGHT; y++) {
+            double t = (double) (y - 120) / (HEIGHT - 120);
+            int v = (int)(220 + 35 * Math.sin(y * 0.02) * (1 - t));
+            g.setColor(new Color(v, v, 255));
+            g.drawLine(0, y, WIDTH, y);
+        }
+        g.setColor(new Color(60, 80, 50));
+        int[][] trees = {{100, 80}, {250, 100}, {400, 70}, {550, 90}};
+        for (int[] tr : trees) {
+            g.fillRect(tr[0] - 5, HEIGHT - tr[1], 14, tr[1] - 15);
+            for (int layer = 0; layer < 3; layer++) {
+                g.setColor(new Color(40 + layer * 15, 70 + layer * 20, 50 + layer * 10));
+                int ly = HEIGHT - tr[1] - layer * 28 + 8;
+                int lw = 50 - layer * 12;
+                g.fillOval(tr[0] - lw / 2, ly, lw, 25);
+            }
+        }
+        g.setColor(new Color(255, 255, 255, 180));
+        for (int i = 0; i < 200; i++) {
+            int sx = (i * 37) % WIDTH;
+            int sy = (i * 53) % HEIGHT;
+            g.fillOval(sx, sy, 3, 3);
+        }
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage springGarden() {
+        BufferedImage img = create(WIDTH, HEIGHT);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < HEIGHT; y++) {
+            double t = (double) y / HEIGHT;
+            int r = (int)(150 + 60 * t);
+            int gg = (int)(220 - 50 * t);
+            int b = (int)(180 - 40 * t);
+            g.setColor(new Color(r, gg, b));
+            g.drawLine(0, y, WIDTH, y);
+        }
+        g.setColor(new Color(80, 140, 60));
+        g.fillRect(0, HEIGHT - 80, WIDTH, 80);
+        int[][] blossoms = {{100, 350}, {200, 320}, {350, 380}, {480, 340}, {600, 360}};
+        for (int[] b : blossoms) {
+            g.setColor(new Color(255, 182, 193));
+            g.fillOval(b[0] - 25, b[1] - 25, 50, 50);
+            g.setColor(new Color(255, 192, 203));
+            g.fillOval(b[0] - 15, b[1] - 15, 30, 30);
+            g.setColor(new Color(80, 50, 30));
+            g.fillRect(b[0] - 3, b[1] + 15, 6, 40);
+        }
+        g.setColor(new Color(255, 255, 200));
+        g.fillOval(500, 80, 90, 90);
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage desertDunes() {
+        BufferedImage img = create(WIDTH, HEIGHT);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < 100; y++) {
+            double t = (double) y / 100;
+            g.setColor(new Color((int)(255 - 30 * t), (int)(180 - 40 * t), (int)(80 + 60 * t)));
+            g.drawLine(0, y, WIDTH, y);
+        }
+        g.setColor(new Color(255, 220, 140));
+        g.fillRect(0, 100, WIDTH, HEIGHT - 100);
+        for (int x = 0; x < WIDTH; x++) {
+            double dune = 25 * Math.sin(x * 0.015) + 15 * Math.sin(x * 0.03 + 1);
+            int dy = 100 + (int) dune;
+            g.setColor(new Color(245, 210, 130));
+            g.fillRect(x, Math.min(dy, 100), 1, Math.abs(dy - 100) + 5);
+        }
+        g.setColor(new Color(255, 200, 80));
+        g.fillOval(580, 30, 80, 80);
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage tropical() {
+        BufferedImage img = create(WIDTH, HEIGHT);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < 120; y++) {
+            double t = (double) y / 120;
+            g.setColor(new Color((int)(100 + 100 * t), (int)(180 + 50 * t), 255));
+            g.drawLine(0, y, WIDTH, y);
+        }
+        for (int y = 120; y < HEIGHT; y++) {
+            double t = (double) (y - 120) / (HEIGHT - 120);
+            g.setColor(new Color((int)(30 + 20 * t), (int)(160 + 50 * t), (int)(200 + 40 * t)));
+            g.drawLine(0, y, WIDTH, y);
+        }
+        g.setColor(new Color(80, 50, 30));
+        int[] palmX = {120, 350, 580};
+        for (int px : palmX) {
+            g.fillRect(px - 4, 150, 10, 200);
+            g.setColor(new Color(40, 140, 40));
+            g.fillOval(px - 35, 120, 70, 40);
+            g.setColor(new Color(30, 120, 30));
+            g.fillOval(px - 25, 100, 50, 30);
+            g.setColor(new Color(80, 50, 30));
+        }
+        g.setColor(new Color(255, 230, 150));
+        g.fillOval(550, 50, 100, 100);
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage riverValley() {
+        BufferedImage img = create(WIDTH, HEIGHT);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < HEIGHT; y++) {
+            double t = (double) y / HEIGHT;
+            int r = (int)(160 + 50 * t);
+            int gg = (int)(200 - 30 * t);
+            int b = (int)(180 - 50 * t);
+            g.setColor(new Color(r, gg, b));
+            g.drawLine(0, y, WIDTH, y);
+        }
+        g.setColor(new Color(60, 100, 80));
+        int[] mtnX = {0, 150, 300, 450, 600, 720};
+        for (int i = 0; i < mtnX.length - 1; i++) {
+            int peak = 80 + (i * 31) % 60;
+            int[] px = {mtnX[i], (mtnX[i] + mtnX[i + 1]) / 2, mtnX[i + 1]};
+            int[] py = {HEIGHT, peak, HEIGHT};
+            g.fillPolygon(px, py, 3);
+        }
+        g.setColor(new Color(80, 160, 200));
+        for (int x = 0; x < WIDTH; x++) {
+            int riverY = 320 + (int)(20 * Math.sin(x * 0.02));
+            g.fillRect(x, riverY, 1, 80);
+        }
+        g.setColor(new Color(255, 240, 180));
+        g.fillOval(600, 60, 70, 70);
+        g.dispose();
+        return img;
+    }
+
+    private static BufferedImage coastalCliff() {
+        BufferedImage img = create(WIDTH, HEIGHT);
+        Graphics2D g = img.createGraphics();
+        for (int y = 0; y < 150; y++) {
+            double t = (double) y / 150;
+            g.setColor(new Color((int)(180 + 60 * t), (int)(160 + 70 * t), (int)(220 + 35 * t)));
+            g.drawLine(0, y, WIDTH, y);
+        }
+        g.setColor(new Color(40, 100, 160));
+        g.fillRect(0, 150, WIDTH, HEIGHT - 150);
+        for (int x = 0; x < WIDTH; x += 4) {
+            g.setColor(new Color(60, 120, 180));
+            g.fillRect(x, 150 + (int)(2 * Math.sin(x * 0.05)), 3, 2);
+        }
+        g.setColor(new Color(120, 100, 80));
+        int[] cliffX = {0, 80, 180, 280, 400, 520, 720};
+        int[] cliffY = {150, 200, 180, 220, 190, 210, 150};
+        g.fillPolygon(cliffX, cliffY, 7);
+        g.setColor(new Color(100, 85, 70));
+        for (int i = 1; i < cliffX.length; i++) {
+            g.drawLine(cliffX[i - 1], cliffY[i - 1], cliffX[i], cliffY[i]);
+        }
+        g.setColor(new Color(255, 220, 150));
+        g.fillOval(550, 40, 90, 90);
+        g.dispose();
+        return img;
+    }
 }

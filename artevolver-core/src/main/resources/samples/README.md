@@ -52,7 +52,11 @@ Secret: secret_suffer, secret_grind, secret_ascended, secret_gilded, secret_omeg
 
 ## Generated Samples
 
-The **Generated** category (gradient_sunset, circles, checker, etc.) uses programmatic fallbacks. Always available for testing.
+The **Generated** category (gradient_sunset, circles, checker, plasma, cityline, mosaic, etc.) uses programmatic fallbacks. Always available for testing.
+
+## Real World (Photo-Inspired)
+
+The **Real World** category (countryside, seascape2, urban_night, autumn_forest, winter_snow, spring_garden, desert_dunes, tropical, river_valley, coastal_cliff) uses programmatic scene generators — rich gradients and compositions that look great when quantized. Always available.
 
 ## Custom Images (My Images)
 

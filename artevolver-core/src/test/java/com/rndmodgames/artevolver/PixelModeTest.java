@@ -42,6 +42,19 @@ class PixelModeTest {
         assertEquals(512, palette.length);
         assertEquals(new Color(0, 0, 0), palette[0]);
         assertEquals(new Color(255, 255, 255), palette[511]);
+        // VDP-accurate ramp: level 1 = 52, level 2 = 87 (not linear 36, 73)
+        assertEquals(new Color(52, 0, 0), palette[64]);   // r=1,g=0,b=0
+        assertEquals(new Color(0, 87, 0), palette[16]);  // r=0,g=2,b=0
+        assertEquals(new Color(0, 0, 52), palette[1]);   // r=0,g=0,b=1
+    }
+
+    @Test
+    void testPaletteLoaderGenesis64Subset() {
+        Color[] palette = PaletteLoader.generateGenesisSubset(64);
+        assertEquals(64, palette.length);
+        assertTrue(java.util.Arrays.asList(palette).contains(new Color(255, 0, 0)));
+        assertTrue(java.util.Arrays.asList(palette).contains(new Color(0, 255, 0)));
+        assertTrue(java.util.Arrays.asList(palette).contains(new Color(0, 0, 255)));
     }
 
     @Test

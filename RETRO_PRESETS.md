@@ -106,4 +106,4 @@ Example `gb_dmg.txt`:
 4 Lightest 155 188 15
 ```
 
-Genesis: 512 lines. 9-bit RGB: 3 bits per channel → 8 values per channel. Common ramp: R,G,B ∈ {0, 36, 73, 109, 146, 182, 219, 255} (linear) or {0, 32, 64, 96, 128, 160, 192, 224} (alternate). Use VDP-accurate ramp for authenticity.
+Genesis: 512 colors generated algorithmically. 9-bit RGB: 3 bits per channel → 8 values per channel. **VDP-accurate ramp** (Sega Retro, Plutiedev): R,G,B ∈ {0, 52, 87, 116, 144, 172, 206, 255} — non-linear due to analog DAC; matches Toy Story, Sonic, Streets of Rage. Avoid linear ramp (0,36,73...) which compresses darks and biases warmth.

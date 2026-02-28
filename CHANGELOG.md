@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Profile name in state**: `profileName` field included in `/api/clicker/state` response for UI display.
 - **3 new unit tests**: Save/load round-trip, data integrity, ProfileManager sanitization.
 
+### Changed — Genesis Palette (VDP-Accurate)
+
+- **Genesis 512 ramp**: Replaced linear ramp (0,36,73,109,146,182,219,255) with **VDP-accurate** values (0,52,87,116,144,172,206,255) per Sega Retro / Plutiedev documentation. The linear ramp compressed darks and biased output toward red/yellow; the correct non-linear ramp matches Toy Story, Sonic, Streets of Rage.
+- **Genesis 64 subset**: Now uses 4³ color-cube sampling (levels 0,2,5,7) for maximal variety — ensures primaries, secondaries, and balanced saturation. Toy Story–style rich color achieved via careful palette selection.
+- References: [Sega Retro CRAM](https://segaretro.org/Sega_Mega_Drive/Palettes_and_CRAM), [Plutiedev VDP ramp](https://www.plutiedev.com/vdp-color-ramp).
+
+### Added — Real World Sample Pack
+
+- **10 new photo-inspired programmatic samples**: Countryside, Seascape, Urban Night, Autumn Forest, Winter Snow, Spring Garden, Desert Dunes, Tropical, River Valley, Coastal Cliff. Rich gradients and scene composition for triangle and pixel modes. Team-requested — "real world images look amazing."
+
 ### Added — Expanded Sample Library
 
 - **18 new retro samples**: GB Temple, GB River, GB Cave, GB Bridge, GBC Market, GBC Garden, GBC Lighthouse, Genesis Arena, Genesis Waterfall, Genesis Volcano, GBA Temple, GBA Space, GBA Desert, SNES Castle, SNES Harbor, SNES Shrine — covering all console families with 4-5 samples each (up from 2).

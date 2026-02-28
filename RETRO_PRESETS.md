@@ -62,13 +62,35 @@ Test combinations for retro mode. Each row is a valid preset to implement.
 
 ---
 
+## Algorithm Approach Per Preset
+
+| Preset | Pixels | Colors | Copies/Color | Primary Mode | Alt Mode |
+|--------|--------|--------|-------------|-------------|---------|
+| `gb_dmg` | 23,040 | 4 | ~5,760 | Permutation | — |
+| `gb_gray` | 23,040 | 4 | ~5,760 | Permutation | — |
+| `gbc` | 23,040 | 32 | ~720 | Permutation | — |
+| `gbc_high` | 23,040 | 56 | ~411 | Permutation | — |
+| `gba_8` | 38,400 | 8 | 4,800 | Permutation | — |
+| `gba_256` | 38,400 | 256 | 150 | Permutation | Palette Evo (256 from 32k) |
+| `gba` | 38,400 | 32,768 | ~1.17 | Permutation | — |
+| `genesis_64` | 71,680 | 64 | 1,120 | Permutation | Palette Evo (64 from 512) |
+| `genesis` | 71,680 | 512 | 140 | Permutation | — |
+| `genesis_256` | 57,344 | 512 | 112 | Permutation | — |
+| `snes_256` | 57,344 | 256 | 224 | Permutation | Palette Evo (256 from 32k) |
+| `snes` | 57,344 | 32,768 | ~1.75 | Permutation | — |
+| `snes_512` | 229,376 | 32,768 | ~7 | Permutation | — |
+
+**Key insight**: Presets with sub-selection (Genesis 64-from-512, SNES 256-from-32k)
+have two interesting optimization problems — the permutation game AND the palette selection game.
+
 ## Implementation Order
 
-1. **gb_dmg** — Simplest (4 colors, 160×144). Validates pixel mode.
-2. **gbc** — 32 colors. Same resolution.
-3. **genesis** — 512 colors, 320×224. Mid-complexity.
-4. **gba** — 240×160, full color.
-5. **snes** — 256×224, full color.
+1. **gb_dmg** — Simplest (4 colors, 160×144). Validates pixel permutation mode.
+2. **gbc** — 32 colors. Same resolution. Validates medium-palette permutation.
+3. **genesis** — 512 colors, 320×224. Validates large-palette permutation.
+4. **genesis_64** — 64-from-512. First candidate for Palette Evolution mode.
+5. **gba** — 240×160, full color.
+6. **snes** — 256×224, full color.
 
 ---
 

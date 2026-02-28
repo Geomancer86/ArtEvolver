@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Palette files**: `gb_dmg.txt`, `gbc.txt`, `genesis.txt` for authentic console palettes.
 - **Clicker-first**: Preset selector in init overlay; test in Evolution Clicker before full app.
 - **Designer validation**: Design validated against Yokoi, Miyamoto, Kojima, Carmack, Wright, Meier, Petersen, Cain, Gygax, Newell — authenticity, constraints, clean architecture.
+- **Algorithm deep analysis**: Three approaches analyzed — (1) Permutation mode: fix histogram, scramble, swap to sort; (2) Free assignment: trivially solved, not a game; (3) Palette evolution: evolve which N colors from master palette (Genesis 64/512, SNES 256/32k). Phased hybrid recommended.
 - See `RETRO_CONSOLE_DESIGN.md`, `RETRO_PRESETS.md`.
 
 ---

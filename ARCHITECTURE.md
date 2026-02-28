@@ -648,7 +648,14 @@ Genesis (320×224, 512), SNES (256×224). **Pixel mode**: one color per pixel, s
 true pixel art output. New components: `PixelGrid`, `PixelFitnessEngine`, `RetroPreset`.
 Same swap-and-evaluate algorithm; data structure changes from triangles to pixels.
 
+**Algorithm approaches** (3 analyzed, phased hybrid recommended):
+1. **Permutation mode** (Phase 1, all consoles): Fix color histogram from nearest-color analysis,
+   scramble, evolve via pixel swaps. Same swap-and-evaluate as triangles. O(1) per swap.
+2. **Palette evolution** (Phase 2, Genesis/SNES): Evolve which N colors from the master palette
+   to use on-screen (e.g., 64 from 512 for Genesis). Two-level optimization.
+3. **Hybrid** (Phase 3): Mix swaps (90%) with free reassigns (10%) to escape bad histograms.
+
 **Design validation**: Architecture and presets validated against principles of Yokoi (lateral
 thinking with withered technology), Miyamoto (constraints as playground), Kojima (authenticity),
-Carmack (clean parallel path), and others. See `RETRO_CONSOLE_DESIGN.md` (Designer Validation
-section), `RETRO_PRESETS.md`.
+Carmack (clean parallel path), and others. See `RETRO_CONSOLE_DESIGN.md` (Algorithm Deep
+Analysis + Designer Validation sections), `RETRO_PRESETS.md`.

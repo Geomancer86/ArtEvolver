@@ -1,0 +1,4 @@
+1 Darkest 15 56 15
+2 Dark 48 98 48
+3 Light 139 172 15
+4 Lightest 155 188 15

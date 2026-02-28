@@ -1,0 +1,4 @@
+1 Black 0 0 0
+2 DarkGray 86 86 86
+3 LightGray 172 172 172
+4 White 255 255 255

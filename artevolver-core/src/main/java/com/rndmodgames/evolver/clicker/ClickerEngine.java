@@ -12,8 +12,12 @@ import java.util.SplittableRandom;
 /**
  * Core evolution engine for the Clicker game.
  *
+ * Supports two modes:
+ *   - Triangle mode (original): TriangleList + DeltaFitnessEngine
+ *   - Pixel mode (retro):       PixelGrid + PixelFitnessEngine
+ *
  * Philosophy (Gunpei Yokoi — lateral thinking with withered technology):
- * One mechanic, deeply realized. Each click is a single random two-triangle
+ * One mechanic, deeply realized. Each click is a single random two-cell
  * color swap. The swap may improve or worsen fitness. There is no guarantee.
  * Upgrades don't change the mechanic — they change the odds.
  *
@@ -26,8 +30,16 @@ public class ClickerEngine {
 
     private final SplittableRandom rng = new SplittableRandom();
 
+    // Triangle mode (original)
     private TriangleList<Triangle> triangles;
     private DeltaFitnessEngine deltaEngine;
+
+    // Pixel mode (retro consoles)
+    private PixelGrid pixelGrid;
+    private PixelFitnessEngine pixelEngine;
+    private RetroPreset activePreset;
+    private boolean pixelMode = false;
+
     private BufferedImage referenceImage;
 
     private BufferedImage renderedImage;
@@ -110,8 +122,53 @@ public class ClickerEngine {
         this.initialized = true;
         this.startingFitness = deltaEngine.getScore();
 
-        System.out.println("[ClickerEngine] Initialized: " + triangles.size()
+        this.pixelMode = false;
+        this.pixelGrid = null;
+        this.pixelEngine = null;
+        this.activePreset = null;
+
+        System.out.println("[ClickerEngine] Initialized (triangle mode): " + triangles.size()
                 + " triangles, init=" + initMethod
+                + ", fitness=" + String.format("%.4f%%", startingFitness * 100));
+    }
+
+    /**
+     * Initializes in pixel mode for retro console presets.
+     * Uses the permutation approach: compute nearest-color histogram,
+     * shuffle, then evolve via pixel swaps.
+     */
+    public synchronized void initPixelMode(BufferedImage sourceImage, RetroPreset preset) {
+        this.referenceImage = sourceImage;
+        this.activePreset = preset;
+        this.pixelMode = true;
+        this.imageWidth = preset.getWidth();
+        this.imageHeight = preset.getHeight();
+
+        Color[] palette = PaletteLoader.load(preset);
+
+        this.pixelGrid = new PixelGrid(imageWidth, imageHeight, palette);
+        pixelGrid.initFromReference(sourceImage);
+
+        this.pixelEngine = new PixelFitnessEngine(pixelGrid, sourceImage);
+
+        this.triangles = null;
+        this.deltaEngine = null;
+
+        this.totalSwaps = 0;
+        this.successfulSwaps = 0;
+        this.totalClicks = 0;
+        this.currentMissStreak = 0;
+        this.currentHitStreak = 0;
+        this.longestMissStreak = 0;
+        this.longestHitStreak = 0;
+        this.imageDirty = true;
+        this.cachedJpeg = null;
+        this.jpegVersion = 0;
+        this.initialized = true;
+        this.startingFitness = pixelEngine.getScore();
+
+        System.out.println("[ClickerEngine] Initialized (pixel mode): " + preset.getDisplayName()
+                + " " + imageWidth + "x" + imageHeight + ", " + palette.length + " colors"
                 + ", fitness=" + String.format("%.4f%%", startingFitness * 100));
     }
 
@@ -126,10 +183,10 @@ public class ClickerEngine {
                                                   int swapDistance, double smartPct) {
         if (!initialized) return ClickResult.EMPTY;
 
-        int n = triangles.size();
+        int n = pixelMode ? pixelGrid.getTotalPixels() : triangles.size();
         if (n < 2) return ClickResult.EMPTY;
 
-        double oldScore = deltaEngine.getScore();
+        double oldScore = pixelMode ? pixelEngine.getScore() : deltaEngine.getScore();
         int applied = 0;
 
         for (int s = 0; s < swapsPerClick; s++) {
@@ -151,7 +208,7 @@ public class ClickerEngine {
         totalSwaps += swapsPerClick;
         totalClicks++;
 
-        double newScore = deltaEngine.getScore();
+        double newScore = pixelMode ? pixelEngine.getScore() : deltaEngine.getScore();
         return new ClickResult(applied, swapsPerClick, newScore - oldScore, newScore,
                 currentMissStreak, currentHitStreak);
     }
@@ -161,10 +218,12 @@ public class ClickerEngine {
         long bestDelta = 0;
 
         for (int cycle = 0; cycle < Math.max(1, retryCycles); cycle++) {
-            int a = pickTriangleA(n, smartPct);
-            int b = pickTriangleB(n, a, swapDistance);
+            int a = pickCellA(n, smartPct);
+            int b = pickCellB(n, a, swapDistance);
 
-            long delta = deltaEngine.computeSwapDelta(a, b);
+            long delta = pixelMode
+                    ? pixelEngine.computeSwapDelta(a, b)
+                    : deltaEngine.computeSwapDelta(a, b);
             if (delta < bestDelta) {
                 bestDelta = delta;
                 bestA = a;
@@ -173,27 +232,31 @@ public class ClickerEngine {
         }
 
         if (bestDelta < 0 && bestA >= 0) {
-            deltaEngine.applySwapWithDelta(bestA, bestB, bestDelta);
-            syncTriangleColors(bestA, bestB);
+            if (pixelMode) {
+                pixelEngine.applySwapWithDelta(bestA, bestB, bestDelta);
+            } else {
+                deltaEngine.applySwapWithDelta(bestA, bestB, bestDelta);
+                syncTriangleColors(bestA, bestB);
+            }
             return true;
         }
         return false;
     }
 
-    private int pickTriangleA(int n, double smartPct) {
+    private int pickCellA(int n, double smartPct) {
         if (smartPct > 0 && rng.nextDouble() < smartPct) {
-            return sampleWorstTriangle(n);
+            return sampleWorstCell(n);
         }
         return rng.nextInt(n);
     }
 
     /**
-     * Picks triangle B. swapDistance=0 means unlimited (any triangle).
+     * Picks cell B. swapDistance=0 means unlimited (any cell).
      * swapDistance>0 limits B to within that index range of A.
-     * Since triangles are laid out in row-major grid order,
-     * index proximity approximates spatial proximity.
+     * For both triangles and pixels, row-major index proximity
+     * approximates spatial proximity.
      */
-    private int pickTriangleB(int n, int a, int swapDistance) {
+    private int pickCellB(int n, int a, int swapDistance) {
         if (swapDistance > 0 && swapDistance < n) {
             int offset = rng.nextInt(1, swapDistance + 1);
             int b = (a + (rng.nextBoolean() ? offset : -offset) + n) % n;
@@ -204,14 +267,18 @@ public class ClickerEngine {
         return b;
     }
 
-    private int sampleWorstTriangle(int n) {
+    private int sampleWorstCell(int n) {
         int sampleSize = Math.min(30, n);
         int worstIdx = rng.nextInt(n);
-        long worstError = deltaEngine.getTriangleError(worstIdx);
+        long worstError = pixelMode
+                ? pixelEngine.getPixelError(worstIdx)
+                : deltaEngine.getTriangleError(worstIdx);
 
         for (int i = 1; i < sampleSize; i++) {
             int idx = rng.nextInt(n);
-            long err = deltaEngine.getTriangleError(idx);
+            long err = pixelMode
+                    ? pixelEngine.getPixelError(idx)
+                    : deltaEngine.getTriangleError(idx);
             if (err > worstError) {
                 worstError = err;
                 worstIdx = idx;
@@ -236,10 +303,19 @@ public class ClickerEngine {
     public synchronized BufferedImage getRenderedImage() {
         if (!initialized) return null;
         if (imageDirty || renderedImage == null) {
-            renderTriangles();
+            if (pixelMode) {
+                renderPixels();
+            } else {
+                renderTriangles();
+            }
             imageDirty = false;
         }
         return renderedImage;
+    }
+
+    private void renderPixels() {
+        renderedImage = pixelGrid.render();
+        cachedJpeg = null;
     }
 
     private void renderTriangles() {
@@ -318,13 +394,19 @@ public class ClickerEngine {
     }
 
     public synchronized double getFitness() {
-        return initialized ? deltaEngine.getScore() : 0;
+        if (!initialized) return 0;
+        return pixelMode ? pixelEngine.getScore() : deltaEngine.getScore();
     }
 
     public synchronized long getTotalSwaps() { return totalSwaps; }
     public synchronized long getSuccessfulSwaps() { return successfulSwaps; }
     public synchronized long getTotalClicks() { return totalClicks; }
-    public synchronized int getTriangleCount() { return initialized ? triangles.size() : 0; }
+    public synchronized int getTriangleCount() {
+        if (!initialized) return 0;
+        return pixelMode ? pixelGrid.getTotalPixels() : triangles.size();
+    }
+    public boolean isPixelMode() { return pixelMode; }
+    public RetroPreset getActivePreset() { return activePreset; }
     public synchronized long getJpegVersion() { return jpegVersion; }
     public boolean isInitialized() { return initialized; }
     public double getStartingFitness() { return startingFitness; }

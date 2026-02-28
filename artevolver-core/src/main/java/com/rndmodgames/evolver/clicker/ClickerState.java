@@ -439,6 +439,68 @@ public class ClickerState {
 
     public ClickerEngine getEngine() { return engine; }
 
+    /**
+     * Initializes in pixel mode for retro console presets.
+     */
+    public String initPixelMode(BufferedImage sourceImage, RetroPreset preset, String sampleId) {
+        currentSampleId = sampleId;
+        long fp = computeFingerprint(sourceImage);
+        if (sampleId == null && usedImageFingerprints.contains(fp)) {
+            return "This image has already been evolved. Load a different one for your next canvas.";
+        }
+        if (sampleId == null) {
+            usedImageFingerprints.add(fp);
+        }
+        currentImageFingerprint = fp;
+
+        this.palette = null;
+        this.gridW = preset.getWidth();
+        this.gridH = preset.getHeight();
+        this.triWidth = 1;
+        this.triHeight = 1;
+        this.scale = 1;
+
+        ep = 0;
+        totalEpEarned = 0;
+        mc = 0;
+        totalClicks = 0;
+        totalUpgradesBought = 0;
+        gameStartMs = System.currentTimeMillis();
+        totalPlayTimeMs = 0;
+        totalAchievementsUnlocked = 0;
+        epPerSecond = 0;
+        autoClickAccumulator = 0;
+        activeEvents.clear();
+        lastEventCheckMs = 0;
+        achievementQueue.clear();
+
+        upgradeLevels.entrySet().removeIf(e -> {
+            UpgradeDef def = findUpgrade(e.getKey());
+            return def != null && !def.currency.equals("gf");
+        });
+        totalUpgradesBought = upgradeLevels.values().stream().mapToInt(Integer::intValue).sum();
+        unlockedAchievements.clear();
+
+        if (engine == null) {
+            engine = new ClickerEngine();
+        }
+        engine.initPixelMode(sourceImage, preset);
+
+        if (currentSampleId != null) {
+            SampleProgress prev = sampleProgress.get(currentSampleId);
+            int plays = prev != null ? prev.playCount() + 1 : 1;
+            sampleProgress.put(currentSampleId, new SampleProgress(
+                    prev != null ? prev.bestFitness() : 0,
+                    prev != null ? prev.bestGain() : 0,
+                    plays,
+                    prev != null ? prev.completed() : false,
+                    prev != null ? prev.ascensionsCount() : 0,
+                    prev != null ? prev.totalPlayTimeMs() : 0,
+                    prev != null ? prev.totalClicks() : 0));
+        }
+        return null;
+    }
+
     public String initEngine(BufferedImage sourceImage, Palette palette,
                              int gridW, int gridH,
                              float triWidth, float triHeight, float scale) {

@@ -262,17 +262,88 @@ public class DashboardServer {
         ex.close();
     }
 
+    private BufferedImage resolveSourceImage(String sampleId, HttpExchange ex) throws IOException {
+        if (sampleId != null) {
+            if (sampleId.startsWith("custom:")) {
+                String fp = sampleId.substring(7);
+                Path file = getCustomImagesDir().resolve(fp + ".png");
+                if (!Files.exists(file)) {
+                    sendJsonResponse(ex, "{\"initialized\":false,\"error\":\"Custom image not found.\"}");
+                    return null;
+                }
+                return ImageIO.read(file.toFile());
+            }
+            var def = SampleImageProvider.getDef(sampleId);
+            if (def == null || !clickerState.isSampleUnlocked(def)) {
+                String msg = def == null ? "Unknown sample." : "Sample not unlocked yet.";
+                sendJsonResponse(ex, "{\"initialized\":false,\"error\":\"" + msg + "\"}");
+                return null;
+            }
+            return SampleImageProvider.generate(sampleId);
+        }
+        if (standaloneMode) {
+            if (uploadedImage == null) {
+                sendJsonResponse(ex, "{\"initialized\":false,\"error\":\"Drop or pick an image above to begin.\"}");
+                return null;
+            }
+            return uploadedImage;
+        }
+        BufferedImage img = artEvolver.getResizedOriginal();
+        if (img == null) {
+            sendJsonResponse(ex, "{\"initialized\":false,\"error\":\"No source image loaded. Load an image in ArtEvolver first.\"}");
+            return null;
+        }
+        return img;
+    }
+
     private void handleClickerInit(HttpExchange ex) throws IOException {
         String sampleId = null;
+        String presetId = null;
         String query = ex.getRequestURI().getQuery();
         if (query != null) {
             for (String param : query.split("&")) {
                 String[] kv = param.split("=", 2);
                 if (kv.length == 2 && kv[0].equals("sample") && !kv[1].isEmpty()) {
                     sampleId = kv[1];
-                    break;
+                }
+                if (kv.length == 2 && kv[0].equals("preset") && !kv[1].isEmpty()) {
+                    presetId = kv[1];
                 }
             }
+        }
+
+        // Retro pixel mode: preset parameter routes to pixel engine
+        if (presetId != null) {
+            var preset = com.rndmodgames.evolver.clicker.RetroPreset.fromId(presetId);
+            if (preset == null) {
+                sendJsonResponse(ex, "{\"initialized\":false,\"error\":\"Unknown preset: " + presetId + "\"}");
+                return;
+            }
+            BufferedImage sourceImage = resolveSourceImage(sampleId, ex);
+            if (sourceImage == null) return;
+
+            BufferedImage resized = new BufferedImage(preset.getWidth(), preset.getHeight(), BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2 = resized.createGraphics();
+            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g2.drawImage(sourceImage, 0, 0, preset.getWidth(), preset.getHeight(), null);
+            g2.dispose();
+
+            String error = clickerState.initPixelMode(resized, preset, sampleId);
+            if (error != null) {
+                sendJsonResponse(ex, "{\"initialized\":false,\"error\":\"" + error.replace("\"", "\\\"") + "\"}");
+                return;
+            }
+            var engine = clickerState.getEngine();
+            String json = "{\"initialized\":true,\"pixelMode\":true"
+                    + ",\"preset\":\"" + preset.getPaletteResource() + "\""
+                    + ",\"presetName\":\"" + preset.getDisplayName() + "\""
+                    + ",\"width\":" + preset.getWidth()
+                    + ",\"height\":" + preset.getHeight()
+                    + ",\"colors\":" + preset.getColorCount()
+                    + ",\"cellCount\":" + engine.getTriangleCount()
+                    + ",\"initialFitness\":" + engine.getFitness() + "}";
+            sendJsonResponse(ex, json);
+            return;
         }
 
         BufferedImage sourceImage;

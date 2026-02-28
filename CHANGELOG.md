@@ -7,14 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] (3.3.0-SNAPSHOT)
 
-### Planned — Retro Console Mode
+### Added — Retro Console Mode (Phase 1: Clicker)
 
-- **Retro presets**: GB (160×144, 4 colors), GBC (32), GBA (240×160, 32k), Genesis (320×224, 512), SNES (256×224, 32k).
+- **Retro presets**: GB DMG (160×144, 4 colors), GB Gray, GBC (32), GBC High (56), GBA (240×160, 256), Genesis 64, Genesis (320×224, 512), SNES 256, SNES (256×224, 512).
 - **Pixel mode**: Square-pixel output, one color per pixel — true retro pixel art (vs triangle mosaic).
-- **Palette files**: `gb_dmg.txt`, `gbc.txt`, `genesis.txt` for authentic console palettes.
-- **Clicker-first**: Preset selector in init overlay; test in Evolution Clicker before full app.
-- **Designer validation**: Design validated against Yokoi, Miyamoto, Kojima, Carmack, Wright, Meier, Petersen, Cain, Gygax, Newell — authenticity, constraints, clean architecture.
-- **Algorithm deep analysis**: Three approaches analyzed — (1) Permutation mode: fix histogram, scramble, swap to sort; (2) Free assignment: trivially solved, not a game; (3) Palette evolution: evolve which N colors from master palette (Genesis 64/512, SNES 256/32k). Phased hybrid recommended.
+- **`RetroPreset` enum**: Resolution, palette resource, color count per console.
+- **`PixelGrid`**: 2D pixel grid with permutation-based init (nearest-color histogram, Fisher-Yates shuffle). O(1) swap, direct `BufferedImage` rendering.
+- **`PixelFitnessEngine`**: O(1) per-swap delta fitness — only 2 pixels touched per evaluation. Same scoring formula as `DeltaFitnessEngine` for consistent metrics.
+- **`PaletteLoader`**: Loads palettes from resource files (GB, GBC) or generates algorithmically (Genesis 9-bit 512, GBA/SNES 256 subset).
+- **`ClickerEngine` dual mode**: Supports both triangle mode (original) and pixel mode (retro). Same `performClick` API, same streak tracking, same smart targeting.
+- **`DashboardServer` preset routing**: `?preset=gb_dmg` (etc.) on `/api/clicker/init` routes to pixel mode. Source image resized to console resolution automatically.
+- **`ClickerState.initPixelMode()`**: Full game state reset for pixel mode, same currency/upgrade/achievement system.
+- **Clicker UI preset selector**: 10 preset buttons (Classic + 9 retro) in the init overlay with info descriptions. Mode selection persists through init flow.
+- **Palette files**: `gb_dmg.txt` (4 DMG green), `gb_gray.txt` (4 grayscale), `gbc.txt` (32 colors), `gbc_high.txt` (56 DKC-style).
+- **8 unit tests**: `PixelModeTest` — preset lookup, palette loading, grid init, fitness score accuracy, swap delta correctness, engine integration.
+- **Algorithm deep analysis**: Three approaches analyzed — (1) Permutation mode (implemented): fix histogram, scramble, swap to sort; (2) Free assignment: trivially solved, not a game; (3) Palette evolution (Phase 2): evolve which N colors from master palette.
+- **Designer validation**: Design validated against Yokoi, Miyamoto, Kojima, Carmack, Wright, Meier, Petersen, Cain, Gygax, Newell.
 - See `RETRO_CONSOLE_DESIGN.md`, `RETRO_PRESETS.md`.
 
 ---

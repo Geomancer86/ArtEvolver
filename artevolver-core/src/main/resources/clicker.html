@@ -38,6 +38,11 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .init-overlay .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* Preset buttons */
+.preset-btn{padding:6px 14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:12px;cursor:pointer;transition:all .2s}
+.preset-btn:hover{border-color:var(--cyan);color:var(--text)}
+.preset-btn.active{background:linear-gradient(135deg,var(--cyan),var(--purple));color:#000;border-color:transparent;font-weight:700}
+
 /* Drop zone for image upload (standalone mode) */
 .drop-zone{width:340px;min-height:160px;border:2px dashed var(--border);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:all .2s;padding:20px;text-align:center}
 .drop-zone:hover,.drop-zone.drag-over{border-color:var(--cyan);background:rgba(0,229,255,.05)}
@@ -322,10 +327,11 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
 <div class="init-overlay" id="initOverlay">
   <h2>Evolution Clicker</h2>
-  <p>Evolve an image one triangle swap at a time.
-     Each click attempts a random color swap between two nearby triangles.
+  <p>Evolve an image one swap at a time.
+     Each click attempts a random color swap between two nearby cells.
      It might improve fitness &mdash; or miss entirely.
-     The grind is the game. Not for the hesitant.</p>
+     Choose Classic (triangles) or a retro console preset (pixels).
+     The grind is the game.</p>
   <div class="drop-zone" id="dropZone">
     <div class="drop-icon">&#x1F5BC;</div>
     <div class="drop-text"><strong>Drop an image here</strong> or click to pick a file (JPG, PNG)</div>
@@ -340,6 +346,22 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   <div class="sample-section" id="sampleSection">
     <div class="sample-section-title">Or pick a sample</div>
     <div class="sample-grid" id="sampleGrid"></div>
+  </div>
+  <div class="preset-section" id="presetSection">
+    <div class="sample-section-title">Mode</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:4px 0 8px">
+      <button class="preset-btn active" data-preset="" onclick="selectPreset(this,'')">Triangle (Classic)</button>
+      <button class="preset-btn" data-preset="gb_dmg" onclick="selectPreset(this,'gb_dmg')">GB DMG</button>
+      <button class="preset-btn" data-preset="gb_gray" onclick="selectPreset(this,'gb_gray')">GB Gray</button>
+      <button class="preset-btn" data-preset="gbc" onclick="selectPreset(this,'gbc')">GBC</button>
+      <button class="preset-btn" data-preset="gbc_high" onclick="selectPreset(this,'gbc_high')">GBC High</button>
+      <button class="preset-btn" data-preset="genesis_64" onclick="selectPreset(this,'genesis_64')">Genesis 64</button>
+      <button class="preset-btn" data-preset="genesis" onclick="selectPreset(this,'genesis')">Genesis</button>
+      <button class="preset-btn" data-preset="gba" onclick="selectPreset(this,'gba')">GBA</button>
+      <button class="preset-btn" data-preset="snes_256" onclick="selectPreset(this,'snes_256')">SNES 256</button>
+      <button class="preset-btn" data-preset="snes" onclick="selectPreset(this,'snes')">SNES</button>
+    </div>
+    <div class="preset-info" id="presetInfo" style="color:var(--text2);font-size:12px;text-align:center"></div>
   </div>
   <button class="btn" id="initBtn" onclick="initClicker()">Begin</button>
   <div class="spinner" id="initSpinner" style="display:none"></div>
@@ -363,6 +385,29 @@ let hitMilestones = new Set();
 let lastEventCount = 0;
 let selectedSample = null;
 let samplesData = null;
+let selectedPreset = '';
+
+const PRESET_INFO = {
+  '':          'Classic triangle mosaic with Sherwin-Williams palette (1,535 colors)',
+  'gb_dmg':    'Game Boy DMG — 160×144, 4 green shades',
+  'gb_gray':   'Game Boy Grayscale — 160×144, 4 shades',
+  'gbc':       'Game Boy Color — 160×144, 32 colors',
+  'gbc_high':  'GBC High Color — 160×144, 56 colors (DKC style)',
+  'genesis_64':'Sega Genesis — 320×224, 64 on-screen colors',
+  'genesis':   'Sega Genesis — 320×224, 512 colors (full palette)',
+  'gba':       'Game Boy Advance — 240×160, 256 colors',
+  'snes_256':  'SNES Mode 1 — 256×224, 256 colors',
+  'snes':      'Super Nintendo — 256×224, 512 colors',
+};
+
+function selectPreset(btn, presetId) {
+  selectedPreset = presetId;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('presetInfo').textContent = PRESET_INFO[presetId] || '';
+  const label = presetId ? btn.textContent + ' Pixel Mode' : 'Triangle Mode';
+  document.getElementById('initBtn').textContent = 'Begin (' + label + ')';
+}
 let refreshTimer = null;
 let imageTimer = null;
 let achTimer = null;
@@ -659,10 +704,16 @@ async function initClicker() {
 
   try {
     let initUrl = '/api/clicker/init';
+    const params = [];
     if (selectedSample) {
-      initUrl += '?sample=' + encodeURIComponent(selectedSample);
+      params.push('sample=' + encodeURIComponent(selectedSample));
       selectedSample = null;
-    } else if (pendingFile) {
+    }
+    if (selectedPreset) {
+      params.push('preset=' + encodeURIComponent(selectedPreset));
+    }
+    if (params.length > 0) initUrl += '?' + params.join('&');
+    if (pendingFile) {
       const form = new FormData();
       form.append('image', pendingFile);
       const upRes = await fetch('/api/clicker/upload', {method:'POST', body: form});

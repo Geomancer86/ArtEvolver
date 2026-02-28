@@ -129,15 +129,16 @@ Create new palette resources:
 
 ## Implementation Plan
 
-### Phase 1: Foundation (Clicker-only)
+### Phase 1: Foundation (Clicker-only) ✅ IMPLEMENTED
 
-1. **PaletteLoader** — Load palette by name (`gb_dmg`, `gbc`, `genesis`, etc.).
-2. **RetroPreset** — Enum with resolution, palette name, color count.
-3. **PixelGrid** — 2D color index array, swap, render.
-4. **PixelFitnessEngine** — Delta fitness for pixel swaps (O(1) per swap).
-5. **ClickerEngine** — Add `initPixelMode(RetroPreset)` path. When preset != null, use PixelGrid + PixelFitnessEngine instead of TriangleList + DeltaFitnessEngine.
-6. **DashboardServer** — `handleClickerInit` accepts `?preset=gb` (or similar). Resize source to preset resolution, init pixel mode.
-7. **clicker.html** — Preset selector (GB, GBC, GBA, Genesis, SNES) in init overlay.
+1. ✅ **PaletteLoader** — `PaletteLoader.java`: loads from resource files or generates algorithmically.
+2. ✅ **RetroPreset** — `RetroPreset.java`: enum with resolution, palette resource, color count.
+3. ✅ **PixelGrid** — `PixelGrid.java`: permutation init (nearest-color histogram + shuffle), O(1) swap.
+4. ✅ **PixelFitnessEngine** — `PixelFitnessEngine.java`: O(1) swap delta, same scoring formula.
+5. ✅ **ClickerEngine** — Dual mode: triangle (original) + pixel (retro). Same API for both.
+6. ✅ **DashboardServer** — `?preset=gb_dmg` routes to pixel mode, resizes source automatically.
+7. ✅ **clicker.html** — 10 preset buttons (Classic + 9 retro) with info descriptions.
+8. ✅ **Unit tests** — 8 tests in `PixelModeTest.java` covering all new components.
 
 ### Phase 2: Integration
 
@@ -160,23 +161,26 @@ Create new palette resources:
 | `DashboardServer.java` | Handle `preset` param, pass to init |
 | `ClickerState.java` | `initEngine(..., String preset)` |
 | `ClickerEngine.java` | Branch: pixel mode vs triangle mode |
-| **New** `PixelGrid.java` | Pixel grid data structure |
-| **New** `PixelFitnessEngine.java` | O(1) swap delta for pixels |
-| **New** `RetroPreset.java` | Enum of presets |
-| **New** `gb_dmg.txt`, `gbc.txt`, `genesis.txt` | Palette files |
-| `clicker.html` | Preset selector UI |
+| **New** `PixelGrid.java` | ✅ Pixel grid data structure |
+| **New** `PixelFitnessEngine.java` | ✅ O(1) swap delta for pixels |
+| **New** `RetroPreset.java` | ✅ Enum of presets |
+| **New** `PaletteLoader.java` | ✅ Resource + algorithmic palette loading |
+| **New** `gb_dmg.txt`, `gb_gray.txt`, `gbc.txt`, `gbc_high.txt` | ✅ Palette files |
+| **New** `PixelModeTest.java` | ✅ 8 unit tests |
+| `clicker.html` | ✅ Preset selector UI |
 
 ---
 
 ## Effort Estimate
 
-| Phase | Effort | Risk |
-|-------|--------|------|
-| Phase 1 | Medium (3–5 days) | Low — isolated to clicker |
-| Phase 2 | Low (1–2 days) | Low |
-| Phase 3 | Low (1–2 days) | Low |
+| Phase | Effort | Risk | Status |
+|-------|--------|------|--------|
+| Phase 1 | Medium (3–5 days) | Low — isolated to clicker | ✅ Complete |
+| Phase 2 | Low (1–2 days) | Low | Pending |
+| Phase 3 | Low (1–2 days) | Low | Pending |
 
-**Total**: ~1–2 weeks for full implementation. Phase 1 alone delivers clicker retro mode.
+**Phase 1 complete.** Human testing can begin — run `clicker.bat`, pick an image, select
+a retro preset, and click Begin. All presets testable in browser.
 
 ---
 

@@ -55,6 +55,26 @@ Gamedev-designed sample tree with **iconic art** (Mona Lisa, Starry Night, Great
 
 25 samples (gradient_sunset, circles, checker, …) in category **Generated**. Kept for testing.
 
+## Retro Tree — Console-Specific (always available)
+
+10 samples in category **Retro**, each with a `recommendedPreset` linking to its home console:
+
+| ID | Name | Resolution | Home Preset |
+|----|------|-----------|-------------|
+| retro_gb_castle | GB Castle | 160×144 | gb_dmg |
+| retro_gb_hills | GB Hills | 160×144 | gb_gray |
+| retro_gbc_town | GBC Town | 160×144 | gbc |
+| retro_gbc_underwater | GBC Underwater | 160×144 | gbc |
+| retro_gen_skyline | Genesis Skyline | 320×224 | genesis_64 |
+| retro_gen_ruins | Genesis Ruins | 320×224 | genesis |
+| retro_gba_forest | GBA Forest | 240×160 | gba |
+| retro_gba_beach | GBA Beach | 240×160 | gba |
+| retro_snes_mountains | SNES Mountains | 256×224 | snes_256 |
+| retro_snes_village | SNES Village | 256×224 | snes |
+
+These appear in the "Retro Specials" section when the matching console tab is selected.
+Generated at native resolution using `Graphics2D` — no external files needed.
+
 ## Progress Tracking
 
 - **Best fitness** — highest fitness ever achieved on that sample
@@ -83,7 +103,7 @@ These stats are shown in the init picker and Sample Atlas (e.g. "5 plays | 2 asc
 
 ## UI
 
-- **Init overlay**: Sample picker grid below the drop zone. Locked samples show `???`. Unlocked show thumbnail, name, and stats. "My Images" section when custom uploads exist. Click to select, then Begin.
+- **Level select screen** (init overlay): Console tab bar (Classic / Game Boy / Genesis / GBA / SNES) at top. Each tab shows sub-preset buttons (e.g. DMG / Gray / Color / Color High for Game Boy), a "Retro Specials" grid of console-specific samples, and an "All Images" grid of universal samples. Thumbnails load with `?preset=X` to show quantized previews. Preview panel at bottom shows selected image rendered through the active preset. "Begin" button reflects the selected mode.
 - **Sample Atlas** (footer button): Full overlay with all samples. Shows unlock condition for locked, progress stats for played. Click unlocked sample to start a game with it.
 - **Gallery**: User-completed images (ascensions/masterpieces). Custom images have "Play again" for quick re-use. Separate from Atlas.
 
@@ -100,6 +120,7 @@ Good images reach **75–80%+ fitness** with the default palette (Sherwin-Willia
 - `saveCustomImageToGallery(BufferedImage)` — saves uploads to `~/.artevolver/clicker-uploads/` on first use
 - `GET /api/clicker/samples` — JSON with all samples, unlock status, progress stats
 - `GET /api/clicker/sample/{id}?thumb=1` — image (full or 120x78 thumbnail)
+- `GET /api/clicker/sample/{id}?preset=X&thumb=1` — quantized preview through a retro preset's palette
 - `GET /api/clicker/my-images` — list of stored custom images
 - `GET /api/clicker/my-image/{fingerprint}?thumb=1` — serve stored custom image
 - `POST /api/clicker/init?sample={id}` — start game with sample (bypasses fingerprint duplicate check); `sampleId=custom:{fingerprint}` for My Images

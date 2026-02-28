@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.*;
 import java.util.concurrent.Executors;
 import com.rndmodgames.evolver.clicker.ClickerState;
+import com.rndmodgames.evolver.clicker.PaletteLoader;
+import com.rndmodgames.evolver.clicker.PixelGrid;
+import com.rndmodgames.evolver.clicker.RetroPreset;
 import com.rndmodgames.evolver.clicker.SampleImageProvider;
 import java.net.URISyntaxException;
 
@@ -563,7 +566,43 @@ public class DashboardServer {
         if (def == null) { sendError(ex, 404); return; }
         BufferedImage img = SampleImageProvider.generate(id);
         String query = ex.getRequestURI().getQuery();
-        if (query != null && query.contains("thumb=1")) {
+        Map<String, String> params = parseQuery(query);
+
+        String presetId = params.get("preset");
+        if (presetId != null && !presetId.isEmpty()) {
+            RetroPreset preset = RetroPreset.fromId(presetId);
+            if (preset != null) {
+                Color[] palette = PaletteLoader.load(preset);
+                boolean isThumb = "1".equals(params.get("thumb"));
+                if (isThumb) {
+                    img = PixelGrid.quantize(img, palette, preset.getWidth(), preset.getHeight());
+                    int scale = Math.max(1, Math.min(120 / preset.getWidth(), 120 / preset.getHeight()));
+                    if (scale < 1) scale = 1;
+                    int tw = preset.getWidth() * scale, th = preset.getHeight() * scale;
+                    BufferedImage thumb = new BufferedImage(tw, th, BufferedImage.TYPE_INT_RGB);
+                    Graphics2D g = thumb.createGraphics();
+                    g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                            RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+                    g.drawImage(img, 0, 0, tw, th, null);
+                    g.dispose();
+                    img = thumb;
+                } else {
+                    img = PixelGrid.quantizeScaled(img, palette, preset.getWidth(), preset.getHeight());
+                }
+                ByteArrayOutputStream baos = new ByteArrayOutputStream(65536);
+                ImageIO.write(img, "png", baos);
+                byte[] data = baos.toByteArray();
+                ex.getResponseHeaders().set("Content-Type", "image/png");
+                ex.getResponseHeaders().set("Cache-Control", "max-age=300");
+                ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+                ex.sendResponseHeaders(200, data.length);
+                ex.getResponseBody().write(data);
+                ex.close();
+                return;
+            }
+        }
+
+        if ("1".equals(params.get("thumb"))) {
             int tw = 120, th = 78;
             BufferedImage thumb = new BufferedImage(tw, th, BufferedImage.TYPE_INT_ARGB);
             Graphics2D g = thumb.createGraphics();
@@ -580,6 +619,17 @@ public class DashboardServer {
         ex.sendResponseHeaders(200, data.length);
         ex.getResponseBody().write(data);
         ex.close();
+    }
+
+    private static Map<String, String> parseQuery(String query) {
+        Map<String, String> map = new java.util.HashMap<>();
+        if (query == null || query.isEmpty()) return map;
+        for (String pair : query.split("&")) {
+            int eq = pair.indexOf('=');
+            if (eq > 0) map.put(pair.substring(0, eq), pair.substring(eq + 1));
+            else map.put(pair, "");
+        }
+        return map;
     }
 
     private void handleClickerComplete(HttpExchange ex) throws IOException {
@@ -622,15 +672,15 @@ public class DashboardServer {
             return;
         }
 
-        byte[] jpeg = engine.getRenderedImageAsJpeg();
-        if (jpeg == null) { sendError(ex, 500); return; }
+        byte[] imgBytes = engine.getRenderedImageBytes();
+        if (imgBytes == null) { sendError(ex, 500); return; }
 
-        ex.getResponseHeaders().set("Content-Type", "image/jpeg");
+        ex.getResponseHeaders().set("Content-Type", engine.getImageContentType());
         ex.getResponseHeaders().set("ETag", Long.toHexString(engine.getJpegVersion()));
         ex.getResponseHeaders().set("Cache-Control", "no-cache");
         ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
-        ex.sendResponseHeaders(200, jpeg.length);
-        ex.getResponseBody().write(jpeg);
+        ex.sendResponseHeaders(200, imgBytes.length);
+        ex.getResponseBody().write(imgBytes);
         ex.close();
     }
 
@@ -640,11 +690,17 @@ public class DashboardServer {
         var engine = clickerState.getEngine();
         if (engine == null || engine.getReferenceImage() == null) { sendError(ex, 404); return; }
 
+        BufferedImage ref = engine.isPixelMode()
+                ? engine.getScaledReferenceImage()
+                : engine.getReferenceImage();
+        String fmt = engine.isPixelMode() ? "png" : "jpg";
+        String contentType = engine.isPixelMode() ? "image/png" : "image/jpeg";
+
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ImageIO.write(engine.getReferenceImage(), "jpg", baos);
+        ImageIO.write(ref, fmt, baos);
         byte[] data = baos.toByteArray();
 
-        ex.getResponseHeaders().set("Content-Type", "image/jpeg");
+        ex.getResponseHeaders().set("Content-Type", contentType);
         ex.getResponseHeaders().set("Cache-Control", "max-age=3600");
         ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
         ex.sendResponseHeaders(200, data.length);

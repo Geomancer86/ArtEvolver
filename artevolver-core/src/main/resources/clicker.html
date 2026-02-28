@@ -38,10 +38,37 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .init-overlay .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* Preset buttons */
+/* Console tab bar */
+.console-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:12px;width:100%;max-width:640px;justify-content:center}
+.console-tab{padding:10px 18px;background:none;border:none;border-bottom:3px solid transparent;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:.5px;white-space:nowrap}
+.console-tab:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.console-tab.active{border-bottom-color:var(--cyan);color:var(--cyan)}
+.console-tab[data-family="gb"].active{border-bottom-color:#9bbc0f;color:#9bbc0f}
+.console-tab[data-family="genesis"].active{border-bottom-color:#4488ff;color:#4488ff}
+.console-tab[data-family="gba"].active{border-bottom-color:#ff5555;color:#ff5555}
+.console-tab[data-family="snes"].active{border-bottom-color:#aa66ff;color:#aa66ff}
+
+/* Sub-preset buttons */
 .preset-btn{padding:6px 14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:12px;cursor:pointer;transition:all .2s}
 .preset-btn:hover{border-color:var(--cyan);color:var(--text)}
 .preset-btn.active{background:linear-gradient(135deg,var(--cyan),var(--purple));color:#000;border-color:transparent;font-weight:700}
+.sub-presets{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:0 0 12px}
+.sub-presets:empty{display:none}
+
+/* Level select content area */
+.ls-content{width:100%;max-width:640px;max-height:50vh;overflow-y:auto;padding:4px 0}
+.ls-section-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin:12px 0 6px;padding-left:4px}
+.ls-section-title:first-child{margin-top:0}
+
+/* Preview panel */
+.preview-panel{display:flex;align-items:center;gap:16px;width:100%;max-width:640px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;min-height:80px;margin-top:8px}
+.preview-panel.hidden{display:none}
+.preview-img{width:160px;height:auto;max-height:140px;border-radius:6px;border:1px solid var(--border);image-rendering:pixelated;object-fit:contain;background:#000;flex-shrink:0}
+.preview-info{flex:1;display:flex;flex-direction:column;gap:4px}
+.preview-name{font-size:15px;font-weight:700;color:var(--text)}
+.preview-desc{font-size:12px;color:var(--text2);line-height:1.4}
+.preview-specs{font-size:11px;color:var(--cyan);font-weight:600}
+.preview-placeholder{color:var(--text2);font-size:13px;text-align:center;width:100%}
 
 /* Drop zone for image upload (standalone mode) */
 .drop-zone{width:340px;min-height:160px;border:2px dashed var(--border);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:all .2s;padding:20px;text-align:center}
@@ -327,42 +354,49 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
 <div class="init-overlay" id="initOverlay">
   <h2>Evolution Clicker</h2>
-  <p>Evolve an image one swap at a time.
-     Each click attempts a random color swap between two nearby cells.
-     It might improve fitness &mdash; or miss entirely.
-     Choose Classic (triangles) or a retro console preset (pixels).
-     The grind is the game.</p>
-  <div class="drop-zone" id="dropZone">
-    <div class="drop-icon">&#x1F5BC;</div>
-    <div class="drop-text"><strong>Drop an image here</strong> or click to pick a file (JPG, PNG)</div>
-    <input type="file" id="fileInput" accept="image/*">
-    <img class="drop-preview" id="dropPreview" alt="Preview">
-    <div class="drop-name" id="dropName"></div>
+  <p>Pick your console, choose an image, and evolve it one swap at a time.</p>
+
+  <div class="console-tabs" id="consoleTabs">
+    <button class="console-tab active" data-family="classic" onclick="selectConsoleTab('classic')">Classic</button>
+    <button class="console-tab" data-family="gb" onclick="selectConsoleTab('gb')">Game Boy</button>
+    <button class="console-tab" data-family="genesis" onclick="selectConsoleTab('genesis')">Genesis</button>
+    <button class="console-tab" data-family="gba" onclick="selectConsoleTab('gba')">GBA</button>
+    <button class="console-tab" data-family="snes" onclick="selectConsoleTab('snes')">SNES</button>
   </div>
-  <div class="sample-section" id="myImagesSection" style="display:none">
-    <div class="sample-section-title">My Images (easy to find again)</div>
-    <div class="sample-grid" id="myImagesGrid"></div>
-  </div>
-  <div class="sample-section" id="sampleSection">
-    <div class="sample-section-title">Or pick a sample</div>
-    <div class="sample-grid" id="sampleGrid"></div>
-  </div>
-  <div class="preset-section" id="presetSection">
-    <div class="sample-section-title">Mode</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:4px 0 8px">
-      <button class="preset-btn active" data-preset="" onclick="selectPreset(this,'')">Triangle (Classic)</button>
-      <button class="preset-btn" data-preset="gb_dmg" onclick="selectPreset(this,'gb_dmg')">GB DMG</button>
-      <button class="preset-btn" data-preset="gb_gray" onclick="selectPreset(this,'gb_gray')">GB Gray</button>
-      <button class="preset-btn" data-preset="gbc" onclick="selectPreset(this,'gbc')">GBC</button>
-      <button class="preset-btn" data-preset="gbc_high" onclick="selectPreset(this,'gbc_high')">GBC High</button>
-      <button class="preset-btn" data-preset="genesis_64" onclick="selectPreset(this,'genesis_64')">Genesis 64</button>
-      <button class="preset-btn" data-preset="genesis" onclick="selectPreset(this,'genesis')">Genesis</button>
-      <button class="preset-btn" data-preset="gba" onclick="selectPreset(this,'gba')">GBA</button>
-      <button class="preset-btn" data-preset="snes_256" onclick="selectPreset(this,'snes_256')">SNES 256</button>
-      <button class="preset-btn" data-preset="snes" onclick="selectPreset(this,'snes')">SNES</button>
+
+  <div class="sub-presets" id="subPresets"></div>
+
+  <div class="ls-content" id="lsContent">
+    <div class="drop-zone" id="dropZone">
+      <div class="drop-icon">&#x1F5BC;</div>
+      <div class="drop-text"><strong>Drop an image here</strong> or click to pick a file (JPG, PNG)</div>
+      <input type="file" id="fileInput" accept="image/*">
+      <img class="drop-preview" id="dropPreview" alt="Preview">
+      <div class="drop-name" id="dropName"></div>
     </div>
-    <div class="preset-info" id="presetInfo" style="color:var(--text2);font-size:12px;text-align:center"></div>
+    <div id="myImagesSection" style="display:none">
+      <div class="ls-section-title">My Images</div>
+      <div class="sample-grid" id="myImagesGrid"></div>
+    </div>
+    <div id="retroSpecialsSection" style="display:none">
+      <div class="ls-section-title">Retro Specials</div>
+      <div class="sample-grid" id="retroSpecialsGrid"></div>
+    </div>
+    <div id="sampleSection">
+      <div class="ls-section-title">All Images</div>
+      <div class="sample-grid" id="sampleGrid"></div>
+    </div>
   </div>
+
+  <div class="preview-panel hidden" id="previewPanel">
+    <img class="preview-img" id="previewImg" alt="Preview">
+    <div class="preview-info">
+      <div class="preview-name" id="previewName"></div>
+      <div class="preview-desc" id="previewDesc"></div>
+      <div class="preview-specs" id="previewSpecs"></div>
+    </div>
+  </div>
+
   <button class="btn" id="initBtn" onclick="initClicker()">Begin</button>
   <div class="spinner" id="initSpinner" style="display:none"></div>
   <div class="error" id="initError"></div>
@@ -386,27 +420,127 @@ let lastEventCount = 0;
 let selectedSample = null;
 let samplesData = null;
 let selectedPreset = '';
+let selectedTab = 'classic';
+let previewCache = {};
 
-const PRESET_INFO = {
-  '':          'Classic triangle mosaic with Sherwin-Williams palette (1,535 colors)',
-  'gb_dmg':    'Game Boy DMG — 160×144, 4 green shades',
-  'gb_gray':   'Game Boy Grayscale — 160×144, 4 shades',
-  'gbc':       'Game Boy Color — 160×144, 32 colors',
-  'gbc_high':  'GBC High Color — 160×144, 56 colors (DKC style)',
-  'genesis_64':'Sega Genesis — 320×224, 64 on-screen colors',
-  'genesis':   'Sega Genesis — 320×224, 512 colors (full palette)',
-  'gba':       'Game Boy Advance — 240×160, 256 colors',
-  'snes_256':  'SNES Mode 1 — 256×224, 256 colors',
-  'snes':      'Super Nintendo — 256×224, 512 colors',
+const CONSOLE_FAMILIES = {
+  classic: { label: 'Classic', presets: [], defaultPreset: '' },
+  gb:      { label: 'Game Boy', presets: [
+    {id:'gb_dmg',  name:'DMG',       desc:'160\u00d7144, 4 green shades'},
+    {id:'gb_gray', name:'Gray',      desc:'160\u00d7144, 4 gray shades'},
+    {id:'gbc',     name:'Color',     desc:'160\u00d7144, 32 colors'},
+    {id:'gbc_high',name:'Color High',desc:'160\u00d7144, 56 colors (DKC)'}
+  ], defaultPreset: 'gbc' },
+  genesis: { label: 'Genesis', presets: [
+    {id:'genesis_64',name:'64 Colors',  desc:'320\u00d7224, 64 on-screen'},
+    {id:'genesis',   name:'Full 512',   desc:'320\u00d7224, 512-color palette'}
+  ], defaultPreset: 'genesis_64' },
+  gba:     { label: 'GBA', presets: [
+    {id:'gba',name:'256 Colors',desc:'240\u00d7160, 256 colors'}
+  ], defaultPreset: 'gba' },
+  snes:    { label: 'SNES', presets: [
+    {id:'snes_256',name:'Mode 1',  desc:'256\u00d7224, 256 colors'},
+    {id:'snes',    name:'Full 512',desc:'256\u00d7224, 512 colors'}
+  ], defaultPreset: 'snes_256' }
 };
 
-function selectPreset(btn, presetId) {
+const FAMILY_FOR_PRESET = {};
+Object.entries(CONSOLE_FAMILIES).forEach(([fam, cfg]) =>
+  cfg.presets.forEach(p => { FAMILY_FOR_PRESET[p.id] = fam; })
+);
+
+function selectConsoleTab(family) {
+  selectedTab = family;
+  const fam = CONSOLE_FAMILIES[family];
+  document.querySelectorAll('.console-tab').forEach(t => t.classList.toggle('active', t.dataset.family === family));
+  const subEl = document.getElementById('subPresets');
+  subEl.innerHTML = '';
+  if (fam.presets.length > 0) {
+    const defaultP = fam.defaultPreset || fam.presets[0].id;
+    fam.presets.forEach(p => {
+      const btn = document.createElement('button');
+      btn.className = 'preset-btn' + (p.id === defaultP ? ' active' : '');
+      btn.textContent = p.name;
+      btn.title = p.desc;
+      btn.onclick = () => selectSubPreset(p.id);
+      subEl.appendChild(btn);
+    });
+    selectSubPreset(defaultP, true);
+  } else {
+    selectedPreset = '';
+    updateBeginButton();
+  }
+  renderAllGrids();
+  updatePreview();
+}
+
+function selectSubPreset(presetId, skipRender) {
   selectedPreset = presetId;
-  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('presetInfo').textContent = PRESET_INFO[presetId] || '';
-  const label = presetId ? btn.textContent + ' Pixel Mode' : 'Triangle Mode';
-  document.getElementById('initBtn').textContent = 'Begin (' + label + ')';
+  document.querySelectorAll('#subPresets .preset-btn').forEach(b => {
+    const fam = CONSOLE_FAMILIES[selectedTab];
+    const match = fam && fam.presets.find(p => p.name === b.textContent);
+    b.classList.toggle('active', match && match.id === presetId);
+  });
+  updateBeginButton();
+  if (!skipRender) { renderAllGrids(); updatePreview(); }
+}
+
+function updateBeginButton() {
+  const btn = document.getElementById('initBtn');
+  if (selectedTab === 'classic') {
+    btn.textContent = selectedSample ? 'Begin (Classic Triangle)' : 'Begin';
+  } else {
+    const fam = CONSOLE_FAMILIES[selectedTab];
+    const preset = fam && fam.presets.find(p => p.id === selectedPreset);
+    btn.textContent = 'Begin (' + (preset ? preset.name + ' Pixel' : fam.label) + ' Mode)';
+  }
+}
+
+function selectImage(sampleId, name, desc) {
+  selectedSample = sampleId;
+  pendingFile = null;
+  document.getElementById('dropPreview').style.display = 'none';
+  document.getElementById('dropName').style.display = 'none';
+  document.querySelectorAll('.sample-card').forEach(c => c.classList.remove('selected'));
+  const card = document.querySelector('.sample-card[data-id="' + CSS.escape(sampleId) + '"]');
+  if (card) card.classList.add('selected');
+  updateBeginButton();
+  updatePreview(sampleId, name, desc);
+}
+
+function updatePreview(sampleId, name, desc) {
+  const panel = document.getElementById('previewPanel');
+  const id = sampleId || selectedSample;
+  if (!id) { panel.classList.add('hidden'); return; }
+  panel.classList.remove('hidden');
+  const nameEl = document.getElementById('previewName');
+  const descEl = document.getElementById('previewDesc');
+  const specsEl = document.getElementById('previewSpecs');
+  const imgEl = document.getElementById('previewImg');
+  nameEl.textContent = name || id;
+  descEl.textContent = desc || '';
+  if (selectedTab === 'classic') {
+    specsEl.textContent = 'Triangle mode \u2022 Sherwin-Williams palette';
+    imgEl.src = '/api/clicker/sample/' + encodeURIComponent(id) + '?thumb=1';
+  } else if (selectedPreset) {
+    const fam = CONSOLE_FAMILIES[selectedTab];
+    const preset = fam && fam.presets.find(p => p.id === selectedPreset);
+    specsEl.textContent = (preset ? preset.desc : '') + ' \u2022 Pixel mode';
+    const cacheKey = id + ':' + selectedPreset;
+    if (previewCache[cacheKey]) {
+      imgEl.src = previewCache[cacheKey];
+    } else {
+      const url = '/api/clicker/sample/' + encodeURIComponent(id) + '?preset=' + selectedPreset + '&thumb=1';
+      imgEl.src = url;
+      previewCache[cacheKey] = url;
+    }
+  }
+}
+
+function renderAllGrids() {
+  renderRetroSpecials();
+  renderSampleGrid();
+  renderMyImagesGrid();
 }
 let refreshTimer = null;
 let imageTimer = null;
@@ -1267,88 +1401,103 @@ async function loadSamples() {
     samplesData = await samplesRes.json();
     const myJson = await myRes.json();
     myImagesData = myJson.images || [];
-    renderSampleGrid();
-    renderMyImagesGrid();
+    selectConsoleTab('classic');
     const sec = document.getElementById('myImagesSection');
     if (sec) sec.style.display = myImagesData.length > 0 ? 'block' : 'none';
   } catch (e) {}
 }
 
-function renderMyImagesGrid() {
-  const grid = document.getElementById('myImagesGrid');
-  if (!grid || myImagesData.length === 0) return;
+function buildSampleCard(s, thumbUrl) {
+  const locked = !s.unlocked;
+  const card = document.createElement('div');
+  card.className = 'sample-card' + (locked ? ' locked' : '') + (selectedSample === s.id ? ' selected' : '');
+  card.dataset.id = s.id;
+  card.title = s.discovered ? s.desc : (s.unlockHint || ('Unlock: ' + s.unlockType + ' \u2265 ' + s.unlockValue));
+  const img = document.createElement('img');
+  const lockedSvg = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%232a2a40" width="100" height="100"/><text x="50" y="55" fill="%238888aa" font-size="24" text-anchor="middle">?</text></svg>';
+  img.src = !locked ? thumbUrl : lockedSvg;
+  img.alt = s.name;
+  img.loading = 'lazy';
+  const nameEl = document.createElement('div');
+  nameEl.className = 'sc-name';
+  nameEl.textContent = s.name;
+  const progEl = document.createElement('div');
+  progEl.className = 'sc-progress';
+  const parts = [];
+  if (s.completed) parts.push('\u2713 Done');
+  if (s.bestGain > 0) parts.push('+' + (s.bestGain * 100).toFixed(1) + '%');
+  if (s.playCount > 0) parts.push(s.playCount + ' play' + (s.playCount !== 1 ? 's' : ''));
+  if (s.ascensionsCount > 0) parts.push(s.ascensionsCount + ' asc');
+  if (s.bestFitness > 0) parts.push('max ' + (s.bestFitness * 100).toFixed(1) + '%');
+  progEl.textContent = parts.join(' | ') || '';
+  card.appendChild(img);
+  card.appendChild(nameEl);
+  card.appendChild(progEl);
+  if (!locked) {
+    card.onclick = () => selectImage(s.id, s.name, s.desc);
+  }
+  return card;
+}
+
+function thumbUrl(sampleId) {
+  const base = '/api/clicker/sample/' + encodeURIComponent(sampleId);
+  if (selectedTab !== 'classic' && selectedPreset) {
+    return base + '?preset=' + selectedPreset + '&thumb=1';
+  }
+  return base + '?thumb=1';
+}
+
+function renderRetroSpecials() {
+  const grid = document.getElementById('retroSpecialsGrid');
+  const section = document.getElementById('retroSpecialsSection');
+  if (!grid || !section) return;
   grid.innerHTML = '';
-  const baseUrl = window.location.origin || '';
-  myImagesData.forEach(img => {
-    const fp = img.fingerprint;
-    const id = 'custom:' + fp;
-    const card = document.createElement('div');
-    card.className = 'sample-card' + (selectedSample === id ? ' selected' : '');
-    card.title = 'Your uploaded image';
-    const imgEl = document.createElement('img');
-    imgEl.src = baseUrl + '/api/clicker/my-image/' + fp + '?thumb=1';
-    imgEl.alt = 'My image';
-    const nameEl = document.createElement('div');
-    nameEl.className = 'sc-name';
-    nameEl.textContent = 'My Image';
-    card.appendChild(imgEl);
-    card.appendChild(nameEl);
-    card.onclick = () => {
-      selectedSample = id;
-      pendingFile = null;
-      document.getElementById('dropPreview').style.display = 'none';
-      document.getElementById('dropName').style.display = 'none';
-      document.querySelectorAll('.sample-card').forEach(c => c.classList.remove('selected'));
-      document.querySelectorAll('#myImagesGrid .sample-card').forEach(c => c.classList.remove('selected'));
-      card.classList.add('selected');
-      document.getElementById('initBtn').textContent = 'Begin with My Image';
-      document.getElementById('initError').textContent = '';
-    };
-    grid.appendChild(card);
-  });
+  if (selectedTab === 'classic' || !samplesData || !samplesData.samples) {
+    section.style.display = 'none';
+    return;
+  }
+  const fam = CONSOLE_FAMILIES[selectedTab];
+  const familyPresetIds = new Set(fam.presets.map(p => p.id));
+  const retroSamples = samplesData.samples.filter(s =>
+    s.category === 'Retro' && s.recommendedPreset && (
+      familyPresetIds.has(s.recommendedPreset) ||
+      FAMILY_FOR_PRESET[s.recommendedPreset] === selectedTab
+    )
+  );
+  if (retroSamples.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  retroSamples.forEach(s => grid.appendChild(buildSampleCard(s, thumbUrl(s.id))));
 }
 
 function renderSampleGrid() {
   const grid = document.getElementById('sampleGrid');
   if (!grid || !samplesData || !samplesData.samples) return;
   grid.innerHTML = '';
-  const baseUrl = window.location.origin || 'http://localhost:' + (window.location.port || '80');
-  samplesData.samples.forEach(s => {
+  samplesData.samples.filter(s => s.category !== 'Retro').forEach(s => {
+    grid.appendChild(buildSampleCard(s, thumbUrl(s.id)));
+  });
+}
+
+function renderMyImagesGrid() {
+  const grid = document.getElementById('myImagesGrid');
+  if (!grid || myImagesData.length === 0) return;
+  grid.innerHTML = '';
+  myImagesData.forEach(img => {
+    const fp = img.fingerprint;
+    const id = 'custom:' + fp;
     const card = document.createElement('div');
-    card.className = 'sample-card' + (s.locked ? ' locked' : '') + (selectedSample === s.id ? ' selected' : '');
-    card.title = s.discovered ? s.desc : (s.unlockHint || ('Unlock: ' + s.unlockType + ' \u2265 ' + s.unlockValue));
-    const img = document.createElement('img');
-    img.src = s.unlocked ? baseUrl + '/api/clicker/sample/' + s.id + '?thumb=1' : 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%232a2a40" width="100" height="100"/><text x="50" y="55" fill="%238888aa" font-size="24" text-anchor="middle">?</text></svg>';
-    img.alt = s.name;
+    card.className = 'sample-card' + (selectedSample === id ? ' selected' : '');
+    card.dataset.id = id;
+    card.title = 'Your uploaded image';
+    const imgEl = document.createElement('img');
+    imgEl.src = '/api/clicker/my-image/' + fp + '?thumb=1';
+    imgEl.alt = 'My image';
     const nameEl = document.createElement('div');
     nameEl.className = 'sc-name';
-    nameEl.textContent = s.name;
-    const progEl = document.createElement('div');
-    progEl.className = 'sc-progress';
-    const parts = [];
-    if (s.completed) parts.push('\u2713 Done');
-    if (s.bestGain > 0) parts.push('+' + (s.bestGain * 100).toFixed(1) + '%');
-    if (s.playCount > 0) parts.push(s.playCount + ' play' + (s.playCount !== 1 ? 's' : ''));
-    if (s.ascensionsCount > 0) parts.push(s.ascensionsCount + ' asc');
-    if (s.bestFitness > 0) parts.push('max ' + (s.bestFitness * 100).toFixed(1) + '%');
-    progEl.textContent = parts.join(' | ') || '';
-    card.appendChild(img);
+    nameEl.textContent = 'My Image';
+    card.appendChild(imgEl);
     card.appendChild(nameEl);
-    card.appendChild(progEl);
-    if (!s.locked) {
-      card.onclick = () => {
-        selectedSample = s.id;
-        pendingFile = null;
-        document.getElementById('dropPreview').style.display = 'none';
-        document.getElementById('dropName').style.display = 'none';
-        document.querySelectorAll('.sample-card').forEach(c => c.classList.remove('selected'));
-        const mi = document.getElementById('myImagesGrid');
-        if (mi) mi.querySelectorAll('.sample-card').forEach(c => c.classList.remove('selected'));
-        card.classList.add('selected');
-        document.getElementById('initBtn').textContent = 'Begin with ' + s.name;
-        document.getElementById('initError').textContent = '';
-      };
-    }
+    card.onclick = () => selectImage(id, 'My Image', 'Your uploaded image');
     grid.appendChild(card);
   });
 }
@@ -1365,15 +1514,16 @@ async function openAtlas() {
     const baseUrl = window.location.origin || '';
     (data.samples || []).forEach(s => {
       const card = document.createElement('div');
-      card.className = 'atlas-card' + (s.locked ? ' locked' : ' unlocked') + (s.completed ? ' completed' : '');
+      const aLocked = !s.unlocked;
+      card.className = 'atlas-card' + (aLocked ? ' locked' : ' unlocked') + (s.completed ? ' completed' : '');
       const img = document.createElement('img');
       img.className = 'ac-img';
       img.src = s.discovered ? (baseUrl + '/api/clicker/sample/' + s.id + '?thumb=1') : 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140"><rect fill="%231a1a2e" width="140" height="140"/><text x="70" y="80" fill="%238888aa" font-size="32" text-anchor="middle">???</text></svg>';
       const info = document.createElement('div');
       info.className = 'ac-info';
       info.innerHTML = '<div class="ac-name">' + esc(s.name) + '</div><div class="ac-desc">' + esc(s.desc) + '</div>' +
-        (s.locked ? '<div class="ac-unlock">' + esc(s.unlockHint || (s.unlockType + ' \u2265 ' + s.unlockValue)) + '</div>' : '') +
-        (!s.locked && (s.bestGain > 0 || s.completed || s.playCount > 0) ? '<div class="ac-stats">' + (s.completed ? '\u2713 ' : '') + 'Best: +' + (s.bestGain * 100).toFixed(1) + '% | ' + s.playCount + ' play(s)' + (s.ascensionsCount > 0 ? ' | ' + s.ascensionsCount + ' asc' : '') + (s.bestFitness > 0 ? ' | max ' + (s.bestFitness * 100).toFixed(1) + '%' : '') + '</div>' : '');
+        (aLocked ? '<div class="ac-unlock">' + esc(s.unlockHint || (s.unlockType + ' \u2265 ' + s.unlockValue)) + '</div>' : '') +
+        (!aLocked && (s.bestGain > 0 || s.completed || s.playCount > 0) ? '<div class="ac-stats">' + (s.completed ? '\u2713 ' : '') + 'Best: +' + (s.bestGain * 100).toFixed(1) + '% | ' + s.playCount + ' play(s)' + (s.ascensionsCount > 0 ? ' | ' + s.ascensionsCount + ' asc' : '') + (s.bestFitness > 0 ? ' | max ' + (s.bestFitness * 100).toFixed(1) + '%' : '') + '</div>' : '');
       card.appendChild(img);
       card.appendChild(info);
       if (s.unlocked) {

@@ -172,7 +172,8 @@ class PixelModeTest {
 
         BufferedImage rendered = engine.getRenderedImage();
         assertNotNull(rendered);
-        assertEquals(160, rendered.getWidth());
-        assertEquals(144, rendered.getHeight());
+        int expectedScale = Math.max(1, 640 / 160);
+        assertEquals(160 * expectedScale, rendered.getWidth());
+        assertEquals(144 * expectedScale, rendered.getHeight());
     }
 }

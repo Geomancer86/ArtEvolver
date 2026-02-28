@@ -1,6 +1,8 @@
 package com.rndmodgames.evolver.clicker;
 
 import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.util.SplittableRandom;
 
@@ -31,6 +33,69 @@ public class PixelGrid {
     }
 
     /**
+     * Quantizes an image to the nearest palette colors and returns the result
+     * at native resolution. Useful for previews without starting a game.
+     */
+    public static BufferedImage quantize(BufferedImage source, Color[] palette, int targetW, int targetH) {
+        BufferedImage resized = source;
+        if (source.getWidth() != targetW || source.getHeight() != targetH) {
+            resized = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g = resized.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                               RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g.drawImage(source, 0, 0, targetW, targetH, null);
+            g.dispose();
+        }
+
+        int total = targetW * targetH;
+        int[] srcPixels = new int[total];
+        resized.getRGB(0, 0, targetW, targetH, srcPixels, 0, targetW);
+
+        int palSize = palette.length;
+        int[] palR = new int[palSize], palG = new int[palSize], palB = new int[palSize];
+        for (int c = 0; c < palSize; c++) {
+            palR[c] = palette[c].getRed();
+            palG[c] = palette[c].getGreen();
+            palB[c] = palette[c].getBlue();
+        }
+
+        int[] outPixels = new int[total];
+        for (int i = 0; i < total; i++) {
+            int r = (srcPixels[i] >> 16) & 0xff;
+            int g = (srcPixels[i] >> 8) & 0xff;
+            int b = srcPixels[i] & 0xff;
+            int bestIdx = 0, bestDist = Integer.MAX_VALUE;
+            for (int c = 0; c < palSize; c++) {
+                int dist = Math.abs(r - palR[c]) + Math.abs(g - palG[c]) + Math.abs(b - palB[c]);
+                if (dist < bestDist) { bestDist = dist; bestIdx = c; }
+            }
+            outPixels[i] = palette[bestIdx].getRGB();
+        }
+
+        BufferedImage out = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_RGB);
+        out.setRGB(0, 0, targetW, targetH, outPixels, 0, targetW);
+        return out;
+    }
+
+    /**
+     * Quantize and scale up for display. Uses the same scale factor as renderScaled().
+     */
+    public static BufferedImage quantizeScaled(BufferedImage source, Color[] palette, int targetW, int targetH) {
+        BufferedImage native_ = quantize(source, palette, targetW, targetH);
+        int scale = Math.max(1, 640 / targetW);
+        if (scale <= 1) return native_;
+
+        int sw = targetW * scale, sh = targetH * scale;
+        BufferedImage img = new BufferedImage(sw, sh, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = img.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                           RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        g.drawImage(native_, 0, 0, sw, sh, null);
+        g.dispose();
+        return img;
+    }
+
+    /**
      * Permutation init: compute nearest-color histogram from reference,
      * build the token pool, then shuffle it across the grid.
      */
@@ -39,7 +104,6 @@ public class PixelGrid {
         reference.getRGB(0, 0, width, height, refPixels, 0, width);
 
         int[] histogram = new int[paletteSize];
-        int[] idealAssignment = new int[totalPixels];
 
         int[] palR = new int[paletteSize];
         int[] palG = new int[paletteSize];
@@ -64,7 +128,6 @@ public class PixelGrid {
                     bestIdx = c;
                 }
             }
-            idealAssignment[i] = bestIdx;
             histogram[bestIdx]++;
         }
 
@@ -100,7 +163,7 @@ public class PixelGrid {
     public int[] getColorIndices() { return colorIndices; }
 
     /**
-     * Renders the current grid state into a BufferedImage.
+     * Renders the current grid state into a BufferedImage at native resolution.
      */
     public BufferedImage render() {
         BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
@@ -109,6 +172,34 @@ public class PixelGrid {
             pixels[i] = palette[colorIndices[i]].getRGB();
         }
         img.setRGB(0, 0, width, height, pixels, 0, width);
+        return img;
+    }
+
+    /**
+     * Renders at integer scale (nearest-neighbor) so each retro pixel becomes
+     * a visible block. Scale is chosen so the output is ~600-800px wide.
+     */
+    public BufferedImage renderScaled() {
+        int scale = Math.max(1, 640 / width);
+        if (scale <= 1) return render();
+
+        int sw = width * scale;
+        int sh = height * scale;
+        BufferedImage img = new BufferedImage(sw, sh, BufferedImage.TYPE_INT_RGB);
+        int[] scaledPixels = new int[sw * sh];
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int rgb = palette[colorIndices[y * width + x]].getRGB();
+                for (int dy = 0; dy < scale; dy++) {
+                    int row = (y * scale + dy) * sw;
+                    for (int dx = 0; dx < scale; dx++) {
+                        scaledPixels[row + x * scale + dx] = rgb;
+                    }
+                }
+            }
+        }
+        img.setRGB(0, 0, sw, sh, scaledPixels, 0, sw);
         return img;
     }
 

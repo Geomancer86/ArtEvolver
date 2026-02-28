@@ -145,11 +145,13 @@ Create new palette resources:
 8. **ArtEvolver** — Add retro preset to sidebar (optional).
 9. **Tournament** — Support retro presets in EvolutionConfig (optional).
 
-### Phase 3: Polish
+### Phase 3: Polish (Retro Gallery — ✅ IMPLEMENTED)
 
-10. **Palette files** — Create gb_dmg.txt, gbc.txt, genesis.txt.
-11. **Sample images** — Add retro-style samples to Sample Atlas.
-12. **Export** — Optional 1:1 pixel export (no scaling) for retro presets.
+10. ✅ **Level select UI** — Console tab bar (Classic/GB/Genesis/GBA/SNES), sub-preset buttons, preview panel with quantized thumbnails.
+11. ✅ **Retro samples** — 10 console-specific programmatic samples (2 per family) in new "Retro" category with `recommendedPreset` field.
+12. ✅ **Preview endpoint** — `GET /api/clicker/sample/{id}?preset=X` quantizes any image through a console palette. `PixelGrid.quantize()` / `quantizeScaled()` static utilities.
+13. ✅ **RetroPreset.family** — Family grouping field for tab organization.
+14. **Export** — Optional 1:1 pixel export (no scaling) for retro presets.
 
 ---
 
@@ -176,11 +178,12 @@ Create new palette resources:
 | Phase | Effort | Risk | Status |
 |-------|--------|------|--------|
 | Phase 1 | Medium (3–5 days) | Low — isolated to clicker | ✅ Complete |
+| Phase 3 | Medium (2–3 days) | Low — UI + samples | ✅ Complete |
 | Phase 2 | Low (1–2 days) | Low | Pending |
-| Phase 3 | Low (1–2 days) | Low | Pending |
 
-**Phase 1 complete.** Human testing can begin — run `clicker.bat`, pick an image, select
-a retro preset, and click Begin. All presets testable in browser.
+**Phases 1 & 3 complete.** Full level-select UI with console tabs, retro sample gallery,
+and preview endpoint live. Human testing: run `clicker.bat`, pick a console tab,
+browse images with quantized previews, and click Begin.
 
 ---
 

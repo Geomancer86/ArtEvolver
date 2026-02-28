@@ -1107,7 +1107,9 @@ public class ClickerState {
             sb.append("\"ascensionsCount\":").append(prog != null ? prog.ascensionsCount() : 0).append(",");
             sb.append("\"totalPlayTimeMs\":").append(prog != null ? prog.totalPlayTimeMs() : 0).append(",");
             sb.append("\"totalClicks\":").append(prog != null ? prog.totalClicks() : 0).append(",");
-            sb.append("\"completed\":").append(prog != null && prog.completed()).append("}");
+            sb.append("\"completed\":").append(prog != null && prog.completed()).append(",");
+            sb.append("\"recommendedPreset\":").append(d.recommendedPreset() != null
+                    ? "\"" + d.recommendedPreset() + "\"" : "null").append("}");
             if (i < defs.size() - 1) sb.append(",");
         }
         sb.append("]}");

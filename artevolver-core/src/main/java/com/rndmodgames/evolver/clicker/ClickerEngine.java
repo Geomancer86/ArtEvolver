@@ -314,7 +314,7 @@ public class ClickerEngine {
     }
 
     private void renderPixels() {
-        renderedImage = pixelGrid.render();
+        renderedImage = pixelGrid.renderScaled();
         cachedJpeg = null;
     }
 
@@ -341,26 +341,41 @@ public class ClickerEngine {
         cachedJpeg = null;
     }
 
-    public synchronized byte[] getRenderedImageAsJpeg() {
+    public synchronized byte[] getRenderedImageBytes() {
         if (!initialized) return null;
         getRenderedImage();
         if (cachedJpeg == null) {
             try {
-                BufferedImage rgb = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_RGB);
-                Graphics2D g = rgb.createGraphics();
-                g.drawImage(renderedImage, 0, 0, null);
-                g.dispose();
-
                 ByteArrayOutputStream baos = new ByteArrayOutputStream(32768);
-                ImageIO.write(rgb, "jpg", baos);
+                if (pixelMode) {
+                    ImageIO.write(renderedImage, "png", baos);
+                } else {
+                    BufferedImage rgb = new BufferedImage(
+                            renderedImage.getWidth(), renderedImage.getHeight(),
+                            BufferedImage.TYPE_INT_RGB);
+                    Graphics2D g = rgb.createGraphics();
+                    g.drawImage(renderedImage, 0, 0, null);
+                    g.dispose();
+                    ImageIO.write(rgb, "jpg", baos);
+                }
                 cachedJpeg = baos.toByteArray();
                 jpegVersion++;
             } catch (IOException e) {
-                System.err.println("[ClickerEngine] JPEG encoding failed: " + e.getMessage());
+                System.err.println("[ClickerEngine] image encoding failed: " + e.getMessage());
                 return null;
             }
         }
         return cachedJpeg;
+    }
+
+    /** @deprecated Use {@link #getRenderedImageBytes()} instead. */
+    @Deprecated
+    public synchronized byte[] getRenderedImageAsJpeg() {
+        return getRenderedImageBytes();
+    }
+
+    public String getImageContentType() {
+        return pixelMode ? "image/png" : "image/jpeg";
     }
 
     public synchronized byte[] generateThumbnail(int maxDim) {
@@ -374,12 +389,15 @@ public class ClickerEngine {
         int th = Math.max(1, (int) (h * s));
         BufferedImage thumb = new BufferedImage(tw, th, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = thumb.createGraphics();
-        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                pixelMode ? RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR
+                          : RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         g.drawImage(full, 0, 0, tw, th, null);
         g.dispose();
         try {
+            String fmt = pixelMode ? "png" : "jpg";
             ByteArrayOutputStream baos = new ByteArrayOutputStream(4096);
-            ImageIO.write(thumb, "jpg", baos);
+            ImageIO.write(thumb, fmt, baos);
             return baos.toByteArray();
         } catch (IOException e) {
             return null;
@@ -416,6 +434,26 @@ public class ClickerEngine {
     public int getLongestHitStreak() { return longestHitStreak; }
 
     public BufferedImage getReferenceImage() { return referenceImage; }
+
+    /**
+     * Returns the reference image scaled to match the rendered output size.
+     * For pixel mode, applies the same integer scale as renderScaled().
+     */
+    public BufferedImage getScaledReferenceImage() {
+        if (referenceImage == null) return null;
+        if (!pixelMode) return referenceImage;
+        int scale = Math.max(1, 640 / imageWidth);
+        if (scale <= 1) return referenceImage;
+        int sw = imageWidth * scale;
+        int sh = imageHeight * scale;
+        BufferedImage scaled = new BufferedImage(sw, sh, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = scaled.createGraphics();
+        g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                           java.awt.RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        g.drawImage(referenceImage, 0, 0, sw, sh, null);
+        g.dispose();
+        return scaled;
+    }
 
     /**
      * Result of a single click. Contains everything the game layer needs.

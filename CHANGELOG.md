@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] (3.3.0-SNAPSHOT)
 
+### Added — Retro Gallery Level Select (Phase 3: UI)
+
+- **Level select screen**: Console tab bar (Classic / Game Boy / Genesis / GBA / SNES) replaces flat preset buttons. Each tab shows sub-preset variants, "Retro Specials" grid, and "All Images" grid.
+- **Preview panel**: Selecting an image shows a large quantized preview rendered through the active console's palette with resolution/color info.
+- **Preset-aware thumbnails**: `GET /api/clicker/sample/{id}?preset=X&thumb=1` returns images quantized and scaled for any retro preset. Thumbnails update live when switching console tabs.
+- **`PixelGrid.quantize()` / `quantizeScaled()`**: Static utility methods for nearest-color quantization and display scaling. Shared by preview endpoint and game init.
+- **10 retro samples**: Console-specific programmatic samples in "Retro" category — GB Castle, GB Hills, GBC Town, GBC Underwater, Genesis Skyline, Genesis Ruins, GBA Forest, GBA Beach, SNES Mountains, SNES Village. Generated at native resolution.
+- **`SampleDef.recommendedPreset`**: Links retro samples to their home console for the Retro Specials section.
+- **`RetroPreset.family`**: Groups presets into console families (gb, genesis, gba, snes) for tab organization.
+- **Pixel mode rendering fixes**: Images now render at 4x scale via `PixelGrid.renderScaled()`, encoded as PNG (not JPEG) for crisp pixel art. Reference images also scaled up.
+
 ### Added — Retro Console Mode (Phase 1: Clicker)
 
 - **Retro presets**: GB DMG (160×144, 4 colors), GB Gray, GBC (32), GBC High (56), GBA (240×160, 256), Genesis 64, Genesis (320×224, 512), SNES 256, SNES (256×224, 512).

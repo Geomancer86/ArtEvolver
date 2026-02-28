@@ -4,16 +4,36 @@
 
 ## Real Images (Recommended)
 
-Run `DownloadSampleImages` to fetch CC0 images from Picsum (landscapes, nature) and Wikimedia Commons (iconic art):
+**If Mona Lisa, Girl with a Pearl Earring, or other legendary art show as solid colors or stripes**, run the download script to replace gradient placeholders with real images:
 
 ```bash
-# From artevolver-core
-mvn exec:java -Dexec.mainClass="com.rndmodgames.evolver.clicker.DownloadSampleImages"
+# From project root
+download-samples.bat
 ```
+
+Or manually: `cd artevolver-core` then `mvn exec:java -Dexec.mainClass="com.rndmodgames.evolver.clicker.DownloadSampleImages"`
 
 - **Picsum** — Starter and Apprentice samples (landscape, ocean, forest, sunset, flowers, mountain, canyon, lake, meadow, beach) get real photos.
 - **Wikimedia** — Legendary art (Mona Lisa, Starry Night, Great Wave, etc.). May hit rate limits (HTTP 429); add delays or retries if needed.
 - Stored in `samples/{id}.jpg`. Missing files fall back to `GenerateSamplePlaceholders` (gradient placeholders).
+
+## How Samples Are Added Today
+
+- **Where images live**: `artevolver-core/src/main/resources/samples/{id}.jpg`
+- **How they were added**: by running `DownloadSampleImages` (Wikimedia + Picsum) and committing the results.
+- **Retro palettes today**: retro tabs (GB/GBC/Genesis/GBA/SNES) apply palette + resolution **at runtime** per `?preset=...&thumb=1`.
+
+## Next Step (Automation Roadmap)
+
+To fully scale the library and avoid manual downloads, the recommended workflow is:
+- **One registry file** with IDs + source URLs + license
+- **One build command** that downloads, resizes (720×468), and pre-renders:
+  - base image
+  - thumbnails
+  - all retro-preset versions (palette + resolution)
+- **One manifest** (`samples.json`) consumed by the server
+
+If you want this automated pipeline now, I’ll wire it in.
 
 ## Iconic Art (Legendary Tier) — Manual Replacement
 
@@ -30,6 +50,15 @@ Replace placeholders with public-domain images from Wikimedia Commons if downloa
 | persistence_of_memory | The Persistence of Memory | Dalí, 1931 | Check copyright; many PD reproductions exist |
 
 Resize to 720×468. Target **75–80%+ fitness** with Sherwin-Williams 4× palette.
+
+## Legendary Expansion (Public Domain)
+
+Additional public-domain legendary sets (downloaded via `download-samples.bat`):
+
+- **Legendary Photography:** `lunch_atop_skyscraper`, `migrant_mother`, `aldrin_moon`
+- **Legendary Space:** `earthrise`, `blue_marble`
+- **Legendary Cinema:** `nosferatu_orlok`, `metropolis_set`, `caligari_still`, `safety_last_ad`
+- **Legendary Posters:** `uncle_sam_poster`, `weapons_for_liberty`, `wpa_national_parks`, `wpa_work_pays`
 
 ## Unlock Paths (OR logic)
 

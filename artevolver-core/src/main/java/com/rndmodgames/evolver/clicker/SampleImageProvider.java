@@ -114,6 +114,37 @@ public final class SampleImageProvider {
         DEFS.add(new SampleDef("persistence_of_memory", "Persistence of Memory", "Dalí, 1931. Surrealist icon.",
                 "gf", 100, "masterpieces", 10, "Legendary", false, 46));
 
+        // LEGENDARY — Expanded: photography, cinema, space, posters (public domain)
+        DEFS.add(new SampleDef("lunch_atop_skyscraper", "Lunch Atop a Skyscraper", "New York, 1932. Public domain photo.",
+                "masterpieces", 4, "ascensions", 8, "Legendary Photography", false, 47));
+        DEFS.add(new SampleDef("migrant_mother", "Migrant Mother", "Dorothea Lange, 1936. Public domain photo.",
+                "masterpieces", 6, "clicks", 120000, "Legendary Photography", false, 48));
+        DEFS.add(new SampleDef("aldrin_moon", "Aldrin on the Moon", "Apollo 11, 1969. NASA public domain.",
+                "gf", 60, "masterpieces", 5, "Legendary Photography", false, 49));
+
+        DEFS.add(new SampleDef("earthrise", "Earthrise", "Apollo 8, 1968. NASA public domain.",
+                "gf", 80, "masterpieces", 7, "Legendary Space", false, 50));
+        DEFS.add(new SampleDef("blue_marble", "The Blue Marble", "Apollo 17, 1972. NASA public domain.",
+                "gf", 100, "ascensions", 12, "Legendary Space", false, 51));
+
+        DEFS.add(new SampleDef("nosferatu_orlok", "Nosferatu", "F.W. Murnau, 1922. Public domain film still.",
+                "ascensions", 8, "masterpieces", 6, "Legendary Cinema", false, 52));
+        DEFS.add(new SampleDef("metropolis_set", "Metropolis", "Fritz Lang, 1927. Public domain set photo.",
+                "ascensions", 10, "ep", 120000, "Legendary Cinema", false, 53));
+        DEFS.add(new SampleDef("caligari_still", "Dr. Caligari", "1920. Public domain film still.",
+                "masterpieces", 7, "clicks", 150000, "Legendary Cinema", false, 54));
+        DEFS.add(new SampleDef("safety_last_ad", "Safety Last!", "Harold Lloyd, 1923. Public domain promo.",
+                "ep", 100000, "masterpieces", 5, "Legendary Cinema", false, 55));
+
+        DEFS.add(new SampleDef("uncle_sam_poster", "Uncle Sam Wants You", "James M. Flagg, 1917. Public domain poster.",
+                "ep", 120000, "clicks", 200000, "Legendary Posters", false, 56));
+        DEFS.add(new SampleDef("weapons_for_liberty", "Weapons for Liberty", "J.C. Leyendecker, 1918. Public domain poster.",
+                "gf", 50, "ep", 140000, "Legendary Posters", false, 57));
+        DEFS.add(new SampleDef("wpa_national_parks", "National Parks Preserve Wildlife", "WPA poster, c.1938. Public domain.",
+                "ascensions", 6, "masterpieces", 4, "Legendary Posters", false, 58));
+        DEFS.add(new SampleDef("wpa_work_pays", "Work Pays America", "WPA poster, 1930s. Public domain.",
+                "ep", 90000, "clicks", 160000, "Legendary Posters", false, 59));
+
         // SECRET — Kojima: subversion, suffering, discovery
         DEFS.add(new SampleDef("secret_suffer", "???", "You endured.",
                 "miss_streak", 20, "clicks", 100000, "Secret", true, 50));

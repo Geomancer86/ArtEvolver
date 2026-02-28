@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] (3.3.0-SNAPSHOT)
 
+### Added — Save & Quit
+
+- **Save & Quit buttons**: When ascending or completing a masterpiece, a "Save & Quit" button is now available next to "New Canvas" (completion overlay) and "Begin" (init overlay). Saves progress with play time accumulated, then opens the profile selector so you can switch profiles or close the tab.
+- **Progress saved toast**: A brief "Progress saved" notification appears when Save & Quit succeeds.
+
+### Changed — Play Time Calculation
+
+- **Accurate play time**: Play time is now accumulated per tick with a 60s cap per tick (avoids huge jumps when the tab was closed for hours). Idle/background time is no longer counted.
+- **Lifetime play time**: `lifetimeTotalPlayTimeMs` accumulates across ascensions and masterpiece completions. Profile display shows total = lifetime + current run.
+- **Save with quit**: `POST /api/clicker/save?quit=1` accumulates current run into lifetime before saving — use when closing mid-session.
+
 ### Added — Player Profiles & Persistent Save System
 
 - **Multi-profile support**: Multiple players can share one device, each with fully independent progress. Profiles stored as JSON in `~/.artevolver/profiles/`.

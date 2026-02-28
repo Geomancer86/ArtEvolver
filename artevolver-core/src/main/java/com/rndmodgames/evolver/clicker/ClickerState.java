@@ -44,7 +44,10 @@ public class ClickerState {
     private long totalClicks = 0;
     private long totalUpgradesBought = 0;
     private long gameStartMs = System.currentTimeMillis();
+    private long lastTickMs = System.currentTimeMillis();
     private long totalPlayTimeMs = 0;
+    private long lifetimeTotalPlayTimeMs = 0;
+    private static final long TICK_PLAY_TIME_CAP_MS = 60_000;
     private int ascensionCount = 0;
     private int totalAchievementsUnlocked = 0;
 
@@ -466,6 +469,7 @@ public class ClickerState {
         totalClicks = 0;
         totalUpgradesBought = 0;
         gameStartMs = System.currentTimeMillis();
+        lastTickMs = gameStartMs;
         totalPlayTimeMs = 0;
         totalAchievementsUnlocked = 0;
         epPerSecond = 0;
@@ -533,6 +537,7 @@ public class ClickerState {
         totalClicks = 0;
         totalUpgradesBought = 0;
         gameStartMs = System.currentTimeMillis();
+        lastTickMs = gameStartMs;
         totalPlayTimeMs = 0;
         totalAchievementsUnlocked = 0;
         epPerSecond = 0;
@@ -583,10 +588,17 @@ public class ClickerState {
     //  GAME TICK — called every ~1 second from /api/clicker/state
     // ════════════════════════════════════════════════════════════════
 
+    /**
+     * Play time: accumulated only when tick runs (client polls ~1s).
+     * Cap at 60s per tick so idle/closed tab doesn't inflate.
+     * totalPlayTimeMs = current run; lifetimeTotalPlayTimeMs = across all runs.
+     */
     public List<String> tick() {
         List<String> notifications = new ArrayList<>();
         long now = System.currentTimeMillis();
-        totalPlayTimeMs = now - gameStartMs;
+        long delta = Math.min(now - lastTickMs, TICK_PLAY_TIME_CAP_MS);
+        totalPlayTimeMs += delta;
+        lastTickMs = now;
 
         computeEpPerSecond();
         addEp(epPerSecond);
@@ -859,6 +871,7 @@ public class ClickerState {
         double reward = calcPrestigeReward();
         if (reward < 1) return false;
 
+        lifetimeTotalPlayTimeMs += totalPlayTimeMs;
         saveGallerySnapshot(true);
 
         gf += reward;
@@ -867,6 +880,9 @@ public class ClickerState {
         totalEpEarned = 0;
         mc = 0;
         totalClicks = 0;
+        totalPlayTimeMs = 0;
+        gameStartMs = System.currentTimeMillis();
+        lastTickMs = gameStartMs;
         totalAchievementsUnlocked = 0;
         autoClickAccumulator = 0;
         activeEvents.clear();
@@ -909,6 +925,7 @@ public class ClickerState {
         double fitness = engine.getFitness();
         if (fitness < MASTERPIECE_MIN_FITNESS) return null;
 
+        lifetimeTotalPlayTimeMs += totalPlayTimeMs;
         saveGallerySnapshot();
 
         double gfReward = Math.floor(fitness * 50 + completedImages * 5);
@@ -924,6 +941,9 @@ public class ClickerState {
         totalEpEarned = 0;
         mc = 0;
         totalClicks = 0;
+        totalPlayTimeMs = 0;
+        gameStartMs = System.currentTimeMillis();
+        lastTickMs = gameStartMs;
         totalUpgradesBought = 0;
         totalAchievementsUnlocked = 0;
         epPerSecond = 0;
@@ -945,6 +965,14 @@ public class ClickerState {
 
     public int getCompletedImages() { return completedImages; }
     public double getBestCompletionFitness() { return bestCompletionFitness; }
+
+    /** Call before save when user clicks "Save & Quit" — adds current run to lifetime. */
+    public void accumulatePlayTimeForQuit() {
+        lifetimeTotalPlayTimeMs += totalPlayTimeMs;
+        totalPlayTimeMs = 0;
+        gameStartMs = System.currentTimeMillis();
+        lastTickMs = gameStartMs;
+    }
 
     // ════════════════════════════════════════════════════════════════
     //  GALLERY — every evolved image is preserved
@@ -1311,6 +1339,7 @@ public class ClickerState {
         sb.append("\"totalClicks\":").append(totalClicks).append(",\n");
         sb.append("\"totalUpgradesBought\":").append(totalUpgradesBought).append(",\n");
         sb.append("\"totalPlayTimeMs\":").append(totalPlayTimeMs).append(",\n");
+        sb.append("\"lifetimeTotalPlayTimeMs\":").append(lifetimeTotalPlayTimeMs).append(",\n");
         sb.append("\"ascensionCount\":").append(ascensionCount).append(",\n");
         sb.append("\"completedImages\":").append(completedImages).append(",\n");
         sb.append("\"bestCompletionFitness\":").append(bestCompletionFitness).append(",\n");
@@ -1408,6 +1437,7 @@ public class ClickerState {
         totalClicks = readLong(json, "totalClicks", 0);
         totalUpgradesBought = readLong(json, "totalUpgradesBought", 0);
         totalPlayTimeMs = readLong(json, "totalPlayTimeMs", 0);
+        lifetimeTotalPlayTimeMs = readLong(json, "lifetimeTotalPlayTimeMs", 0);
         ascensionCount = (int) readLong(json, "ascensionCount", 0);
         completedImages = (int) readLong(json, "completedImages", 0);
         bestCompletionFitness = readDouble(json, "bestCompletionFitness", 0);
@@ -1808,6 +1838,8 @@ public class ClickerState {
     public double getGf() { return gf; }
     public double getEpPerSecond() { return epPerSecond; }
     public long getTotalClicks() { return totalClicks; }
+    public long getTotalPlayTimeMs() { return totalPlayTimeMs; }
+    public long getLifetimeTotalPlayTimeMs() { return lifetimeTotalPlayTimeMs; }
     public int getAscensionCount() { return ascensionCount; }
     public int getTotalAchievementsUnlocked() { return totalAchievementsUnlocked; }
     public List<ActiveEvent> getActiveEvents() { return Collections.unmodifiableList(activeEvents); }

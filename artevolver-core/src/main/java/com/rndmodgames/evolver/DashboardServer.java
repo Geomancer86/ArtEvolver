@@ -1142,7 +1142,15 @@ public class DashboardServer {
             }
             String json = profileManager.load(name);
             if (json != null && !json.equals("{}")) {
-                sb.append(",\"totalPlayTimeMs\":").append(ClickerState.readLong(json, "totalPlayTimeMs", 0));
+                long playTime;
+                if (name.equals(activeProfileName) && clickerState != null) {
+                    playTime = clickerState.getLifetimeTotalPlayTimeMs() + clickerState.getTotalPlayTimeMs();
+                } else {
+                    long lifetime = ClickerState.readLong(json, "lifetimeTotalPlayTimeMs", 0);
+                    long current = ClickerState.readLong(json, "totalPlayTimeMs", 0);
+                    playTime = lifetime + current;
+                }
+                sb.append(",\"totalPlayTimeMs\":").append(playTime);
                 sb.append(",\"lifetimeClicks\":").append(ClickerState.readLong(json, "lifetimeClicks", 0));
                 sb.append(",\"lifetimeEpEarned\":").append(ClickerState.readDouble(json, "lifetimeEpEarned", 0));
                 sb.append(",\"ascensionCount\":").append(ClickerState.readLong(json, "ascensionCount", 0));
@@ -1227,6 +1235,10 @@ public class DashboardServer {
         if (activeProfileName == null) {
             sendJson(ex, "{\"success\":false,\"reason\":\"no_profile\"}");
             return;
+        }
+        Map<String, String> params = parseQuery(ex.getRequestURI().getQuery());
+        if ("1".equals(params.get("quit")) || "true".equals(params.get("quit"))) {
+            clickerState.accumulatePlayTimeForQuit();
         }
         boolean ok = autoSaveCurrentProfile();
         sendJson(ex, "{\"success\":" + ok + ",\"profile\":" + jsonStr(activeProfileName) + "}");

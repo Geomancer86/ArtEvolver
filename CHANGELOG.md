@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] (3.3.0-SNAPSHOT)
 
+### Added — Player Profiles & Persistent Save System
+
+- **Multi-profile support**: Multiple players can share one device, each with fully independent progress. Profiles stored as JSON in `~/.artevolver/profiles/`.
+- **ProfileManager**: File-based profile CRUD with atomic writes (write-to-tmp + rename), sanitized filenames, auto-creation of default "Player" profile.
+- **Full state serialization**: `ClickerState.toSaveJson()` / `loadFromSaveJson()` — saves all currencies (EP, MC, GF), upgrade levels, achievements, gallery entries (with thumbnails), sample progress, discovered samples, lifetime stats, prestige/masterpiece counts, used image fingerprints.
+- **Auto-save**: Progress saved automatically every 60 seconds, on prestige, masterpiece completion, and profile switch. No manual save needed — Sakaguchi rule: never lose player investment.
+- **Profile selector UI**: Full-screen overlay shown on first launch, styled like a classic save file picker (Miyamoto). Each card shows play time, clicks, masterpieces, ascensions, achievements, gallery entries, GF, and lifetime EP.
+- **Profile switching**: Footer "Profile" button saves and switches profiles mid-session. Delete profiles with confirmation (cannot delete active profile).
+- **API endpoints**: `GET /api/clicker/profiles`, `POST /api/clicker/profile/select`, `POST /api/clicker/profile/create`, `POST /api/clicker/profile/delete`, `POST /api/clicker/save`.
+- **Profile name in state**: `profileName` field included in `/api/clicker/state` response for UI display.
+- **3 new unit tests**: Save/load round-trip, data integrity, ProfileManager sanitization.
+
 ### Added — Retro Gallery Level Select (Phase 3: UI)
 
 - **Level select screen**: Console tab bar (Classic / Game Boy / Genesis / GBA / SNES) replaces flat preset buttons. Each tab shows sub-preset variants, "Retro Specials" grid, and "All Images" grid.

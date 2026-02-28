@@ -19,6 +19,7 @@ import java.util.concurrent.Executors;
 import com.rndmodgames.evolver.clicker.ClickerState;
 import com.rndmodgames.evolver.clicker.PaletteLoader;
 import com.rndmodgames.evolver.clicker.PixelGrid;
+import com.rndmodgames.evolver.clicker.ProfileManager;
 import com.rndmodgames.evolver.clicker.RetroPreset;
 import com.rndmodgames.evolver.clicker.SampleImageProvider;
 import java.net.URISyntaxException;
@@ -43,8 +44,12 @@ public class DashboardServer {
     private final ArtEvolver artEvolver;
     private final List<TournamentContestant> contestants;
     private final TournamentManagerWindow managerWindow;
-    private final ClickerState clickerState = new ClickerState();
+    private ClickerState clickerState = new ClickerState();
     private final boolean standaloneMode;
+    private final ProfileManager profileManager = new ProfileManager();
+    private volatile String activeProfileName;
+    private volatile long lastAutoSaveMs = 0;
+    private static final long AUTO_SAVE_INTERVAL_MS = 60_000;
 
     // Standalone mode: image uploaded via browser
     // Defaults match the full app's QUALITY_MODE_FULL_THREADS preset (720x468 canvas)
@@ -103,13 +108,20 @@ public class DashboardServer {
         server.createContext("/api/clicker/my-image/", this::handleClickerMyImage);
         server.createContext("/api/clicker/image", this::handleClickerImage);
         server.createContext("/api/clicker/reference", this::handleClickerReference);
+        server.createContext("/api/clicker/profiles", this::handleProfiles);
+        server.createContext("/api/clicker/profile/select", this::handleProfileSelect);
+        server.createContext("/api/clicker/profile/create", this::handleProfileCreate);
+        server.createContext("/api/clicker/profile/delete", this::handleProfileDelete);
+        server.createContext("/api/clicker/save", this::handleSave);
         server.createContext("/api/image/", this::handleImage);
         server.createContext("/api/export/", this::handleExport);
 
         server.setExecutor(Executors.newFixedThreadPool(4));
         server.start();
 
+        profileManager.ensureDefault();
         System.out.println("[Dashboard] Server started on http://localhost:" + port);
+        System.out.println("[Dashboard] Profiles directory: " + profileManager.getProfileDir());
     }
 
     public void stop() {
@@ -443,10 +455,12 @@ public class DashboardServer {
         if (!ex.getRequestMethod().equals("GET")) { sendError(ex, 405); return; }
 
         clickerState.tick();
+        checkAutoSave();
 
         String raw = clickerState.toJson();
+        String profilePart = activeProfileName != null ? ",\"profileName\":" + jsonStr(activeProfileName) : "";
         String json = raw.startsWith("{")
-                ? "{\"standaloneMode\":" + standaloneMode + "," + raw.substring(1)
+                ? "{\"standaloneMode\":" + standaloneMode + profilePart + "," + raw.substring(1)
                 : raw;
         byte[] data = json.getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
@@ -522,6 +536,7 @@ public class DashboardServer {
             uploadedImage = null;
             uploadedPalette = null;
         }
+        if (success) autoSaveCurrentProfile();
         String json = "{\"success\":" + success + ",\"gf\":" + clickerState.getGf()
                 + ",\"ascensions\":" + clickerState.getAscensionCount()
                 + ",\"needsNewImage\":" + success
@@ -641,6 +656,7 @@ public class DashboardServer {
                 uploadedImage = null;
                 uploadedPalette = null;
             }
+            autoSaveCurrentProfile();
             json = "{\"success\":true,\"gfReward\":" + result.gfReward()
                     + ",\"finalFitness\":" + result.finalFitness()
                     + ",\"completedImages\":" + result.totalCompleted()
@@ -1099,6 +1115,147 @@ public class DashboardServer {
     private void sendJsonResponse(HttpExchange ex, String json) throws IOException {
         byte[] data = json.getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().set("Content-Type", "application/json");
+        ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        ex.sendResponseHeaders(200, data.length);
+        ex.getResponseBody().write(data);
+        ex.close();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  PROFILE MANAGEMENT ENDPOINTS
+    // ═══════════════════════════════════════════════════════════════
+
+    private void handleProfiles(HttpExchange ex) throws IOException {
+        if (!ex.getRequestMethod().equals("GET")) { sendError(ex, 405); return; }
+        List<String> names = profileManager.listProfiles();
+        StringBuilder sb = new StringBuilder(2048);
+        sb.append("{\"activeProfile\":").append(activeProfileName != null ? jsonStr(activeProfileName) : "null");
+        sb.append(",\"profiles\":[");
+        for (int i = 0; i < names.size(); i++) {
+            String name = names.get(i);
+            if (i > 0) sb.append(",");
+            sb.append("{\"name\":").append(jsonStr(name));
+            ProfileManager.ProfileMeta meta = profileManager.getMeta(name);
+            if (meta != null) {
+                sb.append(",\"lastModifiedMs\":").append(meta.lastModifiedMs());
+                sb.append(",\"fileSize\":").append(meta.fileSize());
+            }
+            String json = profileManager.load(name);
+            if (json != null && !json.equals("{}")) {
+                sb.append(",\"totalPlayTimeMs\":").append(ClickerState.readLong(json, "totalPlayTimeMs", 0));
+                sb.append(",\"lifetimeClicks\":").append(ClickerState.readLong(json, "lifetimeClicks", 0));
+                sb.append(",\"lifetimeEpEarned\":").append(ClickerState.readDouble(json, "lifetimeEpEarned", 0));
+                sb.append(",\"ascensionCount\":").append(ClickerState.readLong(json, "ascensionCount", 0));
+                sb.append(",\"completedImages\":").append(ClickerState.readLong(json, "completedImages", 0));
+                sb.append(",\"achievementCount\":").append(
+                        ClickerState.extractStringArray(json, "unlockedAchievements").size());
+                long galleryCount = 0;
+                try {
+                    String galRaw = ClickerState.extractArrayBlock(json, "gallery");
+                    if (galRaw != null) {
+                        for (int c = 0; c < galRaw.length(); c++) if (galRaw.charAt(c) == '{') galleryCount++;
+                    }
+                } catch (Exception ignored) {}
+                sb.append(",\"galleryCount\":").append(galleryCount);
+                sb.append(",\"gf\":").append(ClickerState.readDouble(json, "gf", 0));
+            } else {
+                sb.append(",\"totalPlayTimeMs\":0,\"lifetimeClicks\":0,\"lifetimeEpEarned\":0");
+                sb.append(",\"ascensionCount\":0,\"completedImages\":0,\"achievementCount\":0");
+                sb.append(",\"galleryCount\":0,\"gf\":0");
+            }
+            sb.append("}");
+        }
+        sb.append("]}");
+        sendJson(ex, sb.toString());
+    }
+
+    private void handleProfileSelect(HttpExchange ex) throws IOException {
+        Map<String, String> params = parseQuery(ex.getRequestURI().getQuery());
+        String name = params.get("name");
+        if (name == null || name.isBlank()) { sendError(ex, 400); return; }
+        name = ProfileManager.sanitize(name);
+
+        autoSaveCurrentProfile();
+
+        if (!profileManager.exists(name)) {
+            profileManager.create(name);
+        }
+
+        ClickerState newState = new ClickerState();
+        String savedJson = profileManager.load(name);
+        if (savedJson != null) {
+            newState.loadFromSaveJson(savedJson);
+        }
+        this.clickerState = newState;
+        this.activeProfileName = name;
+        uploadedImage = null;
+        uploadedPalette = null;
+
+        System.out.println("[Dashboard] Switched to profile: " + name);
+        sendJson(ex, "{\"success\":true,\"profile\":" + jsonStr(name) + "}");
+    }
+
+    private void handleProfileCreate(HttpExchange ex) throws IOException {
+        Map<String, String> params = parseQuery(ex.getRequestURI().getQuery());
+        String name = params.get("name");
+        if (name == null || name.isBlank()) { sendError(ex, 400); return; }
+        name = ProfileManager.sanitize(name);
+
+        if (profileManager.exists(name)) {
+            sendJson(ex, "{\"success\":false,\"reason\":\"exists\"}");
+            return;
+        }
+        boolean ok = profileManager.create(name);
+        sendJson(ex, "{\"success\":" + ok + ",\"profile\":" + jsonStr(name) + "}");
+    }
+
+    private void handleProfileDelete(HttpExchange ex) throws IOException {
+        Map<String, String> params = parseQuery(ex.getRequestURI().getQuery());
+        String name = params.get("name");
+        if (name == null || name.isBlank()) { sendError(ex, 400); return; }
+        name = ProfileManager.sanitize(name);
+
+        if (activeProfileName != null && activeProfileName.equals(name)) {
+            sendJson(ex, "{\"success\":false,\"reason\":\"active\"}");
+            return;
+        }
+        boolean ok = profileManager.delete(name);
+        sendJson(ex, "{\"success\":" + ok + "}");
+    }
+
+    private void handleSave(HttpExchange ex) throws IOException {
+        if (activeProfileName == null) {
+            sendJson(ex, "{\"success\":false,\"reason\":\"no_profile\"}");
+            return;
+        }
+        boolean ok = autoSaveCurrentProfile();
+        sendJson(ex, "{\"success\":" + ok + ",\"profile\":" + jsonStr(activeProfileName) + "}");
+    }
+
+    /** Saves current profile if one is active. Returns true on success. */
+    boolean autoSaveCurrentProfile() {
+        if (activeProfileName == null) return false;
+        try {
+            String json = clickerState.toSaveJson();
+            boolean ok = profileManager.save(activeProfileName, json);
+            if (ok) lastAutoSaveMs = System.currentTimeMillis();
+            return ok;
+        } catch (Exception e) {
+            System.err.println("[Dashboard] Auto-save failed: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /** Called periodically (e.g., from tick or click) to auto-save if interval has elapsed. */
+    void checkAutoSave() {
+        if (activeProfileName != null && System.currentTimeMillis() - lastAutoSaveMs > AUTO_SAVE_INTERVAL_MS) {
+            autoSaveCurrentProfile();
+        }
+    }
+
+    private void sendJson(HttpExchange ex, String json) throws IOException {
+        byte[] data = json.getBytes(StandardCharsets.UTF_8);
+        ex.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
         ex.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
         ex.sendResponseHeaders(200, data.length);
         ex.getResponseBody().write(data);

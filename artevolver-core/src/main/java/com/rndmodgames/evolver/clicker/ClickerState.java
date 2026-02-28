@@ -1291,7 +1291,343 @@ public class ClickerState {
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  JSON SERIALIZATION
+    //  PROFILE SAVE / LOAD  (Sakaguchi: never lose player investment)
+    // ════════════════════════════════════════════════════════════════
+
+    /**
+     * Serializes all persistent state to a JSON string for profile saving.
+     * Does NOT include transient runtime data (engine, events, accumulators).
+     */
+    public String toSaveJson() {
+        StringBuilder sb = new StringBuilder(32768);
+        sb.append("{\n");
+        sb.append("\"saveVersion\":1,\n");
+        sb.append("\"savedAt\":").append(System.currentTimeMillis()).append(",\n");
+
+        sb.append("\"ep\":").append(ep).append(",\n");
+        sb.append("\"totalEpEarned\":").append(totalEpEarned).append(",\n");
+        sb.append("\"mc\":").append(mc).append(",\n");
+        sb.append("\"gf\":").append(gf).append(",\n");
+        sb.append("\"totalClicks\":").append(totalClicks).append(",\n");
+        sb.append("\"totalUpgradesBought\":").append(totalUpgradesBought).append(",\n");
+        sb.append("\"totalPlayTimeMs\":").append(totalPlayTimeMs).append(",\n");
+        sb.append("\"ascensionCount\":").append(ascensionCount).append(",\n");
+        sb.append("\"completedImages\":").append(completedImages).append(",\n");
+        sb.append("\"bestCompletionFitness\":").append(bestCompletionFitness).append(",\n");
+        sb.append("\"lifetimeClicks\":").append(lifetimeClicks).append(",\n");
+        sb.append("\"lifetimeEpEarned\":").append(lifetimeEpEarned).append(",\n");
+        sb.append("\"lifetimeLongestMissStreak\":").append(lifetimeLongestMissStreak).append(",\n");
+
+        sb.append("\"upgradeLevels\":{");
+        int ui = 0;
+        for (var entry : upgradeLevels.entrySet()) {
+            if (entry.getValue() > 0) {
+                if (ui > 0) sb.append(",");
+                sb.append("\"").append(entry.getKey()).append("\":").append(entry.getValue());
+                ui++;
+            }
+        }
+        sb.append("},\n");
+
+        sb.append("\"unlockedAchievements\":[");
+        int ai = 0;
+        for (String achId : unlockedAchievements) {
+            if (ai > 0) sb.append(",");
+            sb.append("\"").append(achId).append("\"");
+            ai++;
+        }
+        sb.append("],\n");
+
+        sb.append("\"discoveredSamples\":[");
+        int di = 0;
+        for (String sid : discoveredSamples) {
+            if (di > 0) sb.append(",");
+            sb.append("\"").append(sid).append("\"");
+            di++;
+        }
+        sb.append("],\n");
+
+        sb.append("\"sampleProgress\":{");
+        int sp = 0;
+        for (var entry : sampleProgress.entrySet()) {
+            if (sp > 0) sb.append(",");
+            SampleProgress p = entry.getValue();
+            sb.append("\"").append(entry.getKey()).append("\":{");
+            sb.append("\"bestFitness\":").append(p.bestFitness()).append(",");
+            sb.append("\"bestGain\":").append(p.bestGain()).append(",");
+            sb.append("\"playCount\":").append(p.playCount()).append(",");
+            sb.append("\"completed\":").append(p.completed()).append(",");
+            sb.append("\"ascensionsCount\":").append(p.ascensionsCount()).append(",");
+            sb.append("\"totalPlayTimeMs\":").append(p.totalPlayTimeMs()).append(",");
+            sb.append("\"totalClicks\":").append(p.totalClicks()).append("}");
+            sp++;
+        }
+        sb.append("},\n");
+
+        sb.append("\"usedImageFingerprints\":[");
+        int fi = 0;
+        for (long fp : usedImageFingerprints) {
+            if (fi > 0) sb.append(",");
+            sb.append(fp);
+            fi++;
+        }
+        sb.append("],\n");
+
+        sb.append("\"gallery\":[");
+        for (int i = 0; i < gallery.size(); i++) {
+            GalleryEntry g = gallery.get(i);
+            if (i > 0) sb.append(",");
+            sb.append("{\"fingerprint\":").append(g.fingerprint());
+            sb.append(",\"thumbnailBase64\":\"").append(jsonEsc(g.thumbnailBase64())).append("\"");
+            sb.append(",\"startFitness\":").append(g.startFitness());
+            sb.append(",\"finalFitness\":").append(g.finalFitness());
+            sb.append(",\"fitnessGain\":").append(g.fitnessGain());
+            sb.append(",\"totalClicks\":").append(g.totalClicks());
+            sb.append(",\"successSwaps\":").append(g.successSwaps());
+            sb.append(",\"playTimeMs\":").append(g.playTimeMs());
+            sb.append(",\"ascensionCount\":").append(g.ascensionCount());
+            sb.append(",\"timestamp\":").append(g.timestamp()).append("}");
+        }
+        sb.append("]\n");
+
+        sb.append("}");
+        return sb.toString();
+    }
+
+    /**
+     * Restores persistent state from a saved JSON string.
+     * Uses basic string parsing — no external JSON library.
+     */
+    public void loadFromSaveJson(String json) {
+        if (json == null || json.isBlank() || json.equals("{}")) return;
+
+        ep = readDouble(json, "ep", 0);
+        totalEpEarned = readDouble(json, "totalEpEarned", 0);
+        mc = readDouble(json, "mc", 0);
+        gf = readDouble(json, "gf", 0);
+        totalClicks = readLong(json, "totalClicks", 0);
+        totalUpgradesBought = readLong(json, "totalUpgradesBought", 0);
+        totalPlayTimeMs = readLong(json, "totalPlayTimeMs", 0);
+        ascensionCount = (int) readLong(json, "ascensionCount", 0);
+        completedImages = (int) readLong(json, "completedImages", 0);
+        bestCompletionFitness = readDouble(json, "bestCompletionFitness", 0);
+        lifetimeClicks = readLong(json, "lifetimeClicks", 0);
+        lifetimeEpEarned = readDouble(json, "lifetimeEpEarned", 0);
+        lifetimeLongestMissStreak = (int) readLong(json, "lifetimeLongestMissStreak", 0);
+        totalAchievementsUnlocked = 0;
+
+        upgradeLevels.clear();
+        String upgradesObj = extractObject(json, "upgradeLevels");
+        if (upgradesObj != null) {
+            parseSimpleMap(upgradesObj).forEach((k, v) -> {
+                try { upgradeLevels.put(k, Integer.parseInt(v)); }
+                catch (NumberFormatException ignored) {}
+            });
+        }
+
+        unlockedAchievements.clear();
+        for (String id : extractStringArray(json, "unlockedAchievements")) {
+            unlockedAchievements.add(id);
+            totalAchievementsUnlocked++;
+        }
+
+        discoveredSamples.clear();
+        discoveredSamples.addAll(extractStringArray(json, "discoveredSamples"));
+
+        sampleProgress.clear();
+        String spObj = extractObject(json, "sampleProgress");
+        if (spObj != null) {
+            int pos = 0;
+            while (true) {
+                int keyStart = spObj.indexOf('"', pos);
+                if (keyStart < 0) break;
+                int keyEnd = spObj.indexOf('"', keyStart + 1);
+                if (keyEnd < 0) break;
+                String key = spObj.substring(keyStart + 1, keyEnd);
+                int objStart = spObj.indexOf('{', keyEnd);
+                int objEnd = spObj.indexOf('}', objStart);
+                if (objStart < 0 || objEnd < 0) break;
+                String inner = spObj.substring(objStart, objEnd + 1);
+                sampleProgress.put(key, new SampleProgress(
+                    readDouble(inner, "bestFitness", 0),
+                    readDouble(inner, "bestGain", 0),
+                    (int) readLong(inner, "playCount", 0),
+                    readBool(inner, "completed"),
+                    (int) readLong(inner, "ascensionsCount", 0),
+                    readLong(inner, "totalPlayTimeMs", 0),
+                    readLong(inner, "totalClicks", 0)
+                ));
+                pos = objEnd + 1;
+            }
+        }
+
+        usedImageFingerprints.clear();
+        String fpArr = extractArrayRaw(json, "usedImageFingerprints");
+        if (fpArr != null) {
+            for (String tok : fpArr.split(",")) {
+                tok = tok.trim();
+                if (!tok.isEmpty()) {
+                    try { usedImageFingerprints.add(Long.parseLong(tok)); }
+                    catch (NumberFormatException ignored) {}
+                }
+            }
+        }
+
+        gallery.clear();
+        String galArr = extractArrayBlock(json, "gallery");
+        if (galArr != null) {
+            int gpos = 0;
+            while (true) {
+                int gs = galArr.indexOf('{', gpos);
+                int ge = galArr.indexOf('}', gs + 1);
+                if (gs < 0 || ge < 0) break;
+                String entry = galArr.substring(gs, ge + 1);
+                gallery.add(new GalleryEntry(
+                    readLong(entry, "fingerprint", 0),
+                    readStringVal(entry, "thumbnailBase64"),
+                    readDouble(entry, "startFitness", 0),
+                    readDouble(entry, "finalFitness", 0),
+                    readDouble(entry, "fitnessGain", 0),
+                    readLong(entry, "totalClicks", 0),
+                    readLong(entry, "successSwaps", 0),
+                    readLong(entry, "playTimeMs", 0),
+                    (int) readLong(entry, "ascensionCount", 0),
+                    readLong(entry, "timestamp", 0)
+                ));
+                gpos = ge + 1;
+            }
+        }
+
+        System.out.println("[ClickerState] Loaded save: " + completedImages + " masterpieces, "
+                + ascensionCount + " ascensions, " + gallery.size() + " gallery entries, "
+                + unlockedAchievements.size() + " achievements");
+    }
+
+    // ── Minimal JSON parse helpers (public for ProfileManager / DashboardServer) ──
+
+    public static double readDouble(String json, String key, double def) {
+        String v = readRawValue(json, key);
+        if (v == null) return def;
+        try { return Double.parseDouble(v); }
+        catch (NumberFormatException e) { return def; }
+    }
+
+    public static long readLong(String json, String key, long def) {
+        String v = readRawValue(json, key);
+        if (v == null) return def;
+        try {
+            if (v.contains(".")) return (long) Double.parseDouble(v);
+            return Long.parseLong(v);
+        } catch (NumberFormatException e) { return def; }
+    }
+
+    public static boolean readBool(String json, String key) {
+        String v = readRawValue(json, key);
+        return "true".equals(v);
+    }
+
+    public static String readRawValue(String json, String key) {
+        String needle = "\"" + key + "\":";
+        int idx = json.indexOf(needle);
+        if (idx < 0) return null;
+        int start = idx + needle.length();
+        while (start < json.length() && json.charAt(start) == ' ') start++;
+        int end = start;
+        char c = json.charAt(start);
+        if (c == '"' || c == '[' || c == '{') return null;
+        while (end < json.length() && json.charAt(end) != ',' && json.charAt(end) != '}' && json.charAt(end) != '\n') end++;
+        return json.substring(start, end).trim();
+    }
+
+    public static String readStringVal(String json, String key) {
+        String needle = "\"" + key + "\":\"";
+        int idx = json.indexOf(needle);
+        if (idx < 0) return "";
+        int start = idx + needle.length();
+        int end = json.indexOf('"', start);
+        while (end > 0 && json.charAt(end - 1) == '\\') end = json.indexOf('"', end + 1);
+        if (end < 0) return "";
+        return json.substring(start, end).replace("\\\"", "\"").replace("\\\\", "\\");
+    }
+
+    public static String extractObject(String json, String key) {
+        String needle = "\"" + key + "\":{";
+        int idx = json.indexOf(needle);
+        if (idx < 0) return null;
+        int start = idx + needle.length() - 1;
+        int depth = 0;
+        for (int i = start; i < json.length(); i++) {
+            if (json.charAt(i) == '{') depth++;
+            else if (json.charAt(i) == '}') { depth--; if (depth == 0) return json.substring(start + 1, i); }
+        }
+        return null;
+    }
+
+    public static List<String> extractStringArray(String json, String key) {
+        String needle = "\"" + key + "\":[";
+        int idx = json.indexOf(needle);
+        if (idx < 0) return List.of();
+        int start = idx + needle.length();
+        int end = json.indexOf(']', start);
+        if (end < 0) return List.of();
+        String inner = json.substring(start, end).trim();
+        if (inner.isEmpty()) return List.of();
+        List<String> result = new ArrayList<>();
+        for (String tok : inner.split(",")) {
+            tok = tok.trim();
+            if (tok.startsWith("\"") && tok.endsWith("\""))
+                result.add(tok.substring(1, tok.length() - 1));
+        }
+        return result;
+    }
+
+    public static String extractArrayRaw(String json, String key) {
+        String needle = "\"" + key + "\":[";
+        int idx = json.indexOf(needle);
+        if (idx < 0) return null;
+        int start = idx + needle.length();
+        int end = json.indexOf(']', start);
+        if (end < 0) return null;
+        String inner = json.substring(start, end).trim();
+        return inner.isEmpty() ? null : inner;
+    }
+
+    public static String extractArrayBlock(String json, String key) {
+        String needle = "\"" + key + "\":[";
+        int idx = json.indexOf(needle);
+        if (idx < 0) return null;
+        int start = idx + needle.length();
+        int depth = 1;
+        for (int i = start; i < json.length(); i++) {
+            if (json.charAt(i) == '[') depth++;
+            else if (json.charAt(i) == ']') { depth--; if (depth == 0) return json.substring(start, i); }
+        }
+        return null;
+    }
+
+    public static Map<String, String> parseSimpleMap(String inner) {
+        Map<String, String> map = new LinkedHashMap<>();
+        int pos = 0;
+        while (true) {
+            int ks = inner.indexOf('"', pos);
+            if (ks < 0) break;
+            int ke = inner.indexOf('"', ks + 1);
+            if (ke < 0) break;
+            String k = inner.substring(ks + 1, ke);
+            int colon = inner.indexOf(':', ke);
+            if (colon < 0) break;
+            int vs = colon + 1;
+            while (vs < inner.length() && inner.charAt(vs) == ' ') vs++;
+            int ve = vs;
+            while (ve < inner.length() && inner.charAt(ve) != ',' && inner.charAt(ve) != '}') ve++;
+            map.put(k, inner.substring(vs, ve).trim());
+            pos = ve + 1;
+        }
+        return map;
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  JSON SERIALIZATION (API responses)
     // ════════════════════════════════════════════════════════════════
 
     public String toJson() {

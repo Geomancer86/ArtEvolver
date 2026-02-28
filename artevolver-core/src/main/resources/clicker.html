@@ -260,6 +260,28 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .sfx-toggle:hover{border-color:var(--cyan);color:var(--text)}
 .sfx-toggle.muted{opacity:.4}
 
+/* Profile selector */
+.profile-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;z-index:200;flex-direction:column;gap:20px}
+.profile-overlay h2{color:var(--gold);font-size:28px;letter-spacing:1px}
+.profile-overlay .profile-sub{color:var(--text2);font-size:13px;max-width:400px;text-align:center}
+.profile-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;width:100%;max-width:760px;padding:0 20px}
+.profile-card{background:var(--surface2);border:2px solid var(--border);border-radius:12px;padding:16px 20px;cursor:pointer;transition:all .2s;position:relative}
+.profile-card:hover{border-color:var(--gold);box-shadow:0 0 20px rgba(255,215,64,.15);transform:translateY(-2px)}
+.profile-card.active{border-color:var(--gold);box-shadow:0 0 16px rgba(255,215,64,.2)}
+.profile-card .pf-name{font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px}
+.profile-card .pf-stats{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:11px}
+.profile-card .pf-label{color:var(--text2)}.profile-card .pf-val{color:var(--text);font-weight:600;text-align:right}
+.profile-card .pf-new{font-size:14px;color:var(--text2);text-align:center;padding:24px 0}
+.profile-card .pf-delete{position:absolute;top:8px;right:10px;background:none;border:none;color:var(--text2);font-size:14px;cursor:pointer;opacity:.4;transition:opacity .2s}
+.profile-card .pf-delete:hover{opacity:1;color:var(--red)}
+.profile-actions{display:flex;gap:12px;align-items:center}
+.profile-actions .btn{padding:10px 28px;background:linear-gradient(135deg,var(--gold),#ff9100);border:none;border-radius:8px;color:#000;font-weight:700;font-size:15px;cursor:pointer}
+.profile-actions .btn:hover{filter:brightness(1.2)}
+.profile-actions .btn:disabled{opacity:.4;cursor:default}
+.profile-input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 16px;font-size:15px;outline:none;width:220px}
+.profile-input:focus{border-color:var(--gold)}
+.profile-input::placeholder{color:var(--text2)}
+
 ::-webkit-scrollbar{width:6px}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
@@ -321,6 +343,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     <button class="gallery-btn" id="atlasBtn" onclick="openAtlas()" title="Sample Atlas">Atlas</button>
     <button class="gallery-btn" id="galleryBtn" onclick="openGallery()" style="display:none">Gallery (<span id="galleryCount">0</span>)</button>
     <span>ArtEvolver v3.2 &mdash; Evolution Clicker | <span id="footerCompleted">0</span> masterpieces</span>
+    <button class="gallery-btn" id="profileBtn" onclick="switchProfile()" title="Switch Profile"><span id="profileLabel">Profile</span></button>
     <a href="/clicker">Clicker</a>
   </div>
 </div>
@@ -352,7 +375,17 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   </div>
 </div>
 
-<div class="init-overlay" id="initOverlay">
+<div class="profile-overlay" id="profileOverlay">
+  <h2>Evolution Clicker</h2>
+  <div class="profile-sub">Select your profile or create a new one. Progress is saved automatically.</div>
+  <div class="profile-grid" id="profileGrid"></div>
+  <div class="profile-actions" id="profileActions">
+    <input type="text" class="profile-input" id="newProfileName" placeholder="New profile name..." maxlength="24">
+    <button class="btn" onclick="createProfile()">Create</button>
+  </div>
+</div>
+
+<div class="init-overlay" id="initOverlay" style="display:none">
   <h2>Evolution Clicker</h2>
   <p>Pick your console, choose an image, and evolve it one swap at a time.</p>
 
@@ -422,6 +455,163 @@ let samplesData = null;
 let selectedPreset = '';
 let selectedTab = 'classic';
 let previewCache = {};
+let activeProfile = null;
+
+// ═══════════════════════════════════════════════════════════════════════
+//  PROFILE SYSTEM — Sakaguchi: never lose player investment
+//  Howard: the world remembers everything you've done
+//  Miyamoto: picking your save file feels like choosing a world
+// ═══════════════════════════════════════════════════════════════════════
+
+async function loadProfiles() {
+  try {
+    const res = await fetch('/api/clicker/profiles');
+    const data = await res.json();
+    renderProfiles(data);
+    if (data.activeProfile) {
+      activeProfile = data.activeProfile;
+    }
+  } catch (e) {
+    console.error('Failed to load profiles', e);
+  }
+}
+
+function renderProfiles(data) {
+  const grid = document.getElementById('profileGrid');
+  grid.innerHTML = '';
+  const profiles = data.profiles || [];
+
+  profiles.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'profile-card' + (data.activeProfile === p.name ? ' active' : '');
+
+    const name = document.createElement('div');
+    name.className = 'pf-name';
+    name.textContent = p.name;
+
+    const stats = document.createElement('div');
+    stats.className = 'pf-stats';
+
+    const playTime = p.totalPlayTimeMs || 0;
+    const items = [
+      ['Play Time', fmtTimeLong(playTime)],
+      ['Clicks', fmtNum(p.lifetimeClicks || 0)],
+      ['Masterpieces', (p.completedImages || 0).toString()],
+      ['Ascensions', (p.ascensionCount || 0).toString()],
+      ['Achievements', (p.achievementCount || 0).toString()],
+      ['Gallery', (p.galleryCount || 0).toString()],
+      ['Golden Flakes', fmtNum(p.gf || 0)],
+      ['EP Earned', fmtNum(p.lifetimeEpEarned || 0)]
+    ];
+
+    items.forEach(([label, val]) => {
+      const l = document.createElement('span');
+      l.className = 'pf-label';
+      l.textContent = label;
+      const v = document.createElement('span');
+      v.className = 'pf-val';
+      v.textContent = val;
+      stats.appendChild(l);
+      stats.appendChild(v);
+    });
+
+    if (profiles.length > 1) {
+      const del = document.createElement('button');
+      del.className = 'pf-delete';
+      del.title = 'Delete profile';
+      del.textContent = '\u2715';
+      del.onclick = (e) => { e.stopPropagation(); deleteProfile(p.name); };
+      card.appendChild(del);
+    }
+
+    card.appendChild(name);
+    card.appendChild(stats);
+    card.onclick = () => selectProfile(p.name);
+    grid.appendChild(card);
+  });
+}
+
+async function selectProfile(name) {
+  try {
+    const res = await fetch('/api/clicker/profile/select?name=' + encodeURIComponent(name), {method:'POST'});
+    const data = await res.json();
+    if (data.success) {
+      activeProfile = name;
+      updateProfileLabel();
+      document.getElementById('profileOverlay').style.display = 'none';
+      document.getElementById('initOverlay').style.display = 'flex';
+      loadSamples();
+    }
+  } catch (e) {
+    console.error('Failed to select profile', e);
+  }
+}
+
+function updateProfileLabel() {
+  const el = document.getElementById('profileLabel');
+  if (el && activeProfile) el.textContent = activeProfile;
+}
+
+async function createProfile() {
+  const input = document.getElementById('newProfileName');
+  const name = input.value.trim();
+  if (!name) { input.focus(); return; }
+  try {
+    const res = await fetch('/api/clicker/profile/create?name=' + encodeURIComponent(name), {method:'POST'});
+    const data = await res.json();
+    if (data.success) {
+      input.value = '';
+      selectProfile(data.profile);
+    } else if (data.reason === 'exists') {
+      input.style.borderColor = 'var(--red)';
+      setTimeout(() => input.style.borderColor = '', 2000);
+    }
+  } catch (e) {
+    console.error('Failed to create profile', e);
+  }
+}
+
+async function deleteProfile(name) {
+  if (!confirm('Delete profile "' + name + '"? This cannot be undone.')) return;
+  try {
+    const res = await fetch('/api/clicker/profile/delete?name=' + encodeURIComponent(name), {method:'POST'});
+    const data = await res.json();
+    if (data.success) {
+      loadProfiles();
+    } else if (data.reason === 'active') {
+      alert('Cannot delete the active profile.');
+    }
+  } catch (e) {
+    console.error('Failed to delete profile', e);
+  }
+}
+
+function switchProfile() {
+  fetch('/api/clicker/save', {method:'POST'}).then(() => {
+    stopPolling();
+    document.getElementById('profileOverlay').style.display = 'flex';
+    document.getElementById('initOverlay').style.display = 'none';
+    document.getElementById('imageWrap').style.display = 'none';
+    loadProfiles();
+  });
+}
+
+function stopPolling() {
+  if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+  if (imageTimer) { clearInterval(imageTimer); imageTimer = null; }
+  if (achTimer) { clearInterval(achTimer); achTimer = null; }
+}
+
+function fmtTimeLong(ms) {
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return s + 's';
+  const m = Math.floor(s / 60);
+  if (m < 60) return m + 'm ' + (s % 60) + 's';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + 'h ' + (m % 60) + 'm';
+  const d = Math.floor(h / 24);
+  return d + 'd ' + (h % 24) + 'h';
+}
 
 const CONSOLE_FAMILIES = {
   classic: { label: 'Classic', presets: [], defaultPreset: '' },
@@ -1575,26 +1765,43 @@ function esc(s) {
 
 // ── Auto-init check ──
 SFX.init();
+document.getElementById('newProfileName').addEventListener('keydown', e => {
+  if (e.key === 'Enter') createProfile();
+});
 (async function() {
   try {
     const res = await fetch('/api/clicker/state');
     const d = await res.json();
     isStandalone = !!d.standaloneMode;
-    if (d.initialized) {
-      document.getElementById('initOverlay').style.display = 'none';
-      document.getElementById('imageWrap').style.display = 'block';
-      lastGainPct = (d.fitnessGain || 0) * 100;
-      lastEventCount = (d.events || []).length;
-      refreshImage();
-      loadReference();
-      startPolling();
-    } else {
-      loadSamples();
-      if (!isStandalone) {
-        document.getElementById('dropZone').style.display = 'none';
+    if (d.profileName) {
+      activeProfile = d.profileName;
+      updateProfileLabel();
+      document.getElementById('profileOverlay').style.display = 'none';
+      if (d.initialized) {
+        document.getElementById('initOverlay').style.display = 'none';
+        document.getElementById('imageWrap').style.display = 'block';
+        lastGainPct = (d.fitnessGain || 0) * 100;
+        lastEventCount = (d.events || []).length;
+        refreshImage();
+        loadReference();
+        startPolling();
+      } else {
+        document.getElementById('initOverlay').style.display = 'flex';
+        loadSamples();
+        if (!isStandalone) {
+          document.getElementById('dropZone').style.display = 'none';
+        }
       }
+    } else {
+      document.getElementById('profileOverlay').style.display = 'flex';
+      document.getElementById('initOverlay').style.display = 'none';
+      loadProfiles();
     }
-  } catch (e) {}
+  } catch (e) {
+    document.getElementById('profileOverlay').style.display = 'flex';
+    document.getElementById('initOverlay').style.display = 'none';
+    loadProfiles();
+  }
 })();
 </script>
 </body>

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] (3.3.0-SNAPSHOT)
+
+### Planned — Retro Console Mode
+
+- **Retro presets**: GB (160×144, 4 colors), GBC (32), GBA (240×160, 32k), Genesis (320×224, 512), SNES (256×224, 32k).
+- **Pixel mode**: Square-pixel output, one color per pixel — true retro pixel art (vs triangle mosaic).
+- **Palette files**: `gb_dmg.txt`, `gbc.txt`, `genesis.txt` for authentic console palettes.
+- **Clicker-first**: Preset selector in init overlay; test in Evolution Clicker before full app.
+- See `RETRO_CONSOLE_DESIGN.md`, `RETRO_PRESETS.md`.
+
+---
+
 ## [3.2.0] — 2026-02-23
 
 ### Added — Standalone Clicker Mode (v3.2.0)

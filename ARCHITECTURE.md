@@ -638,3 +638,13 @@ Mode selection via `CURRENT_MODE` adjusts multiple parameters simultaneously: th
 worker threads, the population size per evolver, the triangle grid dimensions, and the
 triangle scale factors. This provides preset configurations tuned for different hardware
 capabilities and desired output quality.
+
+---
+
+## Planned: Retro Console Mode (v3.3)
+
+Retro game console palettes and resolutions — GB (160×144, 4 colors), GBC (32), GBA (240×160),
+Genesis (320×224, 512), SNES (256×224). **Pixel mode**: one color per pixel, square pixels,
+true pixel art output. New components: `PixelGrid`, `PixelFitnessEngine`, `RetroPreset`.
+Same swap-and-evaluate algorithm; data structure changes from triangles to pixels. See
+`RETRO_CONSOLE_DESIGN.md`, `RETRO_PRESETS.md`.

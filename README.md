@@ -109,6 +109,10 @@ unlock the Sample Atlas with real landscapes and iconic art, ascend for Golden F
 complete masterpieces at 85%+ fitness. Procedural sound engine, 75+ achievements, gallery of
 completed images. Run `clicker.bat` / `clicker.sh` for one-click launch — no Java UI needed.
 
+### Retro Console Mode (v3.3, planned)
+GB/GBC/GBA, Sega Genesis, and SNES palettes and resolutions — square pixels, limited colors.
+Pixel mode (one color per pixel) for authentic retro look. See `RETRO_CONSOLE_DESIGN.md`.
+
 ---
 
 ## Getting Started

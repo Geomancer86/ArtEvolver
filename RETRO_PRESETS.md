@@ -41,9 +41,15 @@ Test combinations for retro mode. Each row is a valid preset to implement.
 |-----------|------------|---------|--------|-----------------|
 | `snes` | 256×224 | 15-bit full | 32,768 | DKC, Chrono Trigger |
 | `snes_256` | 256×224 | 256-color subset | 256 | Mode 1 typical |
-| `snes_512` | 512×448 | 15-bit | 32,768 | Hi-res mode |
+| `snes_512` | 512×448 | 15-bit | 32,768 | Hi-res (pseudo 512) |
 
 ---
+
+## Technical Notes
+
+- **SNES 512×448**: Horizontal Pseudo 512 Mode; max resolution. Most games used 256×224.
+- **GBC 56 colors** (`gbc_high`): Donkey Kong Country GBC used custom extended palettes; 56 is approximate for "high-end" GBC look.
+- **Genesis 64 on-screen**: VDP allows 64 colors simultaneously (4×16 palettes); 512 total in palette RAM.
 
 ## High-End References (User-Requested)
 
@@ -78,4 +84,4 @@ Example `gb_dmg.txt`:
 4 Lightest 155 188 15
 ```
 
-Genesis: 512 lines, R,G,B ∈ {0,32,64,96,128,160,192,224,255}.
+Genesis: 512 lines. 9-bit RGB: 3 bits per channel → 8 values per channel. Common ramp: R,G,B ∈ {0, 36, 73, 109, 146, 182, 219, 255} (linear) or {0, 32, 64, 96, 128, 160, 192, 224} (alternate). Use VDP-accurate ramp for authenticity.

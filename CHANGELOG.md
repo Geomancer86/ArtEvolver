@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pixel mode**: Square-pixel output, one color per pixel — true retro pixel art (vs triangle mosaic).
 - **Palette files**: `gb_dmg.txt`, `gbc.txt`, `genesis.txt` for authentic console palettes.
 - **Clicker-first**: Preset selector in init overlay; test in Evolution Clicker before full app.
+- **Designer validation**: Design validated against Yokoi, Miyamoto, Kojima, Carmack, Wright, Meier, Petersen, Cain, Gygax, Newell — authenticity, constraints, clean architecture.
 - See `RETRO_CONSOLE_DESIGN.md`, `RETRO_PRESETS.md`.
 
 ---

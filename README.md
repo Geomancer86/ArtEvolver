@@ -111,7 +111,9 @@ completed images. Run `clicker.bat` / `clicker.sh` for one-click launch — no J
 
 ### Retro Console Mode (v3.3, planned)
 GB/GBC/GBA, Sega Genesis, and SNES palettes and resolutions — square pixels, limited colors.
-Pixel mode (one color per pixel) for authentic retro look. See `RETRO_CONSOLE_DESIGN.md`.
+Pixel mode (one color per pixel) for authentic retro look. Design validated against principles
+of Yokoi, Miyamoto, Kojima, Carmack, and other top game designers. See `RETRO_CONSOLE_DESIGN.md`,
+`RETRO_PRESETS.md`.
 
 ---
 

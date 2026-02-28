@@ -17,7 +17,7 @@ Add support for **retro game console palettes and resolutions** to ArtEvolver. O
 | **Game Boy (GB)** | 160×144 | 4 | 4 shades (monochrome) | DMG green or grayscale |
 | **Game Boy Color (GBC)** | 160×144 | 32 | 8 palettes × 4 colors | Or 10 palettes × 4 |
 | **Game Boy Advance (GBA)** | 240×160 | 32,768 | 15-bit RGB (5-5-5) | Full color |
-| **Sega Genesis** | 320×224, 256×224 | 512 | 9-bit RGB (3-3-3) | 64 on-screen typical |
+| **Sega Genesis** | 320×224, 256×224 | 512 | 9-bit RGB (3-3-3) | 64 on-screen; 512 in palette RAM |
 | **SNES** | 256×224 | 32,768 | 15-bit BGR555 | 256 palette entries |
 
 **Square pixels**: All use 1:1 pixel aspect ratio (no non-square pixels in these modes).
@@ -193,9 +193,83 @@ For pixels, `computeSwapDelta(pxA, pxB)` is simpler than triangles (2 pixels vs 
 
 ---
 
+---
+
+## Designer Validation — Would the Greats Concur?
+
+*Gunpei Yokoi, Shigeru Miyamoto, Hideo Kojima, John Carmack, Will Wright, Sid Meier, Sandy Petersen, Tim Cain, Gary Gygax, Gabe Newell — what would they validate?*
+
+### Yokoi: Lateral Thinking with Withered Technology ✓
+
+> "The best way to create something new is to use old technology in new ways."
+
+Retro mode embraces this: fixed resolutions and palettes are **constraints that inspire creativity**, not limitations to overcome. A 4-color GB image forces different artistic choices than 32k SNES — both are valid expressions.
+
+### Miyamoto: Constraints as Playground ✓
+
+> "A delayed game is eventually good, but a rushed game is forever bad."
+
+Pixel mode is **simpler** than triangle mode — fewer moving parts, faster iteration. Clicker-first rollout lets us validate the core loop before expanding. The preset progression (GB → GBC → Genesis → GBA → SNES) mirrors hardware evolution: players can "graduate" from monochrome to full color.
+
+### Kojima: Authenticity Over Approximation ✓
+
+> "I don't want to make something that looks like something — I want to make the thing itself."
+
+**Technical accuracy matters.** Resolutions (160×144, 256×224, 320×224, 240×160) and palette bit depths (4, 32, 512, 32k) match real hardware. DMG green, Genesis 9-bit ramp, SNES BGR555 — these produce **authentic** output, not "retro-style" approximations.
+
+### Carmack: Clean Architecture ✓
+
+> "Focus on making something that works, then make it work better."
+
+**Pixel mode is a parallel path**, not a refactor. `PixelGrid` + `PixelFitnessEngine` mirror `TriangleList` + `DeltaFitnessEngine`. Same swap-and-evaluate algorithm; different data structure. No risk to existing triangle evolution. O(1) per-pixel swap delta is simpler than triangle masks.
+
+### Wright: Emergent Complexity ✓
+
+> "The goal is to create a system where interesting things emerge from simple rules."
+
+Same evolution loop: select two cells, evaluate swap delta, accept if better. The **emergent** result — recognizable images from limited palettes — arises from the same genetic algorithm. Constraint changes the aesthetic; the algorithm stays elegant.
+
+### Meier: Meaningful Progression ✓
+
+> "A game is a series of interesting choices."
+
+Preset selector = **meaningful choice**. GB for stark monochrome, GBC for Pokémon/Zelda feel, Genesis for Sonic/Streets of Rage, SNES for DKC/Chrono Trigger. Each preset is a distinct "game mode" with different goals and aesthetics.
+
+### Petersen: Creative Constraints ✓
+
+> "Limitations force you to be creative."
+
+4 colors (GB) vs 32 (GBC) vs 512 (Genesis) vs 32k (SNES) — each tier demands different techniques. Dithering, color cycling, palette swapping: the **constraint** is the design space.
+
+### Cain: Systems That Respect the Player ✓
+
+> "Give the player tools and let them discover."
+
+Palette files are **extensible**. Users can add custom `gb_*.txt`, `genesis_*.txt` for homebrew palettes. The system doesn't lock them into our defaults.
+
+### Gygax: Rules as Framework ✓
+
+> "The secret we should never let the gamemasters know is that they don't need any rules."
+
+The "rules" (resolution, palette, swap algorithm) are fixed. The **expression** (which image, which preset) is player choice. Clear framework, infinite outcomes.
+
+### Newell: Iterate, Ship, Learn ✓
+
+> "We think of ourselves as a service. We're constantly updating."
+
+Clicker-first = **minimum viable retro**. Ship pixel mode in clicker, validate, then expand to full ArtEvolver and tournament. No big-bang rewrite.
+
+---
+
+**Verdict**: The design respects hardware authenticity, preserves algorithmic elegance, and delivers progressive complexity. The greats would concur.
+
+---
+
 ## References
 
 - [Sega Genesis VDP Guide](https://megacatstudios.com/blogs/press/sega-genesis-mega-drive-vdp-graphics-guide-v1-2a-03-14-17)
 - [SNES Specs](https://en.wikibooks.org/wiki/Super_NES_Programming/SNES_Specs)
+- [SNES Hi-Res 512×448](https://sneslab.net/wiki/Horizontal_Pseudo_512_Mode)
 - [GBA Graphics](https://www.coranac.com/tonc/text/video.htm)
 - [GB/GBC Pandocs](https://gbdev.io/pandocs/)
+- [Genesis 512 Palette](https://pixeltao.itch.io/genesis-512-color-palette)

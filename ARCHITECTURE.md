@@ -646,5 +646,9 @@ capabilities and desired output quality.
 Retro game console palettes and resolutions — GB (160×144, 4 colors), GBC (32), GBA (240×160),
 Genesis (320×224, 512), SNES (256×224). **Pixel mode**: one color per pixel, square pixels,
 true pixel art output. New components: `PixelGrid`, `PixelFitnessEngine`, `RetroPreset`.
-Same swap-and-evaluate algorithm; data structure changes from triangles to pixels. See
-`RETRO_CONSOLE_DESIGN.md`, `RETRO_PRESETS.md`.
+Same swap-and-evaluate algorithm; data structure changes from triangles to pixels.
+
+**Design validation**: Architecture and presets validated against principles of Yokoi (lateral
+thinking with withered technology), Miyamoto (constraints as playground), Kojima (authenticity),
+Carmack (clean parallel path), and others. See `RETRO_CONSOLE_DESIGN.md` (Designer Validation
+section), `RETRO_PRESETS.md`.

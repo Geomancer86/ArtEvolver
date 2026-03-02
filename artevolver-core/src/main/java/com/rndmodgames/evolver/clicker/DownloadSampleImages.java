@@ -8,6 +8,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -24,6 +25,9 @@ public final class DownloadSampleImages {
 
     private static final int W = SampleImageProvider.WIDTH;
     private static final int H = SampleImageProvider.HEIGHT;
+    private static final int REQUEST_TIMEOUT_SECONDS = 30;
+    private static final int MAX_RETRIES = 5;
+    private static final long WIKIMEDIA_DELAY_MS = 2000L;
 
     /** Picsum (Unsplash) image IDs - real photos, free to use */
     private static final Map<String, Integer> PICSUM_IDS = Map.ofEntries(
@@ -56,13 +60,13 @@ public final class DownloadSampleImages {
             Map.entry("great_wave", "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/The_Great_Wave_off_Kanagawa.jpg/720px-The_Great_Wave_off_Kanagawa.jpg"),
             Map.entry("girl_pearl_earring", "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/1665_Girl_with_a_Pearl_Earring.jpg/720px-1665_Girl_with_a_Pearl_Earring.jpg"),
             Map.entry("birth_of_venus", "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Sandro_Botticelli_-_La_nascita_di_Venere_-_Google_Art_Project_-_edited.jpg/720px-Sandro_Botticelli_-_La_nascita_di_Venere_-_Google_Art_Project_-_edited.jpg"),
-            Map.entry("american_gothic", "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg/720px-Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg"),
+            Map.entry("american_gothic", "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg/720px-Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg"),
 
             // Legendary expansion (public domain photography, cinema, posters)
             Map.entry("lunch_atop_skyscraper", "https://commons.wikimedia.org/wiki/Special:FilePath/Lunch_atop_a_Skyscraper.jpg"),
             Map.entry("migrant_mother", "https://commons.wikimedia.org/wiki/Special:FilePath/Lange-MigrantMother02.jpg"),
             Map.entry("aldrin_moon", "https://commons.wikimedia.org/wiki/Special:FilePath/Aldrin_Apollo_11.jpg"),
-            Map.entry("earthrise", "https://commons.wikimedia.org/wiki/Special:FilePath/AS08-14-2383.jpg"),
+            Map.entry("earthrise", "https://upload.wikimedia.org/wikipedia/commons/e/e0/AS08-14-2383.jpg"),
             Map.entry("blue_marble", "https://commons.wikimedia.org/wiki/Special:FilePath/The_Blue_Marble_(remastered).jpg"),
             Map.entry("nosferatu_orlok", "https://commons.wikimedia.org/wiki/Special:FilePath/Film_Nosferatu_(van_F,_SFA008003709.jpg"),
             Map.entry("metropolis_set", "https://commons.wikimedia.org/wiki/Special:FilePath/Horst_von_Harbou_-_Metropolis_set_photograph_10.jpg"),
@@ -88,63 +92,141 @@ public final class DownloadSampleImages {
         Files.createDirectories(outDir);
 
         HttpClient client = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(REQUEST_TIMEOUT_SECONDS))
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
 
         System.out.println("Downloading real images to " + outDir.toAbsolutePath());
 
-        // Picsum (nature, landscapes, etc.)
+        // Picsum (nature, landscapes, etc.) - cover crop is fine for photos.
         for (Map.Entry<String, Integer> e : PICSUM_IDS.entrySet()) {
             String id = e.getKey();
             String url = "https://picsum.photos/id/" + e.getValue() + "/" + W + "/" + H;
-            downloadAndSave(client, url, outDir.resolve(id + ".jpg"));
+            downloadAndSave(client, url, outDir.resolve(id + ".jpg"), ResizeMode.COVER);
         }
 
         // Secret
         for (Map.Entry<String, Integer> e : SECRET_PICSUM.entrySet()) {
             String id = e.getKey();
             String url = "https://picsum.photos/id/" + e.getValue() + "/" + W + "/" + H;
-            downloadAndSave(client, url, outDir.resolve(id + ".jpg"));
+            downloadAndSave(client, url, outDir.resolve(id + ".jpg"), ResizeMode.COVER);
         }
 
-        // Wikimedia (art) - persistence_of_memory may have copyright; use Picsum fallback
+        // Wikimedia (art) - use contain to avoid cropping key subjects
         for (Map.Entry<String, String> e : WIKIMEDIA_URLS.entrySet()) {
-            downloadAndSave(client, e.getValue(), outDir.resolve(e.getKey() + ".jpg"));
+            downloadAndSave(client, e.getValue(), outDir.resolve(e.getKey() + ".jpg"), ResizeMode.CONTAIN);
+            Thread.sleep(WIKIMEDIA_DELAY_MS);
         }
-        downloadAndSave(client, "https://picsum.photos/id/46/" + W + "/" + H, outDir.resolve("persistence_of_memory.jpg"));
+        downloadAndSave(client, "https://picsum.photos/id/46/" + W + "/" + H, outDir.resolve("persistence_of_memory.jpg"), ResizeMode.COVER);
 
         System.out.println("Done. Images from Unsplash (Picsum) and Wikimedia Commons.");
     }
 
-    private static void downloadAndSave(HttpClient client, String url, Path out) throws Exception {
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("User-Agent", "ArtEvolver-SampleDownloader/1.0")
-                .GET()
-                .build();
+    private static void downloadAndSave(HttpClient client, String url, Path out, ResizeMode resizeMode) throws Exception {
+        boolean triedProxy = false;
+        String primaryUrl = url;
+        for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(REQUEST_TIMEOUT_SECONDS))
+                    .header("User-Agent", "ArtEvolver-SampleDownloader/1.0")
+                    .GET()
+                    .build();
 
-        HttpResponse<byte[]> resp = client.send(req, HttpResponse.BodyHandlers.ofByteArray());
-        if (resp.statusCode() != 200) {
-            System.err.println("  FAIL " + out.getFileName() + " (HTTP " + resp.statusCode() + ")");
+            HttpResponse<byte[]> resp;
+            try {
+                resp = client.send(req, HttpResponse.BodyHandlers.ofByteArray());
+            } catch (java.net.http.HttpTimeoutException timeout) {
+                System.err.println("  FAIL " + out.getFileName() + " (timeout)");
+                if (attempt < MAX_RETRIES) {
+                    Thread.sleep(WIKIMEDIA_DELAY_MS * attempt);
+                    continue;
+                }
+                return;
+            }
+            if (resp.statusCode() != 200) {
+                System.err.println("  FAIL " + out.getFileName() + " (HTTP " + resp.statusCode() + ")");
+                if (resp.statusCode() == 429) {
+                    if (!triedProxy) {
+                        triedProxy = true;
+                        url = toProxyUrl(primaryUrl);
+                        Thread.sleep(WIKIMEDIA_DELAY_MS * attempt);
+                        continue;
+                    }
+                    if (attempt < MAX_RETRIES) {
+                        Thread.sleep(WIKIMEDIA_DELAY_MS * attempt);
+                        continue;
+                    }
+                }
+                return;
+            }
+
+            BufferedImage img = ImageIO.read(new ByteArrayInputStream(resp.body()));
+            if (img == null) {
+                System.err.println("  FAIL " + out.getFileName() + " (could not decode)");
+                if (attempt < MAX_RETRIES) {
+                    Thread.sleep(300L * attempt);
+                    continue;
+                }
+                return;
+            }
+
+            if (img.getWidth() != W || img.getHeight() != H) {
+                img = resizeMode == ResizeMode.CONTAIN
+                        ? resizeContain(img, W, H)
+                        : resizeCover(img, W, H);
+            }
+
+            ImageIO.write(img, "jpg", out.toFile());
+            System.out.println("  " + out.getFileName());
             return;
         }
+    }
 
-        BufferedImage img = ImageIO.read(new ByteArrayInputStream(resp.body()));
-        if (img == null) {
-            System.err.println("  FAIL " + out.getFileName() + " (could not decode)");
-            return;
-        }
+    private static BufferedImage resizeCover(BufferedImage src, int targetW, int targetH) {
+        double scale = Math.max(targetW / (double) src.getWidth(), targetH / (double) src.getHeight());
+        int scaledW = (int) Math.ceil(src.getWidth() * scale);
+        int scaledH = (int) Math.ceil(src.getHeight() * scale);
 
-        if (img.getWidth() != W || img.getHeight() != H) {
-            BufferedImage resized = new BufferedImage(W, H, BufferedImage.TYPE_INT_RGB);
-            Graphics2D g = resized.createGraphics();
-            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            g.drawImage(img, 0, 0, W, H, null);
-            g.dispose();
-            img = resized;
-        }
+        BufferedImage scaled = new BufferedImage(scaledW, scaledH, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = scaled.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g.drawImage(src, 0, 0, scaledW, scaledH, null);
+        g.dispose();
 
-        ImageIO.write(img, "jpg", out.toFile());
-        System.out.println("  " + out.getFileName());
+        int x = Math.max(0, (scaledW - targetW) / 2);
+        int y = Math.max(0, (scaledH - targetH) / 2);
+        BufferedImage out = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_RGB);
+        Graphics2D gOut = out.createGraphics();
+        gOut.drawImage(scaled, -x, -y, null);
+        gOut.dispose();
+        return out;
+    }
+
+    private static BufferedImage resizeContain(BufferedImage src, int targetW, int targetH) {
+        double scale = Math.min(targetW / (double) src.getWidth(), targetH / (double) src.getHeight());
+        int scaledW = (int) Math.floor(src.getWidth() * scale);
+        int scaledH = (int) Math.floor(src.getHeight() * scale);
+
+        BufferedImage out = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = out.createGraphics();
+        g.setColor(Color.BLACK);
+        g.fillRect(0, 0, targetW, targetH);
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        int x = (targetW - scaledW) / 2;
+        int y = (targetH - scaledH) / 2;
+        g.drawImage(src, x, y, scaledW, scaledH, null);
+        g.dispose();
+        return out;
+    }
+
+    private enum ResizeMode {
+        COVER,
+        CONTAIN
+    }
+
+    private static String toProxyUrl(String src) {
+        String stripped = src.replace("https://", "").replace("http://", "");
+        return "https://images.weserv.nl/?url=" + stripped;
     }
 }

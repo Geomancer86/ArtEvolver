@@ -37,14 +37,15 @@ public class PixelGrid {
      * at native resolution. Useful for previews without starting a game.
      */
     public static BufferedImage quantize(BufferedImage source, Color[] palette, int targetW, int targetH) {
+        return quantize(source, palette, targetW, targetH, false);
+    }
+
+    public static BufferedImage quantize(BufferedImage source, Color[] palette, int targetW, int targetH, boolean contain) {
         BufferedImage resized = source;
         if (source.getWidth() != targetW || source.getHeight() != targetH) {
-            resized = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_RGB);
-            Graphics2D g = resized.createGraphics();
-            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                               RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            g.drawImage(source, 0, 0, targetW, targetH, null);
-            g.dispose();
+            resized = contain
+                    ? resizeContain(source, targetW, targetH)
+                    : resizeCover(source, targetW, targetH);
         }
 
         int total = targetW * targetH;
@@ -81,7 +82,11 @@ public class PixelGrid {
      * Quantize and scale up for display. Uses the same scale factor as renderScaled().
      */
     public static BufferedImage quantizeScaled(BufferedImage source, Color[] palette, int targetW, int targetH) {
-        BufferedImage native_ = quantize(source, palette, targetW, targetH);
+        return quantizeScaled(source, palette, targetW, targetH, false);
+    }
+
+    public static BufferedImage quantizeScaled(BufferedImage source, Color[] palette, int targetW, int targetH, boolean contain) {
+        BufferedImage native_ = quantize(source, palette, targetW, targetH, contain);
         int scale = Math.max(1, 640 / targetW);
         if (scale <= 1) return native_;
 
@@ -93,6 +98,43 @@ public class PixelGrid {
         g.drawImage(native_, 0, 0, sw, sh, null);
         g.dispose();
         return img;
+    }
+
+    private static BufferedImage resizeCover(BufferedImage src, int targetW, int targetH) {
+        double scale = Math.max(targetW / (double) src.getWidth(), targetH / (double) src.getHeight());
+        int scaledW = (int) Math.ceil(src.getWidth() * scale);
+        int scaledH = (int) Math.ceil(src.getHeight() * scale);
+
+        BufferedImage scaled = new BufferedImage(scaledW, scaledH, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = scaled.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g.drawImage(src, 0, 0, scaledW, scaledH, null);
+        g.dispose();
+
+        int x = Math.max(0, (scaledW - targetW) / 2);
+        int y = Math.max(0, (scaledH - targetH) / 2);
+        BufferedImage out = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_RGB);
+        Graphics2D gOut = out.createGraphics();
+        gOut.drawImage(scaled, -x, -y, null);
+        gOut.dispose();
+        return out;
+    }
+
+    private static BufferedImage resizeContain(BufferedImage src, int targetW, int targetH) {
+        double scale = Math.min(targetW / (double) src.getWidth(), targetH / (double) src.getHeight());
+        int scaledW = (int) Math.floor(src.getWidth() * scale);
+        int scaledH = (int) Math.floor(src.getHeight() * scale);
+
+        BufferedImage out = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = out.createGraphics();
+        g.setColor(Color.BLACK);
+        g.fillRect(0, 0, targetW, targetH);
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        int x = (targetW - scaledW) / 2;
+        int y = (targetH - scaledH) / 2;
+        g.drawImage(src, x, y, scaledW, scaledH, null);
+        g.dispose();
+        return out;
     }
 
     /**

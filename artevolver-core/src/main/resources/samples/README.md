@@ -8,7 +8,7 @@
 
 ```bash
 # From project root
-download-samples.bat
+tools/download-samples.bat
 ```
 
 Or manually: `cd artevolver-core` then `mvn exec:java -Dexec.mainClass="com.rndmodgames.evolver.clicker.DownloadSampleImages"`
@@ -53,7 +53,7 @@ Resize to 720×468. Target **75–80%+ fitness** with Sherwin-Williams 4× palet
 
 ## Legendary Expansion (Public Domain)
 
-Additional public-domain legendary sets (downloaded via `download-samples.bat`):
+Additional public-domain legendary sets (downloaded via `tools/download-samples.bat`):
 
 - **Legendary Photography:** `lunch_atop_skyscraper`, `migrant_mother`, `aldrin_moon`
 - **Legendary Space:** `earthrise`, `blue_marble`

@@ -337,11 +337,8 @@ public class DashboardServer {
             BufferedImage sourceImage = resolveSourceImage(sampleId, ex);
             if (sourceImage == null) return;
 
-            BufferedImage resized = new BufferedImage(preset.getWidth(), preset.getHeight(), BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g2 = resized.createGraphics();
-            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            g2.drawImage(sourceImage, 0, 0, preset.getWidth(), preset.getHeight(), null);
-            g2.dispose();
+            boolean contain = shouldContainForPreset(preset);
+            BufferedImage resized = resizeForPreset(sourceImage, preset.getWidth(), preset.getHeight(), contain);
 
             String error = clickerState.initPixelMode(resized, preset, sampleId);
             if (error != null) {
@@ -589,8 +586,9 @@ public class DashboardServer {
             if (preset != null) {
                 Color[] palette = PaletteLoader.load(preset);
                 boolean isThumb = "1".equals(params.get("thumb"));
+                boolean contain = shouldContainForPreset(preset);
                 if (isThumb) {
-                    img = PixelGrid.quantize(img, palette, preset.getWidth(), preset.getHeight());
+                    img = PixelGrid.quantize(img, palette, preset.getWidth(), preset.getHeight(), contain);
                     int scale = Math.max(1, Math.min(120 / preset.getWidth(), 120 / preset.getHeight()));
                     if (scale < 1) scale = 1;
                     int tw = preset.getWidth() * scale, th = preset.getHeight() * scale;
@@ -602,7 +600,7 @@ public class DashboardServer {
                     g.dispose();
                     img = thumb;
                 } else {
-                    img = PixelGrid.quantizeScaled(img, palette, preset.getWidth(), preset.getHeight());
+                    img = PixelGrid.quantizeScaled(img, palette, preset.getWidth(), preset.getHeight(), contain);
                 }
                 ByteArrayOutputStream baos = new ByteArrayOutputStream(65536);
                 ImageIO.write(img, "png", baos);
@@ -645,6 +643,38 @@ public class DashboardServer {
             else map.put(pair, "");
         }
         return map;
+    }
+
+    private static boolean shouldContainForPreset(RetroPreset preset) {
+        String family = preset.getFamily();
+        return "gb".equals(family) || "snes".equals(family);
+    }
+
+    private static BufferedImage resizeForPreset(BufferedImage src, int targetW, int targetH, boolean contain) {
+        if (src.getWidth() == targetW && src.getHeight() == targetH) {
+            return src;
+        }
+        double scale = contain
+                ? Math.min(targetW / (double) src.getWidth(), targetH / (double) src.getHeight())
+                : Math.max(targetW / (double) src.getWidth(), targetH / (double) src.getHeight());
+        int scaledW = (int) Math.ceil(src.getWidth() * scale);
+        int scaledH = (int) Math.ceil(src.getHeight() * scale);
+
+        BufferedImage scaled = new BufferedImage(scaledW, scaledH, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = scaled.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g.drawImage(src, 0, 0, scaledW, scaledH, null);
+        g.dispose();
+
+        BufferedImage out = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D gOut = out.createGraphics();
+        gOut.setColor(Color.BLACK);
+        gOut.fillRect(0, 0, targetW, targetH);
+        int x = (targetW - scaledW) / 2;
+        int y = (targetH - scaledH) / 2;
+        gOut.drawImage(scaled, x, y, null);
+        gOut.dispose();
+        return out;
     }
 
     private void handleClickerComplete(HttpExchange ex) throws IOException {
@@ -1084,7 +1114,6 @@ public class DashboardServer {
         }
         if (boundary == null) return null;
 
-        byte[] sep = ("--" + boundary).getBytes(StandardCharsets.UTF_8);
         int start = indexOf(body, new byte[]{13, 10, 13, 10}, 0);
         if (start < 0) start = indexOf(body, new byte[]{10, 10}, 0);
         if (start < 0) return null;

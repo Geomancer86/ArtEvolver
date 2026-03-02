@@ -232,7 +232,6 @@ for each pixel (x, y):
 ```
 
 **If colors are freely assignable, the problem is solved in O(W×H) with zero evolution.**
-
 This would make the game meaningless. No clicks needed. No progression. Done.
 
 ### The Three Approaches

@@ -256,7 +256,7 @@ Each triangle in a drawing has exactly one color from the palette. Evolution ope
 reassigning colors to triangles, not by moving or reshaping them. The grid geometry is fixed
 for the lifetime of a run.
 
-### TriangleList\<E\>
+### TriangleList<E>
 
 `com.rndmodgames.evolver.TriangleList<E>` extends `ArrayList`
 
@@ -553,12 +553,12 @@ Per swap evaluation (in-place, no rendering):
 ```
 
 **Key methods:**
-- `computeSwapDelta(triA, triB)` — O(pixels_per_triangle) swap evaluation (~650 ops)
-- `trySwap(triA, triB)` — evaluate + accept if improving (hill-climbing)
-- `applySwapWithDelta(triA, triB, delta)` — commit with pre-computed delta
-- `getTriangleError(triIdx)` — per-triangle error for targeted mutation guidance
-- `getScore()` — convert totalDiff to 0..1 score (identical to AbstractEvolver.compare())
-- `syncFromTriangles()` — resync from TriangleList after external modifications
+- `computeSwapDelta(triA, triB)` -- O(pixels_per_triangle) swap evaluation (~650 ops)
+- `trySwap(triA, triB)` -- evaluate + accept if improving (hill-climbing)
+- `applySwapWithDelta(triA, triB, delta)` -- commit with pre-computed delta
+- `getTriangleError(triIdx)` -- per-triangle error for targeted mutation guidance
+- `getScore()` -- convert totalDiff to 0..1 score (identical to AbstractEvolver.compare())
+- `syncFromTriangles()` -- resync from TriangleList after external modifications
 
 **Performance:**
 - Score accuracy: exact match with full render+compare (0.00 difference)

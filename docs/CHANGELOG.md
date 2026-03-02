@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] (3.3.0-SNAPSHOT)
 
+### Changed — Retro Aspect Ratio Framing
+
+- **GBC/SNES letterbox framing**: Retro pixel previews and pixel mode now preserve source aspect ratio for Game Boy Color and SNES presets, adding black bars instead of stretching or cropping key subjects.
+- **Cover vs contain**: GB/SNES use contain framing; other presets keep cover scaling to avoid tiny images on wide-aspect consoles.
+
 ### Added — Save & Quit
 
 - **Save & Quit buttons**: When ascending or completing a masterpiece, a "Save & Quit" button is now available next to "New Canvas" (completion overlay) and "Begin" (init overlay). Saves progress with play time accumulated, then opens the profile selector so you can switch profiles or close the tab.
@@ -301,7 +306,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Click target restricted to image only**: Game clicks now register only on the `<img>`
   element, not the surrounding wrapper div. Prevents accidental clicks when interacting
   with fitness stats, streak display, buttons, or other center-column UI elements.
-
 - **`autoOpenDashboard` now persisted**: The "Auto-open browser dashboard" setting was
   not saved/loaded between sessions despite having a `SettingsManager` key. Fixed in
   both `saveEvoSettings()` and `loadEvoSettings()`.
@@ -535,6 +539,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **8 new preset strategies (16 total)**: Micro Surgeon, Chaos Engine, Gradient Chaser,
   Population Boom, Sniper, Blitz, Deep Grid, and Hybrid Adaptive. This doubles the
   diversity of preset injection, leading to faster discovery of effective algorithm combos
+  rather than higher throughput
+- **Parentage & Breed columns**: Tournament manager table now includes "Parentage" and
+  "Breed" columns showing full parent names and breeding method. Dashboard JSON also
+  exports `breedType` for the web leaderboard
 
 ### Added — Promoted Pool, Preset Injection & Fast Lifespan
 
@@ -611,12 +619,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Settings UI allows 5s minimum**: Cutoff interval spinner now starts at 5s with 5s step
 
 ### Fixed — Autopilot CPU Saturation & Contestant Initialization
+
 - **Contestants no longer stuck at "initializing"**: `TournamentContestant.initializeWithImage()`
   now renders an initial best image immediately after triangle initialization, so the UI
   always shows the starting state instead of a blank placeholder
 - **CPU saturation fixed**: Autopilot was spawning contestants every refresh tick (~1s) without
   any cooldown. Now enforces a 10-second cooldown between spawns, tracks actual thread counts
   against a hard budget (75% of cores * CPU limit), and checks both process AND system CPU
+  (SystemMonitor) for safe headroom before spawning new contestants
 - **Gradual resource ramp-up**: Instead of filling all available CPU immediately, the autopilot
   starts conservatively (60% thread budget initially) and only adds new contestants when both
   the cooldown has passed AND resources are genuinely available
@@ -700,7 +710,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dashboard button** on Tournament Manager status bar — launches the browser dashboard
 
 ### Added — System Monitor, Autopilot & Smart Test Profiles
-
 - **SystemMonitor.java**: Real-time CPU, RAM (heap + physical), disk, and thread
   monitoring using JMX and `java.lang.management`. All metrics exposed as percentages
   and formatted strings for both programmatic and UI use.
@@ -1171,7 +1180,7 @@ before proving their parameter quality, since they always started at fitness 0.
 ### Added
 - **Smart Initialization**: greedy nearest-color assignment based on source image analysis
   - Each triangle's centroid region is sampled (7-point sampling) from the source image
-  - Palette colors are assigned by minimizing RGB distance to target, prioritizing high-saturation regions
+  - Palette colors are assigned by minimizing RGB distance to target, prioritizing high-saturation regions first.
   - Initial fitness jumps from ~0.49 (random) to ~0.51+ immediately
   - Controlled by `ImageEvolver.SMART_INITIALIZATION` flag (default: true)
 - **Targeted Swap mutation**: source-image-guided color swapping
@@ -1198,7 +1207,7 @@ before proving their parameter quality, since they always started at fitness 0.
 - Version bump to 3.1.0-SNAPSHOT across all POMs
 - Window title updated to "ArtEvolver v3.1"
 - start.bat / start.sh: one-click launcher with Java/Maven detection, auto-build, and --rebuild flag
-- benchmark.bat / benchmark.sh: interactive benchmark runner with menu-driven test selection
+- tools/benchmark.bat / tools/benchmark.sh: interactive benchmark runner with menu-driven test selection
 - exec-maven-plugin configuration for `mvn exec:java` support
 
 ### Changed

@@ -12,8 +12,8 @@
 | `start.sh` | Full ArtEvolver GUI (Linux/Mac) | ✓ Same |
 | `clicker.bat` | Evolution Clicker (browser) | ✓ mvn exec:java --clicker |
 | `clicker.sh` | Evolution Clicker (Linux/Mac) | ✓ Same |
-| `benchmark.bat` | Benchmark runner | ✓ Passed with BenchmarkTest#quickBenchmark |
-| `benchmark.sh` | Benchmark runner (Linux/Mac) | ✓ Same logic |
+| `tools/benchmark.bat` | Benchmark runner | ✓ Passed with BenchmarkTest#quickBenchmark |
+| `tools/benchmark.sh` | Benchmark runner (Linux/Mac) | ✓ Same logic |
 
 **Version**: All scripts read `project.version` from POM via `mvn help:evaluate`. With 3.2.0, they display "ArtEvolver 3.2.0".
 
@@ -27,8 +27,8 @@
 2. **clicker.bat** (Windows): Double-click or `clicker.bat` → Browser opens to clicker, drop image, play.
 3. **start.sh** (Linux/Mac): `./start.sh` → Same as start.bat.
 4. **clicker.sh** (Linux/Mac): `./clicker.sh` → Same as clicker.bat.
-5. **benchmark.bat**: `benchmark.bat BenchmarkTest#quickBenchmark` or run interactively (choice 1).
-6. **benchmark.sh**: Same.
+5. **tools/benchmark.bat**: `tools/benchmark.bat BenchmarkTest#quickBenchmark` or run interactively (choice 1).
+6. **tools/benchmark.sh**: Same.
 
 ---
 
@@ -36,4 +36,4 @@
 
 - `mvn compile -pl artevolver-core` — **PASS**
 - `mvn test -pl artevolver-core` — **PASS**
-- `benchmark.bat BenchmarkTest#quickBenchmark` — **PASS** (displays ArtEvolver 3.2.0)
+- `tools/benchmark.bat BenchmarkTest#quickBenchmark` — **PASS** (displays ArtEvolver 3.2.0)
